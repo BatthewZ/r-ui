@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en" data-density="comfortable">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Platform Overview</title>
+    <meta name="description" content="Dashboard mockup for a density / input / container / scheme token system." />
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="app.css" />
+    <script>
+      /* Apply saved view settings before first paint, so there is no flash. */
+      try {
+        const v = JSON.parse(localStorage.getItem("rd-view") || "{}");
+        const h = document.documentElement;
+        if (v.density) h.dataset.density = v.density;
+        if (v.scheme && v.scheme !== "auto") h.dataset.scheme = v.scheme;
+        if (v.input && v.input !== "auto") h.dataset.input = v.input;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <!-- Icon sprite: 24px grid, 2px strokes, currentColor. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+        <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+        <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17h.01"/></symbol>
+        <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2"/><path d="M9 15 6 12l2-4h5l3-3c1.5-1.5 5-2 5-2s-.5 3.5-2 5l-3 3v5l-4 2-3-3"/><circle cx="15" cy="9" r="1.5"/></symbol>
+        <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+        <symbol id="i-logs" viewBox="0 0 24 24"><path d="M4 6h16M4 10h10M4 14h16M4 18h8"/></symbol>
+        <symbol id="i-trace" viewBox="0 0 24 24"><path d="M4 6h8M8 12h10M6 18h6"/><path d="M4 4v16"/></symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9 7 7M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></symbol>
+        <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+        <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+        <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+        <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+        <symbol id="i-flat" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+        <symbol id="i-good" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.8 2.8L16.5 9.5"/></symbol>
+        <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17h.01"/></symbol>
+        <symbol id="i-serious" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/></symbol>
+        <symbol id="i-critical" viewBox="0 0 24 24"><path d="M8.2 2.5h7.6l5.7 5.7v7.6l-5.7 5.7H8.2l-5.7-5.7V8.2Z"/><path d="m9 9 6 6M15 9l-6 6"/></symbol>
+        <symbol id="i-stale" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+        <symbol id="i-rollback" viewBox="0 0 24 24"><path d="M4 9h11a5 5 0 0 1 0 10H9"/><path d="m8 5-4 4 4 4"/></symbol>
+        <symbol id="i-progress" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/></symbol>
+      </defs>
+    </svg>
+
+    <a class="skip" href="#main">Skip to content</a>
+
+    <div class="shell">
+      <aside class="sidebar" aria-label="Primary">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">K</span>
+          <span class="brand-name">Kestrel Cloud</span>
+        </div>
+        <nav class="nav">
+          <a class="nav-item is-active" href="#" aria-current="page" title="Overview"><svg class="icon"><use href="#i-grid"/></svg><span>Overview</span></a>
+          <a class="nav-item" href="#" title="Services"><svg class="icon"><use href="#i-server"/></svg><span>Services</span></a>
+          <a class="nav-item" href="#" title="Incidents"><svg class="icon"><use href="#i-alert"/></svg><span>Incidents</span><b class="count" data-bind="open-incidents">4</b></a>
+          <a class="nav-item" href="#" title="Deploys"><svg class="icon"><use href="#i-rocket"/></svg><span>Deploys</span></a>
+          <a class="nav-item" href="#" title="SLOs"><svg class="icon"><use href="#i-target"/></svg><span>SLOs</span></a>
+          <a class="nav-item" href="#" title="Logs"><svg class="icon"><use href="#i-logs"/></svg><span>Logs</span></a>
+          <a class="nav-item" href="#" title="Traces"><svg class="icon"><use href="#i-trace"/></svg><span>Traces</span></a>
+          <a class="nav-item nav-item--end" href="#" title="Settings"><svg class="icon"><use href="#i-settings"/></svg><span>Settings</span></a>
+        </nav>
+      </aside>
+
+      <div class="page">
+        <header class="topbar">
+          <div class="topbar-title">
+            <h1>Platform overview</h1>
+            <span class="env-pill" data-bind="env-label">production</span>
+          </div>
+          <label class="search">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" placeholder="Search services, incidents…" aria-label="Search" />
+          </label>
+          <div class="view-menu">
+            <button class="btn btn--ghost" type="button" aria-expanded="false" aria-controls="view-panel" id="view-toggle">
+              <svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg><span class="btn-label">View</span>
+            </button>
+            <div class="popover" id="view-panel" hidden>
+              <fieldset class="field">
+                <legend>Scheme</legend>
+                <div class="seg" data-control="scheme">
+                  <button type="button" data-value="auto">Auto</button>
+                  <button type="button" data-value="light">Light</button>
+                  <button type="button" data-value="dark">Dark</button>
+                </div>
+              </fieldset>
+              <fieldset class="field">
+                <legend>Input</legend>
+                <div class="seg" data-control="input">
+                  <button type="button" data-value="auto">Auto</button>
+                  <button type="button" data-value="fine">Mouse</button>
+                  <button type="button" data-value="coarse">Touch</button>
+                </div>
+              </fieldset>
+              <fieldset class="field">
+                <legend>Density</legend>
+                <div class="seg" data-control="density">
+                  <button type="button" data-value="comfortable">Comfortable</button>
+                  <button type="button" data-value="compact">Compact</button>
+                </div>
+              </fieldset>
+              <dl class="axes" aria-live="polite">
+                <div><dt>Layout</dt><dd data-axis="layout"></dd></div>
+                <div><dt>Scheme</dt><dd data-axis="scheme"></dd></div>
+                <div><dt>Input</dt><dd data-axis="input"></dd></div>
+                <div><dt>Density</dt><dd data-axis="density"></dd></div>
+                <div><dt>--ROW-H</dt><dd data-axis="row"></dd></div>
+                <div><dt>--CONTROL-H</dt><dd data-axis="control"></dd></div>
+                <div><dt>--BodyText-2</dt><dd data-axis="body"></dd></div>
+              </dl>
+            </div>
+          </div>
+          <span class="avatar" aria-label="Signed in as Ben M">BM</span>
+        </header>
+
+        <div class="filters" role="toolbar" aria-label="Filters">
+          <div class="seg" data-control="range" aria-label="Time range">
+            <button type="button" data-value="24h">24h</button>
+            <button type="button" data-value="7d">7d</button>
+            <button type="button" data-value="30d">30d</button>
+            <button type="button" data-value="90d">90d</button>
+          </div>
+          <label class="select">
+            <span class="sr-only">Region</span>
+            <select data-control="region">
+              <option value="all">All regions</option>
+              <option value="0">us-east</option>
+              <option value="1">eu-west</option>
+              <option value="2">ap-south</option>
+              <option value="3">sa-east</option>
+            </select>
+          </label>
+          <label class="select">
+            <span class="sr-only">Environment</span>
+            <select data-control="env">
+              <option value="production">Production</option>
+              <option value="staging">Staging</option>
+            </select>
+          </label>
+          <span class="updated" data-bind="updated">Updated just now</span>
+          <div class="seg seg--density" data-control="density" aria-label="Density">
+            <button type="button" data-value="comfortable">Comfortable</button>
+            <button type="button" data-value="compact">Compact</button>
+          </div>
+        </div>
+
+        <main id="main" class="board">
+          <section class="area-kpi kpis" aria-label="Key metrics" data-slot="kpis"></section>
+
+          <section class="card area-traffic" aria-labelledby="t-traffic">
+            <header class="card-head">
+              <div>
+                <h2 id="t-traffic">Requests by region</h2>
+                <p class="card-sub">Requests per second, averaged per interval</p>
+              </div>
+            </header>
+            <div class="legend" data-slot="traffic-legend"></div>
+            <div class="chart" data-slot="traffic" tabindex="0" role="img" aria-label="Line chart of requests per second by region. Use arrow keys to inspect values."></div>
+            <details class="data-view"><summary>View as table</summary><div data-slot="traffic-table"></div></details>
+          </section>
+
+          <section class="card area-incidents" aria-labelledby="t-incidents">
+            <header class="card-head">
+              <h2 id="t-incidents">Open incidents</h2>
+              <a class="link" href="#">All incidents</a>
+            </header>
+            <ul class="incidents" data-slot="incidents"></ul>
+          </section>
+
+          <section class="card area-errors" aria-labelledby="t-errors">
+            <header class="card-head">
+              <div>
+                <h2 id="t-errors">Error responses</h2>
+                <p class="card-sub">By error class, per interval</p>
+              </div>
+            </header>
+            <div class="legend" data-slot="errors-legend"></div>
+            <div class="chart" data-slot="errors" tabindex="0" role="img" aria-label="Stacked column chart of error responses by class. Use arrow keys to inspect values."></div>
+            <details class="data-view"><summary>View as table</summary><div data-slot="errors-table"></div></details>
+          </section>
+
+          <section class="card area-heat" aria-labelledby="t-heat">
+            <header class="card-head">
+              <div>
+                <h2 id="t-heat">5xx errors by hour</h2>
+                <p class="card-sub">Last 7 days, local time</p>
+              </div>
+              <div class="seq-key" aria-hidden="true"><span>Fewer</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><span>More</span></div>
+            </header>
+            <div class="heat" data-slot="heat"></div>
+            <details class="data-view"><summary>View as table</summary><div data-slot="heat-table"></div></details>
+          </section>
+
+          <section class="card area-slow" aria-labelledby="t-slow">
+            <header class="card-head">
+              <div>
+                <h2 id="t-slow">Slowest endpoints</h2>
+                <p class="card-sub">p95 latency, ms</p>
+              </div>
+            </header>
+            <ol class="bars" data-slot="slow"></ol>
+          </section>
+
+          <section class="card area-services" aria-labelledby="t-services">
+            <header class="card-head">
+              <h2 id="t-services">Services</h2>
+              <div class="mini-stats" data-slot="service-counts"></div>
+            </header>
+            <div class="table-wrap">
+              <table class="table" data-slot="services"></table>
+            </div>
+          </section>
+
+          <section class="card area-slo" aria-labelledby="t-slo">
+            <header class="card-head">
+              <div>
+                <h2 id="t-slo">Error budget remaining</h2>
+                <p class="card-sub">30-day rolling window</p>
+              </div>
+            </header>
+            <ul class="slos" data-slot="slo"></ul>
+          </section>
+
+          <section class="card area-deploys" aria-labelledby="t-deploys">
+            <header class="card-head">
+              <h2 id="t-deploys">Recent deploys</h2>
+              <a class="link" href="#">Deploy log</a>
+            </header>
+            <ul class="deploys" data-slot="deploys"></ul>
+          </section>
+        </main>
+      </div>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <a href="#" class="is-active" aria-current="page"><svg class="icon"><use href="#i-grid"/></svg><span>Overview</span></a>
+        <a href="#"><svg class="icon"><use href="#i-server"/></svg><span>Services</span></a>
+        <a href="#"><svg class="icon"><use href="#i-alert"/></svg><span>Incidents</span></a>
+        <a href="#"><svg class="icon"><use href="#i-rocket"/></svg><span>Deploys</span></a>
+        <a href="#"><svg class="icon"><use href="#i-more"/></svg><span>More</span></a>
+      </nav>
+    </div>
+
+    <div class="tooltip" role="tooltip" hidden></div>
+    <span class="probe" aria-hidden="true"></span>
+
+    <script src="app.js"></script>
+  </body>
+</html>

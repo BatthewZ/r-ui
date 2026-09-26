@@ -1,0 +1,217 @@
+/* ==========================================================================
+   Response UI, dashboard edition: the token layer.
+
+   Same idea as response-ui-css: one token per role, markup never says `sm:`.
+   The difference is WHAT a token responds to. There are four independent
+   axes, and the viewport is not one of them:
+
+     1. Scheme     light / dark     html[data-scheme]  or the OS setting
+     2. Density    comfortable / compact   [data-density] on ANY element
+     3. Input      fine / coarse    @media (pointer) or html[data-input]
+     4. Container  the widget's own width  cqi units, resolved per widget
+
+   The viewport only decides layout (grid areas, sidebar mode). It may choose
+   WHICH token the shell uses, but it never redefines a token.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Axis 1: scheme. One declaration per token, with light-dark() picking the
+   value, so there is no duplicated dark block to drift out of sync.
+   -------------------------------------------------------------------------- */
+:root {
+  color-scheme: light dark;
+}
+:root[data-scheme="light"] {
+  color-scheme: light;
+}
+:root[data-scheme="dark"] {
+  color-scheme: dark;
+}
+
+:root {
+  /* Surfaces: 0 = raised card, canvas = page floor, 1-3 recess into a card. */
+  --C-CANVAS: light-dark(#f2f2ef, #0d0d0d);
+  --C-SURFACE-0: light-dark(#fdfdfc, #1a1a19);
+  --C-SURFACE-1: light-dark(#f5f5f2, #20201f);
+  --C-SURFACE-2: light-dark(#ecebe7, #2a2a28);
+  --C-SURFACE-3: light-dark(#e1e0d9, #353532);
+
+  /* Text: every value was contrast-checked on SURFACE-0 and SURFACE-2. */
+  --C-TEXT-PRIMARY: light-dark(#0b0b0b, #ffffff);
+  --C-TEXT-SECONDARY: light-dark(#52514e, #c3c2b7);
+  --C-TEXT-MUTED: light-dark(#6b6a65, #9b9a92);
+  --C-TEXT-ON-INK: light-dark(#fdfdfc, #0b0b0b);
+
+  --C-BORDER: light-dark(rgb(11 11 11 / 0.1), rgb(255 255 255 / 0.1));
+  --C-BORDER-STRONG: light-dark(rgb(11 11 11 / 0.22), rgb(255 255 255 / 0.22));
+  --C-FOCUS: light-dark(#1c5cab, #6da7ec);
+
+  /* UI selection is INK, not a hue, so it never impersonates a chart series. */
+  --C-INK: var(--C-TEXT-PRIMARY);
+
+  /* Chart chrome */
+  --C-GRID: light-dark(#e1e0d9, #2c2c2a);
+  --C-AXIS: light-dark(#c3c2b7, #45453f);
+
+  /* Categorical series: fixed order, validated for CVD in both schemes.
+     Assign by entity, never by rank. */
+  --C-SERIES-1: light-dark(#2a78d6, #3987e5);
+  --C-SERIES-2: light-dark(#eb6834, #d95926);
+  --C-SERIES-3: light-dark(#1baf7a, #199e70);
+  --C-SERIES-4: light-dark(#eda100, #c98500);
+  --C-SERIES-5: light-dark(#e87ba4, #d55181);
+  --C-SERIES-6: light-dark(#008300, #008300);
+  --C-SERIES-7: light-dark(#4a3aa7, #9085e9);
+  --C-SERIES-8: light-dark(#e34948, #e66767);
+
+  /* Sequential (magnitude): one hue. q1 always recedes toward the surface,
+     so the dark scheme walks the ramp the other way. */
+  --C-SEQ-1: light-dark(#cde2fb, #0d366b);
+  --C-SEQ-2: light-dark(#9ec5f4, #104281);
+  --C-SEQ-3: light-dark(#6da7ec, #184f95);
+  --C-SEQ-4: light-dark(#3987e5, #1c5cab);
+  --C-SEQ-5: light-dark(#256abf, #2a78d6);
+  --C-SEQ-6: light-dark(#184f95, #5598e7);
+  --C-SEQ-7: light-dark(#0d366b, #9ec5f4);
+
+  /* Status: MARKS ONLY (dots, icons, meter fills). Always paired with an
+     icon and a text label; the label itself stays in a text token. These are
+     deliberately different steps from the series, so status never reads as
+     "series 4". `stale` is the state response-ui-css had no word for. */
+  --C-STATUS-GOOD: #0ca30c;
+  --C-STATUS-WARNING: #fab219;
+  --C-STATUS-SERIOUS: #ec835a;
+  --C-STATUS-CRITICAL: #d03b3b;
+  --C-STATUS-STALE: #898781;
+
+  /* Trend: TEXT-safe (4.5:1 or better) and keyed to SENTIMENT, not direction.
+     "Error rate down" is good news, so it gets --C-TREND-GOOD. */
+  --C-TREND-GOOD: light-dark(#006300, #3fbf3f);
+  --C-TREND-BAD: light-dark(#b3261e, #f07070);
+  --C-TREND-FLAT: var(--C-TEXT-SECONDARY);
+
+  --FONT-UI: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --FONT-MONO: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+
+  --RADIUS-SM: 0.25rem;
+  --RADIUS-MD: 0.375rem;
+  --RADIUS-LG: 0.5rem;
+
+  --SHADOW-POP: 0 1px 2px rgb(0 0 0 / 0.08), 0 8px 24px rgb(0 0 0 / 0.14);
+  --DURATION-FAST: 120ms;
+}
+
+/* --------------------------------------------------------------------------
+   Axis 2: density. A flat scale: the type range is 11 to 24px, not 12 to 64.
+   Declared on `[data-density]`, not only on :root, so a single card can be
+   compact inside a comfortable page.
+   -------------------------------------------------------------------------- */
+:root,
+[data-density="comfortable"] {
+  /* Spacing: 1 = largest, as in response-ui-css. */
+  --R-SIZE-1: 1.5rem;
+  --R-SIZE-2: 1rem;
+  --R-SIZE-3: 0.75rem;
+  --R-SIZE-4: 0.5rem;
+  --R-SIZE-5: 0.375rem;
+  --R-SIZE-6: 0.25rem;
+
+  --H1: 1.5rem;
+  --H1-line-height: 2rem;
+  --H2: 1.125rem;
+  --H2-line-height: 1.5rem;
+  --H3: 0.9375rem;
+  --H3-line-height: 1.375rem;
+  --H4: 0.8125rem;
+  --H4-line-height: 1.25rem;
+
+  --BodyText-1: 0.875rem;
+  --BodyText-1-line-height: 1.25rem;
+  --BodyText-2: 0.8125rem;
+  --BodyText-2-line-height: 1.125rem;
+  --BodyText-3: 0.75rem;
+  --BodyText-3-line-height: 1rem;
+
+  /* Component metrics. The -D suffix means "density's opinion"; the final
+     token is derived below once the input axis has had its say. */
+  --ROW-H-D: 2.5rem;
+  --CONTROL-H-D: 2.25rem;
+  --CHART-H: 13.5rem;
+  --BAR-THICK: 1rem;
+  --HEAT-CELL: 1.125rem;
+  --ICON: 1.125rem;
+  --KPI-MIN: 1.375rem;
+  --KPI-MAX: 2.25rem;
+}
+
+[data-density="compact"] {
+  --R-SIZE-1: 1rem;
+  --R-SIZE-2: 0.75rem;
+  --R-SIZE-3: 0.5rem;
+  --R-SIZE-4: 0.375rem;
+  --R-SIZE-5: 0.25rem;
+  --R-SIZE-6: 0.125rem;
+
+  --H1: 1.25rem;
+  --H1-line-height: 1.75rem;
+  --H2: 1rem;
+  --H2-line-height: 1.375rem;
+  --H3: 0.875rem;
+  --H3-line-height: 1.25rem;
+  --H4: 0.75rem;
+  --H4-line-height: 1.125rem;
+
+  --BodyText-1: 0.8125rem;
+  --BodyText-1-line-height: 1.125rem;
+  --BodyText-2: 0.75rem;
+  --BodyText-2-line-height: 1rem;
+  --BodyText-3: 0.6875rem;
+  --BodyText-3-line-height: 0.9375rem;
+
+  --ROW-H-D: 1.875rem;
+  --CONTROL-H-D: 1.75rem;
+  --CHART-H: 10.5rem;
+  --BAR-THICK: 0.625rem;
+  --HEAT-CELL: 0.75rem;
+  --ICON: 1rem;
+  --KPI-MIN: 1.125rem;
+  --KPI-MAX: 1.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Axis 3: input. A touch screen gets a hit-target floor. The same guard
+   pattern as the scheme lets html[data-input] force either way (for demos).
+   -------------------------------------------------------------------------- */
+:root {
+  --HIT-MIN: 1.5rem;
+}
+@media (pointer: coarse) {
+  :root:not([data-input="fine"]) {
+    --HIT-MIN: 2.75rem;
+  }
+}
+:root[data-input="coarse"] {
+  --HIT-MIN: 2.75rem;
+}
+
+/* --------------------------------------------------------------------------
+   Derived tokens: where the axes meet.
+
+   Declared on `[data-density]` as well as :root ON PURPOSE. An unregistered
+   custom property substitutes its var()s on the element that declares it, then
+   inherits the RESULT. Declared on :root alone, --ROW-H would bake in the
+   root's density, and a compact card would keep comfortable rows. Declaring
+   it again at every density boundary re-derives it there.
+   -------------------------------------------------------------------------- */
+:root,
+[data-density] {
+  --ROW-H: max(var(--ROW-H-D), var(--HIT-MIN));
+  --CONTROL-H: max(var(--CONTROL-H-D), var(--HIT-MIN));
+
+  /* Axis 4: container. `cqi` stays unresolved inside the custom property and
+     resolves where it is USED, against that element's nearest container. So
+     this one declaration gives a 180px tile and a 400px tile different sizes
+     on the same monitor. With no container ancestor it falls back to the
+     viewport, which is a sensible default. */
+  --KPI-VALUE: clamp(var(--KPI-MIN), calc(var(--KPI-MIN) * 0.5 + 7cqi), var(--KPI-MAX));
+}
