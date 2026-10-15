@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>r-ui-css specimen</title>
+    <link rel="stylesheet" href="dist/specimen.css" />
+    <style>
+      /* Specimen-only layout helpers. Everything else on this page is package utilities. */
+      .sp-grid {
+        display: grid;
+        gap: var(--R-SIZE-2);
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+      }
+      .sp-split {
+        display: grid;
+        gap: var(--R-SIZE-1);
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+        align-items: start;
+      }
+      .sp-section + .sp-section {
+        border-block-start: 1px solid var(--C-BORDER);
+      }
+    </style>
+  </head>
+  <body class="min-h-dvh bg-canvas">
+    <header class="top-0 z-10 border-b bg-surface-0 sm:sticky">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-r1 gap-y-r4 px-gutter py-r4">
+        <p class="flex items-baseline gap-r5">
+          <span class="text-h4 font-semibold">r-ui-css</span>
+          <span class="text-body-2 text-fg-muted">specimen</span>
+        </p>
+        <form class="flex flex-wrap items-center gap-x-r2 gap-y-r4" id="controls">
+          <label class="flex items-center gap-r4 text-body-2 text-fg-secondary">
+            Theme
+            <select id="theme" class="h-control rounded-md border border-border-strong bg-surface-0 px-r4 text-body-1 text-fg-primary"></select>
+          </label>
+          <fieldset class="flex items-center gap-r4">
+            <legend class="sr-only">Density</legend>
+            <span class="text-body-2 text-fg-secondary" aria-hidden="true">Density</span>
+            <div class="flex rounded-md border border-border-strong p-r6" role="radiogroup" aria-label="Density" id="density">
+              <button type="button" role="radio" data-value="comfortable" class="h-[calc(var(--CONTROL-H)-2*var(--R-SIZE-6)-2px)] rounded-sm px-r4 text-body-2 font-medium text-fg-secondary aria-checked:bg-primary aria-checked:text-fg-on-primary">Comfortable</button>
+              <button type="button" role="radio" data-value="compact" class="h-[calc(var(--CONTROL-H)-2*var(--R-SIZE-6)-2px)] rounded-sm px-r4 text-body-2 font-medium text-fg-secondary aria-checked:bg-primary aria-checked:text-fg-on-primary">Compact</button>
+            </div>
+          </fieldset>
+          <label class="flex items-center gap-r4 text-body-2 text-fg-secondary">
+            Input
+            <select id="input" class="h-control rounded-md border border-border-strong bg-surface-0 px-r4 text-body-1 text-fg-primary">
+              <option value="">Auto</option>
+              <option value="fine">Fine</option>
+              <option value="coarse">Coarse</option>
+            </select>
+          </label>
+        </form>
+        <p class="ms-auto font-mono text-body-3 text-fg-muted" id="readout"></p>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-gutter">
+      <!-- Intro, in prose: the fluid display scale. -->
+      <section class="sp-section py-section-2" data-prose>
+        <p class="text-body-2 font-medium text-fg-accent">Token contract, theme contract, four axes</p>
+        <h1>Quiet by default, clear by design.</h1>
+        <p class="max-w-measure text-prose-1 text-fg-secondary">
+          Every surface, colour and size on this page comes from a token. Switch the theme, the density and the
+          input above: components never change, only the values they read.
+        </p>
+      </section>
+
+      <!-- Surfaces and text -->
+      <section class="sp-section py-r1" aria-labelledby="h-surfaces">
+        <h2 id="h-surfaces">Surfaces and text</h2>
+        <p class="mt-r5 max-w-measure text-fg-secondary">
+          Rung 0 is the most raised, 3 the most recessed; the canvas sits between 1 and 2. Every text role reads on
+          every rung.
+        </p>
+        <div class="sp-grid mt-r2" id="surfaces"></div>
+      </section>
+
+      <!-- Roles -->
+      <section class="sp-section py-r1" aria-labelledby="h-roles">
+        <h2 id="h-roles">Action, accent, focus, selection</h2>
+        <div class="sp-split mt-r2">
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>Primary action</h3>
+            <div class="mt-r3 flex flex-wrap items-center gap-r4">
+              <button class="h-control rounded-md bg-primary px-r3 font-medium text-fg-on-primary transition-colors hover:bg-primary-hover active:bg-primary-active">Save changes</button>
+              <span class="flex h-control items-center rounded-md bg-primary-hover px-r3 font-medium text-fg-on-primary">Hover</span>
+              <span class="flex h-control items-center rounded-md bg-primary-active px-r3 font-medium text-fg-on-primary">Active</span>
+              <button class="h-control rounded-md border bg-surface-0 px-r3 font-medium transition-colors hover:bg-surface-2">Cancel</button>
+              <button class="h-control rounded-md bg-primary px-r3 font-medium text-fg-on-primary opacity-disabled" disabled>Disabled</button>
+            </div>
+            <h3 class="mt-r1">Accent</h3>
+            <div class="mt-r3 flex flex-wrap items-center gap-r4">
+              <button class="h-control rounded-md bg-accent px-r3 font-medium text-fg-on-accent transition-colors hover:bg-accent-hover">Accent fill</button>
+              <a href="#h-roles" class="text-fg-accent underline decoration-from-font underline-offset-2">A text link</a>
+              <span class="flex items-center gap-r5 text-fg-secondary"><span class="h-r3 w-[2px] rounded-full bg-accent"></span> You are here</span>
+            </div>
+          </div>
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>Focus</h3>
+            <div class="mt-r3 flex flex-wrap items-center gap-r2">
+              <span class="focus-ring flex h-control items-center rounded-md border bg-surface-0 px-r3 font-medium">Focused (forced)</span>
+              <span class="focus-ring flex h-control items-center rounded-md bg-primary px-r3 font-medium text-fg-on-primary">On a fill</span>
+            </div>
+            <h3 class="mt-r1">Selection</h3>
+            <ul class="mt-r3 overflow-hidden rounded-md border" role="listbox" aria-label="Selection sample">
+              <li role="option" aria-selected="false" class="flex h-row items-center justify-between px-r3">Revenue <span class="text-fg-secondary">$12,480</span></li>
+              <li role="option" aria-selected="true" class="flex h-row items-center justify-between border-y bg-selection px-r3 text-fg-on-selection shadow-[inset_2px_0_0_var(--C-ACCENT)]">Active users <span class="text-fg-secondary">3,204</span></li>
+              <li role="option" aria-selected="false" class="flex h-row items-center justify-between px-r3">Churn <span class="text-fg-secondary">1.8%</span></li>
+            </ul>
+            <p class="mt-r3 text-body-2 text-fg-secondary">Select this sentence to see the text-selection pair.</p>
+            <h3 class="mt-r1">Inverse</h3>
+            <span class="mt-r3 inline-flex rounded-sm bg-fg-primary px-r4 py-r6 text-body-2 text-fg-inverse shadow-sm">Tooltip: inverse text on primary ink</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Status -->
+      <section class="sp-section py-r1" aria-labelledby="h-status">
+        <h2 id="h-status">Status</h2>
+        <p class="mt-r5 max-w-measure text-fg-secondary">
+          Each status is a triple: a mark (icons, dots, fills), text-safe ink, and a subtle background. Always with an
+          icon and a label, never colour alone.
+        </p>
+        <div class="sp-grid mt-r2" id="status"></div>
+      </section>
+
+      <!-- Type: UI vs prose -->
+      <section class="sp-section py-r1" aria-labelledby="h-type">
+        <h2 id="h-type">Type: two scales, split by role</h2>
+        <div class="sp-split mt-r2">
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>UI scale <span class="text-body-2 font-normal text-fg-muted">density-driven, flat</span></h3>
+            <dl class="mt-r3 divide-y" id="ui-type"></dl>
+          </div>
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>Prose / display <span class="text-body-2 font-normal text-fg-muted">fluid, density-independent</span></h3>
+            <dl class="mt-r3 divide-y" id="prose-type"></dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- Prose region with UI inside -->
+      <section class="sp-section py-r1" aria-labelledby="h-prose">
+        <h2 id="h-prose">A prose region, with UI inside it</h2>
+        <article class="prose mt-r2 rounded-xl border bg-surface-0 px-gutter py-section-3" id="prose">
+          <div class="max-w-measure">
+            <h2>Ship the dashboard and the landing page from one contract</h2>
+            <p class="text-prose-1 text-fg-secondary">The prose scale is fluid and reads at a comfortable measure. The UI scale stays flat and tight.</p>
+            <p>
+              Long-form text gets reading leading and proportional figures: 1,204 visitors in 2025. Links use the
+              <a href="#h-prose">accent ink</a>, and <code>inline code</code> sits in a quiet well. Density never
+              changes this text; it changes the controls.
+            </p>
+            <div class="mt-r2 flex flex-wrap items-center gap-r4">
+              <button id="prose-button" class="h-control rounded-md bg-primary px-r3 font-medium text-fg-on-primary transition-colors hover:bg-primary-hover">Start free trial</button>
+              <button class="h-control rounded-md border bg-surface-0 px-r3 font-medium transition-colors hover:bg-surface-2">Book a demo</button>
+            </div>
+            <h3>What a theme can change</h3>
+            <ul>
+              <li>Neutrals, the primary fill, the accent and the focus ring</li>
+              <li>Faces, weights and heading case</li>
+              <li>Radius, depth, motion, and what each density means</li>
+            </ul>
+            <blockquote>Brand never overrides function: status meaning, focus visibility and contrast survive every theme.</blockquote>
+            <p>
+              An inline control keeps UI sizing too:
+              <button id="prose-inline-button" class="h-control rounded-md border bg-surface-0 px-r3 align-middle font-medium">Copy link</button>
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- Space and size -->
+      <section class="sp-section py-r1" aria-labelledby="h-space">
+        <h2 id="h-space">Spacing, controls and rows</h2>
+        <div class="sp-split mt-r2">
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>Spacing <span class="text-body-2 font-normal text-fg-muted">1 = largest</span></h3>
+            <dl class="mt-r3 flex flex-col gap-r4" id="spacing"></dl>
+          </div>
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>Radius and depth</h3>
+            <div class="mt-r3 flex flex-wrap gap-r3" id="radius"></div>
+            <div class="mt-r2 flex flex-wrap gap-r2 rounded-md bg-surface-2 p-r2" id="shadows"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Density nesting -->
+      <section class="sp-section py-r1" aria-labelledby="h-density">
+        <h2 id="h-density">A compact card inside a comfortable page</h2>
+        <p class="mt-r5 max-w-measure text-fg-secondary">
+          Same markup twice; the right card carries <code class="font-mono text-body-2">data-density="compact"</code>.
+          Rows and controls re-derive at the boundary and still respect the hit floor.
+        </p>
+        <div class="sp-split mt-r2">
+          <div class="rounded-lg border bg-surface-0" id="card-page"></div>
+          <div class="rounded-lg border bg-surface-0" data-density="compact" id="card-compact"></div>
+        </div>
+      </section>
+
+      <!-- Motion -->
+      <section class="sp-section py-r1" aria-labelledby="h-motion">
+        <h2 id="h-motion">Motion</h2>
+        <p class="mt-r5 max-w-measure text-fg-secondary">Short, small, eased. Under reduced motion every duration and distance collapses at the token level.</p>
+        <div class="mt-r2 flex flex-wrap items-center gap-r4" id="motion"></div>
+        <div class="mt-r2 flex h-[calc(var(--ROW-H)*3)] items-center justify-center rounded-lg border border-dashed bg-surface-1">
+          <div id="motion-target" class="rounded-lg border bg-surface-0 px-r2 py-r3 shadow-md">Replay me</div>
+        </div>
+      </section>
+    </main>
+
+    <template id="card-template">
+      <div class="flex flex-wrap items-center justify-between gap-r4 border-b px-r2 py-r3">
+        <h3>Services</h3>
+        <div class="flex items-center gap-r4">
+          <input class="h-control w-[12em] rounded-md border border-border-strong bg-surface-0 px-r4" placeholder="Filter" aria-label="Filter services" />
+          <button class="h-control rounded-md bg-primary px-r3 font-medium text-fg-on-primary">Add</button>
+        </div>
+      </div>
+      <table class="w-full">
+        <thead class="bg-surface-1 text-body-2 text-fg-secondary">
+          <tr class="h-row border-b">
+            <th class="px-r2 text-start font-medium">Service</th>
+            <th class="px-r2 text-start font-medium">Status</th>
+            <th class="px-r2 text-end font-medium">p95</th>
+          </tr>
+        </thead>
+        <tbody data-rows></tbody>
+      </table>
+    </template>
+
+    <script type="module">
+      const root = document.documentElement;
+      const $ = (s) => document.querySelector(s);
+      const css = (name, el = root) => getComputedStyle(el).getPropertyValue(name).trim();
+      const px = (v) => `${Math.round(parseFloat(v) * 10) / 10}px`;
+
+      // ── Controls. Theme names are discovered from the loaded CSS, never listed here.
+      function discoverThemes() {
+        const names = new Set();
+        const visit = (rules) => {
+          for (const r of rules) {
+            for (const m of (r.selectorText ?? "").matchAll(/:root\[data-theme="([^"]+)"\]/g)) names.add(m[1]);
+            if (r.cssRules) visit(r.cssRules);
+          }
+        };
+        for (const sheet of document.styleSheets) visit(sheet.cssRules);
+        return [...names].sort();
+      }
+      const params = new URLSearchParams(location.search);
+      const themeSel = $("#theme");
+      themeSel.append(new Option("Default", ""));
+      for (const n of discoverThemes()) themeSel.append(new Option(n[0].toUpperCase() + n.slice(1), n));
+
+      function setAttr(name, value) {
+        if (value) root.setAttribute(name, value);
+        else root.removeAttribute(name);
+        const p = new URLSearchParams(location.search);
+        if (value) p.set(name.replace("data-", ""), value);
+        else p.delete(name.replace("data-", ""));
+        history.replaceState(null, "", `?${p}`);
+        requestAnimationFrame(refresh);
+      }
+      themeSel.value = params.get("theme") ?? "";
+      $("#input").value = params.get("input") ?? "";
+      if (themeSel.value) root.dataset.theme = themeSel.value;
+      if ($("#input").value) root.dataset.input = $("#input").value;
+      if (params.get("density") === "compact") root.dataset.density = "compact";
+      themeSel.addEventListener("change", () => setAttr("data-theme", themeSel.value));
+      $("#input").addEventListener("change", (e) => setAttr("data-input", e.target.value));
+      for (const b of document.querySelectorAll("#density [role=radio]")) {
+        b.addEventListener("click", () => setAttr("data-density", b.dataset.value === "compact" ? "compact" : ""));
+      }
+
+      // ── Content
+      const surfaces = [
+        ["--C-SURFACE-0", "Surface 0", "bg-surface-0", "Raised sheet: cards, dialogs, menus"],
+        ["--C-SURFACE-1", "Surface 1", "bg-surface-1", "Panels in a sheet, table headers"],
+        ["--C-CANVAS", "Canvas", "bg-canvas", "The page floor"],
+        ["--C-SURFACE-2", "Surface 2", "bg-surface-2", "Wells, chips, hover washes"],
+        ["--C-SURFACE-3", "Surface 3", "bg-surface-3", "Tracks, disabled fills"],
+      ];
+      $("#surfaces").innerHTML = surfaces
+        .map(
+          ([token, name, cls, use]) => `
+          <div class="${cls} rounded-lg border p-r2">
+            <p class="font-medium">${name}</p>
+            <p class="text-body-2 text-fg-secondary">${use}</p>
+            <p class="mt-r4 text-body-2 text-fg-muted">Muted hint text</p>
+            <p class="mt-r3 font-mono text-body-3 text-fg-muted">${token}</p>
+          </div>`,
+        )
+        .join("");
+
+      const icons = {
+        error: '<path d="M12 8v5m0 3h.01M10.3 3.9 2.4 17.6A2 2 0 0 0 4.1 20.6h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/>',
+        success: '<path d="M20 6 9 17l-5-5"/>',
+        warning: '<circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/>',
+        info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>',
+      };
+      const statusCopy = {
+        error: ["Payment failed", "The card was declined. Try another method."],
+        success: ["Deployed", "Version 4.2.0 is live in all regions."],
+        warning: ["Usage at 92%", "You will reach the plan limit in about 3 days."],
+        info: ["Maintenance window", "Saturday 02:00 to 03:00 UTC."],
+      };
+      $("#status").innerHTML = Object.entries(statusCopy)
+        .map(
+          ([s, [title, body]]) => `
+          <div class="flex flex-col gap-r3">
+            <div class="flex gap-r4 rounded-md bg-status-${s}-bg p-r3" role="${s === "error" ? "alert" : "status"}">
+              <svg class="mt-[0.125em] size-icon shrink-0 text-status-${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[s]}</svg>
+              <div><p class="font-medium text-fg-${s}">${title}</p><p class="text-body-2">${body}</p></div>
+            </div>
+            <div class="flex items-center gap-r3">
+              <span class="inline-flex items-center gap-r5 rounded-full bg-status-${s} px-r4 text-body-3 font-medium text-fg-on-${s}">${s}</span>
+              <span class="inline-flex items-center gap-r5 text-body-2"><span class="size-r4 rounded-full bg-status-${s}"></span>${s[0].toUpperCase() + s.slice(1)}</span>
+              <span class="text-body-2 text-fg-${s}">text-fg-${s}</span>
+            </div>
+          </div>`,
+        )
+        .join("");
+
+      const uiType = [
+        ["text-h1", "--H1", "Page title"],
+        ["text-h2", "--H2", "Section title"],
+        ["text-h3", "--H3", "Card title"],
+        ["text-h4", "--H4", "Group title"],
+        ["text-h5", "--H5", "Label heading"],
+        ["text-h6", "--H6", "Eyebrow heading"],
+        ["text-body-1", "--BodyText-1", "Body text, the default"],
+        ["text-body-2", "--BodyText-2", "Secondary text and tables"],
+        ["text-body-3", "--BodyText-3", "Fine print and meta"],
+      ];
+      const proseType = [
+        ["text-display-1", "--DISPLAY-1", "Hero"],
+        ["text-display-2", "--DISPLAY-2", "Page title"],
+        ["text-display-3", "--DISPLAY-3", "Section"],
+        ["text-display-4", "--DISPLAY-4", "Subsection"],
+        ["text-prose-1", "--ProseText-1", "Lead paragraph"],
+        ["text-prose-2", "--ProseText-2", "Running prose"],
+        ["text-prose-3", "--ProseText-3", "Caption"],
+      ];
+      const typeRow = ([cls, token, sample]) => `
+        <div class="flex flex-wrap items-baseline justify-between gap-x-r2 py-r4">
+          <dt class="${cls} min-w-0">${sample}</dt>
+          <dd class="font-mono text-body-3 text-fg-muted">${cls} · <span data-size="${cls}"></span></dd>
+        </div>`;
+      $("#ui-type").innerHTML = uiType.map(typeRow).join("");
+      $("#prose-type").innerHTML = proseType.map(typeRow).join("");
+
+      $("#spacing").innerHTML = [1, 2, 3, 4, 5, 6]
+        .map(
+          (n) => `
+          <div class="flex items-center gap-r3">
+            <dt class="w-[3.5em] font-mono text-body-3 text-fg-muted">r${n}</dt>
+            <dd class="flex items-center gap-r3"><span class="h-r4 w-r${n} rounded-sm bg-accent"></span><span class="font-mono text-body-3 text-fg-muted" data-var="--R-SIZE-${n}"></span></dd>
+          </div>`,
+        )
+        .join("");
+
+      $("#radius").innerHTML = ["sm", "md", "lg", "xl", "full"]
+        .map((r) => `<div class="flex size-[4.5rem] items-end rounded-${r} border border-border-strong bg-surface-1 p-r5 font-mono text-body-3 text-fg-muted">${r}</div>`)
+        .join("");
+      $("#shadows").innerHTML = ["sm", "md", "lg"]
+        .map((s) => `<div class="flex h-[4.5rem] flex-1 basis-[6rem] items-end rounded-lg bg-surface-0 p-r4 shadow-${s} font-mono text-body-3 text-fg-muted">shadow-${s}</div>`)
+        .join("");
+
+      const services = [
+        ["Checkout API", "success", "Healthy", "182 ms"],
+        ["Search", "warning", "Degraded", "1,240 ms"],
+        ["Payments worker", "error", "Failing", "—"],
+        ["Image resizer", "success", "Healthy", "96 ms"],
+      ];
+      for (const id of ["#card-page", "#card-compact"]) {
+        const card = $(id);
+        card.append($("#card-template").content.cloneNode(true));
+        card.querySelector("[data-rows]").innerHTML = services
+          .map(
+            ([name, s, label, p95]) => `
+            <tr class="h-row border-b last:border-b-0">
+              <td class="px-r2">${name}</td>
+              <td class="px-r2"><span class="inline-flex items-center gap-r5"><span class="size-r4 rounded-full bg-status-${s}"></span>${label}</span></td>
+              <td class="whitespace-nowrap px-r2 text-end">${p95}</td>
+            </tr>`,
+          )
+          .join("");
+      }
+
+      const target = $("#motion-target");
+      $("#motion").innerHTML = ["fade-up", "fade-in", "scale-in", "fade-start", "morph-expand"]
+        .map((a) => `<button data-anim="${a}" class="h-control rounded-md border bg-surface-0 px-r3 font-medium transition-colors hover:bg-surface-2">${a}</button>`)
+        .join("");
+      for (const b of document.querySelectorAll("[data-anim]")) {
+        b.addEventListener("click", () => {
+          target.className = target.className.replace(/\banimate-\S+/g, "");
+          void target.offsetWidth;
+          target.classList.add(`animate-${b.dataset.anim}`);
+        });
+      }
+
+      // ── Live readout and measurements
+      function refresh() {
+        const density = root.dataset.density ?? "comfortable";
+        for (const b of document.querySelectorAll("#density [role=radio]")) b.setAttribute("aria-checked", String(b.dataset.value === density));
+        $("#readout").textContent = `CONTROL-H ${px(css("--CONTROL-H"))} · ROW-H ${px(css("--ROW-H"))} · HIT-MIN ${css("--HIT-MIN")}`;
+        for (const el of document.querySelectorAll("[data-size]")) {
+          const dt = el.closest("div").querySelector("dt");
+          const cs = getComputedStyle(dt);
+          el.textContent = `${px(cs.fontSize)} / ${px(cs.lineHeight)}`;
+        }
+        for (const el of document.querySelectorAll("[data-var]")) {
+          el.textContent = px(el.previousElementSibling.getBoundingClientRect().width);
+        }
+      }
+      refresh();
+      addEventListener("resize", refresh);
+
+      window.measure = () => {
+        const rowH = (sel) => $(sel).querySelector("tbody tr").getBoundingClientRect().height;
+        const compact = $("#card-compact");
+        const button = $("#prose-button");
+        const inline = $("#prose-inline-button");
+        return {
+          theme: root.dataset.theme ?? "default",
+          density: root.dataset.density ?? "comfortable",
+          input: root.dataset.input ?? "auto",
+          pageRowPx: rowH("#card-page"),
+          compactRowPx: rowH("#card-compact"),
+          compactRowVar: css("--ROW-H", compact),
+          compactControlVar: css("--CONTROL-H", compact),
+          hitMin: css("--HIT-MIN"),
+          proseButtonPx: button.getBoundingClientRect().height,
+          proseButtonControlVar: css("--CONTROL-H", button),
+          proseButtonLineHeight: getComputedStyle(button).lineHeight,
+          proseInlineButtonPx: inline.getBoundingClientRect().height,
+          proseParagraphLineHeight: getComputedStyle($("#prose p:not(.text-prose-1)")).lineHeight,
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+        };
+      };
+    </script>
+  </body>
+</html>

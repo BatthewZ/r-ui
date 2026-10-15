@@ -1,0 +1,9 @@
+.demo {
+  padding: var(--R-SIZE-3);
+  border: 1px solid var(--C-BORDER-DEFAULT);
+  inline-size: calc(100% - var(--R-SIZE-2));
+  color: color-mix(in oklch, var(--C-TEXT-PRIMARY), transparent 20%);
+}
+@container (inline-size > 20em) {
+  .demo { display: grid; }
+}

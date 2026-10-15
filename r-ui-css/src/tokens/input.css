@@ -1,0 +1,51 @@
+/* Axis: input. A coarse primary pointer gets a 44px hit floor; a fine one gets the
+   WCAG 2.5.8 minimum (24px). `html[data-input="fine"|"coarse"]` forces either way.
+
+   --CONTROL-H and --ROW-H take max(density value, --HIT-MIN), so compact + touch
+   keeps 44px rows while its text still shrinks. Visually small controls (checkbox,
+   switch, icon button) meet the floor with a pseudo-element hit area, not by growing.
+
+   Function, not brand: themes never set --HIT-MIN (the theme-rule check enforces it). */
+
+:root {
+  --HIT-MIN: 1.5rem;
+}
+
+@media (pointer: coarse) {
+  :root:not([data-input="fine"]) {
+    --HIT-MIN: 2.75rem;
+  }
+}
+
+:root[data-input="coarse"] {
+  --HIT-MIN: 2.75rem;
+}
+
+/* `hit-area`: an element meets --HIT-MIN without growing visually. An invisible
+   ::before at least the floor on each axis, centred: percent insets resolve per
+   axis, so one declaration grows a non-square box symmetrically and stays flush on
+   an axis already past the floor. The element becomes a stacking context and the
+   box sits behind its content, so a press on a child it draws (a native input
+   inside a styled box) still reaches that child.
+
+   Overlapping hit areas resolve by paint order, so in a row of small targets a
+   later neighbour's box would reach back over the earlier one's VISIBLE box and
+   take presses aimed at it. A hit area that directly follows another therefore
+   does not grow toward it on the inline axis; the earlier one's growth fills the
+   gap instead, and every visible box keeps its own presses. Small targets that are
+   not DOM siblings, or that stack vertically, need --HIT-MIN between their centres. */
+@utility hit-area {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: min(0%, calc((100% - var(--HIT-MIN)) / 2));
+  }
+
+  .hit-area + &::before {
+    inset-inline-start: 0;
+  }
+}

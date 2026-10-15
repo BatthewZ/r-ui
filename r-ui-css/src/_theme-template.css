@@ -1,0 +1,208 @@
+/* Theme template. Copy this file, rename the selector, change what your brand needs,
+   delete the rest (anything you omit inherits the default theme on :root).
+
+   Rules (checked by `bun run check` for the package's own theme files; run the same
+   scripts on yours):
+   - Selector is `:root[data-theme="<name>"]` and nothing else. Themes apply at the
+     root only; subtree themes are unsupported.
+   - Set BOTH `color-scheme` and `--SCHEME-DARK`. A theme is light OR dark, never both.
+   - Density: override the per-density NAMED values (`--R-SIZE-3-COMPACT`). Never set
+     a selected name (`--R-SIZE-3`, `--H1`, `--BodyText-1`, `--ICON`) or a derived one
+     (`--CONTROL-H`, `--ROW-H`, `--HIT-MIN`); those belong to the axes.
+   - No @media blocks: the viewport never redefines a token, and reduced motion /
+     coarse pointer / more contrast are handled by the package for every theme.
+   - Colour pairs must pass the contrast contract (docs/theme-contract.md).
+   - Load font faces at the top of your app's CSS entry, not here: an @import after
+     other rules is dropped silently. */
+
+:root[data-theme="my-theme"] {
+  /* ═══ Scheme ═══════════════════════════════════════════════════════════════ */
+  color-scheme: light; /* light | dark: form controls, scrollbars, system colours */
+  --SCHEME-DARK: 0; /* 0 light, 1 dark: extensions blend their -LIGHT/-DARK values by it */
+
+  /* ═══ Lever: neutrals (temperature and chroma of the whole page) ═══════════
+     Surfaces run raised -> recessed, 0 lightest .. 3 darkest IN EVERY THEME (dark
+     too). The canvas sits between 1 and 2. Never pin the canvas to pure white/black. */
+  --C-CANVAS: oklch(0.968 0.004 85); /* page floor */
+  --C-SURFACE-0: oklch(0.995 0.0015 85); /* raised sheet: cards, dialogs, menus, input fills */
+  --C-SURFACE-1: oklch(0.982 0.003 85); /* still raised: panels in a sheet, table headers */
+  --C-SURFACE-2: oklch(0.948 0.005 85); /* recessed: wells, chips, hover washes */
+  --C-SURFACE-3: oklch(0.918 0.006 85); /* deepest: tracks, disabled fills */
+  --C-TEXT-PRIMARY: oklch(0.2 0.006 85); /* body text, headings, icons (>= 4.5 on every surface) */
+  --C-TEXT-SECONDARY: oklch(0.41 0.008 85); /* supporting text: descriptions, captions */
+  --C-TEXT-MUTED: oklch(0.5 0.008 85); /* least emphasis that is still read: hints, meta */
+  --C-TEXT-INVERSE: oklch(0.982 0.003 85); /* text on a --C-TEXT-PRIMARY fill (tooltips) */
+  --C-BORDER: oklch(0.2 0.006 85 / 0.12); /* hairline structure: dividers, card edges */
+  --C-BORDER-STRONG: oklch(0.6 0.008 85); /* control edges: inputs, checkboxes (>= 3 on surfaces) */
+  --C-SCRIM: oklch(0.2 0.006 85 / 0.4); /* backdrop behind modal layers */
+
+  /* ═══ Lever: primary action fill (ink or a hue) ═════════════════════════════ */
+  --C-PRIMARY: oklch(0.22 0.006 85); /* the main action's fill */
+  --C-PRIMARY-HOVER: oklch(0.32 0.007 85); /* ...hovered */
+  --C-PRIMARY-ACTIVE: oklch(0.15 0.005 85); /* ...pressed */
+  --C-TEXT-ON-PRIMARY: oklch(0.99 0.002 85); /* text/icons on all three primary fills */
+
+  /* ═══ Lever: accent, selection, links ══════════════════════════════════════
+     Accent means "interactive / you are here", independent of primary. */
+  --C-ACCENT: oklch(0.47 0.085 222); /* markers and accent fills (>= 3 on surfaces) */
+  --C-ACCENT-HOVER: oklch(0.41 0.075 222); /* accent fill, hovered */
+  --C-TEXT-ON-ACCENT: oklch(0.99 0.002 85); /* text on both accent fills */
+  --C-TEXT-ACCENT: oklch(0.45 0.08 222); /* accent-coloured text: links (>= 4.5 on surfaces) */
+  --C-SELECTION: oklch(0.91 0.035 222); /* selected text, selected rows/options */
+  --C-TEXT-ON-SELECTION: oklch(0.2 0.006 85); /* text on the selection fill */
+  --LINK-DECORATION: underline; /* prose links at rest: underline | none (hover always underlines) */
+
+  /* ═══ Lever: focus ring (visibility is protected; the look is yours) ═══════ */
+  --C-FOCUS: oklch(0.53 0.13 245); /* ring colour (>= 3 on every surface) */
+  --FOCUS-WIDTH: 2px; /* ring thickness */
+  --FOCUS-OFFSET: 2px; /* gap between element and ring */
+
+  /* ═══ Function, not brand: status ═════════════════════════════════════════
+     Re-tune for your palette, never re-mean. Always paired with icon + label. */
+  --C-STATUS-ERROR: oklch(0.55 0.19 27); /* error mark: icon, dot, border, danger fill */
+  --C-TEXT-ERROR: oklch(0.47 0.17 27); /* error text */
+  --C-STATUS-ERROR-BG: oklch(0.962 0.018 27); /* subtle error background */
+  --C-TEXT-ON-ERROR: oklch(0.99 0.002 85); /* text on the error mark as a fill */
+  --C-STATUS-SUCCESS: oklch(0.53 0.13 152); /* success mark */
+  --C-TEXT-SUCCESS: oklch(0.45 0.1 152); /* success text */
+  --C-STATUS-SUCCESS-BG: oklch(0.962 0.025 152); /* subtle success background */
+  --C-TEXT-ON-SUCCESS: oklch(0.99 0.002 85); /* text on the success mark as a fill */
+  --C-STATUS-WARNING: oklch(0.6 0.135 62); /* warning mark (no pale yellow: it must hit 3:1) */
+  --C-TEXT-WARNING: oklch(0.47 0.1 62); /* warning text */
+  --C-STATUS-WARNING-BG: oklch(0.966 0.03 85); /* subtle warning background */
+  --C-TEXT-ON-WARNING: oklch(0.16 0.01 62); /* text on the warning mark as a fill */
+  --C-STATUS-INFO: oklch(0.54 0.12 245); /* info mark */
+  --C-TEXT-INFO: oklch(0.46 0.11 245); /* info text */
+  --C-STATUS-INFO-BG: oklch(0.962 0.018 245); /* subtle info background */
+  --C-TEXT-ON-INFO: oklch(0.99 0.002 85); /* text on the info mark as a fill */
+
+  /* ═══ Lever: typography ═══════════════════════════════════════════════════ */
+  --FONT-UI: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial,
+    sans-serif; /* every UI string */
+  --FONT-MONO: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", Menlo,
+    Consolas, monospace; /* code, ids, aligned figures */
+  /* --FONT-DISPLAY: "Your Display Face", var(--FONT-UI); optional: prose/display headings */
+  --WEIGHT-NORMAL: 400; /* running text */
+  --WEIGHT-MEDIUM: 500; /* labels, buttons, emphasis in UI */
+  --WEIGHT-SEMIBOLD: 600; /* strong emphasis */
+  --HEADING-WEIGHT: 600; /* UI headings h1-h6 */
+  --HEADING-TRACKING: -0.006em; /* UI headings h1-h4 letter-spacing */
+  --HEADING-CASE: none; /* heading text-transform: none | uppercase */
+  --DISPLAY-WEIGHT: 600; /* display/prose headings */
+  --DISPLAY-1-tracking: -0.024em; /* hero heading letter-spacing */
+  --DISPLAY-2-tracking: -0.018em; /* page-title heading letter-spacing */
+  --DISPLAY-3-tracking: -0.012em; /* section heading letter-spacing */
+  --DISPLAY-4-tracking: -0.006em; /* subsection heading letter-spacing */
+
+  /* Prose/display sizes are fluid and density-independent. Override as a set. */
+  --DISPLAY-1: clamp(2.25rem, 1.663rem + 2.609cqi, 3.75rem); /* hero */
+  --DISPLAY-1-line-height: 1.05;
+  --DISPLAY-2: clamp(1.75rem, 1.359rem + 1.739cqi, 2.75rem); /* page title */
+  --DISPLAY-2-line-height: 1.12;
+  --DISPLAY-3: clamp(1.375rem, 1.179rem + 0.87cqi, 1.875rem); /* section */
+  --DISPLAY-3-line-height: 1.22;
+  --DISPLAY-4: clamp(1.125rem, 1.027rem + 0.435cqi, 1.375rem); /* subsection */
+  --DISPLAY-4-line-height: 1.3;
+  --ProseText-1: clamp(1.125rem, 1.052rem + 0.326cqi, 1.3125rem); /* lead paragraph */
+  --ProseText-1-line-height: 1.55;
+  --ProseText-2: clamp(1rem, 0.951rem + 0.217cqi, 1.125rem); /* running prose */
+  --ProseText-2-line-height: 1.65;
+  --ProseText-3: clamp(0.875rem, 0.851rem + 0.109cqi, 0.9375rem); /* captions, code blocks */
+  --ProseText-3-line-height: 1.55;
+  --PROSE-FLOW: 1.1em; /* space between blocks in a prose region */
+  --MEASURE: 68ch; /* reading line length */
+  --SECTION-1: clamp(3rem, 1.435rem + 6.957cqi, 7rem); /* between major page sections */
+  --SECTION-2: clamp(2rem, 1.022rem + 4.348cqi, 4.5rem); /* between blocks in a section */
+  --SECTION-3: clamp(1.5rem, 1.109rem + 1.739cqi, 2.5rem); /* heading group to content */
+  --GUTTER: clamp(1rem, 0.217rem + 3.478cqi, 3rem); /* page side padding */
+  --PAGE-MAX: 72rem; /* widest a page's content column grows, gutters excluded */
+  --COLUMN-LG: 22rem; /* auto-fit column floor: wide cards, a chart beside its legend */
+  --COLUMN-MD: 16rem; /* auto-fit column floor: the default card or field column */
+  --COLUMN-SM: 11rem; /* auto-fit column floor: stat tiles, swatches, short facts */
+
+  /* ═══ Lever: shape ════════════════════════════════════════════════════════ */
+  --RADIUS-SM: 0.25rem; /* chips, checkboxes, inline code */
+  --RADIUS-MD: 0.375rem; /* buttons, inputs */
+  --RADIUS-LG: 0.5rem; /* cards, menus, popovers */
+  --RADIUS-XL: 0.75rem; /* dialogs, sheets, hero media */
+  --RADIUS-FULL: 9999px; /* pills, avatars, switches */
+
+  /* ═══ Lever: depth (shadow-led or border-led) ══════════════════════════════ */
+  --SHADOW-SM: 0 1px 2px oklch(0.2 0.01 85 / 0.08), 0 2px 6px oklch(0.2 0.01 85 / 0.06); /* tooltip, dragged item */
+  --SHADOW-MD: 0 1px 2px oklch(0.2 0.01 85 / 0.06), 0 6px 18px -4px oklch(0.2 0.01 85 / 0.14); /* menu, popover, toast */
+  --SHADOW-LG: 0 2px 6px oklch(0.2 0.01 85 / 0.06), 0 18px 48px -12px oklch(0.2 0.01 85 / 0.24); /* dialog, sheet */
+  --OPACITY-DISABLED: 0.45; /* disabled controls */
+
+  /* ═══ Lever: motion personality ═══════════════════════════════════════════
+     Reduced motion still collapses these for every theme. */
+  --DURATION-FAST: 120ms; /* hover, press, colour */
+  --DURATION-NORMAL: 180ms; /* menus, popovers, small enters */
+  --DURATION-SLOW: 260ms; /* dialogs, sheets, layout shifts, page swaps */
+  --EASE-STANDARD: cubic-bezier(0.2, 0, 0, 1); /* moves within the screen */
+  --EASE-ENTER: cubic-bezier(0, 0, 0, 1); /* arrivals */
+  --EASE-EXIT: cubic-bezier(0.3, 0, 1, 1); /* departures */
+  --MOTION-DISTANCE-SM: 0.25rem; /* nudges */
+  --MOTION-DISTANCE-MD: 0.5rem; /* enters */
+  --MOTION-DISTANCE-LG: 1.5rem; /* reveals */
+  --MOTION-SCALE-FROM: 0.96; /* scale-in starting scale */
+  --MOTION-STAGGER: 40ms; /* per-item stagger delay */
+  --MOTION-PAGE-IN: fade-in; /* @keyframes name for the incoming page */
+  --MOTION-PAGE-OUT: fade-out; /* @keyframes name for the outgoing page */
+
+  /* ═══ Lever: what each density MEANS ══════════════════════════════════════
+     Named values only. [data-density] selects between them; you never do. */
+  --R-SIZE-1-COMFORTABLE: 1.5rem; /* largest gap: between groups */
+  --R-SIZE-1-COMPACT: 1rem;
+  --R-SIZE-2-COMFORTABLE: 1rem; /* card padding, section gaps */
+  --R-SIZE-2-COMPACT: 0.75rem;
+  --R-SIZE-3-COMFORTABLE: 0.75rem; /* control padding, related items */
+  --R-SIZE-3-COMPACT: 0.5rem;
+  --R-SIZE-4-COMFORTABLE: 0.5rem; /* tight groups, icon-to-label */
+  --R-SIZE-4-COMPACT: 0.375rem;
+  --R-SIZE-5-COMFORTABLE: 0.375rem; /* inline gaps */
+  --R-SIZE-5-COMPACT: 0.25rem;
+  --R-SIZE-6-COMFORTABLE: 0.25rem; /* hairline gaps */
+  --R-SIZE-6-COMPACT: 0.125rem;
+  --H1-COMFORTABLE: 1.5rem; /* page title in an app */
+  --H1-line-height-COMFORTABLE: 2rem;
+  --H1-COMPACT: 1.25rem;
+  --H1-line-height-COMPACT: 1.75rem;
+  --H2-COMFORTABLE: 1.25rem; /* section title */
+  --H2-line-height-COMFORTABLE: 1.75rem;
+  --H2-COMPACT: 1.125rem;
+  --H2-line-height-COMPACT: 1.5rem;
+  --H3-COMFORTABLE: 1.0625rem; /* card / panel title */
+  --H3-line-height-COMFORTABLE: 1.5rem;
+  --H3-COMPACT: 1rem;
+  --H3-line-height-COMPACT: 1.375rem;
+  --H4-COMFORTABLE: 0.9375rem; /* sub-group title */
+  --H4-line-height-COMFORTABLE: 1.375rem;
+  --H4-COMPACT: 0.875rem;
+  --H4-line-height-COMPACT: 1.25rem;
+  --H5-COMFORTABLE: 0.875rem; /* label-sized heading */
+  --H5-line-height-COMFORTABLE: 1.25rem;
+  --H5-COMPACT: 0.8125rem;
+  --H5-line-height-COMPACT: 1.125rem;
+  --H6-COMFORTABLE: 0.8125rem; /* smallest heading, eyebrows */
+  --H6-line-height-COMFORTABLE: 1.125rem;
+  --H6-COMPACT: 0.75rem;
+  --H6-line-height-COMPACT: 1rem;
+  --BodyText-1-COMFORTABLE: 0.875rem; /* default UI text */
+  --BodyText-1-line-height-COMFORTABLE: 1.25rem;
+  --BodyText-1-COMPACT: 0.8125rem;
+  --BodyText-1-line-height-COMPACT: 1.125rem;
+  --BodyText-2-COMFORTABLE: 0.8125rem; /* secondary UI text */
+  --BodyText-2-line-height-COMFORTABLE: 1.125rem;
+  --BodyText-2-COMPACT: 0.75rem;
+  --BodyText-2-line-height-COMPACT: 1rem;
+  --BodyText-3-COMFORTABLE: 0.75rem; /* fine print, meta */
+  --BodyText-3-line-height-COMFORTABLE: 1rem;
+  --BodyText-3-COMPACT: 0.6875rem;
+  --BodyText-3-line-height-COMPACT: 0.9375rem;
+  --CONTROL-H-COMFORTABLE: 2.25rem; /* buttons, inputs, selects (before the hit floor) */
+  --CONTROL-H-COMPACT: 1.75rem;
+  --ROW-H-COMFORTABLE: 2.5rem; /* table rows, list items, menu items (before the hit floor) */
+  --ROW-H-COMPACT: 1.875rem;
+  --ICON-COMFORTABLE: 1rem; /* inline icon size */
+  --ICON-COMPACT: 0.875rem;
+}

@@ -1,0 +1,99 @@
+/* Inline-axis motion follows writing direction: "start" and "end" flip under dir="rtl". */
+:where([dir="rtl"]) {
+  --MOTION-INLINE-SIGN: -1;
+}
+:where([dir="ltr"]) {
+  --MOTION-INLINE-SIGN: 1;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    translate: 0 var(--MOTION-DISTANCE-MD);
+  }
+}
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    translate: 0 calc(var(--MOTION-DISTANCE-MD) * -1);
+  }
+}
+
+/* Arrives from the inline-start side. */
+@keyframes fade-start {
+  from {
+    opacity: 0;
+    translate: calc(var(--MOTION-DISTANCE-MD) * -1 * var(--MOTION-INLINE-SIGN, 1)) 0;
+  }
+}
+
+/* Arrives from the inline-end side. */
+@keyframes fade-end {
+  from {
+    opacity: 0;
+    translate: calc(var(--MOTION-DISTANCE-MD) * var(--MOTION-INLINE-SIGN, 1)) 0;
+  }
+}
+
+/* Sheets and drawers that live at the inline end. Full travel is the element's own
+   width, so under reduced motion the ~0 duration does the collapsing. */
+@keyframes slide-in-end {
+  from {
+    translate: calc(100% * var(--MOTION-INLINE-SIGN, 1)) 0;
+  }
+}
+
+@keyframes slide-out-end {
+  to {
+    translate: calc(100% * var(--MOTION-INLINE-SIGN, 1)) 0;
+  }
+}
+
+.fade-in {
+  animation: fade-in var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+.fade-out {
+  animation: fade-out var(--DURATION-FAST) var(--EASE-EXIT) forwards;
+}
+.fade-up {
+  animation: fade-up var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+.fade-down {
+  animation: fade-down var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+.fade-start {
+  animation: fade-start var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+.fade-end {
+  animation: fade-end var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+.slide-in-end {
+  animation: slide-in-end var(--DURATION-SLOW) var(--EASE-ENTER);
+}
+.slide-out-end {
+  animation: slide-out-end var(--DURATION-NORMAL) var(--EASE-EXIT) forwards;
+}
+
+@theme inline {
+  --animate-fade-in: fade-in var(--DURATION-NORMAL) var(--EASE-ENTER);
+  --animate-fade-out: fade-out var(--DURATION-FAST) var(--EASE-EXIT) forwards;
+  --animate-fade-up: fade-up var(--DURATION-NORMAL) var(--EASE-ENTER);
+  --animate-fade-down: fade-down var(--DURATION-NORMAL) var(--EASE-ENTER);
+  --animate-fade-start: fade-start var(--DURATION-NORMAL) var(--EASE-ENTER);
+  --animate-fade-end: fade-end var(--DURATION-NORMAL) var(--EASE-ENTER);
+  --animate-slide-in-end: slide-in-end var(--DURATION-SLOW) var(--EASE-ENTER);
+  --animate-slide-out-end: slide-out-end var(--DURATION-NORMAL) var(--EASE-EXIT) forwards;
+}

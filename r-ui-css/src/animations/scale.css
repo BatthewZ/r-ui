@@ -1,0 +1,27 @@
+/* Popovers, menus and dialogs: a small scale from --MOTION-SCALE-FROM plus a fade.
+   Set `transform-origin` on the element to grow from its anchor. */
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    scale: var(--MOTION-SCALE-FROM);
+  }
+}
+
+@keyframes scale-out {
+  to {
+    opacity: 0;
+    scale: var(--MOTION-SCALE-FROM);
+  }
+}
+
+.scale-in {
+  animation: scale-in var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+.scale-out {
+  animation: scale-out var(--DURATION-FAST) var(--EASE-EXIT) forwards;
+}
+
+@theme inline {
+  --animate-scale-in: scale-in var(--DURATION-NORMAL) var(--EASE-ENTER);
+  --animate-scale-out: scale-out var(--DURATION-FAST) var(--EASE-EXIT) forwards;
+}

@@ -1,0 +1,446 @@
+/* "navigation" group stylesheet. Imported by src/styles.css inside `@layer components`,
+   so a caller's utility (`className`) always beats these rules.
+
+   Plain rules only: no `@theme`, no `@source`, no `@import` of another
+   group (those cannot live inside a layer). Tokens only: every value is a
+   var(--…) from the contract or src/tokens.css (`verify:no-raw-tailwind`).
+   Prefer utilities in the .tsx; CSS is for what utilities cannot say
+   (pseudo-elements, :has(), keyframes). Visually small controls take the
+   contract's `hit-area` utility; never a group copy of it. */
+
+/* ── The accent "you are here" marker ──────────────────────────────────────
+   One look everywhere: a short accent bar. Its thickness is the marker step of
+   the spacing scale, so it follows density. */
+.r-navigation-link[aria-current="page"]::before,
+.r-navigation-tab-underline[aria-selected="true"]::after,
+.r-navigation-pagination-page[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  border-radius: var(--RADIUS-FULL);
+  background: var(--C-ACCENT);
+}
+@media (forced-colors: active) {
+  .r-navigation-link[aria-current="page"]::before,
+  .r-navigation-tab-underline[aria-selected="true"]::after,
+  .r-navigation-pagination-page[aria-current="page"]::after {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+}
+
+/* ── Nav link: AppShell.NavItem and NavList.Item ───────────────────────── */
+.r-navigation-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--R-SIZE-4);
+  min-block-size: var(--CONTROL-H);
+  padding: var(--R-SIZE-6) var(--R-SIZE-4);
+  border-radius: var(--RADIUS-MD);
+  color: var(--C-TEXT-SECONDARY);
+  font-size: var(--BodyText-1);
+  line-height: var(--BodyText-1-line-height);
+  font-weight: var(--WEIGHT-MEDIUM);
+  text-decoration: none;
+  transition:
+    background-color var(--DURATION-FAST) var(--EASE-STANDARD),
+    color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+@media (hover: hover) {
+  /* The library's quiet wash: primary ink at 8%, like a ghost button. */
+  .r-navigation-link:hover {
+    background: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+    color: var(--C-TEXT-PRIMARY);
+  }
+}
+.r-navigation-link[aria-current="page"] {
+  background: var(--C-SURFACE-2);
+  color: var(--C-TEXT-PRIMARY);
+  font-weight: var(--WEIGHT-SEMIBOLD);
+}
+/* The bar sits on the row's leading edge; a sidebar moves it out to its own edge. */
+.r-navigation-link[aria-current="page"]::before {
+  inset-inline-start: var(--r-marker-inset, 0);
+  inset-block: 25%;
+  inline-size: var(--R-SIZE-6);
+}
+.r-navigation-link-icon {
+  display: inline-flex;
+  flex: none;
+}
+.r-navigation-link-icon > svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+.r-navigation-link-label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+.r-navigation-link-badge {
+  flex: none;
+  min-inline-size: var(--BodyText-3-line-height);
+  padding-inline: var(--R-SIZE-5);
+  border-radius: var(--RADIUS-FULL);
+  background: var(--C-SURFACE-3);
+  color: var(--C-TEXT-PRIMARY);
+  font-size: var(--BodyText-3);
+  line-height: var(--BodyText-3-line-height);
+  font-weight: var(--WEIGHT-SEMIBOLD);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+.r-navigation-tabs-underline {
+  box-shadow: inset 0 -1px 0 var(--C-BORDER);
+  scrollbar-width: thin;
+}
+.r-navigation-tabs-enclosed {
+  scrollbar-width: thin;
+}
+.r-navigation-tab-underline[aria-selected="true"]::after {
+  inset-inline: var(--R-SIZE-3);
+  inset-block-end: 0;
+  block-size: calc(var(--R-SIZE-6) * 0.75);
+}
+
+/* ── Pagination ────────────────────────────────────────────────────────── */
+.r-navigation-pagination-page[aria-current="page"]::after {
+  inset-inline: var(--R-SIZE-4);
+  inset-block-end: var(--R-SIZE-6);
+  block-size: calc(var(--R-SIZE-6) * 0.75);
+}
+
+/* ══ AppShell ══════════════════════════════════════════════════════════════
+   The VIEWPORT picks the layout here, and only here: it moves grid areas and
+   picks the sidebar's form. It never redefines a token. Breakpoints are the
+   consumer's own `--breakpoint-md` / `--breakpoint-lg`.
+
+   The rail is the base form. Wide screens (unless collapsed) widen it into the
+   full sidebar; phones with a BottomNav swap it for the bottom nav. A phone
+   with no BottomNav keeps the rail, so navigation never disappears.
+
+   `--r-navigation-shell-viewport` (default 100dvh) is the height the shell fills and the
+   sidebar sticks within; set it when the shell is embedded in a scroller. */
+.r-navigation-shell {
+  position: relative;
+  display: grid;
+  min-block-size: var(--r-navigation-shell-viewport, 100dvh);
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "side header"
+    "side main";
+}
+
+.r-navigation-shell-skip {
+  position: absolute;
+  inset-inline-start: var(--R-SIZE-3);
+  inset-block-start: var(--R-SIZE-3);
+  z-index: 10;
+  padding: var(--R-SIZE-4) var(--R-SIZE-3);
+  border-radius: var(--RADIUS-MD);
+  background: var(--C-PRIMARY);
+  color: var(--C-TEXT-ON-PRIMARY);
+  font-weight: var(--WEIGHT-MEDIUM);
+  text-decoration: none;
+}
+.r-navigation-shell-skip:not(:focus) {
+  clip-path: inset(50%);
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.r-navigation-shell-header {
+  grid-area: header;
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--R-SIZE-3);
+  min-inline-size: 0;
+  padding: var(--R-SIZE-3) var(--R-SIZE-1);
+  background: var(--C-CANVAS);
+  border-block-end: 1px solid var(--C-BORDER);
+}
+
+.r-navigation-shell-main {
+  grid-area: main;
+  min-inline-size: 0;
+  padding: var(--R-SIZE-1);
+}
+/* Focused only programmatically, by the skip link: a ring around the whole
+   page would say nothing. Its contents keep their own rings. */
+.r-navigation-shell-main:focus {
+  outline: none;
+}
+
+/* ── Sidebar, in its base form: the icon rail ──────────────────────────── */
+.r-navigation-shell-sidebar {
+  grid-area: side;
+  position: relative;
+  z-index: 2;
+  background: var(--C-SURFACE-0);
+  border-inline-end: 1px solid var(--C-BORDER);
+}
+.r-navigation-shell-sidebar-inner {
+  --r-marker-inset: calc(var(--R-SIZE-3) * -1);
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--R-SIZE-2);
+  block-size: var(--r-navigation-shell-viewport, 100dvh);
+  padding: var(--R-SIZE-3);
+}
+
+.r-navigation-shell-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--R-SIZE-4);
+  min-block-size: var(--CONTROL-H);
+  border-radius: var(--RADIUS-MD);
+  color: var(--C-TEXT-PRIMARY);
+  text-decoration: none;
+}
+.r-navigation-shell-brand-mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--CONTROL-H);
+  block-size: var(--CONTROL-H);
+  border-radius: var(--RADIUS-MD);
+  background: var(--C-PRIMARY);
+  color: var(--C-TEXT-ON-PRIMARY);
+  font-weight: var(--WEIGHT-SEMIBOLD);
+}
+.r-navigation-shell-brand-mark > svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+.r-navigation-shell-brand-name {
+  font-size: var(--H4);
+  line-height: var(--H4-line-height);
+  font-weight: var(--HEADING-WEIGHT);
+  letter-spacing: var(--HEADING-TRACKING);
+}
+
+.r-navigation-shell-section,
+.r-navigation-shell-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--R-SIZE-6);
+}
+.r-navigation-shell-section[data-position="end"] {
+  margin-block-start: auto;
+}
+.r-navigation-shell-section-title {
+  padding: 0 var(--R-SIZE-4) var(--R-SIZE-6);
+  color: var(--C-TEXT-MUTED);
+  font-size: var(--BodyText-3);
+  line-height: var(--BodyText-3-line-height);
+  font-weight: var(--WEIGHT-MEDIUM);
+}
+
+/* The toggle exists only where collapsing means something: wide screens. */
+.r-navigation-shell-toggle {
+  display: none;
+}
+
+/* Rail: titles give way to hairlines (a group's name still comes from its
+   hidden title via aria-labelledby); names stay in the accessibility tree. */
+.r-navigation-shell-sidebar .r-navigation-shell-section-title {
+  display: none;
+}
+.r-navigation-shell-sidebar .r-navigation-shell-section + .r-navigation-shell-section:not([data-position="end"]) {
+  padding-block-start: var(--R-SIZE-2);
+  border-block-start: 1px solid var(--C-BORDER);
+}
+.r-navigation-shell-sidebar .r-navigation-shell-brand-name {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.r-navigation-shell-sidebar .r-navigation-link {
+  justify-content: center;
+  inline-size: var(--CONTROL-H);
+  padding: 0;
+}
+/* The label is the link's accessible name at all times; on hover or keyboard
+   focus it also shows, as a bubble beside the icon. Clipped, not
+   `visibility: hidden`, so it never leaves the accessibility tree. */
+.r-navigation-shell-sidebar .r-navigation-link-label {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: calc(100% + var(--R-SIZE-3));
+  translate: 0 -50%;
+  padding: var(--R-SIZE-5) var(--R-SIZE-4);
+  border-radius: var(--RADIUS-MD);
+  background: var(--C-TEXT-PRIMARY);
+  color: var(--C-TEXT-INVERSE);
+  box-shadow: var(--SHADOW-MD);
+  font-size: var(--BodyText-2);
+  line-height: var(--BodyText-2-line-height);
+  font-weight: var(--WEIGHT-MEDIUM);
+  white-space: nowrap;
+  pointer-events: none;
+  clip-path: inset(50%);
+  opacity: 0;
+  transition: opacity var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-navigation-shell-sidebar .r-navigation-link:is(:hover, :focus-visible) .r-navigation-link-label {
+  clip-path: none;
+  opacity: 1;
+}
+.r-navigation-shell-sidebar .r-navigation-link-badge {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  padding-inline: var(--R-SIZE-6);
+  background: var(--C-PRIMARY);
+  color: var(--C-TEXT-ON-PRIMARY);
+}
+
+/* ── Wide: the full sidebar, unless collapsed ──────────────────────────── */
+@media (width >= --theme(--breakpoint-lg)) {
+  .r-navigation-shell-toggle {
+    display: contents;
+  }
+
+  .r-navigation-shell:not([data-collapsed]) {
+    & .r-navigation-shell-sidebar-inner {
+      inline-size: calc(var(--MEASURE) * 0.4);
+      align-items: stretch;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    & .r-navigation-shell-brand {
+      padding-inline: var(--R-SIZE-6);
+    }
+    & .r-navigation-shell-sidebar .r-navigation-shell-section-title {
+      display: block;
+    }
+    & .r-navigation-shell-sidebar .r-navigation-shell-section + .r-navigation-shell-section:not([data-position="end"]) {
+      padding-block-start: 0;
+      border-block-start: 0;
+    }
+    & .r-navigation-shell-sidebar .r-navigation-shell-brand-name {
+      position: static;
+      inline-size: auto;
+      block-size: auto;
+      overflow: visible;
+      clip-path: none;
+      white-space: normal;
+    }
+    & .r-navigation-shell-sidebar .r-navigation-link {
+      justify-content: flex-start;
+      inline-size: auto;
+      padding: var(--R-SIZE-6) var(--R-SIZE-4);
+    }
+    & .r-navigation-shell-sidebar .r-navigation-link-label {
+      position: static;
+      translate: none;
+      padding: 0;
+      background: none;
+      color: inherit;
+      box-shadow: none;
+      font: inherit;
+      white-space: normal;
+      clip-path: none;
+      opacity: 1;
+    }
+    & .r-navigation-shell-sidebar .r-navigation-link-badge {
+      position: static;
+      padding-inline: var(--R-SIZE-5);
+      background: var(--C-SURFACE-3);
+      color: var(--C-TEXT-PRIMARY);
+    }
+  }
+}
+
+/* ── Phone: the bottom nav replaces the sidebar ────────────────────────── */
+.r-navigation-shell-bottomnav {
+  display: none;
+}
+@media (width < --theme(--breakpoint-md)) {
+  .r-navigation-shell:has(> .r-navigation-shell-bottomnav) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas: "header" "main" "bottom";
+
+    & > .r-navigation-shell-sidebar {
+      display: none;
+    }
+    & > .r-navigation-shell-bottomnav {
+      display: block;
+    }
+    & > .r-navigation-shell-header {
+      padding-inline: var(--R-SIZE-2);
+    }
+    & > .r-navigation-shell-main {
+      padding: var(--R-SIZE-2);
+    }
+  }
+}
+/* Sticky, not fixed: it stays pinned to the bottom of whatever scrolls the
+   shell, needs no padding to keep the last content clear, and works embedded. */
+.r-navigation-shell-bottomnav {
+  grid-area: bottom;
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 2;
+  padding-block-end: env(safe-area-inset-bottom);
+  background: var(--C-SURFACE-0);
+  border-block-start: 1px solid var(--C-BORDER);
+}
+.r-navigation-shell-bottomnav-list {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+}
+.r-navigation-shell-bottomnav .r-navigation-link {
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--R-SIZE-6);
+  min-block-size: max(var(--HIT-MIN), calc(var(--ICON) + var(--BodyText-3-line-height) + 2 * var(--R-SIZE-4)));
+  padding: var(--R-SIZE-5) 0;
+  border-radius: 0;
+  font-size: var(--BodyText-3);
+  line-height: var(--BodyText-3-line-height);
+  text-align: center;
+}
+/* No weight change here: a bolder label would no longer fit its narrow column.
+   Ink and the marker say "you are here". */
+.r-navigation-shell-bottomnav .r-navigation-link[aria-current="page"] {
+  background: none;
+  font-weight: var(--WEIGHT-MEDIUM);
+}
+.r-navigation-shell-bottomnav .r-navigation-link[aria-current="page"]::before {
+  inset-block: 0 auto;
+  inset-inline: 30%;
+  inline-size: auto;
+  block-size: calc(var(--R-SIZE-6) * 0.75);
+}
+.r-navigation-shell-bottomnav .r-navigation-link-label {
+  flex: none;
+  max-inline-size: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.r-navigation-shell-bottomnav .r-navigation-link-badge {
+  position: absolute;
+  inset-block-start: var(--R-SIZE-6);
+  inset-inline-start: 50%;
+  padding-inline: var(--R-SIZE-6);
+  background: var(--C-PRIMARY);
+  color: var(--C-TEXT-ON-PRIMARY);
+}

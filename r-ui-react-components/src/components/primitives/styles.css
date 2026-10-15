@@ -1,0 +1,65 @@
+/* "primitives" group stylesheet. Imported by src/styles.css inside `@layer components`,
+   so a caller's utility (`className`) always beats these rules.
+
+   Plain rules only: no `@theme`, no `@source`, no `@import` of another
+   group (those cannot live inside a layer). Tokens only: every value is a
+   var(--…) from the contract or src/tokens.css (`verify:no-raw-tailwind`).
+   Prefer utilities in the .tsx; CSS is for what utilities cannot say
+   (pseudo-elements, :has(), keyframes). Visually small controls take the
+   contract's `hit-area` utility; never a group copy of it. */
+
+/* Glyph slots: any icon a caller passes is sized to the density's --ICON. */
+.r-primitives-icon-slot {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.r-primitives-icon-slot > svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+
+/* Disabled fades; a busy (loading) button is aria-disabled too but must not look unavailable. */
+.r-primitives-button:is(:disabled, [aria-disabled="true"]):not([aria-busy="true"]) {
+  opacity: var(--OPACITY-DISABLED);
+}
+
+/* Icon-only button: a compact square that tracks density (icon + r4 each side).
+   Variants with a drawn box override it with `size-control` in the component. */
+.r-primitives-icon-button {
+  inline-size: calc(var(--ICON) + 2 * var(--R-SIZE-4));
+  block-size: calc(var(--ICON) + 2 * var(--R-SIZE-4));
+}
+
+/* A text skeleton occupies exactly one line box of the inherited type: a 1em
+   bar centred in 1lh, so swapping in the real text moves nothing. */
+.r-primitives-skeleton-text {
+  block-size: 1em;
+  margin-block: calc((1lh - 1em) / 2);
+}
+
+/* Avatar: a size container so the initials scale with whatever size the box
+   is given; an inset hairline over the image keeps a white photo (or the
+   rung-2 fallback) from melting into the surface. */
+.r-primitives-avatar {
+  container-type: inline-size;
+}
+.r-primitives-avatar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--C-BORDER);
+  pointer-events: none;
+}
+.r-primitives-avatar-initials {
+  font-size: 38cqi;
+  line-height: 1;
+}
+.r-primitives-avatar-initials[data-single] {
+  font-size: 50cqi;
+}
+
+/* The theme's link lever. `hover:underline` (a utility) still wins on hover. */
+.r-primitives-link {
+  text-decoration-line: var(--LINK-DECORATION);
+}

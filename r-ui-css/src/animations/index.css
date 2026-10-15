@@ -1,0 +1,10 @@
+/* Ready-made animations. Each ships as a plain class (`.fade-in`) and a Tailwind
+   utility (`animate-fade-in`). Durations, easings and distances come from the motion
+   tokens, which collapse under prefers-reduced-motion, so none of these needs its
+   own reduced-motion rule (scroll-reveal is the one exception: it hides content). */
+@import "./fade.css";
+@import "./scale.css";
+@import "./morph.css";
+@import "./stagger.css";
+@import "./scroll-reveal.css";
+@import "./view-transitions.css";

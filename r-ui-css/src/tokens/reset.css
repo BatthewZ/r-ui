@@ -1,0 +1,25 @@
+/* Tailwind's default scales are removed wherever this contract replaces them, so
+   `bg-blue-500`, `text-sm`, `rounded`, `shadow-md` (Tailwind's), `font-bold`,
+   `leading-tight`, `tracking-tight` and `ease-in-out` generate nothing. Tokens are
+   the only vocabulary, enforced by the compiler instead of by review.
+
+   Kept on purpose: the `--spacing` multiplier (for `0`, `px`, layout one-offs that
+   a lint can police), breakpoints and containers (layout), `--animate-*` (spin,
+   pulse, ping, bounce: loading affordances), blur, aspect and perspective.
+
+   Must load before any other `@theme` block in this package, or it would clear them. */
+
+@theme inline {
+  --color-*: initial;
+  --font-*: initial;
+  --font-weight-*: initial;
+  --text-*: initial;
+  --leading-*: initial;
+  --tracking-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+  --ease-*: initial;
+}

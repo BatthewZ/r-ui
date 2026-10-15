@@ -1,0 +1,400 @@
+/* "form" group stylesheet. Imported by src/styles.css inside `@layer components`,
+   so a caller's utility (`className`) always beats these rules.
+
+   Plain rules only: no `@theme`, no `@source`, no `@import` of another
+   group (those cannot live inside a layer). Tokens only: every value is a
+   var(--…) from the contract or src/tokens.css (`verify:no-raw-tailwind`).
+   What lives here is what utilities say badly: state matrices with
+   exclusions (hover unless invalid/disabled/read-only), sibling-state marks,
+   vendor pseudo-elements and forced colours. Hit areas come from the
+   contract's `hit-area` utility. */
+
+/* ── Frame: the box shared by Input, Textarea, Select, SearchInput, NumberInput.
+   Border is --C-BORDER-STRONG: a field's edge is how it is identified, so it
+   needs the 3:1 a hairline does not give (WCAG 1.4.11). */
+.r-form-frame {
+  border: 1px solid var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-MD);
+  background-color: var(--C-SURFACE-0);
+  color: var(--C-TEXT-PRIMARY);
+  transition-property: border-color, background-color;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+/* Input's frame is the field: a press on its padding focuses the input. */
+.r-form-text-frame {
+  cursor: text;
+}
+.r-form-frame:hover:not([data-invalid], [data-disabled], [data-readonly]) {
+  border-color: var(--C-TEXT-MUTED);
+}
+.r-form-frame[data-invalid] {
+  border-color: var(--C-STATUS-ERROR);
+}
+/* Read-only reads as a value on display: recessed fill, hairline, no hover. */
+.r-form-frame[data-readonly] {
+  background-color: var(--C-SURFACE-1);
+  border-color: var(--C-BORDER);
+}
+.r-form-frame[data-disabled] {
+  opacity: var(--OPACITY-DISABLED);
+  cursor: not-allowed;
+}
+.r-form-frame[data-disabled] * {
+  cursor: not-allowed;
+}
+
+/* The ring belongs to the frame, not the bare input inside it, so it wraps
+   the adornments too. A Textarea or Select IS its frame and keeps the base ring. */
+.r-form-frame:has(.r-form-input:focus-visible) {
+  outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+  outline-offset: var(--FOCUS-OFFSET);
+}
+.r-form-input:focus-visible {
+  outline: none;
+}
+
+.r-form-adornment {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--R-SIZE-5);
+  color: var(--C-TEXT-MUTED);
+  white-space: nowrap;
+}
+.r-form-adornment svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+  flex-shrink: 0;
+}
+
+/* The browser's own search clear button duplicates ours. */
+.r-form-search::-webkit-search-cancel-button,
+.r-form-search::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.r-form-select {
+  cursor: pointer;
+}
+.r-form-select[data-readonly] {
+  cursor: default;
+}
+/* The placeholder option reads as a placeholder, not a value. */
+.r-form-select:has(option[value=""]:checked) {
+  color: var(--C-TEXT-MUTED);
+}
+.r-form-select option {
+  color: var(--C-TEXT-PRIMARY);
+  background-color: var(--C-SURFACE-0);
+}
+
+/* Small icon button inside a frame (SearchInput's clear). */
+.r-form-icon-button {
+  display: inline-grid;
+  place-items: center;
+  inline-size: calc(var(--ICON) + var(--R-SIZE-6) * 2);
+  block-size: calc(var(--ICON) + var(--R-SIZE-6) * 2);
+  border-radius: var(--RADIUS-SM);
+  color: var(--C-TEXT-MUTED);
+  cursor: pointer;
+  transition: color var(--DURATION-FAST) var(--EASE-STANDARD),
+    background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+/* Quiet washes are the primary ink at 8% (12% pressed), as on every ghost
+   control in the library: a surface rung reads as a hole on a dark raised card. */
+.r-form-icon-button:hover {
+  color: var(--C-TEXT-PRIMARY);
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+
+/* NumberInput steppers: flush to the frame's end edge, square, divided by hairlines. */
+.r-form-steppers {
+  display: flex;
+  align-self: stretch;
+  margin-inline-end: calc(var(--R-SIZE-3) * -1);
+  border-inline-start: 1px solid var(--C-BORDER);
+}
+.r-form-stepper {
+  display: grid;
+  place-items: center;
+  block-size: 100%;
+  aspect-ratio: 1;
+  color: var(--C-TEXT-SECONDARY);
+  cursor: pointer;
+  transition: color var(--DURATION-FAST) var(--EASE-STANDARD),
+    background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-form-stepper + .r-form-stepper {
+  border-inline-start: 1px solid var(--C-BORDER);
+}
+.r-form-stepper:last-child {
+  border-start-end-radius: calc(var(--RADIUS-MD) - 1px);
+  border-end-end-radius: calc(var(--RADIUS-MD) - 1px);
+}
+.r-form-stepper:hover:not(:disabled) {
+  color: var(--C-TEXT-PRIMARY);
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+.r-form-stepper:active:not(:disabled) {
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 12%, transparent);
+}
+/* Inside a disabled frame the frame already fades; don't fade twice. */
+.r-form-frame:not([data-disabled]) .r-form-stepper:disabled {
+  opacity: var(--OPACITY-DISABLED);
+  cursor: not-allowed;
+}
+
+/* ── Checkbox, Radio, Switch: a small mark beside a clickable label. ────── */
+/* A labelled check row is its own target (the whole label toggles), so it, not
+   a pseudo-element, meets the hit floor: block padding makes the row at least
+   --HIT-MIN tall. Stacked rows then sit a floor apart and can never reach into
+   each other, which a box's ::before grown to 44px on touch did (a press low on
+   one box toggled the next). A box with no visible label keeps `hit-area` and no
+   padding, so it adds nothing to a --ROW-H table row. */
+.r-form-check {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-self: start;
+  gap: var(--R-SIZE-4);
+  font-size: var(--BodyText-1);
+  line-height: var(--BodyText-1-line-height);
+  color: var(--C-TEXT-PRIMARY);
+  cursor: pointer;
+}
+.r-form-check:has(> .r-form-check-label) {
+  padding-block: max(0%, (var(--HIT-MIN) - var(--BodyText-1-line-height)) / 2);
+}
+.r-form-check[data-disabled] {
+  opacity: var(--OPACITY-DISABLED);
+  cursor: not-allowed;
+}
+.r-form-check[data-readonly] {
+  cursor: default;
+}
+
+/* One line-box tall, so the mark centres on the label's FIRST line however
+   many lines the label wraps to. */
+.r-form-check-box,
+.r-form-switch {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  block-size: var(--BodyText-1-line-height);
+}
+.r-form-check-box > *,
+.r-form-switch > * {
+  grid-area: 1 / 1;
+}
+
+.r-form-check-input,
+.r-form-radio-input {
+  appearance: none;
+  margin: 0;
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+  border: 1px solid var(--C-BORDER-STRONG);
+  background-color: var(--C-SURFACE-0);
+  cursor: inherit;
+  transition-property: background-color, border-color;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+.r-form-check-input {
+  border-radius: var(--RADIUS-SM);
+}
+.r-form-radio-input {
+  border-radius: var(--RADIUS-FULL);
+}
+.r-form-check:not([data-disabled], [data-readonly]):hover
+  :is(.r-form-check-input:not(:checked, :indeterminate), .r-form-radio-input:not(:checked)) {
+  border-color: var(--C-TEXT-MUTED);
+}
+.r-form-check-input:is(:checked, :indeterminate),
+.r-form-radio-input:checked {
+  border-color: var(--C-ACCENT);
+  background-color: var(--C-ACCENT);
+}
+.r-form-check-input[aria-invalid="true"]:not(:checked, :indeterminate),
+[role="radiogroup"][aria-invalid="true"] .r-form-radio-input:not(:checked) {
+  border-color: var(--C-STATUS-ERROR);
+}
+
+.r-form-check-mark {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+  padding: 1px;
+  color: var(--C-TEXT-ON-ACCENT);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-form-check-input:checked:not(:indeterminate) ~ .r-form-check-mark-on,
+.r-form-check-input:indeterminate ~ .r-form-check-mark-mixed {
+  opacity: 1;
+}
+
+.r-form-radio-dot {
+  inline-size: calc(var(--ICON) * 0.375);
+  aspect-ratio: 1;
+  border-radius: var(--RADIUS-FULL);
+  background-color: var(--C-TEXT-ON-ACCENT);
+  opacity: 0;
+  scale: 0.4;
+  pointer-events: none;
+  transition-property: opacity, scale;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+.r-form-radio-input:checked ~ .r-form-radio-dot {
+  opacity: 1;
+  scale: 1;
+}
+
+.r-form-check-label {
+  min-inline-size: 0;
+}
+
+/* Switch: the native checkbox IS the track; the thumb rides over it. The
+   thumb moves by margin, not translate, so RTL needs no sign flip. */
+.r-form-switch {
+  --switch-h: calc(var(--ICON) + var(--R-SIZE-6));
+  --switch-pad: calc(var(--R-SIZE-6) / 2);
+  --switch-w: calc(var(--switch-h) * 1.75);
+  place-items: center start;
+}
+.r-form-switch-track {
+  appearance: none;
+  margin: 0;
+  inline-size: var(--switch-w);
+  block-size: var(--switch-h);
+  border-radius: var(--RADIUS-FULL);
+  background-color: var(--C-BORDER-STRONG);
+  cursor: inherit;
+  transition: background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-form-check:not([data-disabled], [data-readonly]):hover .r-form-switch-track:not(:checked) {
+  background-color: var(--C-TEXT-MUTED);
+}
+.r-form-switch-track:checked {
+  background-color: var(--C-ACCENT);
+}
+.r-form-switch-track[aria-invalid="true"]:not(:checked) {
+  /* Hugs the track (no gap), so it never reads as the offset focus ring. */
+  box-shadow: 0 0 0 1px var(--C-STATUS-ERROR);
+}
+.r-form-switch-thumb {
+  inline-size: calc(var(--switch-h) - var(--switch-pad) * 2);
+  aspect-ratio: 1;
+  margin-inline-start: var(--switch-pad);
+  border-radius: var(--RADIUS-FULL);
+  background-color: var(--C-SURFACE-0);
+  pointer-events: none;
+  transition-property: margin-inline-start, background-color;
+  transition-duration: var(--DURATION-NORMAL);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+.r-form-switch-track:checked ~ .r-form-switch-thumb {
+  margin-inline-start: calc(var(--switch-w) - var(--switch-h) + var(--switch-pad));
+  background-color: var(--C-TEXT-ON-ACCENT);
+}
+
+/* ── SegmentedControl ──────────────────────────────────────────────────────
+   A recessed track; the selected segment is raised AND bordered AND inked,
+   because a surface step alone is too weak a cue. */
+.r-form-segmented {
+  display: inline-flex;
+  align-items: stretch;
+  justify-self: start;
+  gap: var(--R-SIZE-6);
+  max-inline-size: 100%;
+  block-size: var(--CONTROL-H);
+  padding: var(--R-SIZE-6);
+  border: 1px solid var(--C-BORDER);
+  border-radius: var(--RADIUS-MD);
+  background-color: var(--C-SURFACE-2);
+}
+.r-form-segmented[data-invalid] {
+  border-color: var(--C-STATUS-ERROR);
+}
+.r-form-segmented[data-disabled] {
+  opacity: var(--OPACITY-DISABLED);
+}
+.r-form-segment {
+  display: inline-flex;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--R-SIZE-5);
+  padding-inline: var(--R-SIZE-3);
+  border: 1px solid transparent;
+  border-radius: var(--RADIUS-SM);
+  font-size: var(--BodyText-1);
+  line-height: var(--BodyText-1-line-height);
+  font-weight: var(--WEIGHT-MEDIUM);
+  color: var(--C-TEXT-SECONDARY);
+  white-space: nowrap;
+  cursor: pointer;
+  transition-property: color, background-color, border-color;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+.r-form-segment .r-form-adornment {
+  color: inherit;
+}
+.r-form-segmented:not([aria-readonly="true"]) .r-form-segment:hover:not([data-selected], [data-disabled]) {
+  color: var(--C-TEXT-PRIMARY);
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+.r-form-segment[data-selected] {
+  border-color: var(--C-BORDER-STRONG);
+  background-color: var(--C-SURFACE-0);
+  color: var(--C-TEXT-PRIMARY);
+}
+.r-form-segment[data-disabled] {
+  cursor: not-allowed;
+}
+.r-form-segmented:not([data-disabled]) .r-form-segment[data-disabled] {
+  opacity: var(--OPACITY-DISABLED);
+}
+.r-form-segmented[aria-readonly="true"] .r-form-segment {
+  cursor: default;
+}
+/* Inset, like an enclosed tab: the same-looking control gets the same ring. */
+.r-form-segment:has(:focus-visible) {
+  outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+  outline-offset: calc(var(--FOCUS-WIDTH) * -1);
+}
+
+/* ── Forced colours: author fills are replaced, so the marks that were fills
+   are re-drawn in system colours, and the switch track gets an edge. */
+@media (forced-colors: active) {
+  .r-form-check-input:is(:checked, :indeterminate),
+  .r-form-radio-input:checked,
+  .r-form-switch-track:checked {
+    forced-color-adjust: none;
+    border-color: Highlight;
+    background-color: Highlight;
+  }
+  .r-form-check-mark {
+    forced-color-adjust: none;
+    color: HighlightText;
+  }
+  .r-form-radio-dot,
+  .r-form-switch-track:checked ~ .r-form-switch-thumb {
+    forced-color-adjust: none;
+    background-color: HighlightText;
+  }
+  .r-form-switch-track {
+    border: 1px solid CanvasText;
+  }
+  .r-form-switch-thumb {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+  .r-form-segment[data-selected] {
+    border-color: Highlight;
+  }
+}

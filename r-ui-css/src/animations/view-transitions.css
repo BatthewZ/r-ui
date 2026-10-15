@@ -1,0 +1,14 @@
+/* Root page swap for the View Transitions API. A theme may point --MOTION-PAGE-IN /
+   --MOTION-PAGE-OUT at its own @keyframes names. */
+::view-transition-group(root) {
+  animation-duration: var(--DURATION-SLOW);
+  animation-timing-function: var(--EASE-STANDARD);
+}
+
+::view-transition-old(root) {
+  animation: var(--DURATION-SLOW) var(--EASE-EXIT) both var(--MOTION-PAGE-OUT);
+}
+
+::view-transition-new(root) {
+  animation: var(--DURATION-SLOW) var(--EASE-ENTER) both var(--MOTION-PAGE-IN);
+}

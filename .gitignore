@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+
+# showcase build output
+r-ui-react-components/showcase/dist/
+
+# playwright artifacts
+.playwright-cli/
+test-results/

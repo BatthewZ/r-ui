@@ -1,0 +1,13 @@
+.r-demo-card:is(.prose *) > .r-demo-title {
+  margin: 0;
+}
+@media (forced-colors: active) {
+  .r-demo-card {
+    forced-color-adjust: none;
+  }
+}
+@keyframes r-demo-fade {
+  from {
+    opacity: 0;
+  }
+}

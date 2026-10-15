@@ -1,0 +1,197 @@
+/* Axis: density. Closed set: `comfortable` (default) and `compact`, set with
+   [data-density] on ANY element, so one card can be compact inside a comfortable page.
+
+   Three layers, and only the first is themeable:
+   1. Per-density NAMED values on :root (`--R-SIZE-3-COMFORTABLE`). A theme decides
+      what each density MEANS by overriding these.
+   2. Selection blocks: [data-density] only picks a named value
+      (`--R-SIZE-3: var(--R-SIZE-3-COMPACT)`). Themes never set a selected name; the
+      theme-rule check enforces it.
+   3. Derived tokens (`--CONTROL-H`, `--ROW-H`) meet the input axis. They are
+      re-declared in every selection block on purpose: a custom property resolves
+      its var()s where it is declared and inherits the RESULT, so declared on :root
+      alone a compact card would keep comfortable rows.
+
+   The UI scale is flat across viewports. A wider screen gets more columns, not
+   bigger text. The fluid prose/display scale lives in type.css. */
+
+/* @property makes getComputedStyle report px, and makes the max() resolve at the
+   declaring element. initial-value must be absolute, so it is the comfortable px. */
+@property --CONTROL-H {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 36px;
+}
+@property --ROW-H {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 40px;
+}
+
+:root {
+  /* Spacing, 1 = largest. */
+  --R-SIZE-1-COMFORTABLE: 1.5rem;
+  --R-SIZE-1-COMPACT: 1rem;
+  --R-SIZE-2-COMFORTABLE: 1rem;
+  --R-SIZE-2-COMPACT: 0.75rem;
+  --R-SIZE-3-COMFORTABLE: 0.75rem;
+  --R-SIZE-3-COMPACT: 0.5rem;
+  --R-SIZE-4-COMFORTABLE: 0.5rem;
+  --R-SIZE-4-COMPACT: 0.375rem;
+  --R-SIZE-5-COMFORTABLE: 0.375rem;
+  --R-SIZE-5-COMPACT: 0.25rem;
+  --R-SIZE-6-COMFORTABLE: 0.25rem;
+  --R-SIZE-6-COMPACT: 0.125rem;
+
+  /* In-app headings: they separate by weight and space more than by size. */
+  --H1-COMFORTABLE: 1.5rem;
+  --H1-line-height-COMFORTABLE: 2rem;
+  --H1-COMPACT: 1.25rem;
+  --H1-line-height-COMPACT: 1.75rem;
+  --H2-COMFORTABLE: 1.25rem;
+  --H2-line-height-COMFORTABLE: 1.75rem;
+  --H2-COMPACT: 1.125rem;
+  --H2-line-height-COMPACT: 1.5rem;
+  --H3-COMFORTABLE: 1.0625rem;
+  --H3-line-height-COMFORTABLE: 1.5rem;
+  --H3-COMPACT: 1rem;
+  --H3-line-height-COMPACT: 1.375rem;
+  --H4-COMFORTABLE: 0.9375rem;
+  --H4-line-height-COMFORTABLE: 1.375rem;
+  --H4-COMPACT: 0.875rem;
+  --H4-line-height-COMPACT: 1.25rem;
+  --H5-COMFORTABLE: 0.875rem;
+  --H5-line-height-COMFORTABLE: 1.25rem;
+  --H5-COMPACT: 0.8125rem;
+  --H5-line-height-COMPACT: 1.125rem;
+  --H6-COMFORTABLE: 0.8125rem;
+  --H6-line-height-COMFORTABLE: 1.125rem;
+  --H6-COMPACT: 0.75rem;
+  --H6-line-height-COMPACT: 1rem;
+
+  /* UI body text, tight UI leading. */
+  --BodyText-1-COMFORTABLE: 0.875rem;
+  --BodyText-1-line-height-COMFORTABLE: 1.25rem;
+  --BodyText-1-COMPACT: 0.8125rem;
+  --BodyText-1-line-height-COMPACT: 1.125rem;
+  --BodyText-2-COMFORTABLE: 0.8125rem;
+  --BodyText-2-line-height-COMFORTABLE: 1.125rem;
+  --BodyText-2-COMPACT: 0.75rem;
+  --BodyText-2-line-height-COMPACT: 1rem;
+  --BodyText-3-COMFORTABLE: 0.75rem;
+  --BodyText-3-line-height-COMFORTABLE: 1rem;
+  --BodyText-3-COMPACT: 0.6875rem;
+  --BodyText-3-line-height-COMPACT: 0.9375rem;
+
+  /* Component metrics: density's opinion, before the input axis has its say. */
+  --CONTROL-H-COMFORTABLE: 2.25rem;
+  --CONTROL-H-COMPACT: 1.75rem;
+  --ROW-H-COMFORTABLE: 2.5rem;
+  --ROW-H-COMPACT: 1.875rem;
+  --ICON-COMFORTABLE: 1rem;
+  --ICON-COMPACT: 0.875rem;
+}
+
+:root,
+[data-density="comfortable"] {
+  --R-SIZE-1: var(--R-SIZE-1-COMFORTABLE);
+  --R-SIZE-2: var(--R-SIZE-2-COMFORTABLE);
+  --R-SIZE-3: var(--R-SIZE-3-COMFORTABLE);
+  --R-SIZE-4: var(--R-SIZE-4-COMFORTABLE);
+  --R-SIZE-5: var(--R-SIZE-5-COMFORTABLE);
+  --R-SIZE-6: var(--R-SIZE-6-COMFORTABLE);
+  --H1: var(--H1-COMFORTABLE);
+  --H1-line-height: var(--H1-line-height-COMFORTABLE);
+  --H2: var(--H2-COMFORTABLE);
+  --H2-line-height: var(--H2-line-height-COMFORTABLE);
+  --H3: var(--H3-COMFORTABLE);
+  --H3-line-height: var(--H3-line-height-COMFORTABLE);
+  --H4: var(--H4-COMFORTABLE);
+  --H4-line-height: var(--H4-line-height-COMFORTABLE);
+  --H5: var(--H5-COMFORTABLE);
+  --H5-line-height: var(--H5-line-height-COMFORTABLE);
+  --H6: var(--H6-COMFORTABLE);
+  --H6-line-height: var(--H6-line-height-COMFORTABLE);
+  --BodyText-1: var(--BodyText-1-COMFORTABLE);
+  --BodyText-1-line-height: var(--BodyText-1-line-height-COMFORTABLE);
+  --BodyText-2: var(--BodyText-2-COMFORTABLE);
+  --BodyText-2-line-height: var(--BodyText-2-line-height-COMFORTABLE);
+  --BodyText-3: var(--BodyText-3-COMFORTABLE);
+  --BodyText-3-line-height: var(--BodyText-3-line-height-COMFORTABLE);
+  --ICON: var(--ICON-COMFORTABLE);
+  --CONTROL-H: max(var(--CONTROL-H-COMFORTABLE), var(--HIT-MIN));
+  --ROW-H: max(var(--ROW-H-COMFORTABLE), var(--HIT-MIN));
+}
+
+[data-density="compact"] {
+  --R-SIZE-1: var(--R-SIZE-1-COMPACT);
+  --R-SIZE-2: var(--R-SIZE-2-COMPACT);
+  --R-SIZE-3: var(--R-SIZE-3-COMPACT);
+  --R-SIZE-4: var(--R-SIZE-4-COMPACT);
+  --R-SIZE-5: var(--R-SIZE-5-COMPACT);
+  --R-SIZE-6: var(--R-SIZE-6-COMPACT);
+  --H1: var(--H1-COMPACT);
+  --H1-line-height: var(--H1-line-height-COMPACT);
+  --H2: var(--H2-COMPACT);
+  --H2-line-height: var(--H2-line-height-COMPACT);
+  --H3: var(--H3-COMPACT);
+  --H3-line-height: var(--H3-line-height-COMPACT);
+  --H4: var(--H4-COMPACT);
+  --H4-line-height: var(--H4-line-height-COMPACT);
+  --H5: var(--H5-COMPACT);
+  --H5-line-height: var(--H5-line-height-COMPACT);
+  --H6: var(--H6-COMPACT);
+  --H6-line-height: var(--H6-line-height-COMPACT);
+  --BodyText-1: var(--BodyText-1-COMPACT);
+  --BodyText-1-line-height: var(--BodyText-1-line-height-COMPACT);
+  --BodyText-2: var(--BodyText-2-COMPACT);
+  --BodyText-2-line-height: var(--BodyText-2-line-height-COMPACT);
+  --BodyText-3: var(--BodyText-3-COMPACT);
+  --BodyText-3-line-height: var(--BodyText-3-line-height-COMPACT);
+  --ICON: var(--ICON-COMPACT);
+  --CONTROL-H: max(var(--CONTROL-H-COMPACT), var(--HIT-MIN));
+  --ROW-H: max(var(--ROW-H-COMPACT), var(--HIT-MIN));
+}
+
+@theme inline {
+  --spacing-r1: var(--R-SIZE-1);
+  --spacing-r2: var(--R-SIZE-2);
+  --spacing-r3: var(--R-SIZE-3);
+  --spacing-r4: var(--R-SIZE-4);
+  --spacing-r5: var(--R-SIZE-5);
+  --spacing-r6: var(--R-SIZE-6);
+  --spacing-control: var(--CONTROL-H);
+  --spacing-row: var(--ROW-H);
+  --spacing-icon: var(--ICON);
+  --spacing-hit: var(--HIT-MIN);
+
+  --text-h1: var(--H1);
+  --text-h1--line-height: var(--H1-line-height);
+  --text-h1--font-weight: var(--HEADING-WEIGHT);
+  --text-h1--letter-spacing: var(--HEADING-TRACKING);
+  --text-h2: var(--H2);
+  --text-h2--line-height: var(--H2-line-height);
+  --text-h2--font-weight: var(--HEADING-WEIGHT);
+  --text-h2--letter-spacing: var(--HEADING-TRACKING);
+  --text-h3: var(--H3);
+  --text-h3--line-height: var(--H3-line-height);
+  --text-h3--font-weight: var(--HEADING-WEIGHT);
+  --text-h3--letter-spacing: var(--HEADING-TRACKING);
+  --text-h4: var(--H4);
+  --text-h4--line-height: var(--H4-line-height);
+  --text-h4--font-weight: var(--HEADING-WEIGHT);
+  --text-h4--letter-spacing: var(--HEADING-TRACKING);
+  --text-h5: var(--H5);
+  --text-h5--line-height: var(--H5-line-height);
+  --text-h5--font-weight: var(--HEADING-WEIGHT);
+  --text-h6: var(--H6);
+  --text-h6--line-height: var(--H6-line-height);
+  --text-h6--font-weight: var(--HEADING-WEIGHT);
+
+  --text-body-1: var(--BodyText-1);
+  --text-body-1--line-height: var(--BodyText-1-line-height);
+  --text-body-2: var(--BodyText-2);
+  --text-body-2--line-height: var(--BodyText-2-line-height);
+  --text-body-3: var(--BodyText-3);
+  --text-body-3--line-height: var(--BodyText-3-line-height);
+}

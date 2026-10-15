@@ -1,0 +1,39 @@
+/* Floating panels promoted into the top layer.
+
+   `useTopLayer` (src/hooks/use-floating.ts) gives every open floating panel
+   `popover="manual"` and the `.r-floating-top-layer` class. The promotion is all
+   this package wants; the box the user agent attaches to `[popover]` comes with
+   it and is taken back off here:
+
+       [popover] { position: fixed; inset: 0; width: fit-content;
+                   height: fit-content; margin: auto; border: solid;
+                   padding: 0.25em; overflow: auto;
+                   color: CanvasText; background-color: Canvas; }
+
+   Preflight already zeroes margin, padding and border (author origin beats the
+   user agent), and floating-ui writes position/top/left inline. What remains:
+   - `overflow: auto` would make every panel a scrollport and clip an arrow
+     seated half outside it;
+   - `color: CanvasText` / `background-color: Canvas` would paint the user
+     agent's colours instead of inheriting the theme (wrong in every dark theme);
+   - `inset: 0` would stretch the panel the moment it has `width: auto`.
+
+   Every declaration is a floor, not a lock: this file sits in
+   `@layer components`, so the panel's own utilities and a caller's
+   `className` still win. */
+.r-floating-top-layer {
+  inset: auto;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  color: inherit;
+  background-color: transparent;
+}
+
+/* The anchor has scrolled out of view (or out of a clipping scroller):
+   `useFloating`'s hide middleware sets this. A fixed top-layer panel would
+   otherwise follow the anchor off screen and `shift()` would pin it to the
+   viewport edge, detached from what opened it. */
+[data-reference-hidden] {
+  visibility: hidden;
+}

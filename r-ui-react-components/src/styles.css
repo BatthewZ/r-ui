@@ -1,0 +1,37 @@
+/* @batthewz/r-ui-react-components/styles
+
+   The consumer's CSS entry imports the CSS package FIRST, then this file:
+
+       @import "@batthewz/r-ui-css";
+       @import "@batthewz/r-ui-react-components/styles";
+
+   This file deliberately does NOT import @batthewz/r-ui-css. The consumer
+   owns that import (and which example theme files, if any, to add), so the
+   contract is compiled once, in the consumer's Tailwind build, with the
+   consumer's own @theme alongside it. Importing it here too would compile the
+   contract twice and let this package pick the consumer's themes. */
+
+/* Domain tokens (series, trend, chart, KPI…). NOT layered: it carries
+   `@theme inline`, which registers utilities and must stay in Tailwind's own
+   theme layer. Imported first so the group rules below can read it. */
+@import "./tokens.css";
+
+/* Shared internals, then one stylesheet per component group. Each import
+   carries `layer(components)` (below `@layer utilities`), which is what makes
+   `<Thing className="…">` beat the component's own rule at any specificity.
+   The layer has to be on each import, not on this file: `@source` below may
+   not be nested inside a layer. A group adds rules to ITS OWN styles.css and
+   never edits this list. */
+@import "./floating.css" layer(components);
+@import "./components/primitives/styles.css" layer(components);
+@import "./components/form/styles.css" layer(components);
+@import "./components/overlays/styles.css" layer(components);
+@import "./components/data/styles.css" layer(components);
+@import "./components/navigation/styles.css" layer(components);
+@import "./components/layout/styles.css" layer(components);
+
+/* Register this package's sources so the utilities the components use are
+   generated in the consumer's build. Relative to THIS file, so it resolves
+   from src/styles.css (workspace) and dist/styles.css (published; src ships
+   too) under any node_modules layout. */
+@source "../src/**/*.{ts,tsx}";

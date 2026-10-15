@@ -1,0 +1,12 @@
+/* Starting state for content revealed by an IntersectionObserver: add an animate-*
+   utility when it enters view. Reduced-motion users never get the hidden state,
+   because content that waits on script to appear is not a motion question. */
+.scroll-reveal-hidden {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-reveal-hidden {
+    opacity: 1;
+  }
+}

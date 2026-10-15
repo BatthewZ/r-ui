@@ -1,0 +1,67 @@
+/* Worked example: a DARK theme with the default's personality (warm neutrals, a
+   neutral primary fill, one restrained teal-blue accent). Sample code, outside
+   semver, imported by nothing. Activate with <html data-theme="nightfall">.
+
+   Dark is designed, not inverted: surfaces still run 0 lightest -> 3 darkest
+   (raised regions catch the light), text is lifted rather than pure white, large
+   fills lose chroma, and depth comes from lighter surfaces and hairlines more than
+   from heavier shadows. */
+
+:root[data-theme="nightfall"] {
+  color-scheme: dark;
+  --SCHEME-DARK: 1;
+
+  /* Neutrals */
+  --C-CANVAS: oklch(0.2 0.004 85);
+  --C-SURFACE-0: oklch(0.262 0.005 85);
+  --C-SURFACE-1: oklch(0.232 0.005 85);
+  --C-SURFACE-2: oklch(0.178 0.004 85);
+  --C-SURFACE-3: oklch(0.152 0.004 85);
+  --C-TEXT-PRIMARY: oklch(0.945 0.004 85);
+  --C-TEXT-SECONDARY: oklch(0.8 0.006 85);
+  --C-TEXT-MUTED: oklch(0.68 0.006 85);
+  --C-TEXT-INVERSE: oklch(0.2 0.004 85);
+  --C-BORDER: oklch(0.95 0.004 85 / 0.1);
+  --C-BORDER-STRONG: oklch(0.58 0.006 85);
+  --C-SCRIM: oklch(0.08 0.004 85 / 0.64);
+
+  /* Primary: the ink fill of the default, lifted to a light fill. */
+  --C-PRIMARY: oklch(0.925 0.004 85);
+  --C-PRIMARY-HOVER: oklch(0.86 0.005 85);
+  --C-PRIMARY-ACTIVE: oklch(0.8 0.005 85);
+  --C-TEXT-ON-PRIMARY: oklch(0.19 0.004 85);
+
+  /* Accent, selection */
+  --C-ACCENT: oklch(0.74 0.095 222);
+  --C-ACCENT-HOVER: oklch(0.8 0.085 222);
+  --C-TEXT-ON-ACCENT: oklch(0.18 0.02 222);
+  --C-TEXT-ACCENT: oklch(0.79 0.085 222);
+  --C-SELECTION: oklch(0.37 0.05 222);
+  --C-TEXT-ON-SELECTION: oklch(0.96 0.004 85);
+
+  /* Focus */
+  --C-FOCUS: oklch(0.74 0.12 245);
+
+  /* Status: marks brighter, text lifted, backgrounds deep and low-chroma. */
+  --C-STATUS-ERROR: oklch(0.68 0.17 25);
+  --C-TEXT-ERROR: oklch(0.8 0.11 25);
+  --C-STATUS-ERROR-BG: oklch(0.29 0.06 25);
+  --C-TEXT-ON-ERROR: oklch(0.18 0.02 25);
+  --C-STATUS-SUCCESS: oklch(0.7 0.14 152);
+  --C-TEXT-SUCCESS: oklch(0.8 0.12 152);
+  --C-STATUS-SUCCESS-BG: oklch(0.28 0.05 152);
+  --C-TEXT-ON-SUCCESS: oklch(0.18 0.02 152);
+  --C-STATUS-WARNING: oklch(0.78 0.14 75);
+  --C-TEXT-WARNING: oklch(0.84 0.11 80);
+  --C-STATUS-WARNING-BG: oklch(0.29 0.05 75);
+  --C-TEXT-ON-WARNING: oklch(0.18 0.02 75);
+  --C-STATUS-INFO: oklch(0.72 0.12 245);
+  --C-TEXT-INFO: oklch(0.8 0.09 245);
+  --C-STATUS-INFO-BG: oklch(0.28 0.05 245);
+  --C-TEXT-ON-INFO: oklch(0.18 0.02 245);
+
+  /* Depth: a faint light ring defines the edge; the shadow only lifts. */
+  --SHADOW-SM: 0 0 0 1px oklch(1 0 0 / 0.06), 0 2px 6px oklch(0 0 0 / 0.4);
+  --SHADOW-MD: 0 0 0 1px oklch(1 0 0 / 0.07), 0 8px 24px -6px oklch(0 0 0 / 0.55);
+  --SHADOW-LG: 0 0 0 1px oklch(1 0 0 / 0.08), 0 24px 56px -12px oklch(0 0 0 / 0.65);
+}

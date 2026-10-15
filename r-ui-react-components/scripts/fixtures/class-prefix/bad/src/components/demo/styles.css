@@ -1,0 +1,16 @@
+/* .comment-class is never a definition. */
+.r-demo-ok {
+  display: block;
+}
+.r-hit::before,
+.demo-card > .r-demo-ok {
+  content: "";
+}
+.r-demo-ok:has(.someone-elses) {
+  display: flex;
+}
+@keyframes slide-in {
+  from {
+    opacity: 0;
+  }
+}

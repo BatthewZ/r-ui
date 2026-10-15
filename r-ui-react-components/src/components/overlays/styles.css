@@ -1,0 +1,105 @@
+/* "overlays" group stylesheet. Imported by src/styles.css inside `@layer components`,
+   so a caller's utility (`className`) always beats these rules.
+
+   Plain rules only: no `@theme`, no `@source`, no `@import` of another
+   group (those cannot live inside a layer). Tokens only: every value is a
+   var(--…) from the contract or src/tokens.css (`verify:no-raw-tailwind`).
+   Prefer utilities in the .tsx; CSS is for what utilities cannot say
+   (pseudo-elements, :has(), keyframes). Visually small controls take the
+   contract's `hit-area` utility; never a group copy of it. */
+
+/* Scroll lock. While a Dialog or Drawer is modal, the page behind it stays put.
+   Declared on the state (`:modal`) rather than toggled from script, so nested
+   and stacked modals need no counting. No `scrollbar-gutter: stable`: the
+   scrim and an edge drawer are fixed boxes, so a kept gutter shows as an
+   unscrimmed strip; the page shifting by a scrollbar's width happens under the
+   scrim, where it does not read. */
+:root:has(.r-overlays-modal:modal) {
+  overflow: hidden;
+}
+
+/* Dialog: a readable measure wide, never touching the viewport edge. The
+   percentages are of the viewport: a modal dialog is fixed-positioned. */
+.r-overlays-dialog {
+  inline-size: min(var(--MEASURE), 100% - 2 * var(--R-SIZE-2));
+  max-inline-size: none;
+  max-block-size: calc(100% - 2 * var(--R-SIZE-2));
+}
+
+/* Drawer at the inline end: full height, flush with the edge. */
+.r-overlays-drawer-end {
+  margin-block: 0;
+  margin-inline: auto 0;
+  block-size: 100%;
+  max-block-size: 100%;
+  inline-size: min(var(--MEASURE), 100% - var(--R-SIZE-1));
+  max-inline-size: none;
+}
+
+/* Bottom sheet: full width, rising from the bottom edge. */
+.r-overlays-drawer-bottom {
+  margin-inline: 0;
+  margin-block: auto 0;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  max-block-size: calc(100% - 2 * var(--R-SIZE-1));
+  animation: r-overlays-slide-in-bottom var(--DURATION-SLOW) var(--EASE-ENTER);
+}
+
+/* Full travel is the sheet's own height; reduced motion collapses the duration. */
+@keyframes r-overlays-slide-in-bottom {
+  from {
+    translate: 0 100%;
+  }
+}
+
+/* Popover arrow: a rotated square in the panel's own fill; the border is drawn
+   on the two edges that face out, so it continues the panel's hairline. The
+   sides are physical because floating-ui reports physical sides. */
+.r-overlays-arrow {
+  border: 0 solid var(--C-BORDER);
+}
+.r-overlays-arrow[data-side="top"] {
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+.r-overlays-arrow[data-side="bottom"] {
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+.r-overlays-arrow[data-side="left"] {
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+.r-overlays-arrow[data-side="right"] {
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+
+/* Toast stack, pinned to a viewport corner. It may carry `popover`, whose user
+   agent box (inset 0, auto margins, border, padding, Canvas colours, overflow)
+   is taken back off here. The stack lets presses through; each toast takes them. */
+.r-overlays-toast-region {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  color: inherit;
+  background-color: transparent;
+  inline-size: min(100% - 2 * var(--R-SIZE-2), var(--MEASURE) * 0.7);
+  pointer-events: none;
+}
+.r-overlays-toast-region[data-position^="top"] {
+  inset-block-start: var(--R-SIZE-2);
+}
+.r-overlays-toast-region[data-position^="bottom"] {
+  inset-block-end: var(--R-SIZE-2);
+}
+.r-overlays-toast-region[data-position$="start"] {
+  inset-inline-start: var(--R-SIZE-2);
+}
+.r-overlays-toast-region[data-position$="end"] {
+  inset-inline-end: var(--R-SIZE-2);
+}

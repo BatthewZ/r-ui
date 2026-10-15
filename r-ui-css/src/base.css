@@ -1,0 +1,101 @@
+/* Base: package-wide defaults that repaint what the browser would otherwise paint.
+   All in @layer base so any utility can override them; every colour aliases a
+   contract token, so a theme carries them for free. */
+
+@layer base {
+  :root {
+    background-color: var(--C-CANVAS);
+    color: var(--C-TEXT-PRIMARY);
+    font-family: var(--FONT-UI);
+    scrollbar-color: var(--C-BORDER-STRONG) transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* UI text by default, with tabular figures: an app is mostly labels, tables and
+     numbers. Prose regions switch to proportional figures. Never set on :root:
+     that would move `rem` itself. */
+  body {
+    font-size: var(--BodyText-1);
+    line-height: var(--BodyText-1-line-height);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A density boundary re-reads the body size in its own density, so a compact card
+     inside a comfortable page gets compact text without a utility. */
+  :where([data-density]:not(:root)) {
+    font-size: var(--BodyText-1);
+    line-height: var(--BodyText-1-line-height);
+  }
+
+  /* Hairlines by default: a bare `border` utility draws --C-BORDER, not currentColor. */
+  *,
+  ::before,
+  ::after,
+  ::backdrop {
+    border-color: var(--C-BORDER);
+    /* Tailwind's ring offset is white by default: a bright halo on dark themes.
+       Controls mostly sit on the raised sheet, so default to rung 0. */
+    --tw-ring-offset-color: var(--C-SURFACE-0);
+  }
+
+  /* In-app headings use the UI scale; a prose region switches them to display. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: var(--HEADING-WEIGHT);
+    text-transform: var(--HEADING-CASE);
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: var(--H1);
+    line-height: var(--H1-line-height);
+    letter-spacing: var(--HEADING-TRACKING);
+  }
+  h2 {
+    font-size: var(--H2);
+    line-height: var(--H2-line-height);
+    letter-spacing: var(--HEADING-TRACKING);
+  }
+  h3 {
+    font-size: var(--H3);
+    line-height: var(--H3-line-height);
+    letter-spacing: var(--HEADING-TRACKING);
+  }
+  h4 {
+    font-size: var(--H4);
+    line-height: var(--H4-line-height);
+    letter-spacing: var(--HEADING-TRACKING);
+  }
+  h5 {
+    font-size: var(--H5);
+    line-height: var(--H5-line-height);
+  }
+  h6 {
+    font-size: var(--H6);
+    line-height: var(--H6-line-height);
+  }
+
+  ::placeholder {
+    color: var(--C-TEXT-MUTED);
+    opacity: 1;
+  }
+
+  /* No selector beyond the pseudo-element: it resolves tokens against the element
+     the selection starts in, so re-declaring --C-SELECTION on a subtree re-tints it. */
+  ::selection {
+    background-color: var(--C-SELECTION);
+    color: var(--C-TEXT-ON-SELECTION);
+  }
+
+  /* Every keyboard-focusable element gets a visible ring with no work from the
+     component. A component that resets outlines restores it with `focus-ring`. */
+  :focus-visible {
+    outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+    outline-offset: var(--FOCUS-OFFSET);
+  }
+}

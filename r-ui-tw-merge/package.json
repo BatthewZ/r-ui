@@ -1,0 +1,36 @@
+{
+  "name": "@batthewz/r-ui-tw-merge",
+  "version": "0.1.0",
+  "description": "cn() and a tailwind-merge configured for the @batthewz/r-ui-css utility names.",
+  "license": "MIT",
+  "author": "BatthewZ",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "src",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "scripts": {
+    "check": "node --test test/mirror.test.js",
+    "test": "node --test \"test/**/*.test.js\""
+  },
+  "keywords": [
+    "tailwindcss-v4",
+    "tailwind-merge",
+    "clsx",
+    "cn",
+    "design-tokens"
+  ],
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.6.0"
+  }
+}

@@ -1,0 +1,6 @@
+/* Pair with any animate-* utility. Set the index per child:
+   style="--stagger-index: 3". --MOTION-STAGGER collapses to 0 under reduced motion. */
+.stagger-item {
+  animation-delay: calc(var(--stagger-index, 0) * var(--MOTION-STAGGER));
+  animation-fill-mode: both;
+}

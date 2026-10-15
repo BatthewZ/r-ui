@@ -1,0 +1,164 @@
+/* Prose regions: mark long-form or marketing content with `.prose` or [data-prose]
+   and its semantic children take the fluid prose/display scale with reading leading.
+
+   UI inside prose stays UI. Only text elements are styled; the region itself sets no
+   font size, so a button, menu, table or form inside it keeps the UI scale (and
+   --CONTROL-H). Lists with a role (menus, listboxes, nav lists) and links that carry
+   a class (button-links, nav items) are left alone. Anything inside `.not-prose` /
+   [data-not-prose] is out of scope entirely.
+
+   @layer components, so utilities override any of it: `<p class="text-prose-1">` is a
+   lead paragraph. Do not combine with a third-party `.prose` typography plugin. */
+
+@layer components {
+  @scope (.prose, [data-prose]) to (.not-prose, [data-not-prose]) {
+    p,
+    li,
+    dt,
+    dd,
+    blockquote {
+      font-size: var(--ProseText-2);
+      line-height: var(--ProseText-2-line-height);
+      font-variant-numeric: proportional-nums;
+    }
+
+    figcaption {
+      font-size: var(--ProseText-3);
+      line-height: var(--ProseText-3-line-height);
+      color: var(--C-TEXT-SECONDARY);
+      margin-block-start: 0.6em;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: var(--FONT-DISPLAY, var(--FONT-UI));
+      font-weight: var(--DISPLAY-WEIGHT);
+      text-transform: var(--HEADING-CASE);
+      text-wrap: balance;
+      font-variant-numeric: proportional-nums;
+    }
+    h1 {
+      font-size: var(--DISPLAY-1);
+      line-height: var(--DISPLAY-1-line-height);
+      letter-spacing: var(--DISPLAY-1-tracking);
+    }
+    h2 {
+      font-size: var(--DISPLAY-2);
+      line-height: var(--DISPLAY-2-line-height);
+      letter-spacing: var(--DISPLAY-2-tracking);
+    }
+    h3 {
+      font-size: var(--DISPLAY-3);
+      line-height: var(--DISPLAY-3-line-height);
+      letter-spacing: var(--DISPLAY-3-tracking);
+    }
+    h4 {
+      font-size: var(--DISPLAY-4);
+      line-height: var(--DISPLAY-4-line-height);
+      letter-spacing: var(--DISPLAY-4-tracking);
+    }
+    h5,
+    h6 {
+      font-size: var(--ProseText-1);
+      line-height: var(--ProseText-1-line-height);
+      letter-spacing: normal;
+    }
+
+    /* Flow: blocks are spaced by the text they hold; headings get room above and
+       hold close to what they introduce. */
+    * + :is(p, ul, ol, dl, blockquote, pre, figure, table, details, hr, img, video) {
+      margin-block-start: var(--PROSE-FLOW);
+    }
+    * + :is(h2, h3) {
+      margin-block-start: var(--SECTION-3);
+    }
+    * + :is(h4, h5, h6) {
+      margin-block-start: calc(var(--SECTION-3) * 0.75);
+    }
+    :is(h1, h2, h3, h4, h5, h6) + * {
+      margin-block-start: calc(var(--PROSE-FLOW) * 0.6);
+    }
+
+    :is(ul, ol):not([role]) {
+      padding-inline-start: 1.25em;
+    }
+    ul:not([role]) {
+      list-style: disc;
+    }
+    ol:not([role]) {
+      list-style: decimal;
+    }
+    :is(ul, ol):not([role]) > li + li {
+      margin-block-start: 0.35em;
+    }
+    :is(ul, ol):not([role]) > li::marker {
+      color: var(--C-TEXT-MUTED);
+    }
+
+    a:not([class]) {
+      color: var(--C-TEXT-ACCENT);
+      text-decoration-line: var(--LINK-DECORATION);
+      text-decoration-thickness: from-font;
+      text-underline-offset: 0.18em;
+    }
+    a:not([class]):hover {
+      text-decoration-line: underline;
+    }
+
+    strong,
+    b {
+      font-weight: var(--WEIGHT-SEMIBOLD);
+    }
+
+    blockquote {
+      border-inline-start: 2px solid var(--C-BORDER-STRONG);
+      padding-inline-start: 1em;
+      color: var(--C-TEXT-SECONDARY);
+    }
+
+    :not(pre) > code {
+      font-size: 0.875em;
+      padding: 0.1em 0.3em;
+      border-radius: var(--RADIUS-SM);
+      background-color: var(--C-SURFACE-2);
+    }
+
+    pre {
+      font-size: var(--ProseText-3);
+      line-height: 1.6;
+      padding: 1em 1.25em;
+      overflow-x: auto;
+      border: 1px solid var(--C-BORDER);
+      border-radius: var(--RADIUS-MD);
+      background-color: var(--C-SURFACE-1);
+      font-variant-numeric: tabular-nums;
+    }
+
+    hr {
+      border-block-start: 1px solid var(--C-BORDER);
+      margin-block: var(--SECTION-3);
+    }
+
+    :is(img, video) {
+      border-radius: var(--RADIUS-MD);
+    }
+
+    /* A bare form control inside a sentence still reads as UI. */
+    :is(button, input, select, textarea) {
+      font-size: var(--BodyText-1);
+      line-height: var(--BodyText-1-line-height);
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  /* The opt-out boundary is a UI island: back to UI text and figures. */
+  :where(.prose, [data-prose]) :where(.not-prose, [data-not-prose]) {
+    font-size: var(--BodyText-1);
+    line-height: var(--BodyText-1-line-height);
+    font-variant-numeric: tabular-nums;
+  }
+}

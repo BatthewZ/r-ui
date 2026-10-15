@@ -1,0 +1,20 @@
+/* "data" group stylesheet. Imported by src/styles.css inside `@layer components`,
+   so a caller's utility (`className`) always beats these rules.
+
+   Plain rules only: no `@theme`, no `@source`, no `@import` of another
+   group (those cannot live inside a layer). Tokens only: every value is a
+   var(--…) from the contract or src/tokens.css (`verify:no-raw-tailwind`).
+   Prefer utilities in the .tsx; CSS is for what utilities cannot say
+   (pseudo-elements, :has(), keyframes). Visually small controls take the
+   contract's `hit-area` utility; never a group copy of it. */
+
+/* Table: a selected row's leading marker. The wash alone is a weak cue (a
+   tint step), so the first cell carries an accent bar along its start edge.
+   An inset shadow, so it takes no layout and the row stays exactly --ROW-H;
+   mirrored for RTL because box-shadow offsets are physical. */
+[data-table-row][data-selected] > :first-child {
+  box-shadow: inset var(--R-SIZE-6) 0 0 var(--C-ACCENT);
+}
+[data-table-row][data-selected] > :first-child:dir(rtl) {
+  box-shadow: inset calc(var(--R-SIZE-6) * -1) 0 0 var(--C-ACCENT);
+}

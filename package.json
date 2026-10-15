@@ -1,0 +1,10 @@
+{
+  "name": "r-ui-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": ["r-ui-css", "r-ui-tw-merge", "r-ui-react-components"],
+  "scripts": {
+    "check": "bun run --filter '*' check",
+    "test": "bun run --filter '*' test"
+  }
+}

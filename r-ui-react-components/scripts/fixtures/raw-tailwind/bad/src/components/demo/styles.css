@@ -1,0 +1,13 @@
+/* Deliberately bad component CSS. p-4 here is a comment, never reported. */
+.demo {
+  padding: 12px;
+  margin-block: 0.5rem;
+  color: #333;
+  background: rgb(10 20 30);
+}
+.demo-apply {
+  @apply p-4 text-sm;
+}
+@media (width > 640px) {
+  .demo { display: grid; }
+}

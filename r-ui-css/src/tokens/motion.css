@@ -1,0 +1,52 @@
+/* Motion explains cause and effect: short, small, eased.
+
+   Reduced motion is handled HERE, at the token level: under prefers-reduced-motion
+   every duration collapses to ~0 and every distance to 0, so nothing built on these
+   tokens needs its own media query. The collapse is `!important` because it must
+   beat a theme's (more specific) `:root[data-theme]` motion values: a user
+   preference outranks a brand. 0.01ms, not 0, so animationend still fires. */
+
+:root {
+  --DURATION-FAST: 120ms; /* hover, press, colour changes */
+  --DURATION-NORMAL: 180ms; /* menus, popovers, small enters */
+  --DURATION-SLOW: 260ms; /* dialogs, sheets, page transitions, layout shifts */
+
+  --EASE-STANDARD: cubic-bezier(0.2, 0, 0, 1); /* moves within the screen */
+  --EASE-ENTER: cubic-bezier(0, 0, 0, 1); /* arrives: decelerates */
+  --EASE-EXIT: cubic-bezier(0.3, 0, 1, 1); /* leaves: accelerates */
+
+  --MOTION-DISTANCE-SM: 0.25rem; /* nudges: tooltips, menus */
+  --MOTION-DISTANCE-MD: 0.5rem; /* enters: popovers, toasts, list items */
+  --MOTION-DISTANCE-LG: 1.5rem; /* reveals: sections on scroll */
+  --MOTION-SCALE-FROM: 0.96; /* starting scale for scale-in / morph */
+  --MOTION-STAGGER: 40ms; /* per-item delay in a staggered list */
+
+  /* View transitions: names of @keyframes for the root page swap. */
+  --MOTION-PAGE-IN: fade-in;
+  --MOTION-PAGE-OUT: fade-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --DURATION-FAST: 0.01ms !important;
+    --DURATION-NORMAL: 0.01ms !important;
+    --DURATION-SLOW: 0.01ms !important;
+    --MOTION-DISTANCE-SM: 0px !important;
+    --MOTION-DISTANCE-MD: 0px !important;
+    --MOTION-DISTANCE-LG: 0px !important;
+    --MOTION-SCALE-FROM: 1 !important;
+    --MOTION-STAGGER: 0ms !important;
+  }
+}
+
+@theme inline {
+  --transition-duration-fast: var(--DURATION-FAST);
+  --transition-duration-normal: var(--DURATION-NORMAL);
+  --transition-duration-slow: var(--DURATION-SLOW);
+  --default-transition-duration: var(--DURATION-FAST);
+
+  --ease-standard: var(--EASE-STANDARD);
+  --ease-enter: var(--EASE-ENTER);
+  --ease-exit: var(--EASE-EXIT);
+  --default-transition-timing-function: var(--EASE-STANDARD);
+}

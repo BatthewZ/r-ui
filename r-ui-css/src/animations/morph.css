@@ -1,0 +1,45 @@
+/* Layout changes: a region expanding, collapsing, or an item moving in a list. */
+@keyframes morph-expand {
+  from {
+    opacity: 0;
+    scale: var(--MOTION-SCALE-FROM);
+    clip-path: inset(4% round var(--RADIUS-LG));
+  }
+  to {
+    clip-path: inset(0 round var(--RADIUS-LG));
+  }
+}
+
+@keyframes morph-collapse {
+  from {
+    clip-path: inset(0 round var(--RADIUS-LG));
+  }
+  to {
+    opacity: 0;
+    scale: var(--MOTION-SCALE-FROM);
+    clip-path: inset(4% round var(--RADIUS-LG));
+  }
+}
+
+@keyframes morph-reorder {
+  from {
+    opacity: 0.6;
+    translate: 0 var(--MOTION-DISTANCE-SM);
+  }
+}
+
+.morph-expand {
+  animation: morph-expand var(--DURATION-SLOW) var(--EASE-STANDARD);
+}
+.morph-collapse {
+  animation: morph-collapse var(--DURATION-NORMAL) var(--EASE-EXIT) forwards;
+}
+.morph-reorder {
+  animation: morph-reorder var(--DURATION-SLOW) var(--EASE-STANDARD);
+}
+
+@theme inline {
+  --animate-morph-expand: morph-expand var(--DURATION-SLOW) var(--EASE-STANDARD);
+  --animate-morph-collapse: morph-collapse var(--DURATION-NORMAL) var(--EASE-EXIT) forwards;
+  --animate-morph-reorder: morph-reorder var(--DURATION-SLOW) var(--EASE-STANDARD);
+}

@@ -1,0 +1,356 @@
+/* The showcase is a consumer app, so its CSS entry is exactly an app's:
+   the CSS package, the example themes it opts into, then the library. */
+@import "@batthewz/r-ui-css";
+@import "@batthewz/r-ui-css/examples/themes/nightfall";
+@import "@batthewz/r-ui-css/examples/themes/harbour";
+@import "../src/styles.css";
+
+/* The showcase's own files use utilities too. */
+@source "./";
+
+/* Shell styles. Tokens only (verify:no-raw-tailwind scans this file); a media
+   query moves LAYOUT only, never a token. In @layer components so a utility
+   in the markup can still override. */
+@layer components {
+  .sc-shell {
+    min-block-size: 100dvh;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: "top" "nav" "main";
+  }
+
+  .sc-skip {
+    position: absolute;
+    inset-inline-start: var(--R-SIZE-3);
+    inset-block-start: var(--R-SIZE-3);
+    z-index: 10;
+    padding: var(--R-SIZE-4) var(--R-SIZE-3);
+    border-radius: var(--RADIUS-MD);
+    background: var(--C-PRIMARY);
+    color: var(--C-TEXT-ON-PRIMARY);
+    translate: 0 -200%;
+  }
+  .sc-skip:focus-visible {
+    translate: 0 0;
+  }
+
+  /* ── Top bar ───────────────────────────────────────────────────────────── */
+  .sc-topbar {
+    grid-area: top;
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--R-SIZE-3);
+    padding: var(--R-SIZE-4) var(--R-SIZE-2);
+    background: var(--C-SURFACE-0);
+    border-block-end: 1px solid var(--C-BORDER);
+  }
+
+  .sc-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--R-SIZE-4);
+    min-block-size: var(--CONTROL-H);
+    color: var(--C-TEXT-PRIMARY);
+    font-weight: var(--WEIGHT-SEMIBOLD);
+    text-decoration: none;
+  }
+  .sc-brand-mark {
+    display: inline-grid;
+    place-items: center;
+    inline-size: var(--CONTROL-H);
+    block-size: var(--CONTROL-H);
+    border-radius: var(--RADIUS-MD);
+    background: var(--C-PRIMARY);
+    color: var(--C-TEXT-ON-PRIMARY);
+    font-family: var(--FONT-MONO);
+  }
+  .sc-brand-sub {
+    color: var(--C-TEXT-MUTED);
+    font-weight: var(--WEIGHT-NORMAL);
+  }
+
+  .sc-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--R-SIZE-5);
+    min-block-size: var(--CONTROL-H);
+    padding-inline: var(--R-SIZE-3);
+    border: 1px solid var(--C-BORDER);
+    border-radius: var(--RADIUS-MD);
+    background: var(--C-SURFACE-0);
+    color: var(--C-TEXT-PRIMARY);
+    font-weight: var(--WEIGHT-MEDIUM);
+    cursor: pointer;
+    transition: background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+  }
+  .sc-button:hover,
+  .sc-button[aria-expanded="true"] {
+    background: var(--C-SURFACE-2);
+  }
+
+  /* ── View panel (rendered in place, promoted to the top layer) ─────────── */
+  .sc-panel {
+    display: grid;
+    gap: var(--R-SIZE-3);
+    inline-size: max-content;
+    max-inline-size: calc(100vw - 2 * var(--R-SIZE-3));
+    padding: var(--R-SIZE-2);
+    border: 1px solid var(--C-BORDER);
+    border-radius: var(--RADIUS-LG);
+    background: var(--C-SURFACE-0);
+    color: var(--C-TEXT-PRIMARY);
+    box-shadow: var(--SHADOW-LG);
+    font-size: var(--BodyText-2);
+    line-height: var(--BodyText-2-line-height);
+  }
+  .sc-field {
+    display: grid;
+    gap: var(--R-SIZE-5);
+    min-inline-size: 0;
+  }
+  .sc-field legend {
+    padding: 0;
+    margin-block-end: var(--R-SIZE-5);
+    color: var(--C-TEXT-SECONDARY);
+    font-weight: var(--WEIGHT-MEDIUM);
+  }
+  .sc-seg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--R-SIZE-6);
+    padding: var(--R-SIZE-6);
+    border-radius: var(--RADIUS-MD);
+    background: var(--C-SURFACE-2);
+  }
+  .sc-seg label {
+    position: relative;
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--CONTROL-H);
+    padding-inline: var(--R-SIZE-3);
+    border-radius: var(--RADIUS-SM);
+    color: var(--C-TEXT-SECONDARY);
+    cursor: pointer;
+  }
+  /* The native radio covers its whole segment: the hit area is the segment. */
+  .sc-seg input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .sc-seg label:hover {
+    color: var(--C-TEXT-PRIMARY);
+  }
+  .sc-seg label:has(input:checked) {
+    background: var(--C-SURFACE-0);
+    color: var(--C-TEXT-PRIMARY);
+    box-shadow: var(--SHADOW-SM);
+    font-weight: var(--WEIGHT-MEDIUM);
+  }
+  .sc-seg label:has(input:focus-visible) {
+    outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+    outline-offset: var(--FOCUS-OFFSET);
+  }
+  .sc-panel-note {
+    color: var(--C-TEXT-MUTED);
+  }
+  .sc-readout {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: var(--R-SIZE-6) var(--R-SIZE-3);
+    padding-block-start: var(--R-SIZE-3);
+    border-block-start: 1px solid var(--C-BORDER);
+    font-family: var(--FONT-MONO);
+    font-size: var(--BodyText-3);
+    line-height: var(--BodyText-3-line-height);
+  }
+  .sc-readout > div {
+    display: contents;
+  }
+  .sc-readout dt {
+    color: var(--C-TEXT-MUTED);
+  }
+  .sc-readout dd {
+    color: var(--C-TEXT-PRIMARY);
+    text-align: end;
+  }
+
+  /* ── Navigation: a row of tabs when narrow, a sidebar when wide ────────── */
+  .sc-nav {
+    grid-area: nav;
+    overflow-x: auto;
+    border-block-end: 1px solid var(--C-BORDER);
+    background: var(--C-CANVAS);
+  }
+  .sc-nav ul {
+    display: flex;
+    gap: var(--R-SIZE-6);
+    padding: var(--R-SIZE-5) var(--R-SIZE-3);
+  }
+  .sc-nav a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--R-SIZE-4);
+    min-block-size: var(--ROW-H);
+    padding-inline: var(--R-SIZE-3);
+    border-radius: var(--RADIUS-MD);
+    color: var(--C-TEXT-SECONDARY);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .sc-nav a:hover {
+    background: var(--C-SURFACE-2);
+    color: var(--C-TEXT-PRIMARY);
+  }
+  .sc-nav a[aria-current="page"] {
+    background: var(--C-SURFACE-0);
+    color: var(--C-TEXT-PRIMARY);
+    font-weight: var(--WEIGHT-MEDIUM);
+  }
+  /* "You are here" is the accent's job: a short bar under the current tab. */
+  .sc-nav a[aria-current="page"]::after {
+    content: "";
+    position: absolute;
+    inset-inline: var(--R-SIZE-3);
+    inset-block-end: 0;
+    block-size: var(--R-SIZE-6);
+    border-radius: var(--RADIUS-FULL);
+    background: var(--C-ACCENT);
+  }
+
+  @media (width >= 48em) {
+    .sc-shell {
+      grid-template-columns: max-content minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      grid-template-areas: "top top" "nav main";
+    }
+    .sc-nav {
+      overflow: visible;
+      border-block-end: 0;
+      border-inline-end: 1px solid var(--C-BORDER);
+    }
+    .sc-nav ul {
+      position: sticky;
+      inset-block-start: calc(var(--CONTROL-H) + 2 * var(--R-SIZE-4) + 1px);
+      flex-direction: column;
+      padding: var(--R-SIZE-2) var(--R-SIZE-3);
+      min-inline-size: calc(var(--CONTROL-H) * 5);
+    }
+    /* In the sidebar the marker moves to the leading edge. */
+    .sc-nav a[aria-current="page"]::after {
+      inset-inline: 0 auto;
+      inset-block: var(--R-SIZE-4);
+      inline-size: var(--R-SIZE-6);
+      block-size: auto;
+    }
+  }
+
+  /* ── Main and pages ────────────────────────────────────────────────────── */
+  .sc-main {
+    grid-area: main;
+    min-inline-size: 0;
+    padding: var(--R-SIZE-1) var(--R-SIZE-2);
+  }
+  .sc-main:focus {
+    outline: none;
+  }
+  @media (width >= 48em) {
+    .sc-main {
+      padding: var(--R-SIZE-1);
+    }
+  }
+
+  .sc-page {
+    display: grid;
+    gap: var(--R-SIZE-1);
+  }
+  .sc-page-head {
+    display: grid;
+    gap: var(--R-SIZE-5);
+  }
+  .sc-lede {
+    max-inline-size: var(--MEASURE);
+    color: var(--C-TEXT-SECONDARY);
+  }
+  .sc-empty {
+    display: grid;
+    gap: var(--R-SIZE-4);
+    max-inline-size: var(--MEASURE);
+    padding: var(--R-SIZE-1);
+    border: 1px dashed var(--C-BORDER-STRONG);
+    border-radius: var(--RADIUS-LG);
+    color: var(--C-TEXT-SECONDARY);
+  }
+  .sc-invalid {
+    display: grid;
+    gap: var(--R-SIZE-4);
+    padding: var(--R-SIZE-2);
+    border-radius: var(--RADIUS-LG);
+    background: var(--C-STATUS-ERROR-BG);
+    color: var(--C-TEXT-ERROR);
+  }
+  .sc-retry {
+    justify-self: start;
+    text-decoration: underline;
+  }
+  code {
+    font-family: var(--FONT-MONO);
+  }
+
+  /* ── Overview ──────────────────────────────────────────────────────────── */
+  .sc-toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--R-SIZE-3) var(--R-SIZE-1);
+    padding: var(--R-SIZE-2);
+    border: 1px solid var(--C-BORDER);
+    border-radius: var(--RADIUS-LG);
+    background: var(--C-SURFACE-1);
+  }
+  .sc-toc-group {
+    margin-block-end: var(--R-SIZE-5);
+    color: var(--C-TEXT-MUTED);
+    font-size: var(--BodyText-3);
+    line-height: var(--BodyText-3-line-height);
+    font-weight: var(--WEIGHT-MEDIUM);
+  }
+  .sc-toc a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--HIT-MIN);
+    color: var(--C-TEXT-ACCENT);
+    text-decoration: var(--LINK-DECORATION);
+  }
+  .sc-group {
+    display: grid;
+    gap: var(--R-SIZE-2);
+  }
+  .sc-section {
+    display: grid;
+    gap: var(--R-SIZE-4);
+    scroll-margin-block-start: calc(var(--CONTROL-H) + 2 * var(--R-SIZE-4) + var(--R-SIZE-2));
+  }
+  .sc-section > header p {
+    color: var(--C-TEXT-SECONDARY);
+    max-inline-size: var(--MEASURE);
+  }
+  /* A demo is a size container, so components can be tested at any width. */
+  .sc-demo {
+    container-type: inline-size;
+    padding: var(--R-SIZE-2);
+    border: 1px solid var(--C-BORDER);
+    border-radius: var(--RADIUS-LG);
+    background: var(--C-SURFACE-0);
+    overflow-x: auto;
+  }
+}

@@ -1,0 +1,9 @@
+/* Tokens only: the theme contract and its Tailwind mappings, no base rules.
+   reset.css must stay first: it clears Tailwind's default scales. */
+@import "./reset.css";
+@import "./color.css";
+@import "./type.css";
+@import "./density.css";
+@import "./input.css";
+@import "./shape.css";
+@import "./motion.css";

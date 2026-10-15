@@ -1,14 +1,53 @@
-# Response dashboard scratchpad
+# r-ui
 
-A mockup of the response-ui-css token idea, re-aimed at dashboards. Open `index.html` in a browser; there is no build step or dependency. Use the **View** button to switch scheme, input and density.
+Workspace for the r-ui design-system family: three packages in one bun workspace. Read
+[ETHOS.md](ETHOS.md) for the decisions behind them and [CLAUDE.md](CLAUDE.md) for the
+working rules.
+
+| Package | What it is |
+| --- | --- |
+| [`r-ui-css/`](r-ui-css/) | `@batthewz/r-ui-css`: the token contract (colour, surfaces, type, spacing, shape, depth, motion), the four sizing axes and two example themes, as Tailwind v4 CSS. Zero JavaScript. |
+| [`r-ui-tw-merge/`](r-ui-tw-merge/) | `@batthewz/r-ui-tw-merge`: `cn()`, a tailwind-merge that knows the r-ui-css utility names. Zero CSS. |
+| [`r-ui-react-components/`](r-ui-react-components/) | `@batthewz/r-ui-react-components`: React 19 components on the two packages above (primitives, form, overlays, data, navigation, layout), the domain tokens a dashboard needs, and the showcase app. |
+
+Dependencies run one way: `r-ui-css + r-ui-tw-merge → r-ui-react-components`.
+
+```sh
+bun install
+bun run check   # every package's gates (r-ui-react-components' includes typecheck, lint and tests)
+bun run test    # every package's tests
+```
+
+## The showcase
+
+```sh
+cd r-ui-react-components
+bun run showcase:dev    # open the printed URL
+bun run browser:check   # every real-browser check against a fresh showcase (needs playwright-cli)
+```
+
+Four pages, switched from the top bar, each viewable in any theme (default, nightfall,
+harbour), density and input from the **View** panel:
+
+- **Overview**: every component, every state, one section each.
+- **Dashboard**: an operations dashboard built from library components only, in an `AppShell`
+  that picks full sidebar, icon rail or bottom nav by viewport.
+- **Marketing**: a landing page on the fluid display and section scales, with ordinary UI
+  components inside it at UI scale.
+- **Stress**: hostile cases: nested density boundaries, floating panels from a clipping card,
+  10,000 virtualized rows, extreme and translated content, right-to-left.
+
+## mockup/
+
+The original scratchpad: a mockup of the response-ui-css token idea, re-aimed at dashboards. It seeded the r-ui-css design and is kept as reference only. Open `mockup/index.html` in a browser; there is no build step or dependency. Use the **View** button to switch scheme, input and density.
 
 | File | What it is |
 | --- | --- |
-| `tokens.css` | The token system. This is the point of the mockup. |
-| `app.css` | Components and layout. Components only read tokens. |
-| `app.js` | Seeded fake data and plain-DOM charts. |
+| `mockup/tokens.css` | The token system. This is the point of the mockup. |
+| `mockup/app.css` | Components and layout. Components only read tokens. |
+| `mockup/app.js` | Seeded fake data and plain-DOM charts. |
 
-## The four axes
+### The four axes
 
 The viewport is not one of them.
 
@@ -19,9 +58,9 @@ The viewport is not one of them.
 | Input | `@media (pointer: coarse)`, or `html[data-input]` | `--HIT-MIN`, the 44px touch floor |
 | Container | The widget's own width | `--KPI-VALUE` (via `cqi`), plus `@container` rules for columns and legends |
 
-The viewport only moves grid areas and picks the sidebar mode (full, rail, or bottom nav). Search `app.css` for `@media (width`: those queries only appear in the Layout section.
+The viewport only moves grid areas and picks the sidebar mode (full, rail, or bottom nav). Search `mockup/app.css` for `@media (width`: those queries only appear in the Layout section.
 
-## Things worth poking at
+### Things worth poking at
 
 - **Axes combine.** Choose Compact + Touch: text shrinks, but rows and controls stay at 44px (`--ROW-H: max(density, hit floor)`). The View panel shows the resolved values.
 - **Subtree density.** In devtools, put `data-density="compact"` on just the Services card. Only that card tightens. This works because the derived tokens are re-declared on `[data-density]`. If they were declared on `:root` only, they would inherit already resolved and ignore the card's density.

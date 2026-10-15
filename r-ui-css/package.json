@@ -1,0 +1,64 @@
+{
+  "name": "@batthewz/r-ui-css",
+  "version": "0.1.0",
+  "description": "A token contract, a theme contract and four sizing axes (theme, density, input, container) as Tailwind v4 CSS. Usable on its own.",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "author": "BatthewZ",
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "src",
+    "docs",
+    "scripts",
+    "!scripts/**/*.test.mjs",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "style": "./src/index.css",
+      "default": "./src/index.css"
+    },
+    "./tokens": {
+      "style": "./src/tokens/index.css",
+      "default": "./src/tokens/index.css"
+    },
+    "./examples/themes/*": {
+      "style": "./src/examples/themes/*.css",
+      "default": "./src/examples/themes/*.css"
+    },
+    "./theme-template": {
+      "style": "./src/_theme-template.css",
+      "default": "./src/_theme-template.css"
+    }
+  },
+  "scripts": {
+    "check": "node scripts/check-contrast.mjs && node scripts/check-theme-rules.mjs && node scripts/check-compile.mjs",
+    "test": "node --test \"scripts/**/*.test.mjs\"",
+    "specimen": "node scripts/build-specimen.mjs"
+  },
+  "keywords": [
+    "design-system",
+    "design-tokens",
+    "tailwindcss-v4",
+    "themes",
+    "oklch",
+    "css"
+  ],
+  "peerDependencies": {
+    "tailwindcss": "^4"
+  },
+  "peerDependenciesMeta": {
+    "tailwindcss": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "4.3.3",
+    "tailwindcss": "4.3.3"
+  }
+}
