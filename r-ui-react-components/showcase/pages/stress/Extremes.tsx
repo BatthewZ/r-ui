@@ -210,7 +210,7 @@ function Translated() {
             <DropdownMenu.Item icon={<Copy />}>Duplizieren</DropdownMenu.Item>
             <DropdownMenu.Item icon={<FolderInput />}>In einen anderen Arbeitsbereich verschieben</DropdownMenu.Item>
             <DropdownMenu.Separator />
-            <DropdownMenu.Item icon={<Trash2 />} tone="error">
+            <DropdownMenu.Item icon={<Trash2 />} variant="danger">
               Dashboard endgültig löschen
             </DropdownMenu.Item>
           </DropdownMenu.Content>
@@ -280,7 +280,7 @@ function RightToLeft() {
             </DropdownMenu.Item>
             <DropdownMenu.Item icon={<Copy />}>تكرار</DropdownMenu.Item>
             <DropdownMenu.Separator />
-            <DropdownMenu.Item icon={<Trash2 />} tone="error">
+            <DropdownMenu.Item icon={<Trash2 />} variant="danger">
               حذف
             </DropdownMenu.Item>
           </DropdownMenu.Content>

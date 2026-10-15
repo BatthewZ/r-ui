@@ -1,33 +1,34 @@
 // Browser check: the Marketing page keeps UI inside prose at UI scale, and its
 // display type is fluid with no viewport step.
 //
-//   1. harness: at 375 the hero heading sits on --DISPLAY-1's floor (2.25rem = 36px;
-//      its container is narrower than the clamp's 360px-equivalent knee), and
+//   1. harness: at 375 the hero heading is --DISPLAY-1's clamp as the source writes it,
+//      `clamp(2.25rem, 1.663rem + 2.609cqi, 3.75rem)` over the Hero's own width (the
+//      Hero is its title's size container), and
 //      --CONTROL-H reads max(the density's named value, --HIT-MIN) as the source says;
 //   2. UI inside prose stays UI: in comfortable / compact × fine / coarse, the Button
 //      and the Select inside the journal's `.prose` article are exactly --CONTROL-H
 //      tall, and their font size and line height are the UI body text's
 //      (--BodyText-1 / --BodyText-1-line-height, resolved in place), never the
 //      reading line height of the paragraphs around them;
-//   3. display type is fluid: the hero <h1> (display-1) and a section <h2>
+//   3. display type is fluid: the hero's <h1> (display-1) and a section <h2>
 //      (display-2) are strictly larger at 1440 than at 375, and sampled at 600, 640
 //      and 680 they grow monotonically by near-equal steps (no jump at 640, the old
 //      family's breakpoint);
 //   4. at 375, in every theme and on every axis, the page has no horizontal scroll
 //      and the pricing table fits its own box (no scroll inside it either);
-//   5. no console error and no uncaught page error throughout.
+//   5. the hero is the library's Hero: its title takes the DISPLAY face role (a
+//      stylesheet that sets only --FONT-DISPLAY moves it, and in the first listed theme
+//      whose display face differs from its UI face it resolves to that display face,
+//      not the body's) at exactly --DISPLAY-1, and
+//      its section runs edge to edge inside the showcase shell (the band pattern: its
+//      box spans the shell's main region, padding included) at 1280 and 375;
+//   6. no console error and no uncaught page error throughout.
 //
 // Run it through `bun run browser:check marketing`.
 async (page) => {
   const base = page.url().split("#")[0];
   const fail = [];
-  const errors = [];
-  const onConsole = (msg) => {
-    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
-  };
-  const onPageError = (err) => errors.push(`pageerror: ${err.message}`);
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
+  const { errors, stop: stopErrors } = collectErrors(page);
 
   const load = async (view, width) => {
     await page.setViewportSize({ width, height: 900 });
@@ -40,6 +41,7 @@ async (page) => {
   };
 
   let uiCombos = 0;
+  let heroViews = 0;
   let fitCombos = 0;
   let samples = null;
   try {
@@ -115,6 +117,68 @@ async (page) => {
       }
     }
 
+    // ── 5: the Hero: display role, display size, edge to edge ───────────────
+    const PROBE_FACE = "C4 Display Probe";
+    const themes = await showcaseThemes(page);
+    const split = themes.find((t) => t.display !== t.ui);
+    if (!split) fail.push(`harness: no listed theme (${themes.map((t) => t.name).join(", ")}) gives its display face a family of its own`);
+    for (const [theme, width] of [
+      ["default", 1280],
+      ["default", 375],
+      ...(split ? [[split.name, 1280]] : []),
+    ]) {
+      const label = `hero ${theme}@${width}`;
+      await load({ theme, density: "comfortable", input: "fine" }, width);
+      const m = await page.evaluate((face) => {
+        const hero = document.querySelector('section[data-mkt="hero"]');
+        const h1 = hero?.querySelector("h1");
+        const main = hero?.closest("main");
+        if (!hero || !h1 || !main) return { missing: true };
+        const probe = document.createElement("span");
+        probe.style.fontSize = "var(--DISPLAY-1)";
+        h1.parentElement.append(probe);
+        const displaySize = getComputedStyle(probe).fontSize;
+        probe.remove();
+        const before = getComputedStyle(h1).fontFamily;
+        const body = getComputedStyle(document.body).fontFamily;
+        // Only the display role moves: a heading-role or UI-role reader would not follow.
+        const style = document.createElement("style");
+        style.textContent = `:root { --FONT-DISPLAY: "${face}", serif; }`;
+        document.head.append(style);
+        const moved = getComputedStyle(h1).fontFamily;
+        const bodyAfter = getComputedStyle(document.body).fontFamily;
+        style.remove();
+        const hr = hero.getBoundingClientRect();
+        const mr = main.getBoundingClientRect();
+        return {
+          before,
+          body,
+          moved,
+          bodyAfter,
+          size: getComputedStyle(h1).fontSize,
+          displaySize,
+          hero: [hr.left, hr.right],
+          main: [mr.left, mr.right],
+          mainPad: getComputedStyle(main).paddingInlineStart,
+        };
+      }, PROBE_FACE);
+      heroViews++;
+      if (m.missing) {
+        fail.push(`${label}: the hero section, its h1 or the shell's <main> is missing`);
+        continue;
+      }
+      if (!m.moved.includes(PROBE_FACE)) fail.push(`${label}: title ignores --FONT-DISPLAY (${m.moved})`);
+      if (m.bodyAfter.includes(PROBE_FACE)) fail.push(`${label}: harness: --FONT-DISPLAY moved the body face too`);
+      if (theme === split?.name && (m.before === m.body || m.before.split(",")[0].replace(/["']/g, "").trim() !== split.display)) {
+        fail.push(`${label}: title face ${m.before} is not the theme's display face ${split.display} (body ${m.body})`);
+      }
+      if (m.size !== m.displaySize) fail.push(`${label}: title is ${m.size}, --DISPLAY-1 resolves to ${m.displaySize}`);
+      if (Number.parseFloat(m.mainPad) <= 0) fail.push(`${label}: harness: the shell's main has no padding to cancel`);
+      if (Math.abs(m.hero[0] - m.main[0]) > 0.5 || Math.abs(m.hero[1] - m.main[1]) > 0.5) {
+        fail.push(`${label}: hero spans ${m.hero.map(Math.round)}, the shell's main ${m.main.map(Math.round)}: not edge to edge`);
+      }
+    }
+
     // ── 3: fluid display type, no viewport step ──────────────────────────────
     await load({ theme: "default", density: "comfortable", input: "fine" }, 375);
     const sizes = {};
@@ -122,12 +186,16 @@ async (page) => {
       await page.setViewportSize({ width, height: 900 });
       await page.waitForTimeout(150);
       sizes[width] = await page.evaluate(() => ({
-        d1: Number.parseFloat(getComputedStyle(document.querySelector('h1[data-mkt="display"]')).fontSize),
+        heroWidth: document.querySelector('section[data-mkt="hero"]').clientWidth,
+        d1: Number.parseFloat(getComputedStyle(document.querySelector('[data-mkt="hero"] h1')).fontSize),
         d2: Number.parseFloat(getComputedStyle(document.querySelector("#mkt-features-title")).fontSize),
       }));
     }
     samples = sizes;
-    if (sizes[375].d1 !== 36) fail.push(`harness: hero display-1 at 375 is ${sizes[375].d1}px, the --DISPLAY-1 floor is 36px`);
+    const predicted = Math.min(60, Math.max(36, 1.663 * 16 + (2.609 / 100) * sizes[375].heroWidth));
+    if (Math.abs(sizes[375].d1 - predicted) > 0.05) {
+      fail.push(`harness: hero display-1 at 375 is ${sizes[375].d1}px, the source's clamp predicts ${predicted.toFixed(2)}px`);
+    }
     for (const key of ["d1", "d2"]) {
       const f = (w) => sizes[w][key];
       if (!(f(1440) > f(375))) fail.push(`${key}: ${f(1440)}px at 1440 is not larger than ${f(375)}px at 375`);
@@ -140,7 +208,7 @@ async (page) => {
     }
 
     // ── 4: nothing scrolls sideways at 375 ───────────────────────────────────
-    for (const theme of ["default", "nightfall", "harbour", "atelier"]) {
+    for (const { name: theme } of themes) {
       for (const [density, input] of [
         ["comfortable", "fine"],
         ["compact", "fine"],
@@ -166,8 +234,7 @@ async (page) => {
       }
     }
   } finally {
-    page.off("console", onConsole);
-    page.off("pageerror", onPageError);
+    stopErrors();
     await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
     await page.setViewportSize({ width: 1280, height: 900 });
   }
@@ -175,5 +242,5 @@ async (page) => {
   for (const e of errors) fail.push(e);
   if (fail.length) throw new Error(`marketing-page FAILED (${fail.length}):\n  ${fail.join("\n  ")}`);
   const fmt = (k) => [375, 600, 640, 680, 1440].map((w) => samples[w][k].toFixed(1)).join("/");
-  return `marketing-page OK (prose UI on ${uiCombos} density×input combos; display-1 ${fmt("d1")}px, display-2 ${fmt("d2")}px at 375/600/640/680/1440; ${fitCombos} narrow views fit)`;
+  return `marketing-page OK (prose UI on ${uiCombos} density×input combos; hero display role, size and full bleed in ${heroViews} views; display-1 ${fmt("d1")}px, display-2 ${fmt("d2")}px at 375/600/640/680/1440; ${fitCombos} narrow views fit)`;
 }

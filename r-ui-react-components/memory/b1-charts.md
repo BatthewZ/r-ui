@@ -41,6 +41,13 @@ How `LineChart`, `BarChart` and `Heatmap` were built, and what to keep when chan
   `aria-hidden`; the figure is named by `label` and described by a summary. The tooltip is
   `aria-hidden` too; a polite status speaks the same row, only for the keyboard and a tap,
   never a passing pointer.
+- **The readout cursor is one hook.** `usePlotCursor` owns what every chart
+  shares: hover follows the pointer, a tap inspects and a press outside clears it, keys
+  move it, Escape clears it, keyboard focus starts it. A chart supplies only what differs:
+  `pick` (the row or cell under the pointer), `keyTarget` and `start`. Line and bar reach it
+  through `useAxisCursor`, Heatmap through its grid cursor. Heatmap once carried its own copy
+  of the handlers; a new chart or gesture goes through the hook, so a touch or Escape fix
+  lands in every chart at once.
 - **Forced colours.** Series groups and keys opt out (`forced-color-adjust: none`), so the
   data keeps its colour and every series still has its own shape; gridlines and axes are
   strokes in tokens that become system colours; the tooltip is the contract's `bg-fg-primary`

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
@@ -10,7 +10,7 @@ function focusFirstOrContainer(container: HTMLElement) {
 }
 
 export function useFocusTrap(
-  ref: React.RefObject<HTMLElement | null>,
+  ref: RefObject<HTMLElement | null>,
   enabled: boolean
 ) {
   const previousFocusRef = useRef<Element | null>(null);

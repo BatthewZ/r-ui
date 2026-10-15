@@ -255,6 +255,56 @@ describe("Combobox", () => {
     ]);
   });
 
+  it("keeps an option's id while the list re-filters around it, and every id is one IDREF", async () => {
+    const user = userEvent.setup();
+    render(<Labelled />);
+    await user.click(input());
+    const before = screen.getByRole("option", { name: "Web frontend" }).id;
+    await user.type(input(), "web");
+    const after = screen.getByRole("option", { name: "Web frontend" });
+    expect(after.id).toBe(before);
+    expect(active()).toBe(after);
+
+    const { unmount } = render(
+      <Combobox
+        aria-label="Odd"
+        defaultOpen
+        options={[
+          { value: "two words", label: "Spaced" },
+          { value: "two_20_words", label: "Escaped look-alike" },
+        ]}
+      />,
+    );
+    const ids = within(screen.getByRole("listbox", { name: "Odd" }))
+      .getAllByRole("option")
+      .map((o) => o.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+    for (const id of ids) expect(id).not.toMatch(/\s/);
+    unmount();
+  });
+
+  it("a load error lists no options: the cursor points at nothing and Enter takes nothing", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(
+      <Combobox
+        aria-label="Repo"
+        options={[{ value: "alpha", label: "Alpha" }]}
+        loadError="Could not load repositories."
+        onValueChange={onValueChange}
+      />,
+    );
+    const box = screen.getByRole("combobox", { name: "Repo" });
+    await user.type(box, "Al");
+    expect(screen.getByRole("listbox").parentElement).toHaveTextContent("Could not load repositories.");
+    expect(box).not.toHaveAttribute("aria-activedescendant");
+    await user.keyboard("{ArrowDown}");
+    expect(box).not.toHaveAttribute("aria-activedescendant");
+    await user.keyboard("{Enter}");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("windows a long list, and the keyboard's option is always mounted", async () => {
     const user = userEvent.setup();
     const many = Array.from({ length: 2000 }, (_, i) => ({ value: `v${i}`, label: `Host ${i}` }));

@@ -6,7 +6,7 @@
 //
 // On the Overview's Markdown section (release notes + a hostile document),
 // asserts:
-//   1. no href or src anywhere in the page body uses a script-capable scheme
+//   1. no href or src in the Markdown section uses a script-capable scheme
 //      (javascript:, vbscript:, data: other than an image), the hostile links
 //      still show their words, and a safe link in the same paragraph is a link
 //      (positive control);
@@ -15,6 +15,10 @@
 //   3. sizing: Markdown paragraphs take the prose scale (--ProseText-2) while its
 //      CodeBlock keeps UI text (--BodyText-2) and none of the prose region's own
 //      `pre` box (padding, border), and its table rows are --ROW-H;
+//   3b. task items, at comfortable and at compact: each box hangs inside its
+//      list's indent (never left of the list's own box) and the item's text
+//      starts where a plain item's text does (box end + the gap = the item's
+//      content edge), so a task list keeps one text column;
 //   4. at 375px, comfortable + coarse and compact + fine: the page never scrolls
 //      sideways and nothing in the section paints past it unless it sits in a
 //      scroller (a `hidden` clip loses content, so it is no excuse) (deep quotes and lists, an unbroken word, a 24-column table, a
@@ -54,7 +58,11 @@ async (page) => {
       const ignored = (n) => n <= 0x20 || (n >= 0x7f && n <= 0xa0) || (n >= 0x200b && n <= 0x200d) || n === 0xfeff;
       const strip = (u) => [...u].filter((c) => !ignored(c.codePointAt(0))).join("").toLowerCase();
       const bad = [];
-      for (const el of document.body.querySelectorAll("[href], [src]")) {
+      // The Markdown section's own output: the rest of the Overview is other sections (the
+      // marketing demos' art is the app's own SVG, inlined by the dev server as a data: URI).
+      const section = document.getElementById("content-markdown");
+      if (!section) bad.push("harness: no #content-markdown section");
+      for (const el of section?.querySelectorAll("[href], [src]") ?? []) {
         for (const attr of ["href", "src"]) {
           const v = el.getAttribute(attr);
           if (v === null) continue;
@@ -114,10 +122,35 @@ async (page) => {
     if (Math.abs(m.rowPx - m.rowH) > 0.5) problems.push(`sizing: its table row is ${m.rowPx}px, --ROW-H is ${m.rowH}px`);
     notes.desktop = { paraPx: m.paraPx, prePx: m.prePx, rowPx: m.rowPx };
 
+    // ── 3b. Task boxes in the list indent, at both densities ─────────────
+    notes.tasks = {};
+    for (const density of ["comfortable", "compact"]) {
+      await open({ theme: "default", density, input: "fine" }, 1280);
+      const t = await page.evaluate(() => {
+        const notesMd = document.querySelector("#content-markdown .r-content-md");
+        return [...notesMd.querySelectorAll(".r-content-md-task")].map((li) => {
+          const box = li.querySelector(".r-content-md-task-box").getBoundingClientRect();
+          const list = li.parentElement.getBoundingClientRect();
+          const css = getComputedStyle(li);
+          const content = li.getBoundingClientRect().left + Number.parseFloat(css.paddingLeft) + Number.parseFloat(css.borderLeftWidth);
+          const gap = Number.parseFloat(getComputedStyle(li.querySelector(".r-content-md-task-box")).marginRight);
+          return { boxLeft: box.left, boxRight: box.right, listLeft: list.left, content, gap, indent: content - list.left };
+        });
+      });
+      if (t.length < 2) problems.push(`tasks (${density}): harness: ${t.length} task item(s) in the release notes, expected the open and done ones`);
+      for (const item of t) {
+        if (!(item.indent > 0)) problems.push(`tasks (${density}): harness: the list has no indent (${JSON.stringify(item)})`);
+        if (item.boxLeft < item.listLeft - 0.5) problems.push(`tasks (${density}): the box starts at ${item.boxLeft}px, left of its list (${item.listLeft}px)`);
+        if (Math.abs(item.boxRight + item.gap - item.content) > 1) problems.push(`tasks (${density}): text starts at ${item.boxRight + item.gap}px, the item's column is ${item.content}px`);
+      }
+      notes.tasks[density] = t.map((i) => `${(i.boxLeft - i.listLeft).toFixed(1)}/${i.indent.toFixed(1)}`).join(" ");
+    }
+
     // ── 4. Narrow ───────────────────────────────────────────────────────
+    const dark = await darkTheme(page);
     for (const view of [
       { theme: "default", density: "comfortable", input: "coarse" },
-      { theme: "nightfall", density: "compact", input: "fine" },
+      { theme: dark, density: "compact", input: "fine" },
     ]) {
       await open(view, 375);
       const n = await page.evaluate(() => {

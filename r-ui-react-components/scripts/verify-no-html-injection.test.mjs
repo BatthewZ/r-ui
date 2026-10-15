@@ -9,7 +9,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const run = (root) =>
   spawnSync(process.execPath, [join(HERE, "verify-no-html-injection.mjs"), ...(root ? ["--root", root] : [])], { encoding: "utf8" });
 
-describe("verify:no-html-injection", () => {
+// Each case runs the gate as a subprocess, which can take seconds while the full suite loads every core.
+describe("verify:no-html-injection", { timeout: 30_000 }, () => {
   it("goes red on every string-to-markup call, in src and showcase, and only those", () => {
     const result = run(join(HERE, "fixtures/no-html-injection/bad"));
     expect(result.status).toBe(1);
@@ -18,9 +19,14 @@ describe("verify:no-html-injection", () => {
     expect(out).toMatch(/Bad\.tsx:5 {2}an innerHTML\/outerHTML assignment/);
     expect(out).toMatch(/Bad\.tsx:6 {2}insertAdjacentHTML/);
     expect(out).toMatch(/showcase\/Page\.tsx:2 {2}document\.write/);
-    // A comparison is not an assignment.
+    // A comparison is not an assignment; a bracketed property name still is one.
     expect(out).not.toMatch(/Bad\.tsx:7/);
-    expect(out).toMatch(/— 4 string-to-markup call\(s\)/);
+    expect(out).toMatch(/Bad\.tsx:8 {2}an innerHTML\/outerHTML assignment/);
+    // outerHTML by dot, an appending `+=`, and a Range parsing a string into nodes.
+    expect(out).toMatch(/Bad\.tsx:11 {2}an innerHTML\/outerHTML assignment/);
+    expect(out).toMatch(/Bad\.tsx:12 {2}an innerHTML\/outerHTML assignment/);
+    expect(out).toMatch(/Bad\.tsx:13 {2}createContextualFragment/);
+    expect(out).toMatch(/— 8 string-to-markup call\(s\)/);
   });
 
   it("passes comments, comparisons and test files", () => {

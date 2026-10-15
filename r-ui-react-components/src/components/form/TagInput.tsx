@@ -17,13 +17,22 @@ import { mergeRefs } from "../../util/merge-refs";
 import { ErrorLine } from "../../util/error-line";
 import { cn, type SlotClassNames } from "../../util/style";
 
-import { useFieldControl, useFieldValue } from "./Field";
-import { focusLastChip, HiddenValues, stringList, SelectionChips, SelectionFrame, useAnnouncer } from "./selection-field";
-import { foldText } from "./selection-filter";
+import { useFieldControl, useFieldMessage, useFieldValue } from "./Field";
+import {
+  focusLastChip,
+  focusLeaves,
+  HiddenValues,
+  SelectionChips,
+  SelectionFrame,
+  stringList,
+  useAnnouncer,
+} from "./selection-field";
+import { foldText } from "../../util/text-match";
 import { buildSelectionList, type ComboboxOption, SelectionListbox, useSelectionPopup } from "./selection-popup";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 /** Every string the control says, for localisation. */
-export interface TagInputMessages {
+export interface TagInputLabels {
   /** Names the chip list. */
   tags: string;
   remove: (tag: string) => string;
@@ -33,7 +42,7 @@ export interface TagInputMessages {
   max: (max: number) => string;
 }
 
-const MESSAGES: TagInputMessages = {
+export const DEFAULT_TAG_INPUT_LABELS: TagInputLabels = {
   tags: "Tags",
   remove: (tag) => `Remove ${tag}`,
   added: (tags, count) => `Added ${tags.join(", ")}. ${count} ${count === 1 ? "tag" : "tags"}.`,
@@ -65,7 +74,7 @@ export interface TagInputProps
   /** Submitted as one hidden input per tag. */
   name?: string;
   invalid?: boolean;
-  messages?: Partial<TagInputMessages>;
+  labels?: LabelsProp<TagInputLabels>;
   /** `className` styles the root (width lands there); `ref` and the rest address the `<input>`. */
   classNames?: SlotClassNames<"frame" | "input" | "chip" | "message" | "listbox" | "option">;
 }
@@ -92,7 +101,7 @@ export function TagInput({
   commitOnBlur = true,
   name,
   invalid: invalidProp,
-  messages: messagesProp,
+  labels: labelsProp,
   className,
   classNames,
   ref,
@@ -110,12 +119,14 @@ export function TagInput({
   placeholder,
   ...props
 }: TagInputProps) {
-  const messages = { ...MESSAGES, ...messagesProp };
+  const labels = mergeLabels(DEFAULT_TAG_INPUT_LABELS, labelsProp);
   const [refusal, setRefusal] = useState<string | null>(null);
   const messageId = useId();
+  // A refused tag makes the Field invalid and joins its description.
+  useFieldMessage("error", messageId, refusal !== null);
   const field = useFieldControl({
     id: idProp,
-    invalid: invalidProp ?? (refusal !== null || undefined),
+    invalid: refusal !== null ? true : invalidProp,
     required: requiredProp,
     disabled: disabledProp,
     readOnly: readOnlyProp,
@@ -163,8 +174,8 @@ export function TagInput({
     for (; index < candidates.length; index++) {
       const tag = (candidates[index] ?? "").trim();
       if (tag === "") continue;
-      if (max !== undefined && next.length >= max) message = messages.max(max);
-      else if (next.some((t) => same(t, tag))) message = messages.duplicate(tag);
+      if (max !== undefined && next.length >= max) message = labels.max(max);
+      else if (next.some((t) => same(t, tag))) message = labels.duplicate(tag);
       else message = validate?.(tag, next) || null;
       if (message) break;
       next.push(tag);
@@ -172,7 +183,7 @@ export function TagInput({
     }
     if (added.length > 0) setTags(next);
     setRefusal(message);
-    const spoken = [added.length > 0 ? messages.added(added, next.length) : "", message ?? ""].filter(Boolean).join(" ");
+    const spoken = [added.length > 0 ? labels.added(added, next.length) : "", message ?? ""].filter(Boolean).join(" ");
     if (spoken) announce(spoken);
     return candidates
       .slice(index)
@@ -263,11 +274,11 @@ export function TagInput({
     const next = tags.filter((_, i) => i !== index);
     setTags(next);
     setRefusal(null);
-    announce(messages.removed(removed, next.length));
+    announce(labels.removed(removed, next.length));
   };
 
   const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
-    if (rootRef.current?.contains(event.relatedTarget as Node | null)) return;
+    if (!focusLeaves(rootRef.current, event)) return;
     setOpen(false);
     if (commitOnBlur && !locked) commitDraft();
   };
@@ -285,8 +296,8 @@ export function TagInput({
       >
         <SelectionChips
           chips={tags.map((tag) => ({ key: tag, label: tag }))}
-          label={messages.tags}
-          removeLabel={messages.remove}
+          label={labels.tags}
+          removeLabel={labels.remove}
           onRemove={removeAt}
           inputRef={inputRef}
           disabled={field.disabled}
@@ -296,17 +307,13 @@ export function TagInput({
         <input
           ref={setInputRef}
           type="text"
-          role={hasList ? "combobox" : undefined}
+          // Without suggestions there is no list: a plain text input.
+          {...(hasList ? popup.comboboxProps : { autoComplete: "off" })}
           id={field.id}
           required={field.required && tags.length === 0}
           aria-required={field.required}
           disabled={field.disabled}
           readOnly={field.readOnly}
-          autoComplete="off"
-          aria-autocomplete={hasList ? "list" : undefined}
-          aria-expanded={hasList ? open : undefined}
-          aria-controls={hasList && popup.present ? popup.listboxId : undefined}
-          aria-activedescendant={hasList && open && activeIndex >= 0 ? popup.optionId(activeIndex) : undefined}
           {...field.ariaProps}
           form={form}
           placeholder={tags.length === 0 ? placeholder : undefined}

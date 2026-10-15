@@ -19,11 +19,12 @@ export default function IconButtonSection() {
 
   return (
     <Stack>
-      <Row label="Variants: ghost (default) · secondary · primary">
+      <Row label="Variants: ghost (default) · secondary · primary · danger">
         <div className="flex flex-wrap items-center gap-r4">
           <IconButton label="Settings" icon={<Settings />} className={hit} />
           <IconButton label="Notifications" icon={<Bell />} variant="secondary" className={hit} />
           <IconButton label="Add widget" icon={<Plus />} variant="primary" className={hit} />
+          <IconButton label="Delete widget" icon={<Trash2 />} variant="danger" className={hit} />
           <Button variant="secondary" onClick={() => setShowHit((v) => !v)} aria-pressed={showHit}>
             {showHit ? "Hide hit areas" : "Show hit areas"}
           </Button>

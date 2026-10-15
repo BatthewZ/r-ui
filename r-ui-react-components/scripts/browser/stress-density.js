@@ -19,7 +19,9 @@
 //   5. the Popover, opened the same way, is in the top layer, reaches past the
 //      clip box, is hit-testable outside it and its input's frame is the compact
 //      --CONTROL-H; the Tooltip (opened by focus) is in the top layer past the
-//      clip box; the native Select is the compact --CONTROL-H;
+//      clip box and compact too (it resolves the card's --ROW-H, not the page's, and
+//      its inline padding is --R-SIZE-5 as resolved in the card); the native Select
+//      is the compact --CONTROL-H;
 //   6. (C5) with html data-input="coarse": every row and control in the compact
 //      cards, and every item of the opened menu, is at least 44px.
 async (page) => {
@@ -162,6 +164,22 @@ async (page) => {
   const tip = await geometry(tipSel);
   if (!tip?.topLayer || !tip.inCard) fail.push(`the tooltip is not in place and in the top layer (${JSON.stringify(tip)})`);
   else if (!(tip.beyond.above > 0 || tip.beyond.below > 0)) fail.push(`the tooltip does not reach past the clip box (${JSON.stringify(tip.beyond)})`);
+  const tipDensity = await page.evaluate((sel) => {
+    const card = document.querySelector('[data-testid="stress-clip-card"]');
+    const panel = document.querySelector(sel);
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;padding-inline-start:var(--R-SIZE-5)";
+    card.append(probe);
+    const cardPad = getComputedStyle(probe).paddingInlineStart;
+    probe.remove();
+    return {
+      rowH: Number.parseFloat(getComputedStyle(panel).getPropertyValue("--ROW-H")),
+      pad: getComputedStyle(panel).paddingInlineStart,
+      cardPad,
+    };
+  }, tipSel);
+  if (tipDensity.rowH !== 30) fail.push(`the tooltip resolves --ROW-H ${tipDensity.rowH}px, the compact card's is 30px (page 40px)`);
+  if (tipDensity.pad !== tipDensity.cardPad) fail.push(`the tooltip's inline padding is ${tipDensity.pad}, --R-SIZE-5 in the compact card is ${tipDensity.cardPad}`);
   await page.keyboard.press("Escape");
   const nativeSelect = await page.evaluate(
     () => document.querySelector('[data-testid="stress-clip-card"] select[aria-label="Time range"]').getBoundingClientRect().height,

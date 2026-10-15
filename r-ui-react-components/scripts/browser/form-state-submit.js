@@ -29,13 +29,7 @@
 async (page) => {
   const base = page.url().split("#")[0];
   const fail = [];
-  const errors = [];
-  const onConsole = (msg) => {
-    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
-  };
-  const onPageError = (err) => errors.push(`pageerror: ${err.message}`);
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
+  const { errors, stop: stopErrors } = collectErrors(page);
 
   const open = async (view, width) => {
     await page.setViewportSize({ width, height: 900 });
@@ -181,7 +175,7 @@ async (page) => {
     if (!narrow.stacked || !narrow.full) fail.push(`stack: a narrow container's actions ${JSON.stringify(narrow)}`);
 
     // 8. 375 · compact · coarse · dark.
-    form = await open({ theme: "nightfall", density: "compact", input: "coarse" }, 375);
+    form = await open({ theme: await darkTheme(page), density: "compact", input: "coarse" }, 375);
     const phone = await form.evaluate((el) => {
       const frame = el.querySelector(".r-form-frame");
       const row = el.querySelector("[data-sticky] > div");
@@ -221,8 +215,7 @@ async (page) => {
 
     if (errors.length) fail.push(...errors.slice(0, 5));
   } finally {
-    page.off("console", onConsole);
-    page.off("pageerror", onPageError);
+    stopErrors();
     await page.emulateMedia({ forcedColors: "none" });
     await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
   }

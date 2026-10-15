@@ -1,0 +1,95 @@
+/* Print: ink on paper, for every theme.
+
+   A dark theme printed as designed is light ink on white paper (browsers drop
+   backgrounds when printing), and a brand's tints, shadows and motion mean
+   nothing there. So under `@media print` every colour role takes one light,
+   neutral palette, extensions take their light values (`--SCHEME-DARK: 0`),
+   shadows go flat and motion collapses.
+
+   `!important` on `:root`, like reduced motion and forced colors: a theme's
+   `:root[data-theme]` is more specific than `:root`, and only an important
+   declaration outranks it. That is also why a theme may never use `!important`
+   (`check-theme-rules`). Imported after the colour roles (so print wins over
+   `prefers-contrast`, whose palette it already exceeds) and before forced colors
+   (a forced palette is the user's own and still wins).
+
+   Every value here is measured against the contrast contract as its own palette
+   (`check-contrast`), and every `--C-*` role must appear (`check-theme-rules`). */
+
+@media print {
+  :root {
+    color-scheme: light !important;
+    --SCHEME-DARK: 0 !important;
+
+    /* Paper: white canvas and raised surfaces; recessed wells and tracks keep a
+       light grey for when the reader prints backgrounds. */
+    --C-CANVAS: oklch(1 0 0) !important;
+    --C-SURFACE-0: oklch(1 0 0) !important;
+    --C-SURFACE-1: oklch(1 0 0) !important;
+    --C-SURFACE-2: oklch(0.955 0 0) !important;
+    --C-SURFACE-3: oklch(0.925 0 0) !important;
+
+    --C-TEXT-PRIMARY: oklch(0.18 0 0) !important;
+    --C-TEXT-SECONDARY: oklch(0.34 0 0) !important;
+    --C-TEXT-MUTED: oklch(0.44 0 0) !important;
+    --C-TEXT-INVERSE: oklch(1 0 0) !important;
+
+    --C-BORDER: oklch(0.72 0 0) !important;
+    --C-BORDER-STRONG: oklch(0.55 0 0) !important;
+    --C-SCRIM: oklch(0.18 0 0 / 0.4) !important;
+
+    --C-PRIMARY: oklch(0.2 0 0) !important;
+    --C-PRIMARY-HOVER: oklch(0.3 0 0) !important;
+    --C-PRIMARY-ACTIVE: oklch(0.14 0 0) !important;
+    --C-TEXT-ON-PRIMARY: oklch(1 0 0) !important;
+
+    /* The accent stays a hue, so a link or a "you are here" mark still reads as
+       one on a colour printer; links also underline (below), for a grey one. */
+    --C-ACCENT: oklch(0.46 0.13 255) !important;
+    --C-ACCENT-HOVER: oklch(0.4 0.12 255) !important;
+    --C-TEXT-ON-ACCENT: oklch(1 0 0) !important;
+    --C-TEXT-ACCENT: oklch(0.43 0.13 255) !important;
+    --C-SELECTION: oklch(0.92 0.035 255) !important;
+    --C-TEXT-ON-SELECTION: oklch(0.18 0 0) !important;
+    --C-FOCUS: oklch(0.5 0.15 255) !important;
+
+    --C-STATUS-ERROR: oklch(0.55 0.19 27) !important;
+    --C-TEXT-ERROR: oklch(0.47 0.17 27) !important;
+    --C-STATUS-ERROR-BG: oklch(0.962 0.018 27) !important;
+    --C-TEXT-ON-ERROR: oklch(1 0 0) !important;
+
+    --C-STATUS-SUCCESS: oklch(0.53 0.13 152) !important;
+    --C-TEXT-SUCCESS: oklch(0.45 0.1 152) !important;
+    --C-STATUS-SUCCESS-BG: oklch(0.962 0.025 152) !important;
+    --C-TEXT-ON-SUCCESS: oklch(1 0 0) !important;
+
+    --C-STATUS-WARNING: oklch(0.6 0.135 62) !important;
+    --C-TEXT-WARNING: oklch(0.47 0.1 62) !important;
+    --C-STATUS-WARNING-BG: oklch(0.966 0.03 85) !important;
+    --C-TEXT-ON-WARNING: oklch(0.16 0.01 62) !important;
+
+    --C-STATUS-INFO: oklch(0.54 0.12 245) !important;
+    --C-TEXT-INFO: oklch(0.46 0.11 245) !important;
+    --C-STATUS-INFO-BG: oklch(0.962 0.018 245) !important;
+    --C-TEXT-ON-INFO: oklch(1 0 0) !important;
+
+    --LINK-DECORATION: underline !important;
+
+    /* Flat: a transparent zero shadow, not `none`, because a shadow utility lists
+       the token among other shadows, where `none` is invalid. */
+    --SHADOW-SM: 0 0 transparent !important;
+    --SHADOW-MD: 0 0 transparent !important;
+    --SHADOW-LG: 0 0 transparent !important;
+
+    /* Still: the same collapse as reduced motion, so an enter animation caught
+       mid-way prints its end state. */
+    --DURATION-FAST: 0.01ms !important;
+    --DURATION-NORMAL: 0.01ms !important;
+    --DURATION-SLOW: 0.01ms !important;
+    --MOTION-DISTANCE-SM: 0px !important;
+    --MOTION-DISTANCE-MD: 0px !important;
+    --MOTION-DISTANCE-LG: 0px !important;
+    --MOTION-SCALE-FROM: 1 !important;
+    --MOTION-STAGGER: 0ms !important;
+  }
+}

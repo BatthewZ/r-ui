@@ -4,15 +4,22 @@ import { TextWrap } from "lucide-react";
 import { type CSSProperties, type HTMLAttributes, type ReactNode, type Ref, useId, useMemo } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "../primitives";
 import { type CodeRole, type CodeRun, highlighter, normaliseCode, toLines, useHighlightStatus } from "./code-highlight";
-import { CopyButton, type CopyButtonLabels } from "./CopyButton";
+import { CopyButton, type CopyButtonLabels, DEFAULT_COPY_BUTTON_LABELS } from "./CopyButton";
 
+/** The copy button's words, and the wrap toggle's name. */
 export interface CodeBlockLabels extends CopyButtonLabels {
-  /** The wrap toggle's name. Default "Wrap lines". */
-  wrap?: string;
+  wrap: string;
 }
+
+export const DEFAULT_CODE_BLOCK_LABELS: Readonly<CodeBlockLabels> = {
+  ...DEFAULT_COPY_BUTTON_LABELS,
+  copy: "Copy code",
+  wrap: "Wrap lines",
+};
 
 export interface CodeBlockProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** The source, rendered verbatim (CRLF normalised, one trailing newline dropped). */
@@ -37,7 +44,7 @@ export interface CodeBlockProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   copyable?: boolean;
   /** Show the wrap toggle (default true). */
   wrapToggle?: boolean;
-  labels?: CodeBlockLabels;
+  labels?: LabelsProp<CodeBlockLabels>;
   classNames?: SlotClassNames<"header" | "title" | "language" | "actions" | "pre" | "code" | "line">;
   ref?: Ref<HTMLDivElement>;
 }
@@ -106,6 +113,7 @@ export function CodeBlock({
   ...props
 }: CodeBlockProps) {
   const titleId = useId();
+  const words = mergeLabels(DEFAULT_CODE_BLOCK_LABELS, labels);
   const [wrap, setWrap] = useControllableState({ value: wrapProp, defaultValue: defaultWrap, onChange: onWrapChange });
   const lang = language?.trim() || undefined;
   const text = useMemo(() => normaliseCode(code), [code]);
@@ -156,7 +164,7 @@ export function CodeBlock({
             <div className={cn("flex shrink-0 items-center gap-r6", classNames?.actions)}>
               {wrapToggle && (
                 <IconButton
-                  label={labels?.wrap ?? "Wrap lines"}
+                  label={words.wrap}
                   icon={<TextWrap />}
                   aria-pressed={wrap}
                   onClick={() => setWrap(!wrap)}
@@ -166,7 +174,7 @@ export function CodeBlock({
                 <CopyButton
                   value={code}
                   disabled={text === ""}
-                  labels={{ copy: "Copy code", ...labels }}
+                  labels={{ copy: words.copy, copied: words.copied, failed: words.failed }}
                 />
               )}
             </div>

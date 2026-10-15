@@ -22,7 +22,7 @@ import { useRowHeight } from "../../hooks/use-row-height";
 import { topLayerExit, useExitPresence } from "../overlays/internal";
 import { Spinner } from "../primitives";
 
-import { defaultFilter, findMatch } from "./selection-filter";
+import { defaultFilter, findMatch, MatchText } from "../../util/text-match";
 
 /** One choice in a Combobox, MultiSelect or TagInput suggestion list. */
 export interface ComboboxOption {
@@ -212,6 +212,15 @@ export function useSelectionPopup({ items, open: openProp, defaultOpen = false, 
     }
   };
 
+  // From the item's key, never its index: an option keeps its id while the list
+  // re-filters around it. Escaped to an IDREF (no whitespace), injectively.
+  const optionId = (index: number) => {
+    const key = items[index]?.key;
+    return key === undefined ? undefined : `${listboxId}-${idSafe(key)}`;
+  };
+  // The listbox renders nothing while closed: an IDREF must not dangle.
+  const controls = present ? listboxId : undefined;
+
   return {
     open,
     setOpen,
@@ -220,30 +229,52 @@ export function useSelectionPopup({ items, open: openProp, defaultOpen = false, 
     floating,
     getFloatingProps,
     listboxId,
+    controls,
     activeIndex,
     activeSource: active.source,
     setActive,
     activateFirst,
     clearActive,
     navigate,
-    optionId: (index: number) => `${listboxId}-${index}`,
+    optionId,
+    /** The text input's combobox wiring, to spread before the caller's props. */
+    comboboxProps: {
+      role: "combobox",
+      autoComplete: "off",
+      "aria-autocomplete": "list",
+      "aria-expanded": open,
+      "aria-controls": controls,
+      "aria-activedescendant": open && activeIndex >= 0 ? optionId(activeIndex) : undefined,
+    } as const,
   };
 }
 
 export type SelectionPopup = ReturnType<typeof useSelectionPopup>;
 
+/** `key` as an id fragment: every character outside `[A-Za-z0-9-]` (`_` included) becomes `_<hex>_`. */
+const idSafe = (key: string) => key.replace(/[^A-Za-z0-9-]/gu, (c) => `_${c.codePointAt(0)!.toString(16)}_`);
+
+interface ResultsLabels {
+  loading: string;
+  empty: string;
+  results: (count: number) => string;
+}
+
+/** What a live region says while the user types: loading, the load error, or how many options are listed. */
+export function resultsStatus(
+  list: SelectionList,
+  { loading, loadError, labels }: { loading: boolean; loadError: string | undefined; labels: ResultsLabels },
+): string {
+  if (loading) return labels.loading;
+  if (loadError !== undefined) return loadError;
+  const count = list.items.filter((item) => item.kind === "option").length;
+  return count === 0 ? labels.empty : labels.results(count);
+}
+
 /** The typed text's first match in `text`, in bold. Case- and diacritic-insensitive. */
-export function Highlight({ text, query }: { text: string; query: string }) {
+function Highlight({ text, query }: { text: string; query: string }) {
   const match = findMatch(text, query);
-  if (!match) return <>{text}</>;
-  const [start, end] = match;
-  return (
-    <>
-      {text.slice(0, start)}
-      <mark className="bg-transparent font-semibold text-inherit">{text.slice(start, end)}</mark>
-      {text.slice(end)}
-    </>
-  );
+  return <MatchText text={text} ranges={match ? [match] : []} />;
 }
 
 export interface SelectionListboxProps {
@@ -446,8 +477,8 @@ export function SelectionListbox({
       const members: ReactNode[] = [];
       const start = i;
       i++;
-      while (i < rows.length && rows[i]!.kind === "item") {
-        members.push(renderItem((rows[i] as { index: number }).index, i));
+      for (let member = rows[i]; member?.kind === "item"; member = rows[i]) {
+        members.push(renderItem(member.index, i));
         i++;
       }
       out.push(
@@ -474,7 +505,7 @@ export function SelectionListbox({
       inert={!open}
       style={{ ...floating.floatingStyles, minInlineSize: anchorWidth }}
       className={cn(
-        "r-overlays-surface flex max-w-[min(var(--MEASURE),calc(100vw-var(--R-SIZE-2)*2))] flex-col overflow-hidden rounded-md border border-border bg-surface-0 text-body-1 text-fg-primary shadow-md",
+        "r-overlays-surface flex flex-col overflow-hidden rounded-md border border-border bg-surface-0 text-body-1 text-fg-primary shadow-md",
         className,
       )}
     >
@@ -503,7 +534,7 @@ export function SelectionListbox({
         aria-busy={loading || undefined}
         className="relative max-h-[calc(var(--ROW-H)*8+var(--R-SIZE-6)*2)] overflow-y-auto overscroll-contain p-r6 empty:p-0"
       >
-        {error ? null : body}
+        {body}
       </div>
       {empty && <div className={cn(message, "text-fg-muted")}>{emptyMessage}</div>}
     </div>

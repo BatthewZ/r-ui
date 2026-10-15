@@ -3,12 +3,16 @@ import { useMemo } from "react";
 
 import { useTheme } from "../../hooks/use-preferences";
 import type { PreferencesConfig } from "../../util/preferences";
-import { Choice, type ChoiceOption, type SwitcherVariant } from "./Choice";
+import { Choice, type ChoiceOption, type SwitcherHTMLProps, type SwitcherVariant } from "./Choice";
+import { DEFAULT_PREFERENCES_MENU_LABELS, type ThemeSwitcherLabels } from "./preferences-labels";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 /** A theme the app ships: its `data-theme` name and the words a viewer sees. A bare string is both. */
 export type ThemeOption = string | ChoiceOption;
 
-export interface ThemeSwitcherProps extends PreferencesConfig {
+export type ThemeSwitcherProps = PreferencesConfig & SwitcherHTMLProps & ThemeSwitcherOwnProps;
+
+interface ThemeSwitcherOwnProps {
   /**
    * The themes to offer, in order. The FIRST is the default (`:root`; choosing
    * it removes `data-theme`). This library ships no list: pass your own.
@@ -16,8 +20,8 @@ export interface ThemeSwitcherProps extends PreferencesConfig {
   themes: readonly ThemeOption[];
   /** `segmented` (default) shows every theme; `select` suits a long list or a tight space. */
   variant?: SwitcherVariant;
-  /** The control's accessible name. Default "Theme". */
-  label?: string;
+  /** The control's name (`theme`). */
+  labels?: LabelsProp<ThemeSwitcherLabels>;
   disabled?: boolean;
   className?: string;
 }
@@ -33,10 +37,11 @@ export const toOption = (theme: ThemeOption): ChoiceOption =>
 export function ThemeSwitcher({
   themes,
   variant = "segmented",
-  label = "Theme",
+  labels,
   storageKey,
   disabled,
   className,
+  ...passThrough
 }: ThemeSwitcherProps) {
   const options = useMemo(() => themes.map(toOption), [themes]);
   const values = useMemo(() => options.map((o) => o.value), [options]);
@@ -44,12 +49,13 @@ export function ThemeSwitcher({
   return (
     <Choice
       variant={variant}
-      label={label}
+      label={mergeLabels(DEFAULT_PREFERENCES_MENU_LABELS, labels).theme}
       options={options}
       value={theme}
       onChange={setTheme}
       disabled={disabled}
       className={className}
+      passThrough={passThrough}
     />
   );
 }

@@ -65,24 +65,36 @@
 
 /* ── Markdown ──────────────────────────────────────────────────────────── */
 
-/* A task item: the box replaces the bullet. */
+/* A task item: the box replaces the bullet. It is one em square (it scales with
+   the prose text, not the UI's --ICON) and hangs into the indent by its own
+   width plus the gap, so the item's text keeps the column the other items' text
+   starts at. A prose list indents in its own em, the UI size, which a box in the
+   item's prose em overhangs; so a list holding a task item indents each item
+   by the box and the gap in the item's em instead (a plain item's marker sits
+   in that margin). */
+.r-content-md :is(ul, ol):has(> .r-content-md-task) {
+  padding-inline-start: 0;
+}
+.r-content-md :is(ul, ol):has(> .r-content-md-task) > li {
+  margin-inline-start: calc(1em + var(--R-SIZE-6));
+}
 .r-content-md-task {
   list-style: none;
 }
 .r-content-md-task-box {
   display: inline-grid;
   place-items: center;
-  vertical-align: -0.15em;
+  vertical-align: middle;
   inline-size: 1em;
   block-size: 1em;
-  margin-inline: -1.25em 0.25em;
+  margin-inline: calc(-1em - var(--R-SIZE-6)) var(--R-SIZE-6);
   border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
   border-radius: var(--RADIUS-SM);
   color: var(--C-TEXT-PRIMARY);
 }
 .r-content-md-task-box > svg {
-  inline-size: 0.8em;
-  block-size: 0.8em;
+  inline-size: 100%;
+  block-size: 100%;
 }
 
 /* A refused image keeps its words: its alt text, marked as standing in. */

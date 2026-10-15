@@ -51,14 +51,29 @@ describe("useClickOutside", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("cleans up listeners on unmount", () => {
+  /**
+   * The ref is the caller's and outlives the component, still pointing at a
+   * live element, so the listener's own `!ref.current` bail-out cannot hide a
+   * listener left behind: only removing it keeps the handler silent.
+   */
+  it("removes both listeners on unmount", () => {
     const handler = vi.fn();
-    const { unmount } = render(<TestComponent handler={handler} />);
+    const target = document.createElement("div");
+    document.body.append(target);
+    const ref = { current: target };
+    function Hooked() {
+      useClickOutside(ref, handler);
+      return null;
+    }
+    const { unmount } = render(<Hooked />);
+    fireEvent.mouseDown(document.body);
+    expect(handler).toHaveBeenCalledTimes(1);
 
     unmount();
-
     fireEvent.mouseDown(document.body);
+    fireEvent.touchStart(document.body);
 
-    expect(handler).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledTimes(1);
+    target.remove();
   });
 });

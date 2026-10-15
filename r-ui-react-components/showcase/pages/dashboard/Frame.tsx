@@ -12,7 +12,8 @@ import { type CSSProperties, type ReactNode, useLayoutEffect, useState } from "r
  * measures 0): a fixed layer that is its own scroller, with the shell's viewport
  * hook set to that layer's height. The showcase's sidebar sits underneath; the
  * Dashboard's own sidebar links back to the other showcase pages, and on phones
- * the showcase's bottom nav stays in reach below the Dashboard's.
+ * the showcase's bottom nav stays in reach below the Dashboard's. On paper the
+ * frame prints in the flow (`data-print="flow"`), or only one window of it would.
  */
 export function DashboardFrame({ children }: { children: ReactNode }) {
   const top = useHeight(".sc-topbar");
@@ -23,7 +24,7 @@ export function DashboardFrame({ children }: { children: ReactNode }) {
     "--r-navigation-shell-viewport": `calc(100dvh - ${top + bottom}px)`,
   } as CSSProperties;
   return (
-    <div data-dashboard-frame="" className="fixed inset-x-0 z-docked overflow-y-auto bg-canvas" style={style}>
+    <div data-dashboard-frame="" data-print="flow" className="fixed inset-x-0 z-docked overflow-y-auto bg-canvas" style={style}>
       {children}
     </div>
   );

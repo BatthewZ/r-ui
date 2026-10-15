@@ -116,6 +116,32 @@ describe("LineChart", () => {
     expect(screen.getByRole("figure", { name: "Nothing" })).toHaveAccessibleDescription("Line chart, no data.");
   });
 
+  it("writes its summary and time-axis corner from labels, so both translate", () => {
+    const { rerender } = render(
+      <LineChart
+        label="Anfragen"
+        x={[new Date(Date.UTC(2026, 0, 1)), new Date(Date.UTC(2026, 0, 2))]}
+        series={[{ name: "a", values: [1, 2] }]}
+        locale="en-US"
+        labels={{ kinds: { line: "Liniendiagramm" }, timeCorner: "Zeit" }}
+      />,
+    );
+    const figure = screen.getByRole("figure", { name: "Anfragen" });
+    expect(figure).toHaveAccessibleDescription(/^Liniendiagramm, 1 series \(a\), 2 points, .+ Values from 1 to 2\.$/);
+    expect(within(figure).getAllByRole("columnheader")[0]).toHaveTextContent("Zeit");
+    rerender(
+      <LineChart
+        label="Anfragen"
+        x={days}
+        series={regions}
+        area
+        labels={{ cartesianSummary: (p) => `${p.kind}: ${p.series.length}/${p.points}/${p.first}-${p.last}/${p.low}-${p.high}` }}
+        locale="en-US"
+      />,
+    );
+    expect(screen.getByRole("figure", { name: "Anfragen" })).toHaveAccessibleDescription("Area chart: 2/4/Mon-Thu/5-40");
+  });
+
   it("draws eight series in eight inks, notes the rest, and tabulates them", () => {
     const many = Array.from({ length: 11 }, (_, i) => ({ name: `svc-${i + 1}`, values: [i, i + 1] }));
     const { container } = render(<LineChart label="Many" series={many} />);
@@ -191,6 +217,24 @@ describe("Heatmap", () => {
     expect(container.querySelector('[data-cell="1:2"]')).toHaveClass("bg-seq-1");
     const table = screen.getByRole("table", { name: "5xx by hour" });
     expect(within(table).getByRole("row", { name: /Tue/ })).toHaveTextContent("Tue—2040");
+  });
+
+  it("summarises from labels: its kind and the whole sentence translate", () => {
+    const { rerender } = render(<Heatmap label="5xx" rows={rows} columns={columns} values={values} locale="en-US" />);
+    expect(screen.getByRole("figure", { name: "5xx" })).toHaveAccessibleDescription(
+      "Heatmap, 2 rows (Mon to Tue) by 3 columns (00 to 02). Values from 0 to 40.",
+    );
+    rerender(
+      <Heatmap
+        label="5xx"
+        rows={rows}
+        columns={columns}
+        values={values}
+        locale="en-US"
+        labels={{ kinds: { heatmap: "Wärmekarte" }, heatmapSummary: (p) => `${p.kind} ${p.rows}×${p.columns} ${p.low}–${p.high}` }}
+      />,
+    );
+    expect(screen.getByRole("figure", { name: "5xx" })).toHaveAccessibleDescription("Wärmekarte 2×3 0–40");
   });
 
   it("moves cell by cell with the arrows and announces the value", async () => {

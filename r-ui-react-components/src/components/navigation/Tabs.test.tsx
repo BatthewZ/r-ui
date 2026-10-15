@@ -65,6 +65,38 @@ describe("Tabs", () => {
     expect(screen.getByRole("tabpanel")).toHaveFocus();
   });
 
+  it.each([
+    ["the selected tab is disabled", "traces"],
+    ["the value matches no tab", "missing"],
+  ])("when %s, the first enabled tab is the one tab stop", async (_, value) => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">Before</button>
+        <Tabs defaultValue={value}>
+          <Tabs.List aria-label="Service">
+            <Tabs.Tab value="pinned" disabled>
+              Pinned
+            </Tabs.Tab>
+            <Tabs.Tab value="logs">Logs</Tabs.Tab>
+            <Tabs.Tab value="traces" disabled>
+              Traces
+            </Tabs.Tab>
+            <Tabs.Tab value="metrics">Metrics</Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
+      </>,
+    );
+    expect(screen.getAllByRole("tab").filter((t) => t.tabIndex === 0)).toEqual([tab("Logs")]);
+    await user.click(screen.getByRole("button", { name: "Before" }));
+    await user.tab();
+    expect(tab("Logs")).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    expect(tab("Metrics")).toHaveFocus();
+    expect(tab("Metrics")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByRole("tab").filter((t) => t.tabIndex === 0)).toEqual([tab("Metrics")]);
+  });
+
   it("clicking a tab selects it", async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

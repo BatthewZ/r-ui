@@ -18,18 +18,17 @@
 // Usage: node scripts/verify-no-html-injection.mjs [--root <dir>]
 
 import { readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { relative } from "node:path";
 
 import { globSync } from "glob";
 
-const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
-const rootArg = process.argv.indexOf("--root");
-const ROOT = rootArg > -1 ? resolve(process.argv[rootArg + 1]) : PKG;
+import { PKG, pathArg } from "./lib/gate.mjs";
+
+const ROOT = pathArg("--root", PKG);
 
 const BANNED = [
   [/\bdangerouslySetInnerHTML\b/, "dangerouslySetInnerHTML"],
-  [/\.(?:inner|outer)HTML\s*(?:=(?!=)|\+=)/, "an innerHTML/outerHTML assignment"],
+  [/(?:\.(?:inner|outer)HTML|\[\s*["'`](?:inner|outer)HTML["'`]\s*\])\s*(?:=(?!=)|\+=)/, "an innerHTML/outerHTML assignment"],
   [/\binsertAdjacentHTML\b/, "insertAdjacentHTML"],
   [/\bdocument\s*\.\s*write(?:ln)?\s*\(/, "document.write"],
   [/\bcreateContextualFragment\b/, "createContextualFragment"],

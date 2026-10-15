@@ -52,7 +52,7 @@ export default function NumberInputSection() {
           <NumberInput aria-label="German" locale="de-DE" defaultValue={1234.5} step={0.5} />
           <NumberInput aria-label="French" locale="fr-FR" defaultValue={98765.25} />
           <div dir="rtl">
-            <NumberInput aria-label="Arabic" locale="ar-EG" defaultValue={1500} incrementLabel="زيادة" decrementLabel="إنقاص" />
+            <NumberInput aria-label="Arabic" locale="ar-EG" defaultValue={1500} labels={{ increment: "زيادة", decrement: "إنقاص" }} />
           </div>
         </Grid>
       </Row>

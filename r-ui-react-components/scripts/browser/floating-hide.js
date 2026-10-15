@@ -12,6 +12,14 @@
 //      `data-reference-hidden` and computes `visibility: hidden`, and it is still
 //      open (mounted), so state and focus bookkeeping survive;
 //   3. scrolled back: visible again, re-anchored to the trigger as in 1.
+//   4. at 375, a panel never reaches the viewport's edges: the DateRangePicker's
+//      two-month popup (wider than the viewport by design) and a Dashboard row's
+//      actions menu (its trigger at the inline end) each sit at least the panel's
+//      own --R-SIZE-2 inside `clientWidth` on both sides, and the promoted
+//      panel's cap resolves against `100%` (the viewport without its scrollbar),
+//      never a `vw` length (which counts the scrollbar). Headless Chromium runs
+//      with hidden scrollbars, so `clientWidth` equals the viewport here and the
+//      cap's computed value is what tells the two apart.
 async (page) => {
   const base = page.url().split("#")[0];
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -68,7 +76,56 @@ async (page) => {
   if (Math.abs(back.gap - 8) > 1) fail.push(`scrolled back: panel is ${back.gap}px above its trigger, expected 8px`);
 
   await page.keyboard.press("Escape");
-  const result = { open, away, back };
+
+  // 4. Edges at 375.
+  await page.setViewportSize({ width: 375, height: 800 });
+  const edges = (selector) =>
+    page.evaluate((sel) => {
+      const p = document.querySelector(sel);
+      if (!p) return null;
+      const probe = document.createElement("span");
+      probe.style.cssText = "position: absolute; visibility: hidden; inline-size: var(--R-SIZE-2)";
+      p.append(probe);
+      const gap = probe.getBoundingClientRect().width;
+      probe.remove();
+      const r = p.getBoundingClientRect();
+      return { left: r.left, right: r.right, width: r.width, gap, client: document.documentElement.clientWidth, cap: getComputedStyle(p).maxInlineSize };
+    }, selector);
+  const checkEdges = (what, e) => {
+    if (!e) return fail.push(`${what}: no open panel found`);
+    if (!(e.gap > 0)) fail.push(`harness: ${what}'s --R-SIZE-2 resolved to ${e.gap}px`);
+    if (e.left < e.gap - 0.5) fail.push(`${what}: left edge ${e.left}px, inside the ${e.gap}px gap`);
+    if (e.right > e.client - e.gap + 0.5) fail.push(`${what}: right edge ${e.right}px past clientWidth ${e.client} − ${e.gap}px`);
+    if (!/100%/.test(e.cap) || /vw/.test(e.cap)) fail.push(`${what}: promoted cap is \`${e.cap}\`, expected one read against 100%`);
+  };
+
+  await page.goto(`${base}#/overview/dates-daterangepicker`);
+  await page.reload();
+  await waitForShowcase(page);
+  const rangeTrigger = page.locator("#dates-daterangepicker").getByRole("button", { name: /Last 7 days/ }).first();
+  await rangeTrigger.scrollIntoViewIfNeeded();
+  await rangeTrigger.click();
+  await page.locator(".r-dates-range-panel:popover-open").waitFor();
+  await page.waitForTimeout(250);
+  const range = await edges(".r-dates-range-panel:popover-open");
+  checkEdges("range popup", range);
+  // Harness: the popup is capped (its months want more than the viewport), so it tests the cap.
+  if (range && !(range.width >= range.client - 2 * range.gap - 0.5)) fail.push(`harness: range popup ${range.width}px is not at its cap (${range.client} − 2 × ${range.gap})`);
+  await page.keyboard.press("Escape");
+
+  await page.goto(`${base}#/dashboard`);
+  await page.reload();
+  await waitForShowcase(page);
+  const actions = page.locator("[data-dashboard-services] tbody tr").first().getByRole("button", { name: /^Actions for / });
+  await actions.scrollIntoViewIfNeeded();
+  await actions.click();
+  await page.locator("[role=menu]:popover-open").waitFor();
+  await page.waitForTimeout(250);
+  const menu = await edges("[role=menu]:popover-open");
+  checkEdges("row actions menu", menu);
+  await page.keyboard.press("Escape");
+
+  const result = { open, away, back, range, menu };
   if (fail.length) throw new Error(`floating-hide FAILED:\n  ${fail.join("\n  ")}\n${JSON.stringify(result)}`);
   return `floating-hide OK ${JSON.stringify(result)}`;
 }

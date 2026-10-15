@@ -24,6 +24,13 @@
 //      dialog display none) within 100ms of the first sample. "Within 100ms"
 //      rather than "on frame N": a 0.01ms transition still needs a frame or two
 //      to start and finish, and a loaded machine stretches frames.
+//   5. focus on the way in and out: the "Run report" dialog opens with focus on
+//      its `autoFocus` Done button (after "Export as…", so the browser's own
+//      pick would differ), and the alertdialog on its `autoFocus` Cancel; a
+//      hover-opened Tooltip closes on Escape while focus sits in a text field
+//      elsewhere (WCAG 1.4.13), and focus stays in the field; two sticky toasts:
+//      Dismiss on the first hands focus to the other toast's Dismiss, and
+//      Dismiss on the last returns focus to the trigger it came from.
 async (page) => {
   const base = page.url().split("#")[0];
   const fail = [];
@@ -111,6 +118,7 @@ async (page) => {
         scrim: Number(getComputedStyle(dialog, "::backdrop").opacity),
         display: getComputedStyle(dialog).display,
         open: dialog.open,
+        inert: dialog.inert,
         content: dialog.textContent.includes("Everyone with access"),
       });
       const before = read();
@@ -155,6 +163,8 @@ async (page) => {
   if (dlg.before.opacity !== 1 || dlg.before.scrim !== 1) fail.push(`harness: open dialog ${JSON.stringify(dlg.before)}, expected opacity and scrim 1`);
   if (dlg.mid.display === "none") fail.push("dialog: display none the moment it closed (no exit)");
   if (dlg.mid.open) fail.push("dialog: still open after Cancel");
+  if (dlg.before.inert) fail.push("harness: the open dialog is inert, so its leaving inert state proves nothing");
+  if (!dlg.mid.inert) fail.push("dialog: the leaving dialog is still interactive (not inert)");
   if (!dlg.mid.content) fail.push("dialog: content unmounted before the exit ran (it would animate out empty)");
   if (dlg.fading.length === 0) fail.push("dialog: no frame of the exit had the panel and scrim between 0 and 1 opacity");
   if (!dlg.focusBack) fail.push("dialog: focus is not back on the trigger during the exit");
@@ -175,8 +185,92 @@ async (page) => {
   if (!dlgReduced.focusBack) fail.push("reduced motion: dialog focus not returned");
   await page.emulateMedia({ reducedMotion: null });
 
-  const result = { pop, dlg, popReduced, dlgReduced };
+  // 5. Focus in and out.
+  await page.goto(`${base}#/overview/overlays-dialog`);
+  await page.reload();
+  await waitForShowcase(page);
+  const reportTrigger = page.locator("#overlays-dialog").getByRole("button", { name: "Run report" });
+  await reportTrigger.scrollIntoViewIfNeeded();
+  await reportTrigger.click();
+  const report = page.getByRole("dialog", { name: /^Health checks/ });
+  await report.waitFor();
+  await page.waitForTimeout(250);
+  const reportFocus = await report.evaluate((d) => ({
+    focused: d.contains(document.activeElement) ? document.activeElement.textContent.trim() : null,
+    first: d.querySelector("button, a[href], input, [tabindex]:not([tabindex='-1'])")?.textContent.trim() ?? null,
+  }));
+  if (reportFocus.first === "Done") fail.push("harness: the report dialog's first focusable is its autoFocus button, so landing there proves nothing");
+  if (reportFocus.focused !== "Done") fail.push(`dialog: focus landed on ${JSON.stringify(reportFocus.focused)}, expected its autoFocus "Done"`);
+  await page.keyboard.press("Escape");
+  await page.goto(`${base}#/overview/overlays-dialog`);
+  await page.reload();
+  await waitForShowcase(page);
+  const alertTrigger = page.locator("#overlays-dialog").getByRole("button", { name: "Delete 3 dashboards" });
+  await alertTrigger.scrollIntoViewIfNeeded();
+  await alertTrigger.click();
+  const alert = page.getByRole("alertdialog", { name: "Delete 3 dashboards?" });
+  await alert.waitFor();
+  await page.waitForTimeout(250);
+  const alertFocus = await alert.evaluate((d) => ({
+    focused: d.contains(document.activeElement) ? document.activeElement.textContent.trim() : null,
+    first: d.querySelector("button, a[href], input, [tabindex]:not([tabindex='-1'])")?.textContent.trim() ?? null,
+  }));
+  if (alertFocus.focused !== "Cancel") fail.push(`alertdialog: focus landed on ${JSON.stringify(alertFocus.focused)}, expected its autoFocus "Cancel"`);
+  await page.keyboard.press("Escape");
+
+  await page.goto(`${base}#/overview/overlays-tooltip`);
+  await page.reload();
+  await waitForShowcase(page);
+  const tipTrigger = page.locator("#overlays-tooltip").getByRole("button", { name: "Copy link" });
+  await tipTrigger.scrollIntoViewIfNeeded();
+  const field = await page.evaluate(() => {
+    const input = [...document.querySelectorAll("#form-input input")].find((i) => i.type === "text" || i.type === "password" || i.type === "email");
+    input?.focus({ preventScroll: true });
+    return input ? input.outerHTML.slice(0, 80) : null;
+  });
+  if (!field) fail.push("harness: no text field in the Input demo to hold focus");
+  await tipTrigger.hover();
+  const tip = page.getByRole("tooltip").filter({ hasText: "Copy the share link" });
+  await tip.waitFor({ timeout: 3000 });
+  const fieldFocused = () => page.evaluate(() => document.activeElement?.closest("#form-input") !== null && document.activeElement?.tagName === "INPUT");
+  if (!(await fieldFocused())) fail.push("harness: the field lost focus when the tooltip opened");
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(400);
+  const tipAfter = await tip.count() === 0 ? "gone" : await tip.evaluate((t) => getComputedStyle(t).visibility + "/" + getComputedStyle(t).opacity);
+  if (tipAfter !== "gone" && !/^hidden|\/0$/.test(tipAfter)) fail.push(`tooltip: still shown after Escape with focus in a field (${tipAfter})`);
+  if (!(await fieldFocused())) fail.push("tooltip: Escape moved focus out of the field");
+  await page.mouse.move(0, 0);
+
+  await page.goto(`${base}#/overview/overlays-toast`);
+  await page.reload();
+  await waitForShowcase(page);
+  const toastTrigger = page.locator("#overlays-toast").getByRole("button", { name: "Serious (stays)" });
+  await toastTrigger.scrollIntoViewIfNeeded();
+  await toastTrigger.click();
+  await toastTrigger.click();
+  const dismissals = page.locator("[data-toast-dismiss]");
+  await dismissals.nth(1).waitFor();
+  const toastCount = await dismissals.count();
+  if (toastCount !== 2) fail.push(`harness: ${toastCount} toasts, expected the two just raised`);
+  await toastTrigger.focus();
+  await dismissals.first().focus();
+  const focusIsDismiss = () => page.evaluate(() => document.activeElement?.hasAttribute("data-toast-dismiss") ?? false);
+  if (!(await focusIsDismiss())) fail.push("harness: the first toast's Dismiss did not take focus");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  const afterFirst = await page.evaluate(() => ({
+    onDismiss: document.activeElement?.hasAttribute("data-toast-dismiss") ?? false,
+    toasts: document.querySelectorAll("[data-toast-dismiss]").length,
+  }));
+  if (!afterFirst.onDismiss) fail.push(`toast: dismissing the first left focus on ${await page.evaluate(() => document.activeElement?.tagName)}, expected the other toast's Dismiss`);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(300);
+  const backOnTrigger = await toastTrigger.evaluate((t) => t === document.activeElement);
+  if (!backOnTrigger) fail.push(`toast: dismissing the last left focus on ${await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 80))}, expected the trigger`);
+  const focus = { reportFocus, alertFocus, field, tipAfter, afterFirst, backOnTrigger };
+
+  const result = { pop, dlg, popReduced, dlgReduced, focus };
   if (fail.length) throw new Error(`motion-overlay-exit FAILED:\n  ${fail.join("\n  ")}\n${JSON.stringify(result)}`);
   const fmt = (list) => list.map((o) => o.toFixed(2)).join(" ");
-  return `motion-overlay-exit OK popover fades ${fmt(pop.fading)}, gone in ${pop.goneAfter}ms; dialog + scrim fade ${fmt(dlg.fading)}, gone in ${dlg.goneAfter}ms; reduced motion: no fade, gone in ${popReduced.goneAfter}/${dlgReduced.goneAfter}ms`;
+  return `motion-overlay-exit OK popover fades ${fmt(pop.fading)}, gone in ${pop.goneAfter}ms; dialog + scrim fade ${fmt(dlg.fading)}, gone in ${dlg.goneAfter}ms; reduced motion: no fade, gone in ${popReduced.goneAfter}/${dlgReduced.goneAfter}ms; dialogs open on their autoFocus control, Escape closes a hover tooltip from a field, toast Dismiss hands focus on and home`;
 }

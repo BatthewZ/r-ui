@@ -1,7 +1,7 @@
 // Minimal CSS reader for the checks: comments, strings and parentheses aware.
 // Enough for token files; not a general-purpose CSS parser.
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 export function stripComments(css) {
   let out = "";
@@ -100,6 +100,27 @@ export function loadSheet(file, seen = new Set()) {
       }
     }
     out.push(n);
+  }
+  return out;
+}
+
+/** Every node in `nodes` and below, depth first, each before its children. */
+export function* allNodes(nodes) {
+  for (const n of nodes) {
+    yield n;
+    if (n.children) yield* allNodes(n.children);
+  }
+}
+
+const SKIP_DIRS = new Set(["node_modules", ".git", "dist"]);
+
+/** Every file under `dir`, recursively, minus dependency, VCS and build folders. */
+export function listFiles(dir, out = []) {
+  for (const entry of readdirSync(dir)) {
+    if (SKIP_DIRS.has(entry)) continue;
+    const p = join(dir, entry);
+    if (statSync(p).isDirectory()) listFiles(p, out);
+    else out.push(p);
   }
   return out;
 }

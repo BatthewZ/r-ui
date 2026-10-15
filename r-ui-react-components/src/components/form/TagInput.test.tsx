@@ -47,9 +47,13 @@ describe("TagInput", () => {
   it("refuses a duplicate (ignoring case), keeps the text, and shows and announces why", async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
-    render(<Labels defaultValue={["Checkout"]} onValueChange={onValueChange} />);
+    const { container } = render(<Labels defaultValue={["Checkout"]} onValueChange={onValueChange} />);
+    const fieldRoot = container.firstElementChild!;
+    expect(fieldRoot).not.toHaveAttribute("data-invalid");
     await user.type(input(), "checkout{Enter}");
     expect(onValueChange).not.toHaveBeenCalled();
+    // The refusal is the Field's error too, as a date field's "not a date" is.
+    expect(fieldRoot).toHaveAttribute("data-invalid", "");
     expect(input()).toHaveValue("checkout");
     expect(input()).toHaveAttribute("aria-invalid", "true");
     expect(input()).toHaveAccessibleDescription("“checkout” is already added. Comma or Enter adds a label.");
@@ -57,6 +61,7 @@ describe("TagInput", () => {
     // Editing the draft clears the refusal.
     await user.type(input(), "s");
     expect(input()).not.toHaveAttribute("aria-invalid");
+    expect(fieldRoot).not.toHaveAttribute("data-invalid");
     expect(input()).toHaveAccessibleDescription("Comma or Enter adds a label.");
   });
 

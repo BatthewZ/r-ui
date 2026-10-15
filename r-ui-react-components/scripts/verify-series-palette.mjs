@@ -29,6 +29,11 @@
 // on top of the defaults, discovered by reading files, never by a list of
 // names (example themes have no privileges, including in gates).
 //
+// Usage: node scripts/verify-series-palette.mjs [--theme <file>]... [--tokens <file>]
+//   --theme   measure a consumer's theme file(s) instead of the shipped themes
+//             (each block declaring `--SCHEME-DARK`, over the CSS package's defaults).
+//   --tokens  a tampered copy of src/tokens.css (the gate's own test).
+//
 // NOT COVERED, stated so the blind spot is not silent:
 //   - Contrast of a series mark against the surface. The light steps for
 //     magenta, yellow and aqua sit below 3:1 on a near-white surface by design;
@@ -37,15 +42,17 @@
 //   - Tritanopia (rare); measured and printed, not gated.
 
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
 
 import { CVD, deltaE, linearSrgbToOklab, oklchToLinearSrgb, oklchToOklab, parseOklch, simulate } from "./lib/color.mjs";
 import { readBlocks } from "./lib/css.mjs";
+import { PKG, pathArg, pathArgs } from "./lib/gate.mjs";
 import { discoverThemes } from "./lib/themes.mjs";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const TOKENS = join(ROOT, "src", "tokens.css");
+const TOKENS = pathArg("--tokens", join(PKG, "src", "tokens.css"));
+const TOKENS_LABEL = relative(PKG, TOKENS);
+const THEME_FILES = pathArgs("--theme");
+const SERIES_HALF = /^--C-SERIES-\d+-(LIGHT|DARK)$/;
 const SLOTS = 8;
 const BANDS = { light: [0.43, 0.77], dark: [0.48, 0.67] };
 const CHROMA_FLOOR = 0.1;
@@ -62,7 +69,7 @@ const lines = [];
 function seriesDecls(blocks) {
   const out = new Map();
   for (const b of blocks) {
-    for (const d of b.decls) if (/^--C-SERIES-\d+-(LIGHT|DARK)$/.test(d.name)) out.set(d.name, d);
+    for (const d of b.decls) if (SERIES_HALF.test(d.name)) out.set(d.name, d);
   }
   return out;
 }
@@ -73,19 +80,19 @@ const base = seriesDecls(tokenBlocks);
 for (let i = 1; i <= SLOTS; i += 1) {
   for (const half of ["LIGHT", "DARK"]) {
     if (!base.has(`--C-SERIES-${i}-${half}`)) {
-      problems.push(`src/tokens.css  --C-SERIES-${i}-${half} is not declared on :root.`);
+      problems.push(`${TOKENS_LABEL}  --C-SERIES-${i}-${half} is not declared on :root.`);
     }
   }
 }
 
 /* ---------------------------------------------- discover theme overrides */
 
-const themes = discoverThemes().map((t) => ({
+const themes = discoverThemes({ files: THEME_FILES }).map((t) => ({
   label: t.label,
   scheme: t.scheme,
   overrides: new Map(
     [...t.own]
-      .filter(([name]) => /^--C-SERIES-\d+-(LIGHT|DARK)$/.test(name))
+      .filter(([name]) => SERIES_HALF.test(name))
       .map(([name, value]) => [name, { name, value }]),
   ),
 }));
@@ -153,8 +160,11 @@ function measure(label, scheme, decls) {
   );
 }
 
-measure("src/tokens.css", "light", base);
-measure("src/tokens.css", "dark", base);
+measure(TOKENS_LABEL, "light", base);
+measure(TOKENS_LABEL, "dark", base);
+if (THEME_FILES.length > 0 && themes.length === 0) {
+  problems.push(`no theme found in ${THEME_FILES.map((f) => relative(process.cwd(), f)).join(", ")} (a theme block declares --SCHEME-DARK).`);
+}
 for (const theme of themes) {
   if (theme.overrides.size === 0) continue; // identical to the default measured above
   measure(theme.label, theme.scheme, new Map([...base, ...theme.overrides]));

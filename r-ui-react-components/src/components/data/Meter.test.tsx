@@ -37,9 +37,13 @@ describe("Meter", () => {
     expect(meter().firstElementChild).toHaveClass("bg-status-warning");
     expect(container.querySelector("svg")).toHaveClass("text-status-warning");
 
-    rerender(<Meter label="CPU" value={97} thresholds={CPU} toneLabel="Overloaded" />);
+    rerender(<Meter label="CPU" value={97} thresholds={CPU} />);
+    expect(meter()).toHaveAttribute("aria-valuetext", "97%, Error");
+    rerender(<Meter label="CPU" value={97} thresholds={CPU} labels={{ tones: { error: "Overloaded" } }} />);
     expect(meter()).toHaveAttribute("aria-valuetext", "97%, Overloaded");
     expect(meter().firstElementChild).toHaveClass("bg-status-error");
+    rerender(<Meter label="CPU" value={85} thresholds={CPU} labels={{ tones: { error: "Overloaded" } }} />);
+    expect(meter()).toHaveAttribute("aria-valuetext", "85%, Warning");
   });
 
   it("flips for worse='low' (budget left), most severe match winning", () => {
@@ -62,9 +66,14 @@ describe("Meter", () => {
     expect(meter.firstElementChild).toHaveStyle({ inlineSize: "0%" });
   });
 
-  it("clamps the fill to the range", () => {
-    render(<Meter label="over" value={140} />);
+  it("clamps the fill to the range, but not the text: an over-range value reads its real share", () => {
+    const { rerender } = render(<Meter label="over" value={140} />);
     expect(screen.getByRole("meter").firstElementChild).toHaveStyle({ inlineSize: "100%" });
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuetext", "140%");
+    expect(screen.getByText("140%")).toBeInTheDocument();
+    rerender(<Meter label="under" value={-10} />);
+    expect(screen.getByRole("meter").firstElementChild).toHaveStyle({ inlineSize: "0%" });
+    expect(screen.getByRole("meter")).toHaveAttribute("aria-valuetext", "-10%");
   });
 
   it("inline: the label is hidden visually but still names the meter", () => {

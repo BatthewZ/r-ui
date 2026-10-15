@@ -1,6 +1,7 @@
 "use client";
 import {
   type CSSProperties,
+  type FocusEvent,
   type HTMLAttributes,
   type KeyboardEvent,
   type PointerEvent,
@@ -17,12 +18,26 @@ import {
 import { Table } from "../data";
 import { useClickOutside } from "../../hooks/use-click-outside";
 import { type Placement, useFloating } from "../../hooks/use-floating";
+import { type LabelsProp } from "../../util/labels";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 import { topLayerExit, useExitPresence } from "../overlays/internal";
 import { Button } from "../primitives";
-import type { ChartNotes, ChartTable, SeriesShape, SeriesSlot } from "./chart-model";
-import { markPath, STROKED_SHAPES } from "./chart-plan";
+import {
+  type CartesianModel,
+  cartesianNotes,
+  cartesianSummaryParts,
+  type CartesianSummaryParts,
+  cartesianTable,
+  type ChartNotes,
+  type ChartTable,
+  type DrawnSeries,
+  type Formatters,
+  type ModelRow,
+  type SeriesShape,
+  type SeriesSlot,
+} from "./chart-model";
+import { markPath, nearestRow, STROKED_SHAPES } from "./chart-plan";
 
 /* ------------------------------------------------------------------ */
 /*  Words                                                              */
@@ -38,14 +53,39 @@ export interface ChartLabels {
   cannotDraw: string;
   /** Spoken with the focusable plot. */
   keyboardHint: string;
-  /** The table's first column header. Empty: "Time" on a time axis, else nothing. */
+  /** The table's first column header. Empty: `timeCorner` on a time axis, else nothing. */
   corner: string;
+  /** The table's first column header on a time axis, where `corner` is empty. */
+  timeCorner: string;
+  /** Each chart's kind: the first words of its default summary. */
+  kinds: { line: string; area: string; bar: string; stackedBar: string; heatmap: string };
+  /** A line, area or bar chart's summary when the caller wrote none. */
+  cartesianSummary: (parts: CartesianSummaryParts) => string;
+  /** A heatmap's summary when the caller wrote none. */
+  heatmapSummary: (parts: HeatmapSummaryParts) => string;
+  /** A heatmap value's name in the readout, where the chart sets no `valueLabel`. */
+  value: string;
   /** The stacked bar readout's sum row. */
   total: string;
   rowsCapped: (shown: number, total: number) => string;
   seriesCapped: (drawn: number, total: number, tabulated: number) => string;
   valuesDropped: (count: number) => string;
   gridCapped: (rows: number, totalRows: number, columns: number, totalColumns: number) => string;
+}
+
+/** The facts a heatmap's default summary is written from. */
+export interface HeatmapSummaryParts {
+  /** From `ChartLabels.kinds.heatmap`. */
+  kind: string;
+  rows: number;
+  firstRow: string;
+  lastRow: string;
+  columns: number;
+  firstColumn: string;
+  lastColumn: string;
+  /** The formatted value range; `undefined` when nothing can be drawn. */
+  low?: string;
+  high?: string;
 }
 
 export const DEFAULT_CHART_LABELS: ChartLabels = {
@@ -55,6 +95,20 @@ export const DEFAULT_CHART_LABELS: ChartLabels = {
   cannotDraw: "Nothing to draw: every value is missing or unplaceable. The table lists what there is.",
   keyboardHint: "Use the arrow keys to read the values; Home and End jump to the ends.",
   corner: "",
+  timeCorner: "Time",
+  kinds: { line: "Line chart", area: "Area chart", bar: "Bar chart", stackedBar: "Stacked bar chart", heatmap: "Heatmap" },
+  cartesianSummary: ({ kind, series, points, first, last, low, high }) => {
+    if (points === 0 || series.length === 0) return `${kind}, no data.`;
+    const span = first === undefined ? "" : last === undefined ? `, ${first}` : `, ${first} to ${last}`;
+    const values = low === undefined ? " No values." : ` Values from ${low} to ${high}.`;
+    const count = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
+    return `${kind}, ${count(series.length, "series", "series")} (${series.join(", ")}), ${count(points, "point", "points")}${span}.${values}`;
+  },
+  heatmapSummary: ({ kind, rows, firstRow, lastRow, columns, firstColumn, lastColumn, low, high }) => {
+    const values = low === undefined ? " No values." : ` Values from ${low} to ${high}.`;
+    return `${kind}, ${rows} rows (${firstRow} to ${lastRow}) by ${columns} columns (${firstColumn} to ${lastColumn}).${values}`;
+  },
+  value: "Value",
   total: "Total",
   rowsCapped: (shown, total) => `Showing the first ${shown.toLocaleString()} of ${total.toLocaleString()} points.`,
   seriesCapped: (drawn, total, tabulated) =>
@@ -66,7 +120,7 @@ export const DEFAULT_CHART_LABELS: ChartLabels = {
     `Showing the first ${rows} of ${totalRows} rows and ${columns} of ${totalColumns} columns.`,
 };
 
-export function notesText(notes: ChartNotes, labels: ChartLabels): string[] {
+function notesText(notes: ChartNotes, labels: ChartLabels): string[] {
   const out: string[] = [];
   if (notes.rowsTotal > notes.rowsShown) out.push(labels.rowsCapped(notes.rowsShown, notes.rowsTotal));
   if (notes.seriesTotal > notes.seriesDrawn) out.push(labels.seriesCapped(notes.seriesDrawn, notes.seriesTotal, notes.seriesTabulated));
@@ -190,7 +244,7 @@ export interface ChartBaseProps extends Omit<HTMLAttributes<HTMLElement>, "child
   /** What a screen reader hears after the name. Default: the series, the span and the value range. */
   summary?: string;
   /** Every string the chart writes itself. */
-  labels?: Partial<ChartLabels>;
+  labels?: LabelsProp<ChartLabels>;
   classNames?: SlotClassNames<ChartSlots>;
   ref?: Ref<HTMLElement>;
 }
@@ -286,6 +340,28 @@ export function ChartFrame({
   );
 }
 
+/**
+ * The `ChartFrame` props a line or bar chart derives from its model: the
+ * summary (unless the caller wrote one), the notes, the table (its corner
+ * `timeCorner` on a time axis unless `corner` names one) and the empty states.
+ */
+export function cartesianFrameProps(
+  model: CartesianModel,
+  formatters: Formatters,
+  labels: ChartLabels,
+  summary: string | undefined,
+  kind: keyof ChartLabels["kinds"],
+) {
+  return {
+    summaryText: summary ?? labels.cartesianSummary({ kind: labels.kinds[kind], ...cartesianSummaryParts(model, formatters) }),
+    notes: notesText(cartesianNotes(model), labels),
+    table: cartesianTable(model, formatters, labels.corner || (model.xType === "time" ? labels.timeCorner : "")),
+    undrawable: model.rows.length > 0 && !model.drawable,
+    empty: model.rows.length === 0 || model.series.length === 0,
+    labelsResolved: labels,
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /*  Readout (tooltip)                                                  */
 /* ------------------------------------------------------------------ */
@@ -295,6 +371,11 @@ export interface ReadoutRow {
   value: string;
   slot: SeriesSlot | null;
   shape: SeriesShape | null;
+}
+
+/** Every drawn series' value in `row`, for the readout. */
+export function seriesReadout(row: ModelRow | undefined, drawn: readonly DrawnSeries[], formatters: Formatters): ReadoutRow[] {
+  return row ? drawn.map((s) => ({ name: s.name, value: formatters.value(row.values[s.index] ?? null), slot: s.slot, shape: s.shape })) : [];
 }
 
 /**
@@ -390,19 +471,97 @@ export function ChartReadout({
 
 export type CursorSource = "pointer" | "keyboard" | "touch";
 
-export interface ChartCursor<T> {
-  active: T | null;
-  source: CursorSource | null;
-  set: (value: T | null, source: CursorSource | null) => void;
-}
-
-export function useCursor<T>(): ChartCursor<T> {
+function useCursor<T>() {
   const [state, setState] = useState<{ active: T | null; source: CursorSource | null }>({ active: null, source: null });
   const set = useCallback((active: T | null, source: CursorSource | null) => {
     setState((prev) => (prev.active === active && prev.source === source ? prev : { active, source }));
   }, []);
   return { active: state.active, source: state.source, set };
 }
+
+function isFocusVisible(element: Element): boolean {
+  try {
+    return element.matches(":focus-visible");
+  } catch {
+    return false;
+  }
+}
+
+/** The plot's event handlers, as `usePlotCursor` returns them and `PlotRegion` takes them. */
+export interface PlotHandlers {
+  onPointerMove?: (event: PointerEvent<HTMLElement>) => void;
+  onPointerLeave?: (event: PointerEvent<HTMLElement>) => void;
+  onPointerDown?: (event: PointerEvent<HTMLElement>) => void;
+  onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
+  onFocus?: (event: FocusEvent<HTMLElement>) => void;
+  onBlur?: () => void;
+}
+
+/**
+ * The readout cursor every chart shares: hover follows `pick`, a tap inspects
+ * (a press outside clears it), `keyTarget` moves it, Escape clears it, and
+ * keyboard focus starts it at `start`.
+ */
+export function usePlotCursor<T>({
+  root,
+  pick,
+  keyTarget,
+  start,
+}: {
+  root: RefObject<HTMLElement | null>;
+  /** The row or cell under a pointer event. */
+  pick: (event: PointerEvent<HTMLElement>) => T | null;
+  /** Where a key moves the cursor from `active`; `undefined` for a key the plot does not use. */
+  keyTarget: (active: T | null, event: KeyboardEvent<HTMLElement>) => T | null | undefined;
+  /** Where the cursor starts when the plot takes keyboard focus. */
+  start: () => T | null;
+}) {
+  const cursor = useCursor<T>();
+  const { active, source, set } = cursor;
+
+  useClickOutside(root, () => set(null, null), source === "touch");
+
+  const handlers: Required<PlotHandlers> = {
+    onPointerMove(event) {
+      if (event.pointerType === "touch") return;
+      set(pick(event), "pointer");
+    },
+    onPointerLeave(event) {
+      if (event.pointerType !== "touch" && source === "pointer") set(null, null);
+    },
+    onPointerDown(event) {
+      if (event.pointerType === "touch") set(pick(event), "touch");
+    },
+    onKeyDown(event) {
+      if (event.key === "Escape") {
+        if (active === null) return;
+        event.preventDefault();
+        set(null, null);
+        return;
+      }
+      const to = keyTarget(active, event);
+      if (to === undefined) return;
+      event.preventDefault();
+      set(to, "keyboard");
+    },
+    onFocus(event) {
+      if (isFocusVisible(event.currentTarget) && active === null) set(start(), "keyboard");
+    },
+    onBlur() {
+      if (source === "keyboard") set(null, null);
+    },
+  };
+  return { ...cursor, handlers };
+}
+
+const AXIS_KEYS: Partial<Record<string, number | "first" | "last">> = {
+  ArrowRight: 1,
+  ArrowDown: 1,
+  ArrowLeft: -1,
+  ArrowUp: -1,
+  Home: "first",
+  End: "last",
+};
 
 /**
  * Pointer, keyboard and touch for a one-dimensional readout (line, bar): hover
@@ -413,17 +572,13 @@ export function useAxisCursor({
   order,
   rowPos,
   axis,
-  nearest,
   root,
 }: {
   order: readonly number[];
   rowPos: readonly (number | null)[];
   axis: "x" | "y";
-  nearest: (rowPos: readonly (number | null)[], order: readonly number[], px: number) => number | null;
   root: RefObject<HTMLElement | null>;
 }) {
-  const cursor = useCursor<number>();
-  const { active, source, set } = cursor;
   const step = (from: number | null, delta: number | "first" | "last") => {
     if (order.length === 0) return null;
     if (delta === "first") return order[0] ?? null;
@@ -432,64 +587,30 @@ export function useAxisCursor({
     if (at === -1) return order[order.length - 1] ?? null;
     return order[Math.min(order.length - 1, Math.max(0, at + delta))] ?? null;
   };
-  const fromEvent = (event: PointerEvent<HTMLElement>) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    return nearest(rowPos, order, axis === "x" ? event.clientX - rect.left : event.clientY - rect.top);
-  };
+  return usePlotCursor<number>({
+    root,
+    pick(event) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      return nearestRow(rowPos, order, axis === "x" ? event.clientX - rect.left : event.clientY - rect.top);
+    },
+    keyTarget(active, event) {
+      const delta = AXIS_KEYS[event.key];
+      return delta === undefined ? undefined : step(active, delta);
+    },
+    start: () => step(null, "last"),
+  });
+}
 
-  useClickOutside(root, () => set(null, null), source === "touch");
-
-  const handlers = {
-    onPointerMove(event: PointerEvent<HTMLElement>) {
-      if (event.pointerType === "touch") return;
-      set(fromEvent(event), "pointer");
-    },
-    onPointerLeave(event: PointerEvent<HTMLElement>) {
-      if (event.pointerType !== "touch" && source === "pointer") set(null, null);
-    },
-    onPointerDown(event: PointerEvent<HTMLElement>) {
-      if (event.pointerType === "touch") set(fromEvent(event), "touch");
-    },
-    onKeyDown(event: KeyboardEvent<HTMLElement>) {
-      const map: Record<string, number | "first" | "last"> = {
-        ArrowRight: 1,
-        ArrowDown: 1,
-        ArrowLeft: -1,
-        ArrowUp: -1,
-        Home: "first",
-        End: "last",
-      };
-      if (event.key === "Escape") {
-        if (active === null) return;
-        event.preventDefault();
-        set(null, null);
-        return;
-      }
-      const delta = map[event.key];
-      if (delta === undefined) return;
-      event.preventDefault();
-      set(step(active, delta), "keyboard");
-    },
-    onFocus(event: React.FocusEvent<HTMLElement>) {
-      let visible = false;
-      try {
-        visible = event.currentTarget.matches(":focus-visible");
-      } catch {
-        visible = false;
-      }
-      if (visible && active === null) set(step(null, "last"), "keyboard");
-    },
-    onBlur() {
-      if (source === "keyboard") set(null, null);
-    },
-  };
-  return { ...cursor, handlers };
+/** What the live region says for a keyboard step or a tap (never a passing pointer): the readout as one line. */
+export function readoutStatus(title: string, rows: readonly ReadoutRow[], source: CursorSource | null): string {
+  return source === "keyboard" || source === "touch" ? `${title}: ${rows.map((r) => `${r.name} ${r.value}`).join(", ")}` : "";
 }
 
 /** The plot's own wrapper: focusable, named, LTR (an axis reads left to right in every locale). */
 export function PlotRegion({
   label,
   hint,
+  probeRef,
   className,
   style,
   children,
@@ -498,15 +619,13 @@ export function PlotRegion({
 }: {
   label: string;
   hint: string;
+  /** The hidden `h-bar rounded-sm` probe `useChartBox` reads `--BAR-THICK` and `--RADIUS-SM` from. */
+  probeRef: Ref<HTMLSpanElement>;
   className?: string;
   style?: CSSProperties;
   children: ReactNode;
   ref?: Ref<HTMLDivElement>;
-} & Partial<Record<"onPointerMove" | "onPointerLeave" | "onPointerDown", (event: PointerEvent<HTMLElement>) => void>> & {
-    onKeyDown?: (event: KeyboardEvent<HTMLElement>) => void;
-    onFocus?: (event: React.FocusEvent<HTMLElement>) => void;
-    onBlur?: () => void;
-  }) {
+} & PlotHandlers) {
   const hintId = useId();
   return (
     <div
@@ -524,6 +643,7 @@ export function PlotRegion({
       <span id={hintId} className="sr-only">
         {hint}
       </span>
+      <span ref={probeRef} aria-hidden className="r-charts-probe h-bar rounded-sm" />
       {children}
     </div>
   );

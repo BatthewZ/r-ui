@@ -19,8 +19,9 @@
 // `scripts/lib/class-tokens.mjs`), because a constant reached by following an
 // identifier may also hold labels. A class glued to `${…}` is always reported.
 //
-// Scope: `.ts`/`.tsx` under `src/` and `showcase/`, minus tests, examples,
-// build output and vite configs. `scripts/verify-utilities-exist.test.mjs`
+// Scope: `.ts`/`.tsx` under `src/` and `showcase/`, minus tests, the
+// showcase's example data (`showcase/**/*.examples.*`), build output and vite
+// configs. `scripts/verify-utilities-exist.test.mjs`
 // proves it goes red on a fixture.
 //
 // Usage: node scripts/verify-utilities-exist.mjs [--root <dir>]
@@ -28,17 +29,15 @@
 //   judged against THIS package's CSS.
 
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
 
 import { __unstable__loadDesignSystem, compile } from "@tailwindcss/node";
 import { globSync } from "glob";
 
 import { classTokens } from "./lib/class-tokens.mjs";
+import { PKG, pathArg } from "./lib/gate.mjs";
 
-const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
-const rootArg = process.argv.indexOf("--root");
-const ROOT = rootArg > -1 ? resolve(process.argv[rootArg + 1]) : PKG;
+const ROOT = pathArg("--root", PKG);
 
 const MARKER = /^(?:group|peer)(?:\/[\w-]+)?$/;
 
@@ -70,7 +69,15 @@ const folders = Object.entries(ENTRIES).flatMap(([folder, entry]) => {
     cwd: dir,
     absolute: true,
     nodir: true,
-    ignore: ["**/*.test.*", "**/*.examples.*", "**/dist/**", "**/node_modules/**", "**/*.d.ts", "vite.config.ts"],
+    // Example data (`*.examples.*`) is exempt in the showcase only, never in src.
+    ignore: [
+      "**/*.test.*",
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/*.d.ts",
+      "vite.config.ts",
+      ...(folder === "showcase" ? ["**/*.examples.*"] : []),
+    ],
   }).sort();
   return files.length ? [{ entry, perFile: files.map((file) => ({ file, ...classTokens(readFileSync(file, "utf8"), file) })) }] : [];
 });

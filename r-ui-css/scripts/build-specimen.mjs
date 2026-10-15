@@ -4,9 +4,10 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { PKG_DIR } from "./lib/cli.mjs";
 import { pkgPaths, themeFiles } from "./lib/tokens.mjs";
 
-const { root } = pkgPaths(new URL("..", import.meta.url).pathname);
+const { root } = pkgPaths(PKG_DIR);
 const dist = join(root, "specimen/dist");
 mkdirSync(dist, { recursive: true });
 

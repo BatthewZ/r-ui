@@ -133,6 +133,23 @@ The package handles the contract: every colour role becomes a system colour (sel
 3. **Focus is an outline.** Use the base ring or `focus-ring`; a ring drawn with `box-shadow` (`ring-*`) vanishes, and the package forces `outline-style: solid` on `:focus-visible` to catch it. That also revives `outline: none`: a part whose frame draws its ring resets with `outline: 0 none` (zero width), or it shows a second ring.
 4. **`forced-colors:forced-color-adjust-none` only where the colour IS the information** (a swatch, a data series) and the element carries its own label. Everything inside it must read tokens, which are system colours here.
 
+### Print
+
+Printing is ink on paper, for every theme: under `@media print` the package sets a light, neutral palette (white canvas and surfaces, near-black text, mid-grey lines, a blue accent; links underline), `color-scheme: light`, `--SCHEME-DARK: 0` (so extensions take their light values), no shadows and no motion. Like reduced motion and forced colors, it is `!important` on `:root`, so it beats any `:root[data-theme]`; a theme may not use `!important` (`bun run check`). Browsers drop background colours when printing unless told otherwise, so meaning never rests on a fill there: text, borders, icons and labels carry it. The exception is a fill that carries its own text (`bg-primary*`, `bg-accent*`, `bg-selection`, `bg-status-*`, `bg-fg-primary`): it prints its colour, or its `on-*` ink would be left light on white.
+
+Mark elements with `data-print` (a space-separated list, e.g. `data-print="avoid-break exact"`):
+
+```
+data-print="hide"          never printed: interactive-only controls (copy, toggles, pagination, view menus)
+data-print="only"          printed only, hidden on screen (a print header, a "printed on" line)
+data-print="break-before"  starts a new page
+data-print="avoid-break"   kept on one page when it fits (a card, a figure, a row group)
+data-print="exact"         colour IS the data (a heat cell, a swatch, a meter fill): its background prints
+data-print="flow"          a window or scroller (fixed, sticky, overflow, a set height) prints in the flow, full height, unclipped
+```
+
+`exact` is inherited, so put it on the smallest element whose colour carries the data, never on a region. Without any attribute: figures, tables rows, images, `pre` and `blockquote` avoid breaking inside, headings stay with what follows, paragraphs keep at least 3 lines at a page edge, a table's head repeats on every page, and an external link (`http…`) in a prose region prints its URL after the text (links with a class, i.e. UI links, do not). Page margins come from `@page`; a later `@page` of the app's own wins.
+
 ### Motion
 
 ```
@@ -155,7 +172,7 @@ Each animation also exists as a plain class (`.fade-up`). Helpers: `.stagger-ite
 | Scheme | `color-scheme`, `--SCHEME-DARK` (0 light / 1 dark) |
 | Neutrals | `--C-CANVAS`, `--C-SURFACE-0..3`, `--C-TEXT-PRIMARY/SECONDARY/MUTED/INVERSE`, `--C-BORDER`, `--C-BORDER-STRONG`, `--C-SCRIM` |
 | Action | `--C-PRIMARY`, `-HOVER`, `-ACTIVE`, `--C-TEXT-ON-PRIMARY` |
-| Accent | `--C-ACCENT`, `--C-ACCENT-HOVER`, `--C-TEXT-ON-ACCENT`, `--C-TEXT-ACCENT`, `--C-SELECTION`, `--C-TEXT-ON-SELECTION`, `--LINK-DECORATION` |
+| Accent | `--C-ACCENT`, `--C-ACCENT-HOVER`, `--C-TEXT-ON-ACCENT`, `--C-TEXT-ACCENT`, `--C-SELECTION`, `--C-TEXT-ON-SELECTION`, `--LINK-DECORATION`, `--LINK-UNDERLINE-OFFSET` |
 | Focus | `--C-FOCUS`, `--FOCUS-WIDTH`, `--FOCUS-OFFSET` |
 | Status | `--C-STATUS-{S}`, `--C-TEXT-{S}`, `--C-STATUS-{S}-BG`, `--C-TEXT-ON-{S}` for S = ERROR, SUCCESS, WARNING, INFO |
 | Faces, weights | `--FONT-UI`, `--FONT-MONO`, `--FONT-HEADING` and `--FONT-DISPLAY` (optional, undeclared), `--FONT-UI-SIZE-ADJUST` / `--FONT-HEADING-SIZE-ADJUST` / `--FONT-DISPLAY-SIZE-ADJUST` (optional, undeclared), `--WEIGHT-NORMAL/MEDIUM/SEMIBOLD`, `--HEADING-WEIGHT`, `--HEADING-TRACKING`, `--HEADING-CASE`, `--DISPLAY-WEIGHT` |
@@ -183,9 +200,10 @@ See [docs/axes.md](docs/axes.md) for the detail.
 | Path | What |
 | --- | --- |
 | `src/index.css` | Public entry |
-| `src/tokens/` | The contract: `reset` (clears replaced Tailwind scales), `color`, `forced-colors`, `type`, `density`, `input`, `shape`, `layer`, `motion` |
+| `src/tokens/` | The contract: `reset` (clears replaced Tailwind scales), `color`, `print` (the paper palette), `forced-colors`, `type`, `density`, `input`, `shape`, `layer`, `motion` |
 | `src/base.css` | Body text and figures, canvas, faces, hairline default, accent and caret, selection, focus ring (an outline in forced colors), heading defaults |
 | `src/prose.css` | Prose regions |
+| `src/print.css` | Page margins, breaks, the `data-print` conventions, prose link URLs on paper |
 | `src/animations/` | Keyframes, classes and `animate-*` utilities |
 | `src/_theme-template.css` | Every themeable token, grouped by brand lever, one-line role each |
 | `src/examples/themes/` | Worked examples. Nothing imports them; safe to delete |
@@ -199,6 +217,7 @@ See [docs/axes.md](docs/axes.md) for the detail.
 - No theme selector other than `:root[data-theme="…"]`; no subtree themes.
 - No setting a selected density name (`--R-SIZE-3`, `--H1`, `--ICON`) or `--CONTROL-H` / `--ROW-H` / `--HIT-MIN` in a theme. Set the `-COMFORTABLE` / `-COMPACT` names.
 - No `@media (width …)` that redefines a token.
+- No `!important` in a theme: the package's preference and print overrides beat a theme only because theirs are important.
 - No font loading in a theme (`@import`, `@font-face`): a theme names families; the app loads them.
 - No `--LAYER-*` in a theme, and no numeric `z-*` for page chrome: use `z-sticky`, `z-docked`, `z-bypass`.
 - No font size on `:root` (it moves `rem`).

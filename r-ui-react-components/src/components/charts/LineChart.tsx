@@ -1,11 +1,9 @@
 "use client";
 import { useMemo, useRef } from "react";
 
+import { mergeLabels } from "../../util/labels";
 import { cn } from "../../util/style";
 import {
-  cartesianNotes,
-  cartesianSummary,
-  cartesianTable,
   type ChartSeries,
   type ChartX,
   drawnSeries,
@@ -15,18 +13,20 @@ import {
   type XScaleType,
 } from "./chart-model";
 import {
+  cartesianFrameProps,
   type ChartBaseProps,
   ChartFrame,
   ChartLegend,
   ChartReadout,
   DEFAULT_CHART_LABELS,
   Mark,
-  notesText,
   PlotRegion,
+  readoutStatus,
   SERIES_TEXT,
+  seriesReadout,
   useAxisCursor,
 } from "./chart-parts";
-import { nearestRow, planLine } from "./chart-plan";
+import { planLine } from "./chart-plan";
 import type { TimeZoneMode } from "./chart-scale";
 import { CartesianAxes } from "./chart-axes";
 import { useChartBox } from "./use-chart-box";
@@ -88,7 +88,7 @@ export function LineChart({
   ref,
   ...rest
 }: LineChartProps) {
-  const words = { ...DEFAULT_CHART_LABELS, ...labels };
+  const words = mergeLabels(DEFAULT_CHART_LABELS, labels);
   const formatters = useMemo(() => makeFormatters({ unit, format, formatTick, locale }), [unit, format, formatTick, locale]);
   const model = useMemo(
     () => modelCartesian({ x, series, xType, timeZone, locale, formatX }),
@@ -104,41 +104,33 @@ export function LineChart({
 
   const order = plan?.order ?? [];
   const rowX = plan?.rowX ?? [];
-  const { active, source, handlers } = useAxisCursor({ order, rowPos: rowX, axis: "x", nearest: nearestRow, root: plotRef });
+  const { active, source, handlers } = useAxisCursor({ order, rowPos: rowX, axis: "x", root: plotRef });
   const row = active === null ? undefined : model.rows[active];
   const drawn = drawnSeries(model.series);
-  const readout = row
-    ? drawn.map((s) => ({ name: s.name, value: formatters.value(row.values[s.index] ?? null), slot: s.slot, shape: s.shape }))
-    : [];
-  const status = row && (source === "keyboard" || source === "touch") ? `${row.label}: ${readout.map((r) => `${r.name} ${r.value}`).join(", ")}` : "";
+  const readout = seriesReadout(row, drawn, formatters);
+  const status = row ? readoutStatus(row.label, readout, source) : "";
   const cx = active === null ? null : (rowX[active] ?? null);
 
-  const corner = words.corner || (model.xType === "time" ? "Time" : "");
   return (
     <ChartFrame
       kind="line"
       label={label}
-      summaryText={summary ?? cartesianSummary(area ? "Area chart" : "Line chart", model, formatters)}
-      legend={
-        <ChartLegend
-          line
-          className={classNames?.legend}
-          entries={drawn}
-        />
-      }
-      notes={notesText(cartesianNotes(model), words)}
-      table={cartesianTable(model, formatters, corner)}
-      undrawable={model.rows.length > 0 && !model.drawable}
-      empty={model.rows.length === 0 || model.series.length === 0}
+      {...cartesianFrameProps(model, formatters, words, summary, area ? "area" : "line")}
+      legend={<ChartLegend line className={classNames?.legend} entries={drawn} />}
       status={status}
-      labelsResolved={words}
       className={className}
       classNames={classNames}
       ref={ref}
       {...rest}
     >
-      <PlotRegion ref={plotRef} label={label} hint={words.keyboardHint} className={cn("h-chart w-full", classNames?.plot)} {...handlers}>
-        <span ref={probeRef} aria-hidden className="r-charts-probe h-bar rounded-sm" />
+      <PlotRegion
+        ref={plotRef}
+        probeRef={probeRef}
+        label={label}
+        hint={words.keyboardHint}
+        className={cn("h-chart w-full", classNames?.plot)}
+        {...handlers}
+      >
         {plan && (
           <svg aria-hidden width={plan.width} height={plan.height} className="r-charts-svg absolute inset-0 block">
             <CartesianAxes

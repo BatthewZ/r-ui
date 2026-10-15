@@ -10,6 +10,8 @@
  * cannot be made nice falls back to its own ends.
  */
 
+import { dateTimeFormatter } from "../../util/format";
+
 export const clamp = (value: number, lo: number, hi: number): number => Math.min(Math.max(value, lo), hi);
 
 export const finiteOrNull = (value: unknown): number | null =>
@@ -93,9 +95,22 @@ export function niceTicks(low: number, high: number, maxCount = 5, pinLo = false
     if (i === 0) return true;
     const prev = ticks[i - 1] ?? v;
     const isPinned = (pinLo && v === lo) || (pinHi && v === hi);
-    return isPinned || v - prev >= minGap;
+    if (isPinned) return true;
+    // A multiple a hair below a pinned top gives way to it, as one above a pinned bottom does.
+    const crowdsTop = pinHi && i === ticks.length - 2 && hi - v < minGap;
+    return v - prev >= minGap && !crowdsTop;
   });
   return { lo, hi, ticks: spaced };
+}
+
+/**
+ * `hi - lo`, halved when the plain difference overflows a double
+ * (`1e308 - -1e308` is Infinity). A value measured against `span` is scaled by
+ * the same `scale` first: `(value * scale - lo * scale) / span`.
+ */
+export function safeSpan(lo: number, hi: number): { scale: number; span: number } {
+  const scale = Number.isFinite(hi - lo) ? 1 : 0.5;
+  return { scale, span: hi * scale - lo * scale };
 }
 
 /**
@@ -104,8 +119,7 @@ export function niceTicks(low: number, high: number, maxCount = 5, pinLo = false
  * projects to the middle.
  */
 export function linearScale(lo: number, hi: number, from: number, to: number): (value: number | null | undefined) => number | null {
-  const scale = Number.isFinite(hi - lo) ? 1 : 0.5;
-  const span = hi * scale - lo * scale;
+  const { scale, span } = safeSpan(lo, hi);
   return (value) => {
     if (typeof value !== "number" || !Number.isFinite(value)) return null;
     const t = span === 0 ? 0.5 : (value * scale - lo * scale) / span;
@@ -280,15 +294,14 @@ function fieldsOf(t: number, zone: TimeZoneMode): Fields {
 }
 
 function make(f: Omit<Fields, "dow">, zone: TimeZoneMode): number {
+  const date = new Date(0);
   if (zone === "UTC") {
-    const date = new Date(0);
     date.setUTCFullYear(f.y, f.mo, f.d);
     date.setUTCHours(f.h, f.mi, f.s, 0);
-    return date.getTime();
+  } else {
+    date.setFullYear(f.y, f.mo, f.d);
+    date.setHours(f.h, f.mi, f.s, 0);
   }
-  const date = new Date(0);
-  date.setFullYear(f.y, f.mo, f.d);
-  date.setHours(f.h, f.mi, f.s, 0);
   return date.getTime();
 }
 
@@ -358,19 +371,8 @@ export function isOnBoundary(t: number, interval: TimeInterval, zone: TimeZoneMo
   return Number.isFinite(t) && floorTo(t, interval, zone) === t;
 }
 
-const dateFormats = new Map<string, Intl.DateTimeFormat>();
 function dateFormat(locale: string | undefined, zone: TimeZoneMode, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
-  const key = JSON.stringify([locale ?? null, zone, options]);
-  let f = dateFormats.get(key);
-  if (!f) {
-    try {
-      f = new Intl.DateTimeFormat(locale, { ...options, timeZone: zone === "UTC" ? "UTC" : undefined });
-    } catch {
-      f = new Intl.DateTimeFormat(undefined, { ...options, timeZone: zone === "UTC" ? "UTC" : undefined });
-    }
-    dateFormats.set(key, f);
-  }
-  return f;
+  return dateTimeFormatter(locale, zone === "UTC" ? { ...options, timeZone: "UTC" } : options);
 }
 
 const safeDate = (t: number, f: Intl.DateTimeFormat): string => {

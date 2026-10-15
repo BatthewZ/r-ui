@@ -1,0 +1,19 @@
+/* A consumer's dark theme that overrides a domain pair by name, too dark for its
+   own surfaces. Its deepest surface comes from the file's plain `:root`, which
+   the theme inherits; the CSS package's default there is pale. */
+:root {
+  --C-SURFACE-3: oklch(0.152 0.01 300);
+}
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --SCHEME-DARK: 1;
+  --C-CANVAS: oklch(0.2 0.01 300);
+  --C-SURFACE-0: oklch(0.262 0.01 300);
+  --C-SURFACE-1: oklch(0.232 0.01 300);
+  --C-SURFACE-2: oklch(0.178 0.01 300);
+  --C-TEXT-SECONDARY: oklch(0.8 0.01 300);
+  --C-TEXT-MUTED: oklch(0.68 0.01 300);
+  --C-TEXT-SUCCESS: oklch(0.8 0.12 152);
+  --C-TEXT-ERROR: oklch(0.8 0.11 25);
+  --C-TREND-GOOD-DARK: oklch(0.35 0.12 152);
+}

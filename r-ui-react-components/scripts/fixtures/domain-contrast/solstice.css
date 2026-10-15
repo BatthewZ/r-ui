@@ -1,0 +1,10 @@
+/* A consumer's theme that tunes domain sizes: the per-density names are its own to set;
+   the selected names (`--CHART-H`, `--SPARK-H`) are not, since only `[data-density]` selects. */
+:root[data-theme="solstice"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+  --CHART-H-COMFORTABLE: 15rem;
+  --CHART-H-COMPACT: 11rem;
+  --CHART-H: 15rem;
+  --SPARK-H: var(--SPARK-H-COMPACT);
+}

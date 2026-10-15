@@ -153,6 +153,20 @@ describe("DataTable", () => {
     expect(box("Pick auth")).toBeChecked();
   });
 
+  it("keys a row by its index in `rows`, so a selection keyed by index survives sorting", async () => {
+    const user = userEvent.setup();
+    const getRowKey = vi.fn((_: Svc, index: number) => index);
+    const onSelectedKeysChange = vi.fn();
+    renderTable({ selectable: true, getRowKey, onSelectedKeysChange });
+    await user.click(screen.getByRole("button", { name: /p95 ms/ }));
+    const bodyRows = screen.getAllByRole("row").slice(1);
+    expect(bodyRows.map((row) => within(row).getAllByRole("cell")[1]?.textContent)).toEqual(["checkout", "search", "auth", "recs"]);
+    for (const [row, index] of getRowKey.mock.calls) expect(ROWS[index]).toBe(row);
+    await user.click(box("Select checkout"));
+    expect([...(onSelectedKeysChange.mock.lastCall?.[0] as Set<RowKey>)]).toEqual([1]);
+    expect(screen.getByRole("row", { selected: true })).toHaveTextContent("checkout");
+  });
+
   it("publishes no aria-selected without selection", () => {
     renderTable();
     for (const row of screen.getAllByRole("row")) expect(row).not.toHaveAttribute("aria-selected");
@@ -197,7 +211,7 @@ describe("DataTable", () => {
   });
 
   it("renders row actions per row under a screen-reader-only header", () => {
-    renderTable({ rowActions: (s) => <button type="button">Open {s.name}</button>, rowActionsLabel: "Row actions" });
+    renderTable({ rowActions: (s) => <button type="button">Open {s.name}</button>, labels: { rowActions: "Row actions" } });
     expect(screen.getByRole("columnheader", { name: "Row actions" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^Open / })).toHaveLength(4);
     expect(screen.getByText("Row actions")).toHaveClass("sr-only");
@@ -206,6 +220,23 @@ describe("DataTable", () => {
   it("names a row checkbox from the first column by default", () => {
     renderTable({ selectable: true });
     expect(box("Select recs")).toBeInTheDocument();
+  });
+
+  it("takes every string it writes from labels", () => {
+    const { rerender } = renderTable({
+      selectable: true,
+      labels: { selectAll: "Alle auswählen", selectRow: (t) => `${t} auswählen` },
+    });
+    expect(screen.getByRole("checkbox", { name: "Alle auswählen" })).toBeInTheDocument();
+    expect(box("recs auswählen")).toBeInTheDocument();
+    rerender(
+      <DataTable aria-label="Services" columns={COLUMNS} rows={[]} getRowKey={(s) => s.id} labels={{ empty: "Keine Daten" }} />,
+    );
+    expect(screen.getByText("Keine Daten")).toBeInTheDocument();
+    rerender(
+      <DataTable aria-label="Services" columns={COLUMNS} rows={ROWS} getRowKey={(s) => s.id} loading labels={{ loading: "Lädt" }} />,
+    );
+    expect(screen.getByText("Lädt")).toHaveClass("sr-only");
   });
 
   it("drops columns by priority on every cell of the column", () => {

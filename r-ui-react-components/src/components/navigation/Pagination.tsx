@@ -1,12 +1,13 @@
 "use client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type ComponentPropsWithRef, useRef } from "react";
+import { type ComponentPropsWithRef, useLayoutEffect, useRef } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { formatNumber } from "../../util/format";
 import { useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "../primitives";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 type PageSlot = number | "gap-start" | "gap-end";
 
@@ -42,7 +43,7 @@ export interface PaginationLabels {
   status: (page: string, pageCount: string) => string;
 }
 
-const DEFAULT_LABELS: PaginationLabels = {
+export const DEFAULT_PAGINATION_LABELS: PaginationLabels = {
   nav: "Pagination",
   previous: "Previous page",
   next: "Next page",
@@ -68,7 +69,7 @@ export type PaginationProps = {
    * `page` from the URL. Without it the pages are buttons.
    */
   getHref?: (page: number) => string;
-  labels?: Partial<PaginationLabels>;
+  labels?: LabelsProp<PaginationLabels>;
   classNames?: SlotClassNames<"previous" | "next" | "list" | "page" | "status">;
 } & Omit<ComponentPropsWithRef<"nav">, "children">;
 
@@ -96,29 +97,47 @@ export function Pagination({
   classNames,
   ...props
 }: PaginationProps) {
-  const labels = { ...DEFAULT_LABELS, ...labelsProp };
-  const pageCount = Math.max(1, Math.floor(pageCountProp));
+  const labels = mergeLabels(DEFAULT_PAGINATION_LABELS, labelsProp);
+  // `|| 1`: NaN (a `?page=abc` parsed with `Number`, a 0/0 count) escapes Math.max/min.
+  const pageCount = Math.max(1, Math.floor(pageCountProp) || 1);
   const [rawPage, setPage] = useControllableState({
     value: pageProp,
     defaultValue: defaultPage,
     onChange: onPageChange,
   });
-  const page = Math.min(Math.max(1, rawPage), pageCount);
+  const page = Math.min(Math.max(1, Math.floor(rawPage) || 1), pageCount);
   const navRef = useRef<HTMLElement>(null);
   const LinkElement = useLinkElement(undefined, getHref?.(page));
 
+  // Reaching an end disables the control that got us there; focus goes to its
+  // opposite so it does not fall back to <body>. That arrow may itself be
+  // disabled until the new page commits (two pages; link mode, where the owner
+  // commits the URL's page later), so the handoff waits for the commit.
+  const pendingFocus = useRef<{ edge: "previous" | "next"; page: number } | null>(null);
+
   const go = (next: number) => {
-    setPage(next);
-    // Reaching an end disables the control that got us there; hand focus to its
-    // opposite so it does not fall back to <body>.
     const edge = next <= 1 ? "next" : next >= pageCount ? "previous" : null;
-    if (edge && navRef.current?.contains(document.activeElement)) {
-      const active = document.activeElement as HTMLElement;
-      if (active.dataset.pagination !== undefined && active.dataset.pagination !== edge) {
-        navRef.current.querySelector<HTMLElement>(`[data-pagination="${edge}"]`)?.focus();
-      }
-    }
+    const active = document.activeElement;
+    const fromArrow =
+      active instanceof HTMLElement &&
+      navRef.current?.contains(active) &&
+      active.dataset.pagination !== undefined &&
+      active.dataset.pagination !== edge;
+    pendingFocus.current = edge && fromArrow ? { edge, page: next } : null;
+    setPage(next);
   };
+
+  useLayoutEffect(() => {
+    const pending = pendingFocus.current;
+    if (!pending) return;
+    pendingFocus.current = null;
+    // The owner moved somewhere else: this is not the move that asked for focus.
+    if (pending.page !== page) return;
+    const nav = navRef.current;
+    const active = document.activeElement;
+    if (!nav || (active !== document.body && !nav.contains(active))) return;
+    nav.querySelector<HTMLElement>(`[data-pagination="${pending.edge}"]`)?.focus();
+  }, [page]);
 
   const fmt = (n: number) => formatNumber(n);
 
@@ -160,6 +179,17 @@ export function Pagination({
     );
   };
 
+  const pageControl = (slot: number) => {
+    const props = {
+      "aria-label": labels.page(fmt(slot)),
+      "aria-current": slot === page ? ("page" as const) : undefined,
+      className: cn(PAGE_CLASSES, classNames?.page),
+      onClick: () => go(slot),
+      children: fmt(slot),
+    };
+    return getHref ? <LinkElement href={getHref(slot)} {...props} /> : <button type="button" {...props} />;
+  };
+
   return (
     <nav ref={navRef} aria-label={labels.nav} className={cn("@container min-w-0", className)} {...props}>
       <div className="flex items-center gap-r6">
@@ -167,29 +197,7 @@ export function Pagination({
         <ul className={cn("hidden items-center gap-r6 @md:flex", classNames?.list)}>
           {pageSlots(page, pageCount, siblings).map((slot) =>
             typeof slot === "number" ? (
-              <li key={slot}>
-                {getHref ? (
-                  <LinkElement
-                    href={getHref(slot)}
-                    aria-label={labels.page(fmt(slot))}
-                    aria-current={slot === page ? "page" : undefined}
-                    className={cn(PAGE_CLASSES, classNames?.page)}
-                    onClick={() => go(slot)}
-                  >
-                    {fmt(slot)}
-                  </LinkElement>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label={labels.page(fmt(slot))}
-                    aria-current={slot === page ? "page" : undefined}
-                    className={cn(PAGE_CLASSES, classNames?.page)}
-                    onClick={() => go(slot)}
-                  >
-                    {fmt(slot)}
-                  </button>
-                )}
-              </li>
+              <li key={slot}>{pageControl(slot)}</li>
             ) : (
               <li key={slot} aria-hidden className="inline-flex min-w-control justify-center text-fg-muted">
                 …

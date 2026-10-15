@@ -1,8 +1,12 @@
 /**
- * Matching for the selection inputs (Combobox, MultiSelect, TagInput):
- * case- and diacritic-insensitive "contains", plus where the match sits in the
- * ORIGINAL label so it can be highlighted.
+ * Text matching shared by the selection inputs and the command palette:
+ * case- and diacritic-insensitive, with matches reported as ranges of the
+ * ORIGINAL text so they can be highlighted. Internal: not in util/index.
  */
+import type { ReactNode } from "react";
+
+/** A `[start, end)` range of the original text. */
+export type MatchRange = readonly [number, number];
 
 /** Folds one string for comparison: decomposed, combining marks dropped, locale-lowercased. */
 export function foldText(text: string): string {
@@ -47,4 +51,22 @@ export function findMatch(text: string, query: string): [number, number] | null 
 /** The default filter: the label contains the query, case- and diacritic-insensitively. */
 export function defaultFilter(option: { label: string }, query: string): boolean {
   return foldText(option.label).includes(foldText(query.trim()));
+}
+
+/** `text` with each of `ranges` (ascending, non-overlapping) set in bold. */
+export function MatchText({ text, ranges }: { text: string; ranges: readonly MatchRange[] }) {
+  if (ranges.length === 0) return <>{text}</>;
+  const parts: ReactNode[] = [];
+  let at = 0;
+  for (const [start, end] of ranges) {
+    if (start > at) parts.push(text.slice(at, start));
+    parts.push(
+      <mark key={start} className="bg-transparent font-semibold text-inherit">
+        {text.slice(start, end)}
+      </mark>,
+    );
+    at = end;
+  }
+  if (at < text.length) parts.push(text.slice(at));
+  return <>{parts}</>;
 }

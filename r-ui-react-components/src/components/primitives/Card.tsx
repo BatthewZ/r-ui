@@ -20,6 +20,7 @@ export type CardProps = ComponentPropsWithRef<"div">;
 function CardRoot({ className, ...props }: CardProps) {
   return (
     <div
+      data-print="avoid-break"
       className={cn(
         "@container flex min-w-0 flex-col gap-r3 rounded-lg border border-border bg-surface-0 py-r2 text-fg-primary",
         className,

@@ -6,9 +6,13 @@ import { useRovingFocus } from "./use-roving-focus";
 function RovingList({
   orientation = "vertical",
   loop = true,
+  labels = ["A", "B", "C"],
+  disabled = [],
 }: {
   orientation?: "horizontal" | "vertical";
   loop?: boolean;
+  labels?: string[];
+  disabled?: number[];
 }) {
   const { getRovingProps, focusedIndex, setFocusedIndex } = useRovingFocus({
     orientation,
@@ -16,10 +20,10 @@ function RovingList({
   });
   return (
     <div>
-      {["A", "B", "C"].map((label, i) => {
+      {labels.map((label, i) => {
         const props = getRovingProps(i);
         return (
-          <button key={label} data-testid={`item-${i}`} {...props}>
+          <button key={label} data-testid={`item-${i}`} disabled={disabled.includes(i)} {...props}>
             {label}
           </button>
         );
@@ -104,6 +108,105 @@ describe("useRovingFocus", () => {
     });
   });
 
+  describe("right to left", () => {
+    it("mirrors the horizontal arrows: ArrowLeft is next, ArrowRight is previous", () => {
+      render(
+        <div style={{ direction: "rtl" }}>
+          <RovingList orientation="horizontal" />
+        </div>,
+      );
+      const first = screen.getByTestId("item-0");
+      first.focus();
+
+      fireEvent.keyDown(first, { key: "ArrowLeft" });
+      expect(document.activeElement).toBe(screen.getByTestId("item-1"));
+
+      fireEvent.keyDown(screen.getByTestId("item-1"), { key: "ArrowRight" });
+      expect(document.activeElement).toBe(first);
+    });
+
+    it("leaves a vertical group's arrows alone", () => {
+      render(
+        <div style={{ direction: "rtl" }}>
+          <RovingList orientation="vertical" />
+        </div>,
+      );
+      const first = screen.getByTestId("item-0");
+      first.focus();
+
+      fireEvent.keyDown(first, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(screen.getByTestId("item-1"));
+      // ArrowLeft is not a vertical group's key in either direction.
+      fireEvent.keyDown(screen.getByTestId("item-1"), { key: "ArrowLeft" });
+      expect(document.activeElement).toBe(screen.getByTestId("item-1"));
+    });
+  });
+
+  describe("disabled items", () => {
+    const labels = ["A", "B", "C", "D"];
+
+    it("arrows pass over a natively disabled item, both ways", () => {
+      render(<RovingList labels={labels} disabled={[1]} />);
+      const first = screen.getByTestId("item-0");
+      first.focus();
+
+      fireEvent.keyDown(first, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(screen.getByTestId("item-2"));
+      expect(screen.getByTestId("focused").textContent).toBe("2");
+
+      fireEvent.keyDown(screen.getByTestId("item-2"), { key: "ArrowUp" });
+      expect(document.activeElement).toBe(first);
+    });
+
+    it("wraps past a disabled item at the end, and stays put without loop", () => {
+      const { unmount } = render(<RovingList labels={labels} disabled={[3]} />);
+      screen.getByTestId("item-2").focus();
+      fireEvent.click(screen.getByTestId("outside"));
+      fireEvent.keyDown(screen.getByTestId("item-2"), { key: "ArrowDown" });
+      expect(document.activeElement).toBe(screen.getByTestId("item-0"));
+      unmount();
+
+      render(<RovingList labels={labels} disabled={[3]} loop={false} />);
+      screen.getByTestId("item-2").focus();
+      fireEvent.click(screen.getByTestId("outside"));
+      fireEvent.keyDown(screen.getByTestId("item-2"), { key: "ArrowDown" });
+      expect(document.activeElement).toBe(screen.getByTestId("item-2"));
+      expect(screen.getByTestId("focused").textContent).toBe("2");
+    });
+
+    it("Home and End land on the first and last enabled items", () => {
+      render(<RovingList labels={labels} disabled={[0, 3]} />);
+      const second = screen.getByTestId("item-1");
+      second.focus();
+
+      fireEvent.keyDown(second, { key: "End" });
+      expect(document.activeElement).toBe(screen.getByTestId("item-2"));
+
+      fireEvent.keyDown(screen.getByTestId("item-2"), { key: "Home" });
+      expect(document.activeElement).toBe(second);
+    });
+
+    it("keeps an aria-disabled item in the walk: it can take focus", () => {
+      function AriaDisabled() {
+        const { getRovingProps } = useRovingFocus({ orientation: "vertical" });
+        return (
+          <div>
+            {["A", "B", "C"].map((label, i) => (
+              <button key={label} data-testid={`aria-${i}`} aria-disabled={i === 1 || undefined} {...getRovingProps(i)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        );
+      }
+      render(<AriaDisabled />);
+      const first = screen.getByTestId("aria-0");
+      first.focus();
+      fireEvent.keyDown(first, { key: "ArrowDown" });
+      expect(document.activeElement).toBe(screen.getByTestId("aria-1"));
+    });
+  });
+
   it("Home moves focus to the first item", () => {
     render(<RovingList orientation="vertical" />);
 
@@ -171,8 +274,8 @@ describe("useRovingFocus", () => {
   });
 
   /**
-   * `setFocusedIndex` is the entry point a value-driven widget uses instead of
-   * the key handler above (Rating, ThemeSwitcher). Both directions matter: it
+   * `setFocusedIndex` is the entry point a value-driven widget (a radiogroup)
+   * uses instead of the key handler above. Both directions matter: it
    * has to carry DOM focus with the tab stop, and it must not pull focus into
    * the group from outside it.
    */

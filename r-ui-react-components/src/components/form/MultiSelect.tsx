@@ -5,8 +5,11 @@ import {
   type ComponentPropsWithRef,
   type FocusEvent,
   type KeyboardEvent,
+  useId,
+  useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
@@ -17,6 +20,7 @@ import { cn, type SlotClassNames } from "../../util/style";
 import { useFieldControl, useFieldValue } from "./Field";
 import {
   focusLastChip,
+  focusLeaves,
   HiddenValues,
   SelectionChips,
   stringList,
@@ -28,13 +32,15 @@ import {
   buildSelectionList,
   type ComboboxFilter,
   type ComboboxOption,
+  resultsStatus,
   type SelectionItem,
   SelectionListbox,
   useSelectionPopup,
 } from "./selection-popup";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 /** Every string the control says, for localisation. */
-export interface MultiSelectMessages {
+export interface MultiSelectLabels {
   loading: string;
   empty: string;
   results: (count: number) => string;
@@ -51,7 +57,7 @@ export interface MultiSelectMessages {
   toggle: string;
 }
 
-const MESSAGES: MultiSelectMessages = {
+export const DEFAULT_MULTI_SELECT_LABELS: MultiSelectLabels = {
   loading: "Loading…",
   empty: "No results",
   results: (count) => (count === 1 ? "1 result" : `${count} results`),
@@ -92,7 +98,7 @@ export interface MultiSelectProps
   invalid?: boolean;
   /** Lists longer than this are windowed. @default 100 */
   virtualizeThreshold?: number;
-  messages?: Partial<MultiSelectMessages>;
+  labels?: LabelsProp<MultiSelectLabels>;
   /** `className` styles the root (width lands there); `ref` and the rest address the search `<input>`. */
   classNames?: SlotClassNames<"frame" | "input" | "chip" | "listbox" | "option">;
 }
@@ -102,7 +108,9 @@ export interface MultiSelectProps
  * chips inside the field. The list stays open while choosing; Enter or a press
  * toggles an option and clears the search. Backspace in an empty search removes
  * the last chip; each chip's remove button is in the tab order. In a field
- * narrower than the `column-md` container step (16rem), two or more chips fold into "n selected".
+ * narrower than the `column-md` container step (16rem), two or more chips fold
+ * into an "n selected" button (ArrowLeft from the search reaches it) that
+ * unfolds them, remove buttons and all, until focus leaves the control.
  */
 export function MultiSelect({
   options,
@@ -123,7 +131,7 @@ export function MultiSelect({
   name,
   invalid: invalidProp,
   virtualizeThreshold = 100,
-  messages: messagesProp,
+  labels: labelsProp,
   className,
   classNames,
   ref,
@@ -141,7 +149,7 @@ export function MultiSelect({
   placeholder,
   ...props
 }: MultiSelectProps) {
-  const messages = { ...MESSAGES, ...messagesProp };
+  const labels = mergeLabels(DEFAULT_MULTI_SELECT_LABELS, labelsProp);
   const field = useFieldControl({
     id: idProp,
     invalid: invalidProp,
@@ -168,31 +176,33 @@ export function MultiSelect({
   });
   const [text, setText] = useControllableState({ value: inputValueProp, defaultValue: defaultInputValue, onChange: onInputChange });
   // Labels of chosen options outlive the async results they came from.
-  const labels = useRef(new Map<string, string>());
-  const labelOf = (v: string) => options.find((o) => o.value === v)?.label ?? labels.current.get(v) ?? v;
+  const knownLabels = useRef(new Map<string, string>());
+  const labelOf = (v: string) => options.find((o) => o.value === v)?.label ?? knownLabels.current.get(v) ?? v;
   const chosen = new Set(values);
   const atMax = max !== undefined && values.length >= max;
 
   const isDisabled = (option: ComboboxOption) => atMax && !chosen.has(option.value);
+  // A failed load lists no options: the cursor (and Enter) must not reach rows nobody sees.
+  const listed = loadError === undefined ? options : [];
   // The select-all row acts on what is listed (filtered, enabled), so the list is read first.
-  const enabledListed = buildSelectionList(options, { query: text, filter, isDisabled }).items.flatMap((item) =>
+  const enabledListed = buildSelectionList(listed, { query: text, filter, isDisabled }).items.flatMap((item) =>
     item.kind === "option" && !item.option.disabled ? [item.option] : [],
   );
   const allListedChosen = enabledListed.length > 0 && enabledListed.every((o) => chosen.has(o.value));
   const wouldExceed =
     max !== undefined && values.length + enabledListed.filter((o) => !chosen.has(o.value)).length > max;
-  const top: SelectionItem[] = selectAll
+  const top: SelectionItem[] = selectAll && loadError === undefined
     ? [
         {
           kind: "action",
           key: "all",
-          label: messages.selectAll,
+          label: labels.selectAll,
           icon: <ListChecks />,
           disabled: enabledListed.length === 0 || (!allListedChosen && wouldExceed),
         },
       ]
     : [];
-  const list = buildSelectionList(options, { query: text, filter, top, isDisabled });
+  const list = buildSelectionList(listed, { query: text, filter, top, isDisabled });
 
   const popup = useSelectionPopup({ items: list.items, open: openProp, defaultOpen, onOpenChange });
   const { open, setOpen, activeIndex } = popup;
@@ -200,17 +210,17 @@ export function MultiSelect({
   const setFrameRef = useMemo(() => mergeRefs(frameRef, setReference), [setReference]);
 
   const toggle = (option: ComboboxOption) => {
-    labels.current.set(option.value, option.label);
+    knownLabels.current.set(option.value, option.label);
     if (chosen.has(option.value)) {
       const next = values.filter((v) => v !== option.value);
       setValues(next);
-      announce(messages.removed(option.label, next.length));
+      announce(labels.removed(option.label, next.length));
     } else {
-      if (atMax) return announce(messages.max(max));
+      if (atMax) return announce(labels.max(max));
       const next = [...values, option.value];
       setValues(next);
-      const reached = max !== undefined && next.length >= max ? ` ${messages.max(max)}` : "";
-      announce(`${messages.added(option.label, next.length)}${reached}`);
+      const reached = max !== undefined && next.length >= max ? ` ${labels.max(max)}` : "";
+      announce(`${labels.added(option.label, next.length)}${reached}`);
     }
   };
 
@@ -220,10 +230,10 @@ export function MultiSelect({
     if (item.kind === "option") toggle(item.option);
     else {
       const ids = enabledListed.map((o) => o.value);
-      for (const o of enabledListed) labels.current.set(o.value, o.label);
+      for (const o of enabledListed) knownLabels.current.set(o.value, o.label);
       const next = allListedChosen ? values.filter((v) => !ids.includes(v)) : [...values, ...ids.filter((v) => !chosen.has(v))];
       setValues(next);
-      announce(messages.summary(next.length));
+      announce(labels.summary(next.length));
     }
     // A fresh search for the next choice; the cursor stays on what was chosen.
     if (text !== "") setText("");
@@ -234,7 +244,7 @@ export function MultiSelect({
     if (removed === undefined || locked) return;
     const next = values.filter((_, i) => i !== index);
     setValues(next);
-    announce(messages.removed(labelOf(removed), next.length));
+    announce(labels.removed(labelOf(removed), next.length));
   };
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -279,17 +289,34 @@ export function MultiSelect({
   };
 
   const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
-    if (rootRef.current?.contains(event.relatedTarget as Node | null)) return;
+    if (!focusLeaves(rootRef.current, event)) return;
     setOpen(false);
     if (text !== "") setText("");
   };
 
-  const count = list.items.filter((item) => item.kind === "option").length;
-  const status = !open || text === "" ? "" : loading ? messages.loading : (loadError ?? (count === 0 ? messages.empty : messages.results(count)));
+  const status = open && text !== "" ? resultsStatus(list, { loading, loadError, labels }) : "";
   const many = values.length > 1;
+  // A narrow field folds its chips into the summary; pressing it unfolds them
+  // (their remove buttons with them) until focus leaves the control.
+  const [unfolded, setUnfolded] = useState(false);
+  const folded = many && !unfolded;
+  const chipsId = useId();
+  const focusChips = useRef(false);
+  useLayoutEffect(() => {
+    if (!focusChips.current) return;
+    focusChips.current = false;
+    const first = frameRef.current?.querySelector<HTMLButtonElement>(".r-form-chip-remove");
+    (first ?? inputRef.current)?.focus();
+  }, [unfolded]);
 
   return (
-    <div ref={rootRef} className={cn("relative @container w-full min-w-0", className)}>
+    <div
+      ref={rootRef}
+      className={cn("relative @container w-full min-w-0", className)}
+      onBlur={(event) => {
+        if (unfolded && focusLeaves(rootRef.current, event)) setUnfolded(false);
+      }}
+    >
       <SelectionFrame
         frameRef={setFrameRef}
         inputRef={inputRef}
@@ -300,51 +327,55 @@ export function MultiSelect({
         onPress={() => setOpen(true)}
         end={
           locked ? undefined : (
-            <SelectionToggle
-              open={open}
-              label={messages.toggle}
-              controls={popup.present ? popup.listboxId : undefined}
-              onToggle={() => {
-                inputRef.current?.focus();
-                setOpen(!open);
-              }}
-            />
+            <SelectionToggle popup={popup} label={labels.toggle} inputRef={inputRef} />
           )
         }
         className={classNames?.frame}
       >
         <SelectionChips
+          id={chipsId}
           chips={values.map((v) => ({ key: v, label: labelOf(v) }))}
-          label={messages.selected}
-          removeLabel={messages.remove}
+          label={labels.selected}
+          removeLabel={labels.remove}
           onRemove={removeAt}
           inputRef={inputRef}
           disabled={field.disabled}
           readOnly={field.readOnly}
           // Narrow field: two or more chips fold into the summary below.
-          className={cn(many && "@max-column-md:hidden")}
+          className={cn(folded && "@max-column-md:hidden")}
           chipClassName={classNames?.chip}
         />
-        {many && (
-          <span className="r-form-chip hidden pe-r5 font-medium @max-column-md:inline-flex">
-            {messages.summary(values.length)}
-          </span>
+        {folded && (
+          <button
+            type="button"
+            aria-expanded={false}
+            aria-controls={chipsId}
+            disabled={field.disabled}
+            onClick={() => {
+              focusChips.current = true;
+              setUnfolded(true);
+            }}
+            onKeyDown={(event) => {
+              const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+              if (event.key !== (rtl ? "ArrowLeft" : "ArrowRight")) return;
+              event.preventDefault();
+              inputRef.current?.focus();
+            }}
+            className="r-form-chip r-form-chip-summary hit-area hidden pe-r5 font-medium @max-column-md:inline-flex"
+          >
+            {labels.summary(values.length)}
+          </button>
         )}
         <input
           ref={setInputRef}
           type="text"
-          role="combobox"
+          {...popup.comboboxProps}
           id={field.id}
           // Native validation sees an empty search; it may only stop the form while nothing is chosen.
           required={field.required && values.length === 0}
           aria-required={field.required}
           disabled={field.disabled}
           readOnly={field.readOnly}
-          autoComplete="off"
-          aria-autocomplete="list"
-          aria-expanded={open}
-          aria-controls={popup.present ? popup.listboxId : undefined}
-          aria-activedescendant={open && activeIndex >= 0 ? popup.optionId(activeIndex) : undefined}
           {...field.ariaProps}
           form={form}
           placeholder={values.length === 0 ? placeholder : undefined}
@@ -372,10 +403,10 @@ export function MultiSelect({
         labelledBy={field.labelId}
         label={props["aria-label"]}
         loading={loading}
-        loadingMessage={messages.loading}
+        loadingMessage={labels.loading}
         error={loadError}
-        emptyMessage={messages.empty}
-        notice={atMax ? messages.max(max) : undefined}
+        emptyMessage={labels.empty}
+        notice={atMax ? labels.max(max) : undefined}
         virtualizeThreshold={virtualizeThreshold}
         className={classNames?.listbox}
         optionClassName={classNames?.option}

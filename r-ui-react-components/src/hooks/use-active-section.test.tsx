@@ -111,6 +111,27 @@ describe("useActiveSection", () => {
     expect(live()[0]!.observed.map((el) => el.id)).toEqual(["api"]);
   });
 
+  it("observes the top 60% of the viewport by default, with no header offset of its own", () => {
+    render(<Sections />);
+    renderHook(() => useActiveSection(IDS));
+    expect(live()[0]!.options?.rootMargin).toBe("0px 0px -40% 0px");
+  });
+
+  it("takes the caller's rootMargin, and re-observes when it changes", () => {
+    render(<Sections />);
+    const { rerender } = renderHook(({ rootMargin }) => useActiveSection(IDS, { rootMargin }), {
+      initialProps: { rootMargin: "-64px 0px -40% 0px" },
+    });
+    expect(live()).toHaveLength(1);
+    expect(live()[0]!.options?.rootMargin).toBe("-64px 0px -40% 0px");
+
+    rerender({ rootMargin: "-96px 0px -50% 0px" });
+    expect(FakeObserver.all).toHaveLength(2);
+    expect(FakeObserver.all[0]!.disconnected).toBe(true);
+    expect(live()).toHaveLength(1);
+    expect(live()[0]!.options?.rootMargin).toBe("-96px 0px -50% 0px");
+  });
+
   it("disconnects on unmount", () => {
     render(<Sections />);
     const { unmount } = renderHook(() => useActiveSection(IDS));

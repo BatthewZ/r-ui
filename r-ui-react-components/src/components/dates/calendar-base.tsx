@@ -12,8 +12,10 @@ import {
 } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
+import { formatNumber } from "../../util/format";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
+import { useField } from "../form";
 import { IconButton } from "../primitives";
 import {
   addDays,
@@ -33,6 +35,7 @@ import {
   weekdayNames,
   weekStartFor,
 } from "./date-core";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 /** Every string a calendar speaks that `Intl` does not supply. */
 export interface CalendarLabels {
@@ -40,6 +43,8 @@ export interface CalendarLabels {
   nextMonth: string;
   /** Appended to today's name. */
   today: string;
+  /** Appended to the chosen day's name: the focused day says it, not only its cell. */
+  selected: string;
   rangeStart: string;
   rangeEnd: string;
   inRange: string;
@@ -49,6 +54,7 @@ export const DEFAULT_CALENDAR_LABELS: CalendarLabels = {
   previousMonth: "Previous month",
   nextMonth: "Next month",
   today: "today",
+  selected: "selected",
   rangeStart: "start of range",
   rangeEnd: "end of range",
   inRange: "in range",
@@ -91,7 +97,7 @@ export interface CalendarCommonProps
   disabled?: boolean;
   /** Move focus to the active day on mount (inside a popup). */
   autoFocus?: boolean;
-  labels?: Partial<CalendarLabels>;
+  labels?: LabelsProp<CalendarLabels>;
   classNames?: SlotClassNames<CalendarSlot>;
 }
 
@@ -113,17 +119,6 @@ function usedTracks(grid: HTMLElement): number | null {
   return tracks.split(/\s+/).length;
 }
 
-const numberFormats = new Map<string, Intl.NumberFormat>();
-/** The day of the month in the locale's own digits (Arabic-Indic in `ar-EG`). */
-function dayNumberFormat(locale: string): Intl.NumberFormat {
-  let format = numberFormats.get(locale);
-  if (!format) {
-    format = new Intl.NumberFormat(locale, { useGrouping: false });
-    numberFormats.set(locale, format);
-  }
-  return format;
-}
-
 const KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
 
 /**
@@ -140,6 +135,9 @@ const KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home",
  * tracks, and the component renders as many months as the browser laid out
  * tracks for. A breakpoint could not do this: the width a month needs moves
  * with density and input.
+ *
+ * Inside a `Field` it is named by the Field's label (unless it has its own
+ * name) and takes the Field's disabled state.
  */
 export function CalendarBase({
   locale: localeProp,
@@ -151,7 +149,7 @@ export function CalendarBase({
   min,
   max,
   isDateUnavailable,
-  disabled = false,
+  disabled: disabledProp,
   autoFocus = false,
   labels: labelsProp,
   classNames,
@@ -164,9 +162,12 @@ export function CalendarBase({
   onActiveChange,
   isBlocked,
   onPointerLeave,
+  "aria-labelledby": labelledBy,
   ...props
 }: CalendarBaseProps) {
-  const labels = { ...DEFAULT_CALENDAR_LABELS, ...labelsProp };
+  const field = useField();
+  const disabled = disabledProp ?? field?.disabled ?? false;
+  const labels = mergeLabels(DEFAULT_CALENDAR_LABELS, labelsProp);
   const locale = resolveLocale(localeProp);
   const weekStart = weekStartsOn ?? weekStartFor(locale);
   const maxMonths = Math.max(1, Math.floor(months));
@@ -254,8 +255,9 @@ export function CalendarBase({
     event.preventDefault();
     const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
     const offset = (active.getDay() - weekStart + 7) % 7;
-    const step = { ArrowLeft: rtl ? 1 : -1, ArrowRight: rtl ? -1 : 1, ArrowUp: -7, ArrowDown: 7 } as Record<string, number>;
-    if (event.key in step) moveTo(addDays(active, step[event.key] ?? 0));
+    const step: Partial<Record<string, number>> = { ArrowLeft: rtl ? 1 : -1, ArrowRight: rtl ? -1 : 1, ArrowUp: -7, ArrowDown: 7 };
+    const days = step[event.key];
+    if (days !== undefined) moveTo(addDays(active, days));
     else if (event.key === "Home") moveTo(addDays(active, -offset));
     else if (event.key === "End") moveTo(addDays(active, 6 - offset));
     else moveTo(addMonths(active, (event.key === "PageUp" ? -1 : 1) * (event.shiftKey ? 12 : 1)));
@@ -290,6 +292,7 @@ export function CalendarBase({
     <div
       ref={mergeRefs(ref, rootRef)}
       role="group"
+      aria-labelledby={labelledBy ?? (props["aria-label"] ? undefined : field?.labelId)}
       data-disabled={disabled ? "" : undefined}
       className={cn("r-dates-calendar", disabled && "opacity-disabled", className)}
       style={{ "--r-dates-months": maxMonths, ...style } as CSSProperties}
@@ -418,9 +421,11 @@ function DayCell({
           : state.inRange
             ? "mid"
             : undefined;
-  // Range membership has no ARIA state of its own, and a tint is not a name.
+  // Focus is on the day's button, which `aria-selected` on its cell does not
+  // reach; range membership has no ARIA state of its own; a tint is not a name.
   const suffix = [
     today && labels.today,
+    state.selected && labels.selected,
     state.rangeStart && labels.rangeStart,
     state.rangeEnd && labels.rangeEnd,
     state.inRange && labels.inRange,
@@ -459,7 +464,8 @@ function DayCell({
         }}
         onPointerEnter={onHover && !unavailable && !disabled ? () => onHover(day) : undefined}
       >
-        {dayNumberFormat(locale).format(day.getDate())}
+        {/* The locale's own digits (Arabic-Indic in `ar-EG`). */}
+        {formatNumber(day.getDate(), { locale, useGrouping: false })}
       </button>
     </td>
   );

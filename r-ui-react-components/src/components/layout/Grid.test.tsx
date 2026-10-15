@@ -21,14 +21,16 @@ describe("Grid", () => {
     render(<Grid columns={3} data-testid="g" />);
     const grid = screen.getByTestId("g");
     expect(grid).toHaveClass("grid-cols-3");
-    expect(grid.className).not.toMatch(/r-grid-fit/);
+    expect(grid).not.toHaveClass("r-layout-grid-fit-md");
+    expect([...grid.classList].filter((c) => c.startsWith("r-layout-grid-fit"))).toEqual([]);
   });
 
   it("maps counts per container size to container-query classes", () => {
     render(<Grid columns={{ base: 1, "@md": 2, "@3xl": 4 }} data-testid="g" />);
     const grid = screen.getByTestId("g");
     expect(grid).toHaveClass("grid-cols-1", "@md:grid-cols-2", "@3xl:grid-cols-4");
-    expect(grid.className).not.toMatch(/r-grid-fit/);
+    expect(grid).not.toHaveClass("r-layout-grid-fit-md");
+    expect([...grid.classList].filter((c) => c.startsWith("r-layout-grid-fit"))).toEqual([]);
   });
 
   it("puts `as`, props and className on the grid; classNames.container on the wrapper", () => {

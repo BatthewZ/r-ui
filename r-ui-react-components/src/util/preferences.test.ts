@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { applyPreferences, readStoredPreferences, storePreferences, themeScript } from "./preferences";
@@ -125,5 +128,17 @@ describe("themeScript", () => {
     expect(script).not.toMatch(/<\/script/i);
     expect(script).not.toContain("<");
     expect(() => runScript(script)).not.toThrow();
+  });
+});
+
+describe("the ./theme-script subpath", () => {
+  // A Vite config or server template imports this module at build time, outside any bundle.
+  it("is this module, and the module imports nothing", () => {
+    const pkg = JSON.parse(readFileSync(join(import.meta.dirname, "..", "..", "package.json"), "utf8")) as {
+      exports: Record<string, { import?: string }>;
+    };
+    expect(pkg.exports["./theme-script"]?.import).toBe("./dist/util/preferences.js");
+    const source = readFileSync(join(import.meta.dirname, "preferences.ts"), "utf8");
+    expect(source).not.toMatch(/^\s*import\b|\bimport\(|\brequire\(/m);
   });
 });

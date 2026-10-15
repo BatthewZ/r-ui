@@ -174,4 +174,6 @@ export function createCn(extension = {}) {
 export const twMerge = extendTailwindMerge(mergeExtension());
 
 /** `clsx` + `twMerge` helper: built-in tokens only. */
-export const cn = createCn();
+export function cn(...inputs) {
+  return twMerge(clsx(inputs));
+}

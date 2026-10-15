@@ -10,7 +10,7 @@ import {
   useFloating as useFloatingUI,
   type UseFloatingReturn as FloatingUIReturn,
 } from "@floating-ui/react";
-import { useLayoutEffect, useState } from "react";
+import { type CSSProperties, type RefObject, useLayoutEffect, useState } from "react";
 
 export type { Placement };
 
@@ -104,7 +104,7 @@ interface UseFloatingConfig {
    * `Element | null` because that is what `useRef<HTMLDivElement>(null)` produces
    * — the previous `RefObject<Element>` could not receive one without a cast.
    */
-  arrowRef?: React.RefObject<Element | null>;
+  arrowRef?: RefObject<Element | null>;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -125,7 +125,7 @@ const arrowSideForPlacement: Record<ArrowSide, ArrowSide> = {
  * this stays correct when a consumer resizes the element — which is also what
  * keeps floating-ui's centring correct, since the middleware measures it.
  */
-const arrowStaticSideStyle: Record<ArrowSide, React.CSSProperties> = {
+const arrowStaticSideStyle: Record<ArrowSide, CSSProperties> = {
   top: { top: 0, translate: "0 -50%" },
   bottom: { bottom: 0, translate: "0 50%" },
   left: { left: 0, translate: "-50% 0" },
@@ -145,7 +145,7 @@ const arrowStaticSideStyle: Record<ArrowSide, React.CSSProperties> = {
 export function floatingArrowProps(
   placement: Placement,
   arrowData: { x?: number; y?: number } | undefined
-): { "data-side": ArrowSide; style: React.CSSProperties } {
+): { "data-side": ArrowSide; style: CSSProperties } {
   const side = arrowSideForPlacement[placement.split("-")[0] as ArrowSide];
   return {
     "data-side": side,
@@ -166,13 +166,29 @@ export type UseFloatingReturn = FloatingUIReturn & {
   topLayer: boolean;
 };
 
+/**
+ * The gap a panel keeps from the viewport's edges: its own `--R-SIZE-2`, the gap
+ * the surface's width cap leaves on each side (`.r-overlays-surface`), so a panel
+ * as wide as the cap still fits between them. Read inside the panel, so it
+ * follows the density written there, and resolved by layout, since a theme may
+ * write the token in any unit.
+ */
+function edgeGap(floating: HTMLElement): number {
+  const probe = floating.ownerDocument.createElement("span");
+  probe.style.cssText = "position: absolute; visibility: hidden; inline-size: var(--R-SIZE-2)";
+  floating.append(probe);
+  const gap = probe.getBoundingClientRect().width;
+  probe.remove();
+  return gap;
+}
+
 export function useFloating(config: UseFloatingConfig = {}): UseFloatingReturn {
   const { placement = "bottom", offsetPx = 8, arrowRef, open, onOpenChange } = config;
 
   const middleware = [
     offset(offsetPx),
     flip(),
-    shift({ padding: 8 }),
+    shift(({ elements }) => ({ padding: edgeGap(elements.floating) })),
     ...(arrowRef ? [arrow({ element: arrowRef })] : []),
     // Last, so it judges the final position. A fixed top-layer panel follows its
     // anchor on scroll, and `shift()` would otherwise pin it to the viewport edge

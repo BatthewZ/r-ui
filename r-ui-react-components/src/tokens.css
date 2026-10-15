@@ -132,6 +132,8 @@
   --KPI-MIN-COMPACT: 1.125rem;
   --KPI-MAX-COMFORTABLE: 2.25rem;
   --KPI-MAX-COMPACT: 1.75rem;
+  --SPARK-H-COMFORTABLE: 1.75rem;
+  --SPARK-H-COMPACT: 1.375rem;
 }
 
 /* ── Forced colors (Windows High Contrast), the contract's rules applied to the
@@ -285,6 +287,7 @@
   --HEAT-CELL: var(--HEAT-CELL-COMFORTABLE);
   --KPI-MIN: var(--KPI-MIN-COMFORTABLE);
   --KPI-MAX: var(--KPI-MAX-COMFORTABLE);
+  --SPARK-H: var(--SPARK-H-COMFORTABLE);
 }
 
 [data-density="compact"] {
@@ -293,6 +296,7 @@
   --HEAT-CELL: var(--HEAT-CELL-COMPACT);
   --KPI-MIN: var(--KPI-MIN-COMPACT);
   --KPI-MAX: var(--KPI-MAX-COMPACT);
+  --SPARK-H: var(--SPARK-H-COMPACT);
 }
 
 /* Derived at every density boundary so a compact card re-derives it. `cqi`
@@ -340,8 +344,9 @@
   --color-chart-grid: color-mix(in oklch, var(--C-CHART-GRID-LIGHT), var(--C-CHART-GRID-DARK) calc(var(--SCHEME-DARK) * 100%));
   --color-chart-axis: color-mix(in oklch, var(--C-CHART-AXIS-LIGHT), var(--C-CHART-AXIS-DARK) calc(var(--SCHEME-DARK) * 100%));
 
-  /* Sizes: `h-chart`, `h-bar` / `w-bar`, `size-heat-cell`, `text-kpi`. */
+  /* Sizes: `h-chart`, `h-bar` / `w-bar`, `size-heat-cell`, `h-spark`, `text-kpi`. */
   --spacing-chart: var(--CHART-H);
+  --spacing-spark: var(--SPARK-H);
   --spacing-bar: var(--BAR-THICK);
   --spacing-heat-cell: var(--HEAT-CELL);
   --text-kpi: var(--KPI-VALUE);

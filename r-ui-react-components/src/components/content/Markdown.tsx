@@ -3,13 +3,15 @@
 import { Check } from "lucide-react";
 import { type ComponentType, type HTMLAttributes, type ReactNode, type Ref, useMemo } from "react";
 
+import { isExternalHref } from "../../util/router";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 import { cn } from "../../util/style";
 import { Table } from "../data";
 import { Link } from "../primitives";
 import { CodeBlock } from "./CodeBlock";
-import { type BlockNode, type InlineNode, parseBlocks, type TableAlign } from "./markdown-parse";
+import { type BlockNode, type HeadingLevel, type InlineNode, parseBlocks, type TableAlign } from "./markdown-parse";
 
-export type MarkdownHeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
+export type MarkdownHeadingLevel = HeadingLevel;
 
 /**
  * Renderers for each node the parser produces. Every one receives values the
@@ -23,7 +25,7 @@ export interface MarkdownComponents {
   strong: ComponentType<{ children: ReactNode }>;
   emphasis: ComponentType<{ children: ReactNode }>;
   strikethrough: ComponentType<{ children: ReactNode }>;
-  /** `external`: it leaves the site (an absolute http(s) or protocol-relative URL). */
+  /** `external`: it leaves the site for an http(s) page (as a browser resolves it: `/\host` is another host). */
   link: ComponentType<{ href: string; title?: string; external: boolean; children: ReactNode }>;
   image: ComponentType<{ src: string; alt: string; title?: string }>;
   inlineCode: ComponentType<{ children: string }>;
@@ -37,13 +39,19 @@ export interface MarkdownComponents {
 }
 
 export interface MarkdownLabels {
-  /** Description of a link that opens in a new tab. Default "(opens in a new tab)". */
-  newTab?: string;
-  /** Spoken before a done task item. Default "Done:". */
-  taskDone?: string;
-  /** Spoken before an open task item. Default "To do:". */
-  taskOpen?: string;
+  /** Description of a link that opens in a new tab. */
+  newTab: string;
+  /** Spoken before a done task item. */
+  taskDone: string;
+  /** Spoken before an open task item. */
+  taskOpen: string;
 }
+
+export const DEFAULT_MARKDOWN_LABELS: Readonly<MarkdownLabels> = {
+  newTab: "(opens in a new tab)",
+  taskDone: "Done:",
+  taskOpen: "To do:",
+};
 
 export interface MarkdownProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** The Markdown source (untrusted is fine: raw HTML renders as text, URLs are judged). */
@@ -58,7 +66,7 @@ export interface MarkdownProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
   imageAllowlist?: readonly string[];
   /** Override how any node renders. */
   components?: Partial<MarkdownComponents>;
-  labels?: MarkdownLabels;
+  labels?: LabelsProp<MarkdownLabels>;
   /** Cap the line length at the reading measure. Default false. */
   measure?: boolean;
   ref?: Ref<HTMLDivElement>;
@@ -68,17 +76,42 @@ export interface MarkdownProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
 /*  Judgements                                                         */
 /* ------------------------------------------------------------------ */
 
-const isExternal = (href: string) => /^(?:https?:)?\/\//i.test(href);
+const SITE = "https://r-ui.invalid";
 
-/** The path with dot segments resolved, so `/assets/../secret.png` is not under `/assets/`. */
-const resolvedPath = (path: string) => new URL(path, "https://r-ui.invalid").pathname;
+/**
+ * Whether a link opens another web page: it leaves the app (`isExternalHref`,
+ * so `/\host` counts) for an http(s) URL. `mailto:` and `tel:` leave too, but
+ * open no page to put in a tab.
+ */
+function isExternal(href: string): boolean {
+  if (!isExternalHref(href)) return false;
+  try {
+    return /^https?:$/.test(new URL(href, SITE).protocol);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The same-site path a root-relative `src` resolves to (dot segments resolved, so
+ * `/assets/../secret.png` is not under `/assets/`), or null when it leaves the
+ * site (`/\host/…` is another host to a URL parser) or does not parse.
+ */
+function sitePath(src: string): string | null {
+  try {
+    const url = new URL(src, SITE);
+    return url.origin === SITE ? url.pathname : null;
+  } catch {
+    return null;
+  }
+}
 
 /** Whether `src` (already through `safeUrl`) is under an allowlist entry. */
 export function imageAllowed(src: string, allowlist: readonly string[]): boolean {
   const rootRelative = (s: string) => s.startsWith("/") && !s.startsWith("//");
   for (const entry of allowlist) {
     if (rootRelative(entry)) {
-      if (rootRelative(src) && resolvedPath(src).startsWith(entry)) return true;
+      if (rootRelative(src) && sitePath(src)?.startsWith(entry)) return true;
       continue;
     }
     let base: URL;
@@ -128,7 +161,7 @@ function makeDefaults(labels: MarkdownLabels): MarkdownComponents {
     // the new-tab description.
     link: ({ href, title, external, children }) =>
       external ? (
-        <Link href={href} title={title} target="_blank" newTabLabel={labels.newTab}>
+        <Link href={href} title={title} target="_blank" labels={{ newTab: labels.newTab }}>
           {children}
         </Link>
       ) : (
@@ -312,11 +345,8 @@ export function Markdown({
   const taskOpen = labels?.taskOpen;
   const defaults = useMemo(
     () =>
-      makeDefaults({
-        newTab: newTab ?? "(opens in a new tab)",
-        taskDone: taskDone ?? "Done:",
-        taskOpen: taskOpen ?? "To do:",
-      }),
+      // Keyed by each label, not the `labels` object a caller rebuilds every render.
+      makeDefaults(mergeLabels(DEFAULT_MARKDOWN_LABELS, { newTab, taskDone, taskOpen })),
     [newTab, taskDone, taskOpen],
   );
   // An override given as `undefined` must not erase the default renderer.

@@ -41,7 +41,7 @@ function Details({ side }: { side: "end" | "bottom" }) {
             <DropdownMenu.Trigger>More</DropdownMenu.Trigger>
             <DropdownMenu.Content>
               <DropdownMenu.Item>Copy timeline</DropdownMenu.Item>
-              <DropdownMenu.Item tone="error">Reopen incident</DropdownMenu.Item>
+              <DropdownMenu.Item variant="danger">Reopen incident</DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu>
           <Drawer.Close variant="primary">Close</Drawer.Close>
@@ -64,7 +64,7 @@ export default function DrawerSection() {
         <div dir="rtl">
           <Drawer>
             <Drawer.Trigger>التفاصيل</Drawer.Trigger>
-            <Drawer.Content closeLabel="إغلاق">
+            <Drawer.Content labels={{ close: "إغلاق" }}>
               <Drawer.Title>الحادث 4821</Drawer.Title>
               <Drawer.Body>
                 <p className="text-body-1">ينزلق من الحافة اليسرى.</p>

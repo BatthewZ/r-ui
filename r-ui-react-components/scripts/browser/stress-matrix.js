@@ -1,7 +1,7 @@
 // Browser check: the Stress page holds on every axis, and its known library
 // bugs still reproduce.
 //
-// For default / nightfall / harbour / atelier × comfortable / compact × fine / coarse at
+// For every theme the showcase lists × comfortable / compact × fine / coarse at
 // 1280 and 375 wide, it reloads the Stress page with that View and asserts:
 //   1. harness: --HIT-MIN is 24px on fine and 44px on coarse, and every panel
 //      the source declares (6) rendered with no tripped error boundary;
@@ -20,7 +20,7 @@
 // Run it through `bun run browser:check stress`, or by hand against a showcase:
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print stress-matrix)"
 async (page) => {
-  const THEMES = ["default", "nightfall", "harbour", "atelier"];
+  const THEMES = (await showcaseThemes(page)).map((t) => t.name);
   const DENSITIES = ["comfortable", "compact"];
   const INPUTS = { fine: 24, coarse: 44 };
   const WIDTHS = [1280, 375];
@@ -30,13 +30,7 @@ async (page) => {
   const base = page.url().split("#")[0];
 
   const problems = [];
-  const errors = [];
-  const onConsole = (msg) => {
-    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
-  };
-  const onPageError = (err) => errors.push(`pageerror: ${err.message}`);
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
+  const { errors, stop: stopErrors } = collectErrors(page);
 
   let combos = 0;
   let known = null;
@@ -126,8 +120,7 @@ async (page) => {
       }
     }
   } finally {
-    page.off("console", onConsole);
-    page.off("pageerror", onPageError);
+    stopErrors();
     await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
     await page.setViewportSize({ width: 1280, height: 900 });
   }

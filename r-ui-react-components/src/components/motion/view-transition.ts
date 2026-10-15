@@ -2,7 +2,7 @@
 import { useCallback } from "react";
 import { flushSync } from "react-dom";
 
-const REDUCED = "(prefers-reduced-motion: reduce)";
+import { REDUCED_MOTION_QUERY } from "../../hooks/use-reduced-motion";
 
 /**
  * Runs `update` inside `document.startViewTransition()`, so the browser
@@ -14,7 +14,7 @@ const REDUCED = "(prefers-reduced-motion: reduce)";
  * has been applied, either way (not when the animation ends).
  */
 export async function startViewTransition(update: () => void | Promise<void>): Promise<void> {
-  const reduced = typeof window !== "undefined" && window.matchMedia?.(REDUCED).matches;
+  const reduced = typeof window !== "undefined" && window.matchMedia?.(REDUCED_MOTION_QUERY).matches;
   if (typeof document === "undefined" || typeof document.startViewTransition !== "function" || reduced) {
     await update();
     return;

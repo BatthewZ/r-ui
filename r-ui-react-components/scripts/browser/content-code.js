@@ -12,7 +12,7 @@
 //   2. copy: with clipboard permission granted, the first block's Copy button
 //      puts exactly the block's source on the system clipboard, the button shows
 //      the check, and the status region beside it says "Copied";
-//   3. contrast: in the dark example theme every rendered token span reads at
+//   3. contrast: in the first dark theme the showcase lists, every rendered token span reads at
 //      >= 4.5:1 on what is painted under it (the block, or a marked line's band),
 //      composited as painted; harness: body ink on the block measures what its
 //      tokens give;
@@ -99,8 +99,8 @@ async (page) => {
     if (glyphs[1] !== 1 || glyphs[0] !== 0) problems.push(`copy: glyph opacities ${glyphs} (copy, check, alert): the check should show`);
     notes.copy = { chars: clip.length, announced };
 
-    // ── 3. Contrast in the dark example theme ───────────────────────────
-    await setView({ theme: "nightfall", density: "comfortable", input: "fine" });
+    // ── 3. Contrast in a dark theme ─────────────────────────────────────
+    await setView({ theme: await darkTheme(page), density: "comfortable", input: "fine" });
     await page.reload();
     await waitForShowcase(page);
     await page.waitForFunction(() => document.querySelectorAll("#content-codeblock [data-highlight=on]").length >= 6, null, { timeout: 15000 });
@@ -162,7 +162,7 @@ async (page) => {
         below: results.filter((r) => r.ratio < 4.5),
       };
     });
-    if (contrast.scheme !== "1") problems.push(`contrast: harness --SCHEME-DARK ${contrast.scheme}, the dark example theme is 1`);
+    if (contrast.scheme !== "1") problems.push(`contrast: harness --SCHEME-DARK ${contrast.scheme}, the dark theme is 1`);
     if (Math.abs(contrast.bodyInk - contrast.tokenRatio) > 0.05) problems.push(`contrast: harness: body ink measures ${contrast.bodyInk}:1, its tokens give ${contrast.tokenRatio}:1`);
     if (contrast.measured < 100 || contrast.markedMeasured === 0) problems.push(`contrast: measured ${contrast.measured} spans (${contrast.markedMeasured} on marked lines)`);
     for (const role of ["keyword", "string", "number", "function", "type", "comment", "property", "addition", "deletion"]) {

@@ -1,5 +1,6 @@
 // Every class here is legal: tokens, 0, px, full, auto, fractions, keywords,
-// var() arbitrary values and this package's own domain utilities.
+// var() arbitrary values, this package's own domain utilities, the unit lengths
+// (1em, 1lh, 1ch, 100dvh, 100cqi), and a 1px that draws no line.
 const size = 3;
 export function Good() {
   return (
@@ -8,7 +9,8 @@ export function Good() {
         a
       </span>
       <span className="bg-surface-0/50 rounded-full z-raised z-0 md:z-sticky opacity-50 translate-x-full">b</span>
-      <span style={{ transform: `translate(${size}px, 0)`, borderWidth: "1px" }}>c</span>
+      <span style={{ transform: `translate(${size}px, 0)`, borderWidth: "var(--BORDER-WIDTH)", width: "1px" }}>c</span>
+      <span className="size-[1em] h-[1lh] w-[calc(var(--DIGITS)*1ch)] min-h-[100dvh] text-[calc(100cqi*0.38)] shadow-[inset_0_0_0_var(--BORDER-WIDTH)_var(--C-BORDER)]">e</span>
       <a href="#overview">d</a>
     </div>
   );

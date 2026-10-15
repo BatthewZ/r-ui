@@ -47,6 +47,7 @@
 
   /* ── Links ──────────────────────────────────────────────────────────────── */
   --LINK-DECORATION: underline;
+  --LINK-UNDERLINE-OFFSET: 0.18em;
 
   /* ── Display headings: hero, page title, section, subsection ───────────── */
   --DISPLAY-1: clamp(2.25rem, 1.663rem + 2.609cqi, 3.75rem);

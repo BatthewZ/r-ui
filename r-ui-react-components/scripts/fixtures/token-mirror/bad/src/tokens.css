@@ -1,0 +1,6 @@
+@theme inline {
+  --color-series-1: var(--C-SERIES-1);
+  --color-series-2: var(--C-SERIES-2);
+  --spacing-chart: var(--CHART-H);
+  --wobble-1: var(--WOBBLE);
+}

@@ -1,6 +1,6 @@
 // Browser check: the whole Overview page renders cleanly on every axis.
 //
-// For default / nightfall / harbour / atelier × comfortable / compact × fine / coarse at
+// For every theme the showcase lists × comfortable / compact × fine / coarse at
 // 1280 and 375 wide, it reloads the Overview with that View and asserts:
 //   1. the harness reads what the source predicts: --HIT-MIN is 24px on fine and
 //      44px on coarse, and --CONTROL-H is max(the theme's named value for the
@@ -21,20 +21,14 @@
 //   playwright-cli -s=<session> open http://localhost:<port>/
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print overview-matrix)"
 async (page) => {
-  const THEMES = ["default", "nightfall", "harbour", "atelier"];
+  const THEMES = (await showcaseThemes(page)).map((t) => t.name);
   const DENSITIES = ["comfortable", "compact"];
   const INPUTS = { fine: 24, coarse: 44 };
   const WIDTHS = [1280, 375];
   const base = page.url().split("#")[0];
 
   const problems = [];
-  const errors = [];
-  const onConsole = (msg) => {
-    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
-  };
-  const onPageError = (err) => errors.push(`pageerror: ${err.message}`);
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
+  const { errors, stop: stopErrors } = collectErrors(page);
 
   let combos = 0;
   let sectionCount = null;
@@ -108,8 +102,7 @@ async (page) => {
       }
     }
   } finally {
-    page.off("console", onConsole);
-    page.off("pageerror", onPageError);
+    stopErrors();
     await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
     await page.setViewportSize({ width: 1280, height: 900 });
   }

@@ -3,6 +3,7 @@
 // (async) validators. React binds through `subscribe` + the cached snapshots
 // (`useSyncExternalStore`); nothing here imports React.
 
+import { reportUncaught } from "../../util/report-uncaught";
 import { canonicalPath, deepEqual, getIn, isWithin, issuePath, remapRowKey, setIn } from "./form-state-path";
 import type { StandardSchemaResult, StandardSchemaV1 } from "./form-state-schema";
 
@@ -94,10 +95,9 @@ const ABORTED = Symbol("aborted");
 const isPromiseLike = <T>(value: unknown): value is PromiseLike<T> =>
   value !== null && (typeof value === "object" || typeof value === "function") && typeof (value as PromiseLike<T>).then === "function";
 
-const report = (error: unknown) => {
-  if (typeof globalThis.reportError === "function") globalThis.reportError(error);
-  else console.error(error);
-};
+/** A sort comparator: nodes in the order they sit in the document. */
+export const compareDocumentOrder = (a: Node, b: Node) =>
+  a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
 
 function firstWithin(map: ReadonlyMap<string, string>, path: string, descendants: boolean): string | undefined {
   const exact = map.get(path);
@@ -304,6 +304,12 @@ export class FormStore<TValues, TOutput = TValues> {
     return this.entriesCache.entries;
   };
 
+  /** Whether an error on show sits at or under one of these paths (a wizard step's fields). */
+  hasErrorWithin = (rawPaths: readonly string[]): boolean => {
+    const paths = rawPaths.map(canonicalPath);
+    return this.getErrorEntries().some((entry) => paths.some((path) => isWithin(entry.path, path)));
+  };
+
   // ── registration ────────────────────────────────────────────────────────
 
   registerField = (rawPath: string, registration: FieldRegistration): (() => void) => {
@@ -314,11 +320,16 @@ export class FormStore<TValues, TOutput = TValues> {
       if (this.fields.get(path) !== registration) return;
       this.fields.delete(path);
       // A check for a field that is gone can no longer be shown or answered.
-      this.pending.get(path)?.controller.abort();
-      this.pending.delete(path);
-      this.fieldErrors.delete(path);
+      this.dropCheck(path);
       this.checked.delete(path);
       this.emit();
+      // Its answer goes too, unless a Field takes the path in the same commit: a
+      // field-array row's Field moving here re-registers, and the answer that
+      // followed its row in `editRows` is its own.
+      queueMicrotask(() => {
+        if (this.fields.has(path) || !this.fieldErrors.delete(path)) return;
+        this.emit();
+      });
     };
   };
 
@@ -336,13 +347,8 @@ export class FormStore<TValues, TOutput = TValues> {
     // The server judged the old value.
     for (const key of [...this.serverErrors.keys()]) if (isWithin(key, path)) this.serverErrors.delete(key);
     // A check of the old value is moot.
-    this.pending.get(path)?.controller.abort();
-    this.pending.delete(path);
-    const wasReportable = this.isReportable(path);
-    if (!wasReportable && this.validateOn === "change") this.reportable.add(path);
-    if (wasReportable ? this.revalidateOn === "change" : this.validateOn === "change") {
-      this.settle(this.validatePath(path));
-    }
+    this.dropCheck(path);
+    this.trigger(path, "change");
     this.emit();
   };
 
@@ -350,13 +356,21 @@ export class FormStore<TValues, TOutput = TValues> {
   blur = (rawPath: string): void => {
     const path = canonicalPath(rawPath);
     this.touched.add(path);
-    const wasReportable = this.isReportable(path);
-    if (!wasReportable && this.validateOn === "blur") this.reportable.add(path);
-    if (wasReportable ? this.revalidateOn === "blur" : this.validateOn === "blur") {
-      this.settle(this.validatePath(path));
-    }
+    this.trigger(path, "blur");
     this.emit();
   };
+
+  /**
+   * A field's first check runs on `validateOn` (and makes it reportable); once
+   * reportable, it is re-checked on `revalidateOn`.
+   */
+  private trigger(path: string, event: ValidationTrigger): void {
+    const wasReportable = this.isReportable(path);
+    if (!wasReportable && this.validateOn === event) this.reportable.add(path);
+    if (wasReportable ? this.revalidateOn === event : this.validateOn === event) {
+      this.settle(this.validatePath(path));
+    }
+  }
 
   setErrors = (errors: Record<string, FieldValidatorResult>): void => {
     for (const [rawPath, message] of Object.entries(errors)) {
@@ -391,7 +405,12 @@ export class FormStore<TValues, TOutput = TValues> {
   // ── validation ──────────────────────────────────────────────────────────
 
   private settle(work: Promise<unknown>): void {
-    work.catch(report);
+    work.catch(reportUncaught);
+  }
+
+  private dropCheck(path: string): void {
+    this.pending.get(path)?.controller.abort();
+    this.pending.delete(path);
   }
 
   private applySchema(result: StandardSchemaResult<TOutput>): void {
@@ -460,8 +479,7 @@ export class FormStore<TValues, TOutput = TValues> {
     const value = getIn(this.values, path);
     const inflight = this.pending.get(path);
     if (this.hasSchemaError(path)) {
-      inflight?.controller.abort();
-      this.pending.delete(path);
+      this.dropCheck(path);
       this.fieldErrors.delete(path);
       this.checked.delete(path);
       return Promise.resolve();
@@ -514,17 +532,57 @@ export class FormStore<TValues, TOutput = TValues> {
     return ran.then((latest) => (latest ? this.runFieldCheck(path) : undefined));
   }
 
+  /** Runs the schema until a run answers for the latest values (a change meanwhile starts a newer one). */
+  private async runSchemaToLatest(): Promise<void> {
+    while ((await this.runSchema()) === false) {
+      // A newer run took over; validate the values it saw.
+    }
+  }
+
+  /**
+   * Runs the schema, then the field checks of the mounted fields `inside`, and
+   * again while a value changes meanwhile: a change aborts the check being
+   * waited for, so its answer never came. Resolves to false on a reset meanwhile.
+   */
+  private async checkLatest(inside: (path: string) => boolean): Promise<boolean> {
+    const generation = this.generation;
+    let checked: TValues;
+    do {
+      checked = this.values;
+      await this.runSchemaToLatest();
+      if (generation !== this.generation) return false;
+      await Promise.all([...this.fields.keys()].filter(inside).map((path) => this.runFieldCheck(path)));
+      if (generation !== this.generation) return false;
+    } while (checked !== this.values);
+    return true;
+  }
+
   /** Runs the schema and every field check. Resolves to whether the form is free of errors. */
   validate = async (): Promise<boolean> => {
-    const generation = this.generation;
-    while ((await this.runSchema()) === false) {
-      // A change started a newer run meanwhile; validate the latest values.
-    }
     // Reset meanwhile: nothing left to check for these values.
-    if (generation !== this.generation) return false;
-    await Promise.all([...this.fields.keys()].map((path) => this.runFieldCheck(path)));
+    if (!(await this.checkLatest(() => true))) return false;
     this.emit();
     return !this.hasErrors();
+  };
+
+  /**
+   * Validates part of the form (a wizard step): these paths, and every mounted
+   * field inside them, may show their errors from now on; the schema and their
+   * field checks run. Resolves to whether nothing at or under these paths has
+   * an error. Errors elsewhere stay hidden and do not count.
+   */
+  validatePaths = async (rawPaths: readonly string[]): Promise<boolean> => {
+    const paths = rawPaths.map(canonicalPath);
+    const inside = (key: string) => paths.some((path) => isWithin(key, path));
+    for (const path of paths) this.reportable.add(path);
+    for (const path of this.fields.keys()) if (inside(path)) this.reportable.add(path);
+    this.emit();
+    if (!(await this.checkLatest(inside))) return false;
+    // An error no mounted field covers (a row-level issue) shows too: whatever blocks the step is on show.
+    const blocking = [this.serverErrors, this.fieldErrors, this.schemaErrors].flatMap((map) => [...map.keys()].filter(inside));
+    for (const key of blocking) this.reportable.add(key);
+    this.emit();
+    return blocking.length === 0;
   };
 
   private hasErrors(): boolean {
@@ -582,14 +640,17 @@ export class FormStore<TValues, TOutput = TValues> {
   /**
    * Focuses the first invalid field in DOM order (not registration order: a
    * row moved up comes first). Falls back to the error summary when no mounted
-   * field carries an error. Returns whether focus moved.
+   * field carries an error. With `paths`, only fields at or under them count
+   * (a wizard step's). Returns whether focus moved.
    */
-  focusFirstError = (): boolean => {
-    const targets = this.getErrorEntries()
+  focusFirstError = (paths?: readonly string[]): boolean => {
+    const scope = paths?.map(canonicalPath);
+    const entries = this.getErrorEntries().filter((entry) => !scope || scope.some((path) => isWithin(entry.path, path)));
+    const targets = entries
       .map((entry) => entry.field?.getElement())
       .filter((element): element is HTMLElement => element != null && element.isConnected);
-    targets.sort((a, b) => (a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
-    const target = targets[0] ?? (this.getErrorEntries().length > 0 ? this.summary : null);
+    targets.sort(compareDocumentOrder);
+    const target = targets[0] ?? (entries.length > 0 ? this.summary : null);
     if (!target) return false;
     target.focus({ preventScroll: true });
     // Centred, so sticky chrome (a sticky FormActions bar) does not cover it.
@@ -620,12 +681,7 @@ export class FormStore<TValues, TOutput = TValues> {
     this.reportable = remapRowSet(this.reportable, path, moved);
     this.touched = remapRowSet(this.touched, path, moved);
     // In-flight checks answer for a path that just changed meaning: drop them.
-    for (const [key, check] of [...this.pending]) {
-      if (isWithin(key, path)) {
-        check.controller.abort();
-        this.pending.delete(key);
-      }
-    }
+    for (const key of [...this.pending.keys()]) if (isWithin(key, path)) this.dropCheck(key);
     for (const key of [...this.checked.keys()]) if (isWithin(key, path)) this.checked.delete(key);
 
     this.reportable.add(path);

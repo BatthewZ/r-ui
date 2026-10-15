@@ -12,7 +12,10 @@
  */
 import type { ThemeConfig } from "../../src/util/preferences.ts";
 
-/** The browser checks write `{ theme, density, input }` under this key to set the View. */
+/**
+ * The browser checks write `{ theme, density, input }` under this key to set the
+ * View, and read THEMES from `<html data-showcase-themes>` (vite.config.ts).
+ */
 export const STORAGE_KEY = "r-ui-showcase:view";
 
 export const THEMES = [

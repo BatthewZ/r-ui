@@ -10,6 +10,24 @@ export const blankComments = (text) =>
 export const lineAt = (text, offset) => text.slice(0, offset).split("\n").length;
 
 /**
+ * Every `@theme` block in comment-blanked `text`, in any form (`inline`,
+ * `static`, `reference`): `{ start, body }`, where `start` is the body's offset
+ * in `text` and `body` is null when the block never closes.
+ */
+export function* themeBlocks(text) {
+  for (const open of text.matchAll(/@theme\b[^{]*\{/g)) {
+    const start = open.index + open[0].length;
+    let depth = 1;
+    let end = start;
+    for (; end < text.length && depth > 0; end += 1) {
+      if (text[end] === "{") depth += 1;
+      else if (text[end] === "}") depth -= 1;
+    }
+    yield { start, body: depth === 0 ? text.slice(start, end - 1) : null };
+  }
+}
+
+/**
  * Every innermost `{ … }` block with the text before it (its selector or
  * at-rule prelude) and its declarations. A `@media (…) { :root { … } }` yields
  * the inner `:root` block with `parents: ["@media (…)"]`.

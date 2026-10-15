@@ -58,7 +58,7 @@ export const cn = createCn({
       "code-addition",
       "code-deletion",
     ],
-    spacing: ["chart", "bar", "heat-cell"],
+    spacing: ["chart", "bar", "heat-cell", "spark"],
     text: ["kpi"],
   },
 });

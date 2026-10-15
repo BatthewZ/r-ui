@@ -13,14 +13,21 @@
 //      (elementFromPoint); its two-line options are at least the card's --ROW-H,
 //      and the Regions list's one-line options are exactly it (30px, not 40);
 //   4. keys, MultiSelect: type + Enter adds a chip and keeps the list open with an
-//      empty search; Escape closes; Backspace in the empty search removes the chip;
+//      empty search; Escape closes (aria-expanded false, the list gone from the top
+//      layer); Backspace in the empty search removes the chip;
 //   5. keys, TagInput: a typed comma commits a chip, an invalid tag is refused
 //      with a message and aria-invalid, and the draft is kept;
 //   6. at 375px and coarse input: no sideways scroll; the Recipients TagInput's
 //      chips wrap onto several rows inside the frame, which is a whole number of
-//      --CONTROL-H tall; every option, frame and chip row in the compact card is at
-//      least the 44px floor; a chip's remove button answers a press 2px outside its
-//      visible box (hit-area) and removes exactly that chip.
+//      --CONTROL-H tall; every option, frame and chip row (a chip-holding frame's
+//      height over its rows of chips) in the compact card is at least the 44px
+//      floor; a chip's remove button answers a press 2px outside its
+//      visible box (hit-area) and removes exactly that chip;
+//   7. a MultiSelect narrower than --COLUMN-MD folds its three chips into an
+//      "3 selected" button: ArrowLeft at the start of the search lands on that
+//      button (rendered, never a hidden chip), Enter unfolds the chips and
+//      focuses the first remove button; at coarse input the button answers a
+//      press up to the 44px floor around its centre (hit-area).
 async (page) => {
   const base = page.url().split("#")[0];
   const fail = [];
@@ -138,6 +145,12 @@ async (page) => {
   await page.waitForTimeout(50);
   const added = { chips: await chipsOf(regions), search: await regions.inputValue(), expanded: await regions.getAttribute("aria-expanded") };
   await page.keyboard.press("Escape");
+  await page.waitForTimeout(50);
+  const escaped = {
+    expanded: await regions.getAttribute("aria-expanded"),
+    listOpen: await page.evaluate((sel) => Boolean(document.querySelector(`${sel} [role=listbox]`)?.parentElement.matches(":popover-open")), CARD),
+  };
+  if (escaped.expanded !== "false" || escaped.listOpen) fail.push(`Escape in Regions left ${JSON.stringify(escaped)}, expected it closed`);
   await page.keyboard.press("Backspace");
   await page.waitForTimeout(50);
   const removed = await chipsOf(regions);
@@ -205,12 +218,22 @@ async (page) => {
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       options: h(card.querySelectorAll("[role=option]")),
       frames: h(card.querySelectorAll(".r-form-frame")),
+      // Rendered chips only: a folded field's summary chip is `display: none` until it folds.
+      chipRows: [...card.querySelectorAll(".r-form-frame")]
+        .map((f) => [f, [...f.querySelectorAll(".r-form-chip")].filter((c) => c.getClientRects().length > 0)])
+        .filter(([, chips]) => chips.length > 0)
+        .map(([f, chips]) => {
+          const rows = new Set(chips.map((c) => Math.round(c.getBoundingClientRect().top))).size;
+          return Math.round((f.getBoundingClientRect().height / rows) * 100) / 100;
+        }),
     };
   }, CARD);
   await page.keyboard.press("Escape");
   if (coarse.pageOverflow !== 0) fail.push(`coarse 375: the page scrolls sideways by ${coarse.pageOverflow}px with the list open`);
   if (coarse.options.length < 6 || coarse.options.some((x) => x < 44)) fail.push(`coarse: options are ${coarse.options.join(", ")}px, floor 44px`);
   if (coarse.frames.length !== 3 || coarse.frames.some((x) => x < 44)) fail.push(`coarse: field frames are ${coarse.frames.join(", ")}px, floor 44px`);
+  // Regions and Labels both start with a chip.
+  if (coarse.chipRows.length < 2 || coarse.chipRows.some((x) => x < 44)) fail.push(`coarse: chip rows are ${coarse.chipRows.join(", ")}px, floor 44px`);
 
   // A press just outside the remove button's visible box still removes that chip.
   const remove = page.locator(`${CARD} .r-form-chip-remove`).first();
@@ -230,9 +253,52 @@ async (page) => {
   if (!target.hits) fail.push(`a press 2px above "${target.label}" does not reach it (no hit area)`);
   if (chipsAfter !== chipsBefore - 1 || gone !== 0) fail.push(`the press outside "${target.label}" left ${chipsAfter} of ${chipsBefore} chips`);
 
+  // ── 7: the narrow MultiSelect's summary ─────────────────────────────────
+  const narrow = {};
+  for (const input of ["fine", "coarse"]) {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await setView(input, "form-multiselect");
+    const box = page.locator("#form-multiselect .w-column-sm").first();
+    const search = box.getByRole("combobox");
+    await search.scrollIntoViewIfNeeded();
+    const summary = box.locator(".r-form-chip-summary");
+    const shown = await summary.evaluate((b) => ({ text: b.textContent.trim(), visible: b.checkVisibility(), chips: b.parentElement.querySelectorAll(".r-form-chip-remove").length }));
+    if (shown.text !== "3 selected" || !shown.visible) fail.push(`narrow (${input}): harness: summary ${JSON.stringify(shown)}, expected a visible "3 selected"`);
+    await search.focus();
+    await page.keyboard.press("Home");
+    await page.keyboard.press("ArrowLeft");
+    const landed = await page.evaluate(() => ({
+      summary: document.activeElement?.classList.contains("r-form-chip-summary") ?? false,
+      visible: document.activeElement?.checkVisibility() ?? false,
+      text: document.activeElement?.textContent.trim().slice(0, 40) ?? null,
+    }));
+    if (!landed.summary || !landed.visible) fail.push(`narrow (${input}): ArrowLeft from the search landed on ${JSON.stringify(landed)}, expected the visible "3 selected" button`);
+    if (input === "coarse") {
+      const hit = await summary.evaluate((b) => {
+        const r = b.getBoundingClientRect();
+        const cx = (r.left + r.right) / 2;
+        const cy = (r.top + r.bottom) / 2;
+        const at = (x, y) => document.elementFromPoint(x, y) === b;
+        return { height: r.height, up: at(cx, cy - 21), down: at(cx, cy + 21) };
+      });
+      if (!(hit.height < 44)) fail.push(`narrow (coarse): harness: the summary is ${hit.height}px tall, too tall to prove its hit area`);
+      if (!hit.up || !hit.down) fail.push(`narrow (coarse): the summary does not answer 21px above and below its centre (${JSON.stringify(hit)})`);
+      narrow.hit = hit;
+    }
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(100);
+    const unfolded = await box.evaluate((b) => ({
+      visibleChips: [...b.querySelectorAll(".r-form-chip-remove")].filter((r) => r.checkVisibility()).length,
+      focusedRemove: document.activeElement?.classList.contains("r-form-chip-remove") ?? false,
+      summary: b.querySelector(".r-form-chip-summary")?.checkVisibility() ?? false,
+    }));
+    if (unfolded.visibleChips !== 3 || !unfolded.focusedRemove || unfolded.summary) fail.push(`narrow (${input}): Enter on the summary gave ${JSON.stringify(unfolded)}, expected 3 visible chips, focus on a remove button, no summary`);
+    narrow[input] = { shown, landed, unfolded };
+  }
+
   await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
   await page.setViewportSize({ width: 1280, height: 900 });
-  const result = { harness, popup, oneLine, added, tags, wrap, coarse, target };
+  const result = { harness, popup, oneLine, added, tags, wrap, coarse, target, narrow };
   if (fail.length) throw new Error(`selection-inputs FAILED:\n  ${fail.join("\n  ")}\n${JSON.stringify(result)}`);
   return `selection-inputs OK ${JSON.stringify(result)}`;
 }

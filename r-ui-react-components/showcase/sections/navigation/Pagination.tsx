@@ -23,6 +23,11 @@ export default function PaginationSection() {
       <Row label="Few pages · first page (previous disabled)">
         <Pagination pageCount={5} />
       </Row>
+      <Row label="Two pages: each arrow hands focus to the other">
+        <div data-sc="pagination-two">
+          <Pagination pageCount={2} />
+        </div>
+      </Row>
       <Row label="Huge counts, locale-formatted">
         <Pagination pageCount={12_480} defaultPage={1_204} />
       </Row>

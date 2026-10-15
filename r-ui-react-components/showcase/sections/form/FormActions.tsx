@@ -39,6 +39,7 @@ export default function FormActionsSection() {
         <div
           className="max-h-[calc(var(--CONTROL-H)*6)] overflow-y-auto rounded-md border bg-surface-0 px-r3 pt-r3"
           data-sc="form-actions-sticky"
+          data-print="flow"
           tabIndex={0}
           aria-label="Long settings form"
         >

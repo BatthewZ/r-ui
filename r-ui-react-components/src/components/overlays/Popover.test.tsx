@@ -38,6 +38,59 @@ describe("Popover", () => {
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Owner" })).toHaveFocus());
   });
 
+  it("with no name of its own, the panel is named by its trigger (a caller's trigger id included)", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Popover>
+          <Popover.Trigger>Share</Popover.Trigger>
+          <Popover.Content>
+            <input aria-label="Email" />
+          </Popover.Content>
+        </Popover>
+        <Popover>
+          <Popover.Trigger id="export-trigger">Export</Popover.Trigger>
+          <Popover.Content>
+            <input aria-label="File name" />
+          </Popover.Content>
+        </Popover>
+      </>
+    );
+    await user.click(screen.getByRole("button", { name: "Share" }));
+    const share = screen.getByRole("dialog", { name: "Share" });
+    expect(share).toHaveAttribute("aria-labelledby", screen.getByRole("button", { name: "Share" }).id);
+
+    const exportTrigger = screen.getByRole("button", { name: "Export" });
+    expect(exportTrigger).toHaveAttribute("id", "export-trigger");
+    await user.click(exportTrigger);
+    expect(screen.getByRole("dialog", { name: "Export" })).toHaveAttribute("aria-labelledby", "export-trigger");
+  });
+
+  it("a caller's aria-label or aria-labelledby names the panel instead", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Popover>
+          <Popover.Trigger>Filters</Popover.Trigger>
+          <Popover.Content aria-label="Incident filters">
+            <input aria-label="Owner" />
+          </Popover.Content>
+        </Popover>
+        <Popover>
+          <Popover.Trigger>Help</Popover.Trigger>
+          <Popover.Content aria-labelledby="help-heading">
+            <h2 id="help-heading">Keyboard shortcuts</h2>
+          </Popover.Content>
+        </Popover>
+      </>
+    );
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    const filters = screen.getByRole("dialog", { name: "Incident filters" });
+    expect(filters).not.toHaveAttribute("aria-labelledby");
+    await user.click(screen.getByRole("button", { name: "Help" }));
+    expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+  });
+
   it("Close closes it and returns focus to the trigger", async () => {
     const user = userEvent.setup();
     const onOpenChange = vi.fn();

@@ -1,0 +1,224 @@
+/* Print: how this package's components put themselves on paper.
+
+   The contract (@batthewz/r-ui-css) already prints every theme as ink on paper
+   (a light palette over any theme, no shadows, no motion), repeats table heads,
+   keeps figures and rows whole, and defines the `data-print` conventions
+   (`hide`, `only`, `break-before`, `avoid-break`, `exact`, `flow`). This file
+   adapts the components that exist, by the classes and attributes they already
+   render, so no component needs a print branch of its own.
+
+   Imported with `layer(components)` like every group. A print rule here must beat
+   the component's own utilities (`overflow-auto`, `sticky`, `max-h-…`), so the
+   overriding declarations are `!important`: an important declaration in this
+   layer outranks a utility's, important or not.
+
+   Every selector is in `@media print`, and a component's class is referenced
+   inside `:is()` / `:has()` (it is that group's name; this file defines none). */
+
+@media print {
+  /* ── AppShell: only the content prints ────────────────────────────────────
+     The skip link, the sidebar or rail and the bottom nav are navigation for a
+     screen. The header keeps its headings (a page title, a status badge) and
+     loses its controls: search, menus and toggles cannot be used on paper. */
+  :is(.r-navigation-shell) {
+    display: block !important;
+    min-block-size: 0 !important;
+  }
+  :is(.r-navigation-shell-skip, .r-navigation-shell-sidebar, .r-navigation-shell-bottomnav) {
+    display: none !important;
+  }
+  :is(.r-navigation-shell-header) {
+    position: static !important;
+    padding-inline: 0 !important;
+    background: none !important;
+  }
+  :is(.r-navigation-shell-header):not(:has(h1, h2, h3, h4, h5, h6)) {
+    display: none !important;
+  }
+  :is(.r-navigation-shell-header) :is(button, input, select, textarea),
+  :is(.r-navigation-shell-header) > :not(:has(h1, h2, h3, h4, h5, h6)):has(button, input, select, textarea) {
+    display: none !important;
+  }
+  :is(.r-navigation-shell-main) {
+    padding-inline: 0 !important;
+  }
+
+  /* ── Floating layers: menus, popovers, tooltips, dialogs, drawers, toasts ──
+     A transient layer over the page is not the page. What prints is the page
+     behind it; content meant to print belongs in the page itself. */
+  :is(.r-floating-top-layer, .r-overlays-surface, .r-overlays-modal, .r-commands-palette, .r-overlays-toast-region) {
+    display: none !important;
+  }
+
+  /* ── Interactive-only controls ─────────────────────────────────────────────
+     A CodeBlock's wrap button, page links, a menu's trigger (row actions, a
+     view menu), a chart's "Show as table" toggle and a carousel's controls do
+     nothing on paper. A Select's trigger stays: it shows the value chosen.
+     Components that own such a control say so with `data-print="hide"`
+     (CopyButton, FormActions, Timeline's "Show more", a FileUpload row's
+     actions); the selectors here reach the ones that predate it. */
+  button[aria-haspopup="menu"],
+  [data-highlight]:has(> :is(.r-content-code-pre)) button,
+  nav:has(> div > [data-pagination]),
+  figure[data-chart] > div:last-of-type:has(> button) > button {
+    display: none !important;
+  }
+
+  /* ── Tables ────────────────────────────────────────────────────────────────
+     A table prints whole: its scroll area and any height cap let go, and a
+     sticky head stops sticking (the contract repeats it on every page). */
+  [data-variant]:has(> table):not(:has(> table[aria-rowcount])) {
+    overflow: visible !important;
+    max-block-size: none !important;
+  }
+  thead[data-sticky] {
+    position: static !important;
+  }
+  /* A truncated cell keeps its full value in a tooltip, which paper does not
+     have, and a wide table cannot scroll there: cells wrap instead (at word
+     breaks, so a number stays whole) and the row grows. */
+  :is(td, th),
+  :is(td, th) :is(.truncate) {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: break-word;
+  }
+
+  /* VirtualizedTable: only its window of rows is mounted, so paper cannot hold
+     the whole set. It prints the rows it has (the spacer rows that stand in for
+     the rest go) and says so beneath them, rather than a frame that looks
+     complete. A consumer can reword the note with `--r-print-partial-note`. */
+  [data-variant]:has(> table[aria-rowcount]) {
+    block-size: auto !important;
+    max-block-size: none !important;
+    overflow: visible !important;
+  }
+  [data-variant]:has(> table[aria-rowcount])::after {
+    content: var(--r-print-partial-note, "Only the rows loaded on screen are printed; this table holds more.");
+    display: block;
+    padding: var(--R-SIZE-4) var(--R-SIZE-3);
+    border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+    color: var(--C-TEXT-SECONDARY);
+    font-size: var(--BodyText-2);
+    line-height: var(--BodyText-2-line-height);
+  }
+  table[aria-rowcount] tbody > tr[aria-hidden]:not([data-table-row]) {
+    display: none !important;
+  }
+
+  /* ── Charts and data colour ────────────────────────────────────────────────
+     A chart prints as the reader left it: the drawing, or its table when "Show
+     as table" is on (then whole, not capped). Lines and bars are SVG paint and
+     print as they are; where a FILL is the data (a series or sequential swatch,
+     a heat cell, a meter), its background must print, so it is exact. */
+  figure[data-chart] {
+    break-inside: avoid;
+  }
+  [data-chart-table="visible"] > * {
+    max-block-size: none !important;
+    overflow: visible !important;
+  }
+  :is([class*="bg-series-"], [class*="bg-seq-"], .r-charts-heat-missing, .r-data-meter-track) {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* The domain status fills carry their own ink (`fg-on-serious`, `fg-on-stale`),
+     as the contract's status fills do: dropped, the ink would be left on paper. */
+  :is([class*="bg-status-serious"], [class*="bg-status-stale"]) {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── CodeBlock: long lines wrap; paper cannot scroll sideways ─────────────── */
+  :is(.r-content-code-pre) {
+    overflow: visible !important;
+  }
+  :is(.r-content-code) {
+    inline-size: auto !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere;
+  }
+
+  /* ── Accordion, Collapsible: every panel prints open ───────────────────────
+     Paper cannot be clicked, so closed content would be lost. */
+  :is(.r-disclosure-panel) {
+    grid-template-rows: 1fr !important;
+  }
+  :is(.r-disclosure-clip) {
+    visibility: visible !important;
+    overflow: visible !important;
+  }
+
+  /* ── Tabs: the active panel, under its own tab as a heading ────────────────
+     Only the selected panel is mounted visibly, and a stack of every panel
+     would need a label CSS cannot read. So the tab row keeps only the selected
+     tab, which reads as the panel's heading; the other tabs and the row's
+     chrome go. */
+  :is(.r-navigation-tabs-underline, .r-navigation-tabs-enclosed) {
+    overflow: visible !important;
+    border: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: none !important;
+  }
+  :is(.r-navigation-tabs-underline, .r-navigation-tabs-enclosed) > [role="tab"]:not([aria-selected="true"]) {
+    display: none !important;
+  }
+  :is(.r-navigation-tabs-underline, .r-navigation-tabs-enclosed) > [role="tab"][aria-selected="true"] {
+    padding-inline: 0 !important;
+    font-weight: var(--WEIGHT-SEMIBOLD) !important;
+    box-shadow: none !important;
+  }
+  :is(.r-navigation-tab-underline)[aria-selected="true"]::after {
+    display: none;
+  }
+
+  /* ── Timeline: a scrolling feed prints whole, a clamped description in full,
+     and its "Read more" toggle goes. */
+  [data-timeline] {
+    block-size: auto !important;
+    max-block-size: none !important;
+    overflow: visible !important;
+  }
+  :is(.r-data-timeline-description)[data-clamped] {
+    display: block !important;
+    -webkit-line-clamp: none !important;
+    line-clamp: none !important;
+    overflow: visible !important;
+  }
+  :is(.r-data-timeline-description) + button[aria-expanded] {
+    display: none !important;
+  }
+
+  /* ── Stepper: the steps read as one unit ──────────────────────────────────── */
+  :is(.r-steps-list) {
+    break-inside: avoid;
+  }
+
+  /* ── FileUpload, ColorPicker ───────────────────────────────────────────────
+     The drop zone only opens a file browser: the list of files is what prints.
+     A colour's chip, swatches, area and tracks ARE the data: their paint prints. */
+  :is(.r-form-upload-zone) {
+    display: none !important;
+  }
+  :is(.r-form-color-chip, .r-form-color-swatch, .r-form-color-area, .r-form-color-track, .r-form-color-thumb) {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ── Carousel: every slide, stacked; no controls ─────────────────────────── */
+  :is(.r-marketing-carousel-track) {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+  }
+  :is(.r-marketing-carousel-slide) {
+    inline-size: auto !important;
+    flex: none !important;
+    break-inside: avoid;
+  }
+  [aria-roledescription="carousel"] > :not([role="group"]):has(button, [role="tablist"]) {
+    display: none !important;
+  }
+}

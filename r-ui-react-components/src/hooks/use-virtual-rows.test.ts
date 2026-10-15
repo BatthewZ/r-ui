@@ -117,6 +117,24 @@ describe("useVirtualRows", () => {
     expect(result.current.endIndex).toBe(5);
   });
 
+  it("mounts a partly visible last row when the scroll offset is mid-row", () => {
+    const el = makeScroller(200);
+    const ref = { current: el };
+
+    const { result } = renderHook(() =>
+      useVirtualRows({ rowCount: 1000, rowHeight: 50, overscan: 0, scrollRef: ref })
+    );
+
+    act(() => {
+      el.scrollTop = 525; // rows 10 (half) .. 14 (half) are on screen
+      el.dispatchEvent(new Event("scroll"));
+    });
+
+    expect(result.current.startIndex).toBe(10);
+    expect(result.current.endIndex).toBe(15);
+    expect(result.current.paddingBottom).toBe((1000 - 15) * 50);
+  });
+
   it("guards against a non-positive row height", () => {
     const el = makeScroller(200);
     const ref = { current: el };

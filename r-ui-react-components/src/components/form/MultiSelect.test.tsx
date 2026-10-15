@@ -153,6 +153,59 @@ describe("MultiSelect", () => {
     expect(chips()).toHaveClass("@max-column-md:hidden");
   });
 
+  it("a narrow field's summary is the way to its hidden chips: ArrowLeft lands on it, a press unfolds them", async () => {
+    const user = userEvent.setup();
+    // Stands in for the container query: the folded chip list has no box.
+    const narrow = document.createElement("style");
+    narrow.textContent = '[class~="@max-column-md:hidden"] { display: none; }';
+    document.head.append(narrow);
+    try {
+      render(
+        <>
+          <Regions defaultValue={["eu-west-1", "eu-central-1", "us-east-1"]} />
+          <button type="button">After</button>
+        </>,
+      );
+      await user.click(input());
+      await user.keyboard("{Escape}{ArrowLeft}");
+      const summary = screen.getByRole("button", { name: "3 selected" });
+      expect(summary).toHaveFocus();
+      expect(summary).toHaveAttribute("aria-expanded", "false");
+      const list = document.getElementById(summary.getAttribute("aria-controls")!);
+      expect(list).toHaveAttribute("aria-label", "Selected");
+      expect(list).toHaveClass("@max-column-md:hidden");
+      await user.keyboard("{ArrowRight}");
+      expect(input()).toHaveFocus();
+
+      await user.keyboard("{ArrowLeft}{Enter}");
+      expect(list).not.toHaveClass("@max-column-md:hidden");
+      expect(screen.queryByRole("button", { name: "3 selected" })).toBeNull();
+      expect(screen.getByRole("button", { name: "Remove Europe (Ireland)" })).toHaveFocus();
+      await user.keyboard("{Enter}");
+      expect(chipNames()).toEqual(["Europe (Frankfurt)", "US East"]);
+
+      // Leaving the control folds them again.
+      await user.click(screen.getByRole("button", { name: "After" }));
+      expect(screen.getByRole("button", { name: "2 selected" })).toBeInTheDocument();
+      expect(list).toHaveClass("@max-column-md:hidden");
+    } finally {
+      narrow.remove();
+    }
+  });
+
+  it("a load error lists no options and no select-all: the cursor points at nothing", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<Regions selectAll loadError="Could not load regions." onValueChange={onValueChange} />);
+    await user.type(input(), "e");
+    expect(screen.getByRole("listbox").parentElement).toHaveTextContent("Could not load regions.");
+    expect(screen.queryAllByRole("option")).toHaveLength(0);
+    expect(input()).not.toHaveAttribute("aria-activedescendant");
+    await user.keyboard("{ArrowDown}{Enter}");
+    expect(input()).not.toHaveAttribute("aria-activedescendant");
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+
   it("disabled: no removal, no list", async () => {
     const user = userEvent.setup();
     render(<Regions disabled defaultValue={["eu-west-1"]} />);

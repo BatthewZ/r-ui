@@ -11,14 +11,20 @@
 //
 // The showcase is out of scope: it is a consumer app, and its entry imports
 // its own stylesheet from JS the way any Vite app does.
+//
+// Usage: node scripts/verify-no-css-imports.mjs [--root <dir>]
+//   --root scans another tree with the same layout (the test's fixtures).
 
 import { readFileSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative } from "node:path";
 
 import { globSync } from "glob";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { lineAt } from "./lib/css.mjs";
+import { PKG, pathArg } from "./lib/gate.mjs";
+
+const ROOT = pathArg("--root", PKG);
+
 const SRC = join(ROOT, "src");
 
 const CSS_IMPORT = new RegExp(
@@ -32,11 +38,17 @@ const CSS_IMPORT = new RegExp(
 const files = globSync("**/*.{ts,tsx}", { cwd: SRC, absolute: true, nodir: true });
 const offenders = [];
 
+if (files.length === 0) {
+  console.error(`verify:no-css-imports — no .ts/.tsx files under ${relative(process.cwd(), SRC) || "."}; the scan is broken`);
+  process.exit(1);
+}
+
 for (const file of files.sort()) {
   const src = readFileSync(file, "utf8");
   for (const match of src.matchAll(CSS_IMPORT)) {
-    const line = src.slice(0, match.index).split("\n").length;
-    offenders.push(`${relative(ROOT, file)}:${line}  ${match[0].trim()}`);
+    // The static form's match starts at the newline before `import`.
+    const at = match.index + match[0].indexOf("import");
+    offenders.push(`${relative(ROOT, file)}:${lineAt(src, at)}  ${match[0].trim()}`);
   }
 }
 

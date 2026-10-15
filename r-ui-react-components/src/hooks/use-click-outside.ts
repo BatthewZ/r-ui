@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 /**
  * Fires on `mousedown`/`touchstart`, not `click`, so a press that begins outside
@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
  * receives the event so a caller can recognise its own trigger and stand down.
  */
 export function useClickOutside(
-  ref: React.RefObject<Element | null>,
+  ref: RefObject<Element | null>,
   handler: (event: MouseEvent | TouchEvent) => void,
   enabled = true
 ) {

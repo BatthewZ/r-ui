@@ -2,7 +2,6 @@
 import { useState } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
-import { useField } from "../form";
 import { CalendarBase, type CalendarCommonProps } from "./calendar-base";
 import { addDays, type DateRange, dayNumber, isSameDay, isSameRange } from "./date-core";
 
@@ -27,7 +26,6 @@ const EMPTY: DateRange = { start: null, end: null };
  * a day the caller ruled out. `months` defaults to 2.
  */
 export function RangeCalendar({ value, defaultValue = EMPTY, onValueChange, months = 2, isDateUnavailable, ...props }: RangeCalendarProps) {
-  const field = useField();
   const [range, setRange] = useControllableState<DateRange>({ value, defaultValue, isEqual: isSameRange });
   const [hover, setHover] = useState<Date | null>(null);
   const { start, end } = range;
@@ -54,8 +52,6 @@ export function RangeCalendar({ value, defaultValue = EMPTY, onValueChange, mont
 
   return (
     <CalendarBase
-      aria-labelledby={props["aria-label"] ? undefined : field?.labelId}
-      disabled={field?.disabled || undefined}
       {...props}
       months={months}
       isDateUnavailable={isDateUnavailable}

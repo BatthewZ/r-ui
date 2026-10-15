@@ -166,7 +166,7 @@ function Conditions() {
         })}
       </div>
       {error && (
-        <Alert tone="error" role="note" statusLabel="">
+        <Alert tone="error" role="note" labels={{ tones: { error: "" } }}>
           {error}
         </Alert>
       )}

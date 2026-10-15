@@ -166,4 +166,34 @@ describe("DatePicker", () => {
     expect(screen.getByRole("textbox", { name: "Created" })).toHaveAttribute("readonly");
     expect(submitted()).toBeNull();
   });
+
+  it("follows a controlled open, asking the parent", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const { rerender } = render(<DatePicker aria-label="Due" locale="en-US" open={false} onOpenChange={onOpenChange} />);
+    await user.click(screen.getByRole("button", { name: "Choose date" }));
+    expect(onOpenChange.mock.calls).toEqual([[true]]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    rerender(<DatePicker aria-label="Due" locale="en-US" open onOpenChange={onOpenChange} />);
+    expect(screen.getByRole("dialog", { name: "Choose date" })).toBeInTheDocument();
+  });
+
+  it("className styles the root; frame, input and trigger are slots", () => {
+    const { container } = render(
+      <DatePicker
+        aria-label="Due"
+        locale="en-US"
+        className="max-w-column-sm"
+        classNames={{ frame: "frame-slot", input: "input-slot", trigger: "trigger-slot" }}
+      />,
+    );
+    const root = container.firstElementChild!;
+    expect(root).toHaveClass("max-w-column-sm");
+    const input = screen.getByRole("textbox", { name: "Due" });
+    expect(input).toHaveClass("input-slot");
+    expect(input).not.toHaveClass("max-w-column-sm");
+    expect(container.querySelector(".r-form-frame")).toHaveClass("frame-slot");
+    expect(container.querySelector(".r-form-frame")).not.toHaveClass("max-w-column-sm");
+    expect(screen.getByRole("button", { name: "Choose date" })).toHaveClass("trigger-slot");
+  });
 });

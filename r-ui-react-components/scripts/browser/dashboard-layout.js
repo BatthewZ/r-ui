@@ -7,16 +7,17 @@
 // Asserts:
 //   1. harness: at fine input --HIT-MIN is 24px, so --ROW-H is the density's own
 //      named value (`--ROW-H-COMFORTABLE` / `-COMPACT`) and the comparison in 5 means something;
-//   2. default / nightfall / harbour / atelier × comfortable / compact × fine / coarse
+//   2. every theme the showcase lists × comfortable / compact × fine / coarse
 //      at 1440 and 375: no console or page error, no horizontal scroll in the document
 //      or in the dashboard's own scroll frame; at 375 the SHOWCASE's bottom nav stays
 //      reachable below the frame (the frame takes no press at any link's centre);
 //   3. at 1440 the AppShell sidebar is the FULL sidebar (brand name shown, wider
 //      than a rail) and the six KPI tiles sit in one row;
 //   4. at 900 the sidebar is the icon RAIL (brand name visually hidden, rail-wide)
-//      and there is no bottom nav; at 375 the BOTTOM NAV shows and the sidebar does not;
+//      and there is no bottom nav; the full sidebar's column is exactly --COLUMN-MD wide; at 375 the BOTTOM NAV shows and the sidebar does not;
 //      at 1440 the frame covers the showcase's own sidebar;
-//   5. at comfortable + fine: every services row is exactly its --ROW-H, every row
+//   5. at comfortable + fine: every services row is exactly its --ROW-H with its row
+//      actions button inside it, every row
 //      in the compact card (`data-density="compact"`) is exactly ITS --ROW-H, and
 //      that is shorter than the page's;
 //   6. searching for nothing shows the table's EmptyState and "Clear search" brings
@@ -25,18 +26,15 @@
 //      each) and a legend of four regions, and hovering it opens one tooltip listing
 //      all four; Error responses is a stacked BarChart with a bar per class per
 //      interval; the 5xx card is a 7 × 24 Heatmap with a table, and no "Not in this
-//      release" stand-in is left. In the matrix, every Dashboard chart is drawn.
+//      release" stand-in is left. In the matrix, every Dashboard chart is drawn;
+//   8. Open incidents is a Timeline: one ordered list of the four incidents, each with
+//      a focusable `<time datetime>`, a glyph in its mark and a status word; Tab onto a
+//      <time> shows its full reading (year included) in the Tooltip that describes it.
 async (page) => {
   const base = page.url().split("#")[0];
   const KEY = "r-ui-showcase:view";
   const problems = [];
-  const errors = [];
-  const onConsole = (msg) => {
-    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
-  };
-  const onPageError = (err) => errors.push(`pageerror: ${err.message}`);
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
+  const { errors, stop: stopErrors } = collectErrors(page);
 
   const load = async (width, view) => {
     await page.setViewportSize({ width, height: 900 });
@@ -58,9 +56,25 @@ async (page) => {
       const brandName = frame?.querySelector(".r-navigation-shell-sidebar .r-navigation-shell-brand-name");
       const css = getComputedStyle(document.documentElement);
       const kpiTops = [...document.querySelectorAll("[data-dashboard-kpis] > *")].map((k) => Math.round(box(k).top));
+      /** `var(--NAME)` as px, resolved inside `el` (density follows where it is read). */
+      const tokenPx = (el, name) => {
+        const probe = document.createElement("div");
+        probe.style.cssText = `position: absolute; visibility: hidden; block-size: var(${name}); inline-size: var(${name})`;
+        el.append(probe);
+        const px = probe.getBoundingClientRect().height;
+        probe.remove();
+        return px;
+      };
+      const sparks = [...(frame?.querySelectorAll("[data-dashboard-kpis] svg[role=img][preserveAspectRatio=none]") ?? [])].map((svg) => ({
+        height: box(svg).height,
+        token: tokenPx(svg.parentElement, "--SPARK-H"),
+      }));
       return {
         sidebar: shown(sidebar),
         sidebarW: sidebar ? box(sidebar).width : 0,
+        innerW: sidebar?.querySelector(".r-navigation-shell-sidebar-inner") ? box(sidebar.querySelector(".r-navigation-shell-sidebar-inner")).width : 0,
+        columnMd: sidebar ? tokenPx(sidebar, "--COLUMN-MD") : 0,
+        sparks,
         brandW: brandName ? box(brandName).width : 0,
         bottom: shown(frame?.querySelector(".r-navigation-shell-bottomnav")),
         control: Number.parseFloat(css.getPropertyValue("--CONTROL-H")),
@@ -91,7 +105,7 @@ async (page) => {
     });
 
   let combos = 0;
-  const summary = { page: Number.NaN, card: Number.NaN, charts: "" };
+  const summary = { page: Number.NaN, card: Number.NaN, charts: "", incidents: 0 };
   try {
     // 1 + 5: row heights, at comfortable + fine where compact must differ.
     await load(1440, { theme: "default", density: "comfortable", input: "fine" });
@@ -107,6 +121,8 @@ async (page) => {
         [...document.querySelectorAll(`${scope} tbody tr`)].map((tr) => ({
           h: tr.getBoundingClientRect().height,
           rowH: Number.parseFloat(getComputedStyle(tr).getPropertyValue("--ROW-H")),
+          // The row's actions menu button, the tallest thing a services row holds.
+          actions: tr.querySelector("button[aria-haspopup='menu']")?.getBoundingClientRect().height ?? null,
         }));
       return {
         hit: named("--HIT-MIN"),
@@ -133,6 +149,10 @@ async (page) => {
         if (Math.abs(r.h - r.rowH) > 0.5) problems.push(`${name} row ${i}: ${r.h}px tall, --ROW-H is ${r.rowH}px`);
       });
     }
+    // The row height holds WITH the actions column: every services row has its button, inside the row.
+    rows.page.forEach((r, i) => {
+      if (r.actions === null || r.actions > r.rowH + 0.5) problems.push(`services row ${i}: actions button ${r.actions}px in a ${r.rowH}px row`);
+    });
     const cardH = rows.card[0]?.h ?? Number.NaN;
     const pageH = rows.page[0]?.h ?? Number.NaN;
     summary.page = pageH;
@@ -191,11 +211,65 @@ async (page) => {
     if (heat.cells !== 168 || heat.table !== 7 || heat.standIn) problems.push(`5xx heatmap: ${JSON.stringify(heat)}, expected 168 painted cells, a 7-row table and no stand-in`);
     summary.charts = `${line.x}+${line.y} axis labels, ${bars.bars} bars, ${heat.cells} heat cells`;
 
+    // 8: the incidents card is a Timeline.
+    const incidents = await page.evaluate(() => {
+      const card = document.querySelector("[data-dashboard-incidents]");
+      const lists = card ? [...card.querySelectorAll("ol")] : [];
+      const items = lists.flatMap((ol) => [...ol.querySelectorAll(":scope > li")]);
+      return {
+        lists: lists.length,
+        named: lists.every((ol) => ol.getAttribute("aria-label") || ol.getAttribute("aria-labelledby")),
+        items: items.length,
+        complete: items.filter(
+          (li) =>
+            /^\d{4}-\d{2}-\d{2}T/.test(li.querySelector("time")?.getAttribute("datetime") ?? "") &&
+            li.querySelector("time")?.tabIndex === 0 &&
+            li.querySelector("[data-timeline-mark] svg") &&
+            (li.querySelector("[data-timeline-status]")?.textContent.trim() ?? "") !== "",
+        ).length,
+      };
+    });
+    if (incidents.lists !== 1 || !incidents.named || incidents.items !== 4 || incidents.complete !== 4) {
+      problems.push(`Open incidents: ${JSON.stringify(incidents)}, expected one named list of 4 events, each with a datetime, a glyph and a status word`);
+    }
+    summary.incidents = incidents.complete;
+    // The full reading is reachable by keyboard: Tab onto an incident's <time> opens the
+    // Tooltip that describes it, and it names the year the short reading leaves out.
+    const incidentTime = page.locator("[data-dashboard-incidents] li time").first();
+    await incidentTime.scrollIntoViewIfNeeded();
+    await incidentTime.evaluate((el) => {
+      const before = document.createElement("button");
+      before.dataset.probe = "";
+      el.closest("li").prepend(before);
+      before.focus();
+    });
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(250);
+    const reading = await incidentTime.evaluate((el) => {
+      document.querySelector("[data-probe]")?.remove();
+      const tip = (el.getAttribute("aria-describedby") ?? "")
+        .split(" ")
+        .map((id) => document.getElementById(id))
+        .find((t) => t?.role === "tooltip");
+      return {
+        focused: document.activeElement === el,
+        short: el.textContent.trim(),
+        text: tip?.textContent.trim() ?? null,
+        shown: Boolean(tip?.matches(":popover-open")),
+        year: new Date(el.getAttribute("datetime")).getFullYear(),
+      };
+    });
+    if (!reading.focused || !reading.shown || !reading.text?.includes(String(reading.year)) || reading.text === reading.short) {
+      problems.push(`Open incidents: Tab onto a <time> did not show its full reading ${JSON.stringify(reading)}`);
+    }
+    await page.keyboard.press("Escape");
+
     // 3 + 4: the shell's three forms, by viewport.
     const wide = await shell();
     if (!wide.sidebar || wide.bottom) problems.push("1440: expected the sidebar and no bottom nav");
     if (!(wide.brandW > 1)) problems.push("1440: the brand name is hidden, so the sidebar is not the full one");
     if (!(wide.sidebarW > wide.control * 3)) problems.push(`1440: sidebar ${wide.sidebarW}px wide, too narrow for the full form`);
+    if (!(wide.columnMd > 0) || Math.abs(wide.innerW - wide.columnMd) > 0.5) problems.push(`1440: the sidebar's column is ${wide.innerW}px wide, --COLUMN-MD is ${wide.columnMd}px`);
     if (wide.kpis !== 6 || wide.kpiRows !== 1) problems.push(`1440: ${wide.kpis} KPI tiles over ${wide.kpiRows} row(s), expected 6 in 1`);
     if (wide.hostSidebarCovered !== true) problems.push("1440: the showcase's own sidebar shows through the dashboard frame");
     if (wide.hostNav) problems.push("1440: the showcase's bottom nav shows beside the sidebar");
@@ -221,9 +295,11 @@ async (page) => {
     reach("375", narrow);
     for (const e of errors) problems.push(`interactions: ${e}`);
 
-    // 2: the matrix.
+    // 2: the matrix (and the KPI sparklines' --SPARK-H at each density).
+    const sparkH = {};
+    const themes = (await showcaseThemes(page)).map((t) => t.name);
     for (const width of [1440, 375]) {
-      for (const theme of ["default", "nightfall", "harbour", "atelier"]) {
+      for (const theme of themes) {
         for (const density of ["comfortable", "compact"]) {
           for (const input of ["fine", "coarse"]) {
             const label = `${theme}/${density}/${input}@${width}`;
@@ -238,18 +314,25 @@ async (page) => {
               () => document.querySelectorAll("[data-dashboard-frame] figure[data-chart] svg.r-charts-svg, [data-dashboard-frame] [data-cell]").length,
             );
             if (drawn < 169) problems.push(`${label}: the Dashboard's charts are not drawn (${drawn} plot parts)`);
+            if (m.sparks.length < 3) problems.push(`${label}: harness: ${m.sparks.length} KPI sparklines`);
+            for (const sp of m.sparks) {
+              if (!(sp.token > 0) || Math.abs(sp.height - sp.token) > 0.5) problems.push(`${label}: a KPI sparkline is ${sp.height}px tall, --SPARK-H is ${sp.token}px`);
+            }
+            (sparkH[density] ??= new Set()).add(m.sparks[0]?.height);
             for (const e of errors) problems.push(`${label}: ${e}`);
           }
         }
       }
     }
+    const [comfy, compact] = [sparkH.comfortable, sparkH.compact].map((set) => Math.min(...(set ?? [])));
+    if (!(compact < comfy)) problems.push(`sparklines: ${compact}px at compact, ${comfy}px at comfortable; compact must be shorter`);
+    summary.sparks = `${comfy}/${compact}px`;
   } finally {
-    page.off("console", onConsole);
-    page.off("pageerror", onPageError);
+    stopErrors();
     await page.evaluate((key) => localStorage.removeItem(key), KEY);
     await page.setViewportSize({ width: 1280, height: 900 });
   }
 
   if (problems.length) throw new Error(`dashboard-layout FAILED (${problems.length}):\n  ${problems.join("\n  ")}`);
-  return `dashboard-layout OK (rows: page ${summary.page}px, compact card ${summary.card}px; shell full/rail/bottom nav at 1440/900/375; showcase nav reachable at 375; charts: ${summary.charts}; ${combos} combinations clean)`;
+  return `dashboard-layout OK (rows: page ${summary.page}px, compact card ${summary.card}px; incidents timeline: ${summary.incidents} events; shell full/rail/bottom nav at 1440/900/375; showcase nav reachable at 375; charts: ${summary.charts}; sparklines ${summary.sparks} at comfortable/compact; sidebar --COLUMN-MD; ${combos} combinations clean)`;
 }

@@ -22,6 +22,34 @@ describe("FormActions", () => {
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
+  it("a press on an action leaves focus in the field, so a blur-time error cannot move the row under the pointer", async () => {
+    const onSubmit = vi.fn((event: SubmitEvent) => event.preventDefault());
+    const onMouseDown = vi.fn();
+    render(
+      <form onSubmit={(e) => onSubmit(e.nativeEvent as SubmitEvent)}>
+        <input aria-label="Name" />
+        <FormActions onMouseDown={onMouseDown}>
+          <Button variant="secondary">Cancel</Button>
+          <FormActions.Submit>Save</FormActions.Submit>
+        </FormActions>
+      </form>,
+    );
+    const field = screen.getByRole("textbox", { name: "Name" });
+    await userEvent.click(field);
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(field).toHaveFocus();
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(field).toHaveFocus();
+    // The caller's handler still runs; a press on the row's own padding is left alone.
+    expect(onMouseDown).toHaveBeenCalledTimes(2);
+  });
+
+  it("is hidden in print", () => {
+    const { container } = render(<FormActions />);
+    expect(container.firstElementChild).toHaveAttribute("data-print", "hide");
+  });
+
   it("outside a Form, Submit's busy state is the caller's", () => {
     const { rerender } = render(<FormActions.Submit>Save</FormActions.Submit>);
     expect(screen.getByRole("button", { name: "Save" })).not.toHaveAttribute("aria-busy");

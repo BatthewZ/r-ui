@@ -37,12 +37,88 @@ pages. Read the group's file before changing its components.
 | [pages-lessons.md](./pages-lessons.md) | The showcase pages as consumers: an AppShell given the window, one `<main>`, edge-to-edge bands inside a padded shell, the known-bug box and its regression loop, workarounds that name a missing API |
 | [a2-preferences-router.md](./a2-preferences-router.md) | Preferences, the router config and the showcase shell: one serialised implementation for the pre-paint script and the hooks, client-created scripts never run, `<html>` as the store, memoising array options, scoping `isCurrent`, checks that find the wrong AppShell, shrinkable grid tracks |
 | [a3-motion-lessons.md](./a3-motion-lessons.md) | Motion, disclosure and overlay exits: exits in CSS with script only waiting, `@starting-style` vs promoted panels, floating-ui's `open` through an exit, focus return, fade-only panels, counting frames in checks, `0fr`→`1fr` height, reveals that never hide what is on screen, staggering by cloning |
-| [b1-charts.md](./b1-charts.md) | Charts: pure planning vs drawing, drawing at the real size through probes, measured label thinning, calendar-aligned time ticks, hostile input, colour pinned to the entity, the table as the accessible rendering, forced colours for data |
-| [b2-content-lessons.md](./b2-content-lessons.md) | CodeBlock, CopyButton, Markdown: what a dynamic import keeps in its chunk, flat highlighter runs, code colour under forced colours, UI islands in prose, nesting caps as width caps, re-announcing a repeated status, the copy fallback inside a modal |
+| [b1-charts.md](./b1-charts.md) | Charts: pure planning vs drawing, drawing at the real size through probes, measured label thinning, calendar-aligned time ticks, hostile input, colour pinned to the entity, the table as the accessible rendering, the readout cursor as one hook, forced colours for data |
+| [b2-content-lessons.md](./b2-content-lessons.md) | CodeBlock, CopyButton, Markdown: what a dynamic import keeps in its chunk, flat highlighter runs, code colour under forced colours, UI islands in prose, nesting caps as width caps, re-announcing a repeated status, the copy fallback inside a modal, fuzzing a refactored parser against the old one |
 | [b3-selection-lessons.md](./b3-selection-lessons.md) | Combobox, MultiSelect, TagInput: memoised merged refs, container variants need literal sizes, diacritic-folded highlighting, virtualising an `aria-activedescendant` list, focus that never leaves the input, the APG Escape order, `required` without a visible value, chip-row pitch |
 | [b4-dates.md](./b4-dates.md) | Calendar dates vs instants, months by used grid tracks (not a breakpoint), `auto` tracks and auto-fill min-content, shrink-to-fit popups vs size containment, keying paged views by position, a control's own error beside the Field's |
 | [b5-form-state.md](./b5-form-state.md) | Form state: controls consume the binding, message slots as lists, describing in the commit the error appears, aborted checks that settle, stale schema runs, keyed array errors, DOM-order first invalid, sticky inside a scroller |
 | [b6-forced-colors.md](./b6-forced-colors.md) | Forced colours across the existing components: computed styles are the forced values, gradients drop too, line roles used as fills, kept fills that lose their text, focus on a Highlight fill, the second cue for invalid |
+| [c1-commands.md](./c1-commands.md) | CommandPalette and ContextMenu: one shared menu, a virtual anchor that follows its region, keyboard-made contextmenu events, long-press slop and swallowed release events, nested regions, running a command after the dialog closes, cached loaders |
+| [c2-steps.md](./c2-steps.md) | Stepper and Wizard: validating a subset of the form, the lost click under a blur-time error, unmounted steps, focus on arrival, counting steps in a container query, states by edge under forced colours |
+| [c3-timeline.md](./c3-timeline.md) | Timeline: instants vs calendar dates, connectors as borders, marks sized from `--ICON`, opt-in scrollers, opaque sticky bands, focus after "Show more", scoping a check's error capture |
+| [c4-marketing.md](./c4-marketing.md) | Hero, MediaCard, Carousel: `overflow-wrap: anywhere` in content-sized tracks, `cqi` moving with a new container, stretched links and paint order, carousel geometry in reading order, peeking only when there is more, silent broken images |
+| [c5-uploads.md](./c5-uploads.md) | FileUpload and OTPInput: one field under N boxes, selection as the editing model, refused changes, async results onto the latest value, focus across swapped buttons, file inputs that submit |
+| [c6-colour.md](./c6-colour.md) | ColorPicker: editing in OKLCH inside sRGB, rounding chroma down, trusting the last edit, spectra as data, out-of-gamut pixels, hit areas on absolute thumbs, resolving a theme colour at render |
+| [c7-print.md](./c7-print.md) | Printing components: adapting by rendered classes and attributes, every scroller is a print question, virtualised content, truncation without a tooltip, proving contrast on the painted result |
+| [d1-overlay-focus-and-names.md](./d1-overlay-focus-and-names.md) | `autoFocus` inside a dialog opened from an effect, refs a child cannot read yet, a caller's id on a labelling part, document-level Escape for hover tooltips, moving focus before a node leaves, key-derived ids, links that never nest, the `100vw` scrollbar trap |
+| [d2-form-dates-steps.md](./d2-form-dates-steps.md) | Keyboard reach equals what is drawn, key-derived descendant ids, focus targets a container query hides, null `relatedTarget` ambiguity, open/close side effects on the transition, widening callbacks to the value's type |
+| [d3-focus-handoff-and-shared-vocab.md](./d3-focus-handoff-and-shared-vocab.md) | Focus handoffs that wait for the commit, derived roving tab stops with a fallback, stepping from the target during smooth scroll, source indexes in key callbacks, "rounds to zero" on the printed value, one tone vocabulary, one `labels` prop |
+| [d4-gates-and-checks.md](./d4-gates-and-checks.md) | Gates that assert the line, exact allowances, widening unit lists, Node-only shipped gates, vacuity as failure; browser checks that pick themes by property, reset in the harness, count before `min`/`every`, positive controls; deleting a hook with no consumer |
+
+## 2026-10-16 — integration gate D (verification fixes)
+
+- **Headless Chromium hides scrollbars** (`--hide-scrollbars`), so `clientWidth` equals the
+  viewport and a `100vw` cap looks as good as `100%`. A check about the scrollbar asserts
+  the promoted panel's computed cap (`min(…, 100% - …)`), which keeps its percentage, and
+  the geometry it can see.
+- **Two gaps for one edge drift apart.** The surface cap left `2 × --R-SIZE-2` while
+  `shift()` kept a fixed 8px, so a capped panel sat 8px from one edge and 16px from the
+  other. The positioning reads the same token, inside the panel (density follows).
+- **An em is the element's own.** The prose list indents `1.25em` of the list (UI size);
+  a task box sized and hung in the item's prose em overhung it. When a box must fit an
+  indent, let one element own both lengths in one em.
+- **A focus-on-open check needs a target the default would not pick.** `autoFocus` on a
+  dialog's first focusable passes whether or not it works; aim it at a later control and
+  assert the harness (the first focusable is something else).
+- **A break caught by the harness is not a break of the claim.** Selecting sparklines by
+  the class under test (`h-spark`) made the break fail as "0 found"; select by role or
+  structure, then break the measured property.
+- **A demo row added to make a claim testable is a change to every matrix.** A wrapper
+  `div` around a scrolling tab list, inside a flex Row, kept the list from shrinking and
+  spilled at 375; the overview matrix caught it. A wrapper in a Row is `min-w-0`, and the
+  matrices run again after any demo change.
+
+## 2026-10-16 — bug sweep (whole package, every group)
+
+- **A generated IDREF target is written after the caller's spread.** A caller's `id` on a
+  title or trigger otherwise unhooks the `aria-labelledby` that points at it; a caller's own
+  `aria-labelledby` on the labelled element, by contrast, wins over the generated one.
+- **Removing a focused node fires no blur.** State set on focus and cleared on blur (a
+  pause, a "focus inside" flag) needs a re-check when the focused part unmounts.
+- **Async results carry the key they were asked under.** A debounced query keyed only by its
+  text leaks one page's results into the next; a submit that awaited a check must re-check
+  if the value moved meanwhile (the change aborted the answer it waited for).
+- **"Internal" is what a URL parser says, not a prefix test.** `/\host`, `///host` and
+  ` //host` are other hosts to a browser. Classify by resolving (`isExternalHref`), once.
+- **Hostile input is also long input.** `endsWith`/`replace` on a growing string inside a
+  loop, or a lazy regex rescanning to the end at each unclosed opener, is quadratic; the
+  Markdown parser hung on 100k-character inputs until each was made one pass.
+- **A gate parses `.ts` as TS.** Forcing TSX turns a generic arrow into JSX and hides every
+  string after it; a scanner's scope is `src/**` minus what is raw on purpose, not
+  `components/` alone.
+- **A `.test.tsx` under `showcase/sections/` is discovered as a section.** Showcase demo
+  tests live in `showcase/shell/`.
+
+## 2026-10-15 — integration gate C (round three: commands, steps, timeline, marketing, uploads, colour, print)
+
+- **Groups that each borrow from the other make a cycle no single agent sees.** The palette
+  (overlays) took form's Input while ColorPicker (form) took overlays' Popover.
+  `verify:group-deps` now fails on any cycle between groups; a component that needs two
+  groups gets a group above both, and shared logic moves to `util`.
+- **A popup tested at "below the card" flips above it** when the harness scrolls the card
+  to the bottom of the viewport. Probe the part outside the clip in either direction.
+- **Under forced colours a translucent wash keeps its alpha.** Chromium repaints an 8% ink
+  wash as Canvas at 8%, which "differs from a plain row" and passed a check with the real
+  highlight removed. Compare against the resolved system colour (a probe painted
+  `Highlight` with `forced-color-adjust: none`).
+- **Two mechanisms for one guarantee make both untestable.** Each break alone changed
+  nothing. Keep the one that carries the guarantee and test it.
+- **Geometry is read after an entry animation, not during it.** A hit-test while a popup
+  scaled in was flaky; wait until the popup's own animations finish (scoped to it: a page
+  always has a spinner running somewhere).
+- **A group rule cannot beat a utility on the same element.** MediaCard's hover edge was a
+  component rule against a resting `border-border` utility and never painted; its check
+  went red the first time it ran.
 
 ## 2026-10-15 — integration gate B (round two: charts, content, selection, dates, form state, forced colours)
 

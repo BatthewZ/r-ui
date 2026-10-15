@@ -2,10 +2,17 @@
 // Owned by the "preferences" group: add one export line per component.
 export { DensitySwitcher, type DensitySwitcherProps } from "./DensitySwitcher";
 export { InputSwitcher, type InputSwitcherProps } from "./InputSwitcher";
-export { PreferencesMenu, type PreferencesMenuLabels, type PreferencesMenuProps } from "./PreferencesMenu";
+export { PreferencesMenu, type PreferencesMenuProps } from "./PreferencesMenu";
+export {
+  DEFAULT_PREFERENCES_MENU_LABELS,
+  type DensitySwitcherLabels,
+  type InputSwitcherLabels,
+  type PreferencesMenuLabels,
+  type ThemeSwitcherLabels,
+} from "./preferences-labels";
 export { ThemeScript, type ThemeScriptProps } from "./ThemeScript";
 export { type ThemeOption, ThemeSwitcher, type ThemeSwitcherProps } from "./ThemeSwitcher";
-export type { SwitcherVariant } from "./Choice";
+export type { SwitcherHTMLProps, SwitcherVariant } from "./Choice";
 export {
   applyPreferences,
   DENSITIES,

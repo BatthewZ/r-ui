@@ -1,0 +1,114 @@
+/* "marketing" group stylesheet (Hero, MediaCard, Carousel). Imported by
+   src/styles.css inside `@layer components`, so a caller's utility (`className`)
+   always beats these rules. Plain rules, tokens only. */
+
+/* ── MediaCard ──────────────────────────────────────────────────────────────
+   Hover lifts the card by a motion distance over a motion duration, so reduced
+   motion (both tokens collapse) keeps it still; the edge firms as well, so the
+   hover still reads without the movement (`hover:border-border-strong` on the
+   element: the resting `border-border` is a utility, which a rule in this layer
+   cannot beat). No shadow: depth is for floating layers, and a lifted card is
+   not one. */
+.r-marketing-media-card {
+  transition:
+    translate var(--DURATION-NORMAL) var(--EASE-STANDARD),
+    border-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-marketing-media-card:hover {
+  translate: 0 calc(var(--MOTION-DISTANCE-SM) * -1);
+}
+
+/* The media box clips its image to the card's top corners (the card itself must
+   not clip: the focus ring is drawn just outside it). */
+.r-marketing-media-card-media {
+  overflow: clip;
+  border-start-start-radius: calc(var(--RADIUS-LG) - var(--BORDER-WIDTH));
+  border-start-end-radius: calc(var(--RADIUS-LG) - var(--BORDER-WIDTH));
+}
+/* No image: a quiet ink wash behind a muted glyph, readable on any surface. */
+.r-marketing-media-card-placeholder {
+  background: color-mix(in oklab, var(--C-TEXT-PRIMARY) 6%, transparent);
+}
+
+/* The stretched link: its ::after covers the card (border included), so a press
+   anywhere on it follows the title's link. Its focus ring is drawn on that box,
+   around the whole card, and the link's own ring is zeroed (`outline: 0 none`:
+   forced colours would revive a bare `none` as a second ring). */
+.r-marketing-media-card-link {
+  outline: 0 none;
+}
+.r-marketing-media-card-link::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--BORDER-WIDTH) * -1);
+  border-radius: var(--RADIUS-LG);
+}
+.r-marketing-media-card-link:focus-visible {
+  outline: 0 none;
+}
+.r-marketing-media-card-link:focus-visible::after {
+  outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+  outline-offset: var(--FOCUS-OFFSET);
+}
+.r-marketing-media-card:hover .r-marketing-media-card-link {
+  text-decoration-line: underline;
+}
+/* The footer is an icon button tall with or without actions, so meta lines sit at
+   the same height across a row of cards. */
+.r-marketing-media-card-footer {
+  min-block-size: calc(var(--ICON) + 2 * var(--R-SIZE-4) + var(--R-SIZE-2));
+}
+
+/* Secondary actions come after the link in the tree and are positioned, so they
+   paint (and take presses) above its stretched box with no z-index. */
+.r-marketing-media-card-actions {
+  position: relative;
+}
+
+/* ── Carousel ───────────────────────────────────────────────────────────────
+   A native scroll-snap row. Each slide's basis shares the track between
+   `--r-marketing-carousel-per` slides (set by container-query utilities on the
+   track) and, when there are more slides than that, leaves a peek of the next
+   one. `clamp(0, count - per, 1)` is 1 with more slides than fit, else 0, so a
+   row that fits has no stub at its end; `flex-grow` then fills it.
+
+   The track's padding is the focus ring's reach, so a slide's own controls keep
+   their whole ring inside the scroller's clip; `scroll-padding` makes the snap
+   line the content edge. */
+.r-marketing-carousel-track {
+  --r-marketing-carousel-gap: var(--R-SIZE-2);
+  --r-marketing-carousel-peek: calc(var(--R-SIZE-1) * 2);
+  --r-marketing-carousel-ring: calc(var(--FOCUS-WIDTH) + var(--FOCUS-OFFSET));
+  display: flex;
+  gap: var(--r-marketing-carousel-gap);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: var(--r-marketing-carousel-ring);
+  scroll-padding-inline: var(--r-marketing-carousel-ring);
+  scrollbar-width: thin;
+  scrollbar-color: var(--C-BORDER-STRONG) transparent;
+}
+@media (prefers-reduced-motion: reduce) {
+  .r-marketing-carousel-track {
+    scroll-behavior: auto;
+  }
+}
+.r-marketing-carousel-slide {
+  flex: 1 0
+    calc(
+      (
+          100% - var(--r-marketing-carousel-gap) * (var(--r-marketing-carousel-per) - 1) - var(--r-marketing-carousel-peek) *
+            clamp(0, var(--r-marketing-carousel-count) - var(--r-marketing-carousel-per), 1)
+        ) / var(--r-marketing-carousel-per)
+    );
+  min-inline-size: 0;
+  scroll-snap-align: start;
+}
+
+/* Dots sit a hit floor apart (centre to centre), so each keeps its own presses
+   at coarse input too; their look is utilities on the element. */
+.r-marketing-carousel-dot {
+  margin-inline: calc((var(--HIT-MIN) - var(--R-SIZE-4)) / 2);
+}

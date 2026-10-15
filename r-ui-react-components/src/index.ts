@@ -17,6 +17,9 @@ export * from "./components/disclosure";
 export * from "./components/content";
 export * from "./components/dates";
 export * from "./components/charts";
+export * from "./components/marketing";
+export * from "./components/steps";
+export * from "./components/commands";
 
 export * from "./hooks";
 export * from "./util";

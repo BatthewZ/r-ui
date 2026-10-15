@@ -164,3 +164,97 @@ export const FOOTER = [
 ];
 
 export const LEGAL = ["Privacy", "Terms", "Cookie settings"];
+
+export interface Post {
+  slug: string;
+  title: string;
+  description: string;
+  author: string;
+  date: string;
+  minutes: number;
+  /** The kind of piece, shown as a badge; omitted for an ordinary essay. */
+  kind?: string;
+  /** The cover's file name under `art/`; without one the card shows its placeholder. */
+  art?: "pages" | "readers" | "kiln" | "grid";
+}
+
+export const POSTS: Post[] = [
+  {
+    slug: "group-by-reader",
+    title: "Group by reader: one release, three audiences",
+    description: "Admins, developers and everyone else want different things from the same release. How to give each their own section without writing three notes.",
+    author: "Maya Okafor",
+    date: "2026-09-30",
+    minutes: 6,
+    kind: "Guide",
+    art: "readers",
+  },
+  {
+    slug: "release-day",
+    title: "What we changed about release day",
+    description: "We moved the release meeting to after the note was published. It got shorter.",
+    author: "Joris van Dijk",
+    date: "2026-09-12",
+    minutes: 4,
+    art: "kiln",
+  },
+  {
+    slug: "permissions",
+    title: "Writing about permissions without frightening anyone",
+    description: "Security changes are the ones admins read most carefully. Say what changed, who it affects and whether anything needs doing, in that order.",
+    author: "Ines Albrecht",
+    date: "2026-08-28",
+    minutes: 7,
+    art: "grid",
+  },
+  {
+    slug: "house-style",
+    title: "A house style for release notes, in nine rules",
+    description: "Tense, person, numbers, dates and the word “various”. The style sheet we give every new editor.",
+    author: "Maya Okafor",
+    date: "2026-08-14",
+    minutes: 5,
+    kind: "Template",
+    art: "pages",
+  },
+];
+
+export interface Quote {
+  quote: string;
+  name: string;
+  role: string;
+  company: string;
+}
+
+export const QUOTES: Quote[] = [
+  {
+    quote: "We used to skip release notes whenever we were busy, which was always. Now they ship with the release.",
+    name: "Lena Hoffmann",
+    role: "Product Lead",
+    company: "Marrow & Fig",
+  },
+  {
+    quote: "Our release notes used to be a list of ticket numbers. Now sales forwards them to customers without editing.",
+    name: "Daniel Osei",
+    role: "Engineering Manager",
+    company: "Halden Labs",
+  },
+  {
+    quote: "Approval before publishing was the feature that got legal to say yes.",
+    name: "Sofia Marchetti",
+    role: "Compliance Lead",
+    company: "Corvid Health",
+  },
+  {
+    quote: "We publish to the docs, the app and email from one draft. That used to be three people and an afternoon.",
+    name: "Kenji Watanabe",
+    role: "Developer Relations",
+    company: "Tessellate",
+  },
+  {
+    quote: "The editor learned our house style in about four releases. Now the first draft is usually the last one.",
+    name: "Amara Nwosu",
+    role: "Technical Writer",
+    company: "Brightwater Freight",
+  },
+];

@@ -1,0 +1,4 @@
+/* The one allowance, exactly as allowed. */
+.r-overlays-surface {
+  max-inline-size: min(var(--r-overlays-measure, var(--MEASURE)), 100vw - 2 * var(--R-SIZE-2));
+}

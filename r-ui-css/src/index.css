@@ -1,5 +1,5 @@
 /* @batthewz/r-ui-css: the public entry. Tailwind v4, the token contract (the default
-   theme IS :root), animations, base defaults and prose regions.
+   theme IS :root), animations, base defaults, prose regions and print rules.
 
    No theme override layer is imported. Every other theme, the worked examples
    included, is opt-in: import it after this file. */
@@ -8,3 +8,4 @@
 @import "./animations/index.css";
 @import "./base.css";
 @import "./prose.css";
+@import "./print.css";

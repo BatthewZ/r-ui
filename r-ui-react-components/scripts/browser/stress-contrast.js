@@ -1,4 +1,4 @@
-// Browser check: in the dark example theme at compact density with coarse input,
+// Browser check: in a dark theme (the first the showcase lists) at compact density with coarse input,
 // every visible text element on the Stress page reads at 4.5:1 or better.
 //
 // The CSS package's contrast gate proves the TOKEN pairs; this proves what is
@@ -25,12 +25,14 @@ async (page) => {
   const base = page.url().split("#")[0];
   const fail = [];
   const runs = [];
+  const dark = await darkTheme(page);
 
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${base}#/stress`);
-    await page.evaluate(() =>
-      localStorage.setItem("r-ui-showcase:view", JSON.stringify({ theme: "nightfall", density: "compact", input: "coarse" })),
+    await page.evaluate(
+      (theme) => localStorage.setItem("r-ui-showcase:view", JSON.stringify({ theme, density: "compact", input: "coarse" })),
+      dark,
     );
     await page.reload();
     await waitForShowcase(page);
@@ -174,8 +176,8 @@ async (page) => {
       };
     }, MIN);
 
-    const label = `nightfall/compact/coarse@${width}`;
-    if (m.scheme !== "1") fail.push(`${label}: harness --SCHEME-DARK is ${m.scheme}, nightfall is dark (1)`);
+    const label = `${dark}/compact/coarse@${width}`;
+    if (m.scheme !== "1") fail.push(`${label}: harness --SCHEME-DARK is ${m.scheme}, ${dark} is dark (1)`);
     if (m.hit !== 44) fail.push(`${label}: harness --HIT-MIN ${m.hit}px, coarse predicts 44px`);
     if (m.pageTitle === null || Math.abs(m.pageTitle - m.tokenRatio) > 0.05) {
       fail.push(`${label}: harness: the page title measures ${m.pageTitle}:1, its tokens give ${m.tokenRatio}:1`);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dateTimeFormatter,
   formatBytes,
   formatCompact,
   formatDelta,
@@ -9,6 +10,7 @@ import {
   formatUnit,
   isPresent,
   MISSING,
+  relativeTimeFormatter,
 } from "./format";
 
 const en = { locale: "en-US" } as const;
@@ -92,6 +94,13 @@ describe("formatPercent", () => {
   it("respects locale and precision", () => {
     expect(plain(formatPercent(0.1234, { ...de, maximumFractionDigits: 2 }))).toBe("12,34 %");
   });
+
+  // The one-digit default cap must yield to a larger minimum, or Intl throws.
+  it("takes a minimum fraction above the default cap", () => {
+    expect(formatPercent(0.123, { ...en, minimumFractionDigits: 2 })).toBe("12.30%");
+    expect(formatCompact(1234, { ...en, minimumFractionDigits: 2 })).toBe("1.23K");
+    expect(plain(formatBytes(1536, { ...en, minimumFractionDigits: 2 }))).toBe("1.50 kB");
+  });
 });
 
 describe("formatUnit", () => {
@@ -127,5 +136,42 @@ describe("formatBytes", () => {
 
   it("keeps the sign of a negative size", () => {
     expect(plain(formatBytes(-2048, en))).toBe("-2 kB");
+  });
+
+  it("steps up a unit when rounding reaches 1024", () => {
+    expect(plain(formatBytes(1024 ** 2 - 1, en))).toBe("1 MB");
+    expect(plain(formatBytes(-(1024 ** 2 - 1), en))).toBe("-1 MB");
+    expect(plain(formatBytes(1023.6, en))).toBe("1 kB");
+    // Just below the rounding edge stays in the smaller unit.
+    expect(plain(formatBytes(1023 * 1024, en))).toBe("1,023 kB");
+    expect(plain(formatBytes(1024 ** 2 - 1, { ...en, maximumFractionDigits: 3 }))).toBe("1,023.999 kB");
+  });
+});
+
+describe("dateTimeFormatter / relativeTimeFormatter", () => {
+  it("returns one shared instance per locale + options", () => {
+    const a = dateTimeFormatter("en-GB", { month: "short" });
+    expect(a).toBe(dateTimeFormatter("en-GB", { month: "short" }));
+    expect(a).not.toBe(dateTimeFormatter("en-GB", { month: "long" }));
+    expect(a).not.toBe(dateTimeFormatter("de-DE", { month: "short" }));
+    expect(relativeTimeFormatter("en", { numeric: "auto" })).toBe(relativeTimeFormatter("en", { numeric: "auto" }));
+  });
+
+  it("formats with the locale and options it was given", () => {
+    const march = Date.UTC(2026, 2, 15, 12);
+    expect(dateTimeFormatter("en-US", { month: "long", timeZone: "UTC" }).format(march)).toBe("March");
+    expect(dateTimeFormatter("de-DE", { month: "long", timeZone: "UTC" }).format(march)).toBe("März");
+    expect(relativeTimeFormatter("en", { numeric: "auto" }).format(-1, "day")).toBe("yesterday");
+  });
+
+  it("falls back to the runtime default for a malformed locale instead of throwing", () => {
+    expect(() => new Intl.DateTimeFormat("not a locale!")).toThrow(RangeError);
+    const f = dateTimeFormatter("not a locale!", { year: "numeric", timeZone: "UTC" });
+    expect(f.format(Date.UTC(2026, 0, 1))).toMatch(/2026/);
+    expect(relativeTimeFormatter(["not a locale!"]).format(2, "day")).toMatch(/2/);
+  });
+
+  it("still throws for bad options: a fallback locale cannot fix those", () => {
+    expect(() => dateTimeFormatter("en-US", { timeZone: "Not/AZone" })).toThrow(RangeError);
   });
 });

@@ -137,4 +137,11 @@ describe("isExternalHref", () => {
     for (const href of ["https://a.b", "mailto:x@y.z", "//cdn.example.com/x"]) expect(isExternalHref(href)).toBe(true);
     for (const href of ["/a", "a/b", "?page=2", "#top", "./x:y"]) expect(isExternalHref(href)).toBe(false);
   });
+
+  it("resolves as a browser does: a backslash, a third slash, whitespace or a tab can still name another host", () => {
+    for (const href of ["/\\evil.example", "\\\\evil.example", "\\/evil.example", "///evil.example", " //evil.example", "/\t/evil.example", "\n//evil.example"]) {
+      expect(isExternalHref(href)).toBe(true);
+    }
+    for (const href of ["", "/a\\b", "a\\b", "/a//b", "./a?x=//b#//c"]) expect(isExternalHref(href)).toBe(false);
+  });
 });

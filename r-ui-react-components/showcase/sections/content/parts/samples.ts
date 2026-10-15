@@ -57,7 +57,7 @@ export const OVER_BUDGET = `!function(){${"var a=1;".repeat(320)}}();`;
 
 export const RELEASE_NOTES = `# Release 2.4
 
-The **rate limiter** now takes a window, and the dashboard reads _live_ quotas. See the [upgrade guide](#/overview/content-codebook) or the [changelog on GitHub](https://github.com/example/acme/releases).
+The **rate limiter** now takes a window, and the dashboard reads _live_ quotas. See the [upgrade guide](#/overview/content-codeblock) or the [changelog on GitHub](https://github.com/example/acme/releases).
 
 ## What changed
 

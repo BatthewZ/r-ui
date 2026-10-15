@@ -1,7 +1,8 @@
 "use client";
 import { useMediaQuery } from "./use-media-query";
 
-const QUERY = "(prefers-reduced-motion: reduce)";
+/** The media query behind the reduced-motion preference. */
+export const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 /**
  * Whether the user has asked their OS for reduced motion.
@@ -14,5 +15,5 @@ const QUERY = "(prefers-reduced-motion: reduce)";
  * const reduced = usePrefersReducedMotion();
  */
 export function usePrefersReducedMotion(): boolean {
-  return useMediaQuery(QUERY);
+  return useMediaQuery(REDUCED_MOTION_QUERY);
 }

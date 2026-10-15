@@ -15,6 +15,7 @@ import { SegmentedControl } from "./SegmentedControl";
 import { Select } from "./Select";
 import { Switch } from "./Switch";
 import { Textarea } from "./Textarea";
+import type { FieldValidator } from "./form-state-store";
 import { defineSchema, deferred, issue } from "./form-state.test.schema";
 import { Form, type FormApi, useFieldArray, useForm, useFormState, useFormValue, type UseFormOptions } from "./use-form";
 
@@ -422,26 +423,29 @@ const conditionsSchema = defineSchema<{ conditions: Condition[] }>((value) => [
   ...value.conditions.flatMap((c, i) => (c.metric ? [] : [issue("Choose a metric", "conditions", i, "metric")])),
 ]);
 
-function Conditions() {
-  const form = useForm({
-    schema: conditionsSchema,
-    defaultValues: { conditions: [{ metric: "cpu" }, { metric: "" }] },
-  });
+function Conditions({
+  defaultValues = { conditions: [{ metric: "cpu" }, { metric: "" }] },
+  validate,
+}: {
+  defaultValues?: { conditions: Condition[] };
+  validate?: FieldValidator;
+}) {
+  const form = useForm({ schema: conditionsSchema, defaultValues });
   return (
     <Form form={form}>
-      <ConditionRows />
+      <ConditionRows validate={validate} />
       <button type="submit">Save</button>
     </Form>
   );
 }
 
-function ConditionRows() {
+function ConditionRows({ validate }: { validate?: FieldValidator | undefined }) {
   const { items, append, remove, move, error } = useFieldArray<Condition>("conditions");
   return (
     <>
       {items.map((item) => (
         <div key={item.key} data-testid="row">
-          <Field name={`${item.name}.metric`}>
+          <Field name={`${item.name}.metric`} validate={validate}>
             <Field.Label>Metric {item.index + 1}</Field.Label>
             <Input />
             <Field.Error />
@@ -487,6 +491,30 @@ describe("useFieldArray", () => {
     expect(screen.queryByText("Add at least one condition")).toBeNull();
     // After a submit every field is reportable: the new empty row says so.
     expect(screen.getByRole("textbox", { name: "Metric 1" })).toHaveAccessibleDescription("Choose a metric");
+  });
+
+  it("keeps a row's field-check error with it through a move and a removal", async () => {
+    const user = userEvent.setup();
+    render(
+      <Conditions
+        defaultValues={{ conditions: [{ metric: "cpu" }, { metric: "bogus" }, { metric: "disk" }] }}
+        validate={(value) => (value === "bogus" ? "Unknown metric" : undefined)}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    const bogus = screen.getByRole("textbox", { name: "Metric 2" });
+    await waitFor(() => expect(bogus).toHaveFocus());
+    expect(bogus).toHaveAccessibleDescription("Unknown metric");
+
+    await user.click(screen.getByRole("button", { name: "Up 2" }));
+    expect(screen.getByRole("textbox", { name: "Metric 1" })).toBe(bogus);
+    expect(bogus).toHaveAccessibleDescription("Unknown metric");
+    expect(screen.getByRole("textbox", { name: "Metric 2" })).not.toHaveAttribute("aria-invalid");
+
+    await user.click(screen.getByRole("button", { name: "Remove 2" }));
+    expect(screen.getByRole("textbox", { name: "Metric 1" })).toBe(bogus);
+    expect(bogus).toHaveAccessibleDescription("Unknown metric");
+    expect(screen.getByRole("textbox", { name: "Metric 2" })).toHaveValue("disk");
   });
 });
 

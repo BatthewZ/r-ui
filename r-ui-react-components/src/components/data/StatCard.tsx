@@ -5,7 +5,9 @@ import { type HTMLAttributes, type ReactNode, type Ref, useId } from "react";
 import { formatDelta, isPresent, MISSING } from "../../util/format";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Skeleton } from "../primitives";
+import { TONE_LABELS } from "../../util/tone";
 import { StatusIcon } from "./data-tone";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 /** Whether the change is good news. Decided by the caller, never by the sign. */
 export type Sentiment = "good" | "bad" | "neutral";
@@ -34,7 +36,7 @@ export interface StatCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "tit
   /** Context for the delta: "vs prior 7d". */
   deltaLabel?: ReactNode;
   /** The tile's words, per instance (translate them, or say "faster" for latency). */
-  labels?: Partial<StatCardLabels>;
+  labels?: LabelsProp<StatCardLabels>;
   /** A `Sparkline` (or any small chart). Sits beside the value in a wide tile, under it in a narrow one. */
   sparkline?: ReactNode;
   /** A status for the metric (a `StatusLabel`), under the delta. */
@@ -61,7 +63,12 @@ export interface StatCardLabels {
   stale: string;
 }
 
-const DEFAULT_LABELS: StatCardLabels = { good: "better", bad: "worse", neutral: "", stale: "Stale" };
+export const DEFAULT_STAT_CARD_LABELS: StatCardLabels = {
+  good: "better",
+  bad: "worse",
+  neutral: "",
+  stale: TONE_LABELS.stale,
+};
 
 /**
  * A KPI tile: label, value, change, and optionally a sparkline, a status and
@@ -92,9 +99,13 @@ export function StatCard({
 }: StatCardProps) {
   const labelId = useId();
   const hasDelta = isPresent(delta);
-  const Arrow = !hasDelta || delta === 0 ? Minus : delta > 0 ? ArrowUp : ArrowDown;
-  const labels = { ...DEFAULT_LABELS, ...labelsProp };
-  const sentimentWord = labels[sentiment];
+  // A change that PRINTS as zero (0.04 at one decimal) is no change to the
+  // reader: no arrow, no hue, no verdict, whatever its sign or sentiment.
+  const flat = !hasDelta || format(delta) === format(0);
+  const Arrow = flat ? Minus : delta > 0 ? ArrowUp : ArrowDown;
+  const shownSentiment: Sentiment = flat ? "neutral" : sentiment;
+  const labels = mergeLabels(DEFAULT_STAT_CARD_LABELS, labelsProp);
+  const sentimentWord = labels[shownSentiment];
   const missingValue = value === null || value === undefined || value === "";
 
   return (
@@ -143,10 +154,10 @@ export function StatCard({
       ) : (
         (hasDelta || deltaLabel) && (
           <p
-            data-sentiment={hasDelta ? sentiment : undefined}
+            data-sentiment={hasDelta ? shownSentiment : undefined}
             className={cn(
               "flex flex-wrap items-center gap-x-r5 text-body-3 font-semibold tabular-nums",
-              hasDelta ? SENTIMENT_TEXT[sentiment] : "text-fg-muted",
+              hasDelta ? SENTIMENT_TEXT[shownSentiment] : "text-fg-muted",
               classNames?.delta,
             )}
           >

@@ -11,7 +11,8 @@ import {
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn } from "../../util/style";
 
-import { useFieldControl, useFieldValue } from "./Field";
+import { useFieldControl } from "./Field";
+import { useRadioValue } from "./RadioGroup";
 
 interface SegmentedContextValue {
   name: string;
@@ -66,15 +67,7 @@ function SegmentedControlRoot({
     "aria-describedby": describedByProp,
     "aria-invalid": ariaInvalidProp,
   });
-  // In a Field bound to a Form, the form owns the value (unless the caller passed one).
-  const [current, setValue, fieldName] = useFieldValue<string | undefined>({
-    value,
-    defaultValue,
-    onChange: (next) => {
-      if (next !== undefined) onValueChange?.(next);
-    },
-    fromForm: (raw) => (raw === undefined || raw === null ? undefined : String(raw)),
-  });
+  const [current, setValue, fieldName] = useRadioValue(value, defaultValue, onValueChange);
 
   return (
     <SegmentedContext

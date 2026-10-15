@@ -42,3 +42,73 @@
     outline: var(--BORDER-WIDTH) solid CanvasText;
   }
 }
+
+/* Timeline. Each event is a two-track grid: the rail (mark, then the connector
+   growing to the item's end) and the body. The connector is a real element with
+   a border, not a background, so it survives forced colours, and it sits in its
+   own track, so RTL moves it with the inline-start edge. The mark is an icon plus
+   a --R-SIZE-5 ring, sized from density tokens (never --CONTROL-H, which the hit
+   floor raises on coarse input: a mark is not a target). The body's first line
+   is nudged down by half the difference between the mark and the title's line
+   box, so the mark centres on it at either density. */
+.r-data-timeline-list {
+  display: flex;
+  flex-direction: column;
+}
+.r-data-timeline-group > .r-data-timeline-list {
+  padding-block-start: var(--R-SIZE-3);
+}
+.r-data-timeline-group + .r-data-timeline-group {
+  padding-block-start: var(--R-SIZE-4);
+}
+.r-data-timeline-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--R-SIZE-3);
+  padding-block-end: var(--R-SIZE-3);
+}
+.r-data-timeline-item:last-child {
+  padding-block-end: 0;
+}
+.r-data-timeline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.r-data-timeline-mark {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  inline-size: calc(var(--ICON) + 2 * var(--R-SIZE-5));
+  block-size: calc(var(--ICON) + 2 * var(--R-SIZE-5));
+  border-radius: var(--RADIUS-FULL);
+}
+.r-data-timeline-mark > svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+/* A stateless event: a solid dot drawn as a border, so forced colours keep it. */
+.r-data-timeline-dot {
+  inline-size: var(--R-SIZE-4);
+  block-size: var(--R-SIZE-4);
+  border: calc(var(--R-SIZE-4) / 2) solid var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-FULL);
+}
+.r-data-timeline-line {
+  flex: 1 1 auto;
+  margin-block: var(--R-SIZE-6);
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+.r-data-timeline-item:last-child .r-data-timeline-line {
+  visibility: hidden;
+}
+.r-data-timeline-body {
+  padding-block-start: calc((var(--ICON) + 2 * var(--R-SIZE-5) - var(--BodyText-1-line-height)) / 2);
+}
+.r-data-timeline-description[data-clamped] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}

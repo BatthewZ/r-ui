@@ -32,6 +32,13 @@ describe("niceTicks", () => {
     expect(niceTicks(0, 5.5, 6).hi).toBe(6);
   });
 
+  it("drops a multiple that crowds a pinned end, at either end", () => {
+    expect(niceTicks(0, 1024, 5, false, true)).toEqual({ lo: 0, hi: 1024, ticks: [0, 200, 400, 600, 800, 1024] });
+    expect(niceTicks(-24, 1000, 5, true, false).ticks).toEqual([-24, 200, 400, 600, 800, 1000]);
+    // A multiple a full step away stays.
+    expect(niceTicks(0, 9.9, 5, false, true).ticks).toEqual([0, 2, 4, 6, 8, 9.9]);
+  });
+
   it("keeps one tick for a zero span rather than inventing a range", () => {
     expect(niceTicks(3, 3)).toEqual({ lo: 3, hi: 3, ticks: [3] });
   });
@@ -138,6 +145,13 @@ describe("time ticks", () => {
     expect(timeTickLabel(utc(2026, 9, 15), { unit: "hour", step: 6 }, "UTC", "en-GB")).toBe("15 Oct");
     expect(timeTickLabel(utc(2026, 3, 1), { unit: "month", step: 3 }, "UTC", "en-GB")).toBe("Apr");
     expect(timeTickLabel(utc(2027, 0, 1), { unit: "month", step: 3 }, "UTC", "en-GB")).toBe("2027");
+  });
+
+  it("reads a malformed locale as the runtime default rather than throwing", () => {
+    const tick = utc(2027, 0, 1);
+    expect(timeTickLabel(tick, { unit: "month", step: 3 }, "UTC", "not a locale!")).toBe(
+      timeTickLabel(tick, { unit: "month", step: 3 }, "UTC"),
+    );
   });
 
   it("chooses the finest rung whose labels fit the width", () => {

@@ -45,25 +45,23 @@ export default function SwitchersSection() {
       </Row>
       <Row label="Select variant (a long theme list, a tight toolbar) · translated words">
         <Grid columns={{ base: 1, "@3xl": 3 }} gap="r2">
-          <ThemeSwitcher themes={THEMES} storageKey={storageKey} variant="select" label="Colour theme" />
+          <ThemeSwitcher themes={THEMES} storageKey={storageKey} variant="select" labels={{ theme: "Colour theme" }} />
           <DensitySwitcher
             storageKey={storageKey}
             variant="select"
-            label="Dichte"
-            labels={{ comfortable: "Komfortabel", compact: "Kompakt" }}
+            labels={{ density: "Dichte", densities: { comfortable: "Komfortabel", compact: "Kompakt" } }}
           />
           <InputSwitcher
             storageKey={storageKey}
             variant="select"
-            label="Eingabe"
-            labels={{ auto: "Automatisch", fine: "Maus und Stift", coarse: "Berührung" }}
+            labels={{ input: "Eingabe", inputs: { auto: "Automatisch", fine: "Maus und Stift", coarse: "Berührung" } }}
           />
         </Grid>
       </Row>
       <Row label="In a compact region · disabled">
         <div data-density="compact" className="flex flex-wrap items-center gap-r3">
-          <DensitySwitcher storageKey={storageKey} label="Density (compact region)" />
-          <ThemeSwitcher themes={THEMES} storageKey={storageKey} label="Theme (disabled)" disabled />
+          <DensitySwitcher storageKey={storageKey} aria-label="Density (compact region)" />
+          <ThemeSwitcher themes={THEMES} storageKey={storageKey} aria-label="Theme (disabled)" disabled />
         </div>
       </Row>
     </Stack>

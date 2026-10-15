@@ -4,30 +4,30 @@ import {
   type ComponentPropsWithRef,
   createContext,
   type ReactNode,
+  type RefObject,
   useContext,
-  useEffect,
-  useId,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { useLightDismiss } from "../../hooks/use-light-dismiss";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
-import { Button, type ButtonProps, IconButton } from "../primitives";
-import { Slot, useExitPresence, usePresence, useRegister } from "./internal";
+import { type ButtonProps, IconButton } from "../primitives";
+import { ButtonOrSlot, type OpenStateProps, useExitPresence, usePartId, useRegisteredId } from "./internal";
 
 interface ModalContextValue {
   open: boolean;
   setOpen: (open: boolean) => void;
-  titleId: string;
-  descriptionId: string;
-  hasTitle: boolean;
-  hasDescription: boolean;
-  registerTitle: (present: boolean) => void;
-  registerDescription: (present: boolean) => void;
+  /** The id the mounted Title rendered (the caller's or a generated one); undefined without a Title. */
+  titleId: string | undefined;
+  descriptionId: string | undefined;
+  registerTitle: (id: string | undefined) => void;
+  registerDescription: (id: string | undefined) => void;
 }
 
 const ModalContext = createContext<ModalContextValue | null>(null);
@@ -40,32 +40,18 @@ function useModal(part: string) {
   return ctx;
 }
 
-export interface DialogProps {
-  open?: boolean;
-  defaultOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
+export interface DialogProps extends OpenStateProps {
   children: ReactNode;
 }
 
 /** State root shared by `Dialog` and `Drawer`. Renders no element. */
 function ModalRoot({ open: openProp, defaultOpen = false, onOpenChange, children }: DialogProps) {
   const [open, setOpen] = useControllableState({ value: openProp, defaultValue: defaultOpen, onChange: onOpenChange });
-  const titleId = useId();
-  const descriptionId = useId();
-  const [hasTitle, registerTitle] = usePresence();
-  const [hasDescription, registerDescription] = usePresence();
+  const [titleId, registerTitle] = useRegisteredId();
+  const [descriptionId, registerDescription] = useRegisteredId();
   const value = useMemo(
-    () => ({
-      open,
-      setOpen,
-      titleId,
-      descriptionId,
-      hasTitle,
-      hasDescription,
-      registerTitle,
-      registerDescription,
-    }),
-    [open, setOpen, titleId, descriptionId, hasTitle, hasDescription, registerTitle, registerDescription]
+    () => ({ open, setOpen, titleId, descriptionId, registerTitle, registerDescription }),
+    [open, setOpen, titleId, descriptionId, registerTitle, registerDescription]
   );
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
 }
@@ -75,21 +61,26 @@ export type DialogTriggerProps = ButtonProps & {
   asChild?: boolean;
 };
 
-function ModalTrigger({ asChild = false, onClick, children, ...props }: DialogTriggerProps) {
+function ModalTrigger({ asChild = false, onClick, ...props }: DialogTriggerProps) {
   const { open, setOpen } = useModal("Dialog.Trigger");
-  const triggerProps = {
-    ...props,
-    "aria-haspopup": "dialog" as const,
-    "aria-expanded": open,
-    onClick: composeEventHandlers(onClick, () => setOpen(true)),
-  };
-  if (asChild) return <Slot {...triggerProps}>{children}</Slot>;
   return (
-    <Button variant="secondary" {...triggerProps}>
-      {children}
-    </Button>
+    <ButtonOrSlot
+      asChild={asChild}
+      {...props}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      onClick={composeEventHandlers(onClick, () => setOpen(true))}
+    />
   );
 }
+
+/** The dialog's own words. */
+export interface DialogLabels {
+  /** The corner close button's accessible name. */
+  close: string;
+}
+
+export const DEFAULT_DIALOG_LABELS: Readonly<DialogLabels> = { close: "Close" };
 
 export type ModalContentProps = Omit<ComponentPropsWithRef<"dialog">, "open" | "role"> & {
   /**
@@ -103,10 +94,38 @@ export type ModalContentProps = Omit<ComponentPropsWithRef<"dialog">, "open" | "
   lightDismiss?: boolean;
   /** Show the corner close button. @default true, false for `alertdialog` */
   showClose?: boolean;
-  /** The close button's accessible name. @default "Close" */
-  closeLabel?: string;
+  /**
+   * Where focus lands on open, for an element `autoFocus` cannot reach (one
+   * that is not a form control or button). Otherwise a child's `autoFocus`
+   * wins, then the first focusable element, as the browser's `showModal()`
+   * chooses.
+   */
+  initialFocus?: RefObject<HTMLElement | null>;
+  labels?: LabelsProp<DialogLabels>;
   classNames?: SlotClassNames<"close">;
 };
+
+/**
+ * Opens the `<dialog>` from its FIRST child, so it runs after the children are
+ * in the DOM but before the later siblings' `autoFocus` (React commits siblings
+ * in order, children before parents). A child's `autoFocus` then lands in an
+ * open dialog; opened from the dialog's own effect, it would hit a
+ * `display: none` element and do nothing, and `showModal()` would pick the
+ * first focusable element instead. The dialog is found through a hidden
+ * marker: its ref is attached before this effect runs, the dialog's own ref
+ * (a parent) only after it.
+ */
+function ShowModal({ open }: { open: boolean }) {
+  const marker = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const dialog = marker.current?.parentElement;
+    if (!open || !(dialog instanceof HTMLDialogElement) || dialog.open) return;
+    // Engines without `showModal` get a non-modal dialog rather than nothing.
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
+  }, [open]);
+  return <span ref={marker} hidden />;
+}
 
 /**
  * The `<dialog>` itself, opened with `showModal()`: the browser supplies the top
@@ -124,7 +143,8 @@ function ModalContent({
   role = "dialog",
   lightDismiss,
   showClose,
-  closeLabel = "Close",
+  initialFocus,
+  labels,
   className,
   classNames,
   children,
@@ -141,13 +161,12 @@ function ModalContent({
   const isAlert = role === "alertdialog";
   const close = showClose ?? !isAlert;
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!open || !dialog || dialog.open) return;
-    // Engines without `showModal` get a non-modal dialog rather than nothing.
-    if (typeof dialog.showModal === "function") dialog.showModal();
-    else dialog.setAttribute("open", "");
-  }, [open]);
+  const text = mergeLabels(DEFAULT_DIALOG_LABELS, labels);
+
+  // After `ShowModal` (a child, so its effect ran first) and any `autoFocus`.
+  useLayoutEffect(() => {
+    if (open) initialFocus?.current?.focus();
+  }, [open, initialFocus]);
 
   // Closing starts the CSS exit; the content stays mounted until it has run.
   const present = useExitPresence(open, dialogRef, { leave: closeDialog });
@@ -165,8 +184,9 @@ function ModalContent({
       {...props}
       ref={mergeRefs(ref, dialogRef)}
       role={isAlert ? "alertdialog" : undefined}
-      aria-labelledby={ctx.hasTitle ? ctx.titleId : undefined}
-      aria-describedby={ctx.hasDescription ? ctx.descriptionId : undefined}
+      // The caller's own wiring wins; the parts fill in only what it left unset.
+      aria-labelledby={props["aria-labelledby"] ?? ctx.titleId}
+      aria-describedby={props["aria-describedby"] ?? ctx.descriptionId}
       // Escape: keep the element open until state says otherwise, so `open`
       // stays the single source of truth.
       onCancel={composeEventHandlers(onCancel, (event) => {
@@ -185,10 +205,11 @@ function ModalContent({
     >
       {present && (
         <CloseShownContext.Provider value={close}>
+          <ShowModal open={open} />
           {children}
           {close && (
             <IconButton
-              label={closeLabel}
+              label={text.close}
               icon={<X />}
               variant="ghost"
               onClick={() => setOpen(false)}
@@ -213,25 +234,25 @@ function ModalHeader({ className, ...props }: ComponentPropsWithRef<"div">) {
   return <div className={cn("flex flex-col gap-r6", className)} {...props} />;
 }
 
-/** The accessible name of the dialog (wired to `aria-labelledby`). */
-function ModalTitle({ className, ...props }: ComponentPropsWithRef<"h2">) {
+/** The accessible name of the dialog (wired to `aria-labelledby`, by your `id` if you give one). */
+function ModalTitle({ className, id, ...props }: ComponentPropsWithRef<"h2">) {
   const ctx = useModal("Dialog.Title");
   const closeShown = useContext(CloseShownContext);
-  useRegister(ctx.registerTitle);
+  const ownId = usePartId(id, ctx.registerTitle);
   return (
     <h2
-      id={ctx.titleId}
-      className={cn("text-h3 text-fg-primary", closeShown && "pe-control", className)}
       {...props}
+      id={ownId}
+      className={cn("text-h3 text-fg-primary", closeShown && "pe-control", className)}
     />
   );
 }
 
-/** The dialog's description (wired to `aria-describedby`). */
-function ModalDescription({ className, ...props }: ComponentPropsWithRef<"p">) {
+/** The dialog's description (wired to `aria-describedby`, by your `id` if you give one). */
+function ModalDescription({ className, id, ...props }: ComponentPropsWithRef<"p">) {
   const ctx = useModal("Dialog.Description");
-  useRegister(ctx.registerDescription);
-  return <p id={ctx.descriptionId} className={cn("text-body-1 text-fg-secondary", className)} {...props} />;
+  const ownId = usePartId(id, ctx.registerDescription);
+  return <p {...props} id={ownId} className={cn("text-body-1 text-fg-secondary", className)} />;
 }
 
 /**
@@ -254,15 +275,9 @@ export type DialogCloseProps = ButtonProps & {
 };
 
 /** Closes the dialog; focus returns to where it was before it opened. */
-function ModalClose({ asChild = false, onClick, children, ...props }: DialogCloseProps) {
+function ModalClose({ asChild = false, onClick, ...props }: DialogCloseProps) {
   const { setOpen } = useModal("Dialog.Close");
-  const handleClick = composeEventHandlers(onClick, () => setOpen(false));
-  if (asChild) return <Slot {...props} onClick={handleClick}>{children}</Slot>;
-  return (
-    <Button variant="secondary" {...props} onClick={handleClick}>
-      {children}
-    </Button>
-  );
+  return <ButtonOrSlot asChild={asChild} {...props} onClick={composeEventHandlers(onClick, () => setOpen(false))} />;
 }
 
 export const modalParts = {

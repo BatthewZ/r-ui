@@ -1,0 +1,4 @@
+/* The scheme itself is not a half of a pair. */
+.r-floating-veil {
+  opacity: calc(0.5 + var(--SCHEME-DARK) * 0.25);
+}

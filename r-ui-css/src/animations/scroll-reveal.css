@@ -10,3 +10,10 @@
     opacity: 1;
   }
 }
+
+/* Paper never scrolls content into view: what was still waiting prints. */
+@media print {
+  .scroll-reveal-hidden {
+    opacity: 1;
+  }
+}

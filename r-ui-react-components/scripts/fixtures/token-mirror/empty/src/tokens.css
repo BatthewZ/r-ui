@@ -1,0 +1,4 @@
+/* The domain tokens moved out of @theme: nothing here registers a utility. */
+:root {
+  --CHART-H: 12rem;
+}

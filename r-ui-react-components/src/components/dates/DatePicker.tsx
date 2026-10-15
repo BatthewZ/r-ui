@@ -1,14 +1,15 @@
 "use client";
 import { CalendarDays } from "lucide-react";
-import { type ComponentPropsWithRef, type ReactNode, useId, useState } from "react";
+import { type ComponentPropsWithRef, type CSSProperties, type ReactNode, useId } from "react";
 
+import { useControllableState } from "../../hooks/use-controllable-state";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Input, useField, useFieldMessage, useFieldValue } from "../form";
 import { Popover } from "../overlays";
 import { IconButton } from "../primitives";
 import { Calendar } from "./Calendar";
 import { type CalendarCommonProps } from "./calendar-base";
-import { formatPattern, isSameDay, resolveLocale, startOfDay, toISODate } from "./date-core";
+import { formatPattern, isSameDay, resolveLocale, toISODate } from "./date-core";
 import {
   DEFAULT_DATE_ENTRY_LABELS,
   type DateEntryLabels,
@@ -16,6 +17,7 @@ import {
   rejectionMessage,
   useDateText,
 } from "./picker-parts";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 export interface DatePickerLabels extends DateEntryLabels {
   /** The calendar button's name, and the popup's. */
@@ -48,9 +50,17 @@ export interface DatePickerProps
   invalid?: boolean;
   /** The line under the field. Defaults to the locale's pattern ("MM/DD/YYYY"); `null` hides it. */
   hint?: ReactNode;
-  labels?: Partial<DatePickerLabels>;
-  /** `className` styles the field's frame. */
-  classNames?: SlotClassNames<"root" | "input" | "button" | "hint" | "error" | "panel" | "calendar">;
+  /** The calendar popup (controlled). */
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  labels?: LabelsProp<DatePickerLabels>;
+  /**
+   * `className` styles the root (the field and the line under it); `ref` and
+   * the rest address the `<input>`. `frame` is the field's visible box,
+   * `trigger` the calendar button.
+   */
+  classNames?: SlotClassNames<"frame" | "input" | "trigger" | "hint" | "error" | "panel" | "calendar">;
 }
 
 /**
@@ -84,6 +94,9 @@ export function DatePicker({
   isDateUnavailable,
   invalid,
   hint,
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
   labels: labelsProp,
   name,
   form,
@@ -96,12 +109,12 @@ export function DatePicker({
   onKeyDown,
   ...props
 }: DatePickerProps) {
-  const labels = { ...DEFAULT_DATE_PICKER_LABELS, ...labelsProp };
+  const labels = mergeLabels(DEFAULT_DATE_PICKER_LABELS, labelsProp);
   const locale = resolveLocale(localeProp);
   const field = useField();
   const disabled = disabledProp ?? field?.disabled ?? false;
   const readOnly = readOnlyProp ?? field?.readOnly ?? false;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useControllableState({ value: openProp, defaultValue: defaultOpen, onChange: onOpenChange });
   // In a Field bound to a Form, the form owns the date (unless the caller passed one).
   const [selected, setSelected, fieldName] = useFieldValue<Date | null>({
     value,
@@ -115,7 +128,7 @@ export function DatePicker({
   const rules = { locale, min, max, isDateUnavailable };
   const entry = useDateText({ value: selected, onCommit: setSelected, rules });
   const pattern = formatPattern(locale, labels.formatLetters);
-  const error = entry.rejected ? rejectionMessage(entry.rejected.reason, entry.rejected.text, pattern, rules, labels) : null;
+  const error = entry.rejected ? rejectionMessage(entry.rejected, pattern, rules, labels) : null;
   const hintContent = hint === undefined ? labels.hint(pattern) : hint;
   const hintShown = hintContent != null && hintContent !== false && !error;
 
@@ -127,7 +140,7 @@ export function DatePicker({
   useFieldMessage("error", errorId, error !== null);
 
   return (
-    <div className={cn("grid min-w-0 gap-r5", classNames?.root)}>
+    <div className={cn("grid min-w-0 gap-r5", className)}>
       <Popover open={open} onOpenChange={setOpen} placement="bottom-end">
         <Input
           {...props}
@@ -138,7 +151,7 @@ export function DatePicker({
           readOnly={readOnly}
           invalid={entry.rejected ? true : invalid}
           aria-describedby={[describedBy, error ? errorId : hintShown ? hintId : undefined].filter(Boolean).join(" ") || undefined}
-          className={className}
+          className={classNames?.frame}
           classNames={{ input: classNames?.input }}
           {...entry.inputProps}
           onBlur={(event) => {
@@ -155,7 +168,7 @@ export function DatePicker({
                 label={labels.chooseDate}
                 icon={<CalendarDays />}
                 disabled={disabled || readOnly}
-                className={classNames?.button}
+                className={classNames?.trigger}
               />
             </Popover.Trigger>
           }
@@ -164,7 +177,8 @@ export function DatePicker({
           aria-label={labels.chooseDate}
           // The calendar focuses its own active day: the grid, not "Previous month".
           initialFocus={-1}
-          className={cn("w-max max-w-[calc(100vw-var(--R-SIZE-2)*2)]", classNames?.panel)}
+          className={cn("r-dates-panel w-max", classNames?.panel)}
+          style={{ "--r-dates-months": Math.max(1, Math.floor(months ?? 1)) } as CSSProperties}
         >
           <Calendar
             autoFocus
@@ -179,7 +193,7 @@ export function DatePicker({
             className={classNames?.calendar}
             onValueChange={(date) => {
               entry.reset();
-              setSelected(startOfDay(date));
+              setSelected(date);
               setOpen(false);
             }}
           />

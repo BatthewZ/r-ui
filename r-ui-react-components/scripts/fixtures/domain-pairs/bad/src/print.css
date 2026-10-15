@@ -1,0 +1,4 @@
+/* Print reads one half: it ignores the scheme. */
+.r-print-mark {
+  background: var(--C-SERIES-1-DARK);
+}

@@ -2,11 +2,11 @@ import { CircleCheck, LoaderCircle, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Heatmap } from "../../../src/components/charts";
-import { type DataTableColumn, DataTable, Meter } from "../../../src/components/data";
-import { Inline, Stack } from "../../../src/components/layout";
+import { type DataTableColumn, DataTable, Meter, Timeline, type TimelineEvent } from "../../../src/components/data";
+import { Stack } from "../../../src/components/layout";
 import { Card, Link, StatusLabel, type Tone } from "../../../src/components/primitives";
 import { formatCompact, formatPercent, formatUnit } from "../../../src/util/format";
-import { type DashboardData, type Deploy, type DeployStatus, DEPLOYS, type Endpoint, INCIDENTS, SLOS, STATUS, WEEKDAYS } from "./data";
+import { type DashboardData, type Deploy, type DeployStatus, DEPLOYS, type Endpoint, INCIDENTS, NOW, SLOS, STATUS, WEEKDAYS } from "./data";
 import { ago } from "./format";
 
 /** Where the board places a card: a scroll target id and its grid classes. */
@@ -18,10 +18,24 @@ export interface Placement {
 /** The cards' "see everything" links go nowhere in a specimen. */
 const noop = (event: React.MouseEvent) => event.preventDefault();
 
-/** Open incidents, most severe first: a status, what broke, where, how long, who has it. */
+const INCIDENT_EVENTS: TimelineEvent[] = INCIDENTS.map((incident) => ({
+  id: incident.title,
+  time: NOW - incident.ageMin * 60_000,
+  tone: STATUS[incident.status].tone,
+  statusLabel: STATUS[incident.status].label,
+  title: incident.title,
+  actor: incident.owner,
+  meta: `${incident.service} · ${incident.region}`,
+}));
+
+/**
+ * Open incidents as a flat Timeline, newest first (here also the most severe):
+ * the status as mark, glyph and word, what broke, who has it and where, and how
+ * long ago it opened as a `<time>` with the full reading on hover and focus.
+ */
 export function IncidentsCard(placement: Placement) {
   return (
-    <Card {...placement}>
+    <Card {...placement} data-dashboard-incidents="">
       <Card.Header>
         <Card.Title as="h2">Open incidents</Card.Title>
         <Card.Actions>
@@ -31,29 +45,7 @@ export function IncidentsCard(placement: Placement) {
         </Card.Actions>
       </Card.Header>
       <Card.Body>
-        <Stack as="ul" gap="r3">
-          {INCIDENTS.map((incident) => (
-            <Inline
-              as="li"
-              key={incident.title}
-              justify="between"
-              align="start"
-              gap="r3"
-              wrap={false}
-              className="border-border not-first:border-t not-first:pt-r3"
-            >
-                <Stack gap="r6" className="min-w-0">
-                  <StatusLabel tone={STATUS[incident.status].tone} className="text-body-3">
-                    {STATUS[incident.status].label}
-                  </StatusLabel>
-                  <span className="text-body-2 font-medium">{incident.title}</span>
-                  <span className="text-body-3 text-fg-muted">
-                    {incident.service} · {incident.region} · opened {ago(incident.ageMin)} · {incident.owner}
-                  </span>
-                </Stack>
-            </Inline>
-          ))}
-        </Stack>
+        <Timeline events={INCIDENT_EVENTS} now={NOW} groupByDay={false} label="Open incidents" />
       </Card.Body>
     </Card>
   );

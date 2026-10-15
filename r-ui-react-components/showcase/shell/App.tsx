@@ -4,6 +4,7 @@ import { type ComponentType, lazy, type ReactNode, Suspense, useCallback, useEff
 import { AppShell, RouterProvider } from "../../src/components/navigation";
 import { ToastProvider } from "../../src/components/overlays";
 import { DocumentTitleProvider, useDocumentTitle } from "../../src/hooks/use-document-title";
+import { CommandMenu } from "./CommandMenu";
 import { href, useHashRoute } from "./router";
 import { ViewPanel } from "./ViewPanel";
 
@@ -49,7 +50,7 @@ export function App() {
   return (
     <DocumentTitleProvider base="r-ui showcase" separator=" · ">
       <ToastProvider>
-        <AppShell skipLinkLabel="Skip to content">
+        <AppShell>
           <ShellNav current={route.page}>
             <AppShell.Sidebar label="Showcase">
               <AppShell.Brand href={href(FALLBACK)} mark={<span className="font-mono">r</span>}>
@@ -68,6 +69,7 @@ export function App() {
               </span>
               r-ui <span className="font-normal text-fg-muted">showcase</span>
             </a>
+            <CommandMenu pages={ROUTES} />
             <ViewPanel />
           </AppShell.Header>
           {/* The padding steps the Marketing page cancels to run its bands edge to edge. */}

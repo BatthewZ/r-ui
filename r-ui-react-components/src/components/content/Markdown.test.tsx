@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
+import type { ComponentPropsWithRef } from "react";
 import { describe, expect, it } from "vitest";
 
+import { RouterProvider } from "../../util/router";
 import { imageAllowed, Markdown, type MarkdownComponents } from "./Markdown";
 
 /**
@@ -39,6 +41,39 @@ describe("Markdown", () => {
     expect(link).toHaveAccessibleDescription("(neuer Tab)");
     expect(link.querySelector("svg")).not.toBeNull();
     expect(screen.getByRole("link", { name: "https://example.org" })).toHaveAttribute("target", "_blank");
+  });
+
+  it("treats an href a browser resolves to another host (`/\\host`) as external, never routed", () => {
+    function RouterLink(props: ComponentPropsWithRef<"a">) {
+      return <a data-router="" {...props} />;
+    }
+    render(
+      <RouterProvider link={RouterLink}>
+        <Markdown>{"[off](/\\evil.example/x) [in](/docs) [mail](mailto:a@b.example)"}</Markdown>
+      </RouterProvider>,
+    );
+    const off = screen.getByRole("link", { name: "off" });
+    expect(off).toHaveAttribute("href", "/\\evil.example/x");
+    expect(off).toHaveAttribute("target", "_blank");
+    expect(off).toHaveAccessibleDescription("(opens in a new tab)");
+    expect(off).not.toHaveAttribute("data-router");
+    expect(screen.getByRole("link", { name: "in" })).toHaveAttribute("data-router");
+    expect(screen.getByRole("link", { name: "in" })).not.toHaveAttribute("target");
+    const mail = screen.getByRole("link", { name: "mail" });
+    expect(mail).not.toHaveAttribute("target");
+    expect(mail).not.toHaveAttribute("data-router");
+  });
+
+  it("never renders a link inside a link: the inner one is the link", () => {
+    const { container } = render(<Markdown>{"[a [b](/c) d](/e) and [see <https://a.example>](/x)"}</Markdown>);
+    expect(container.querySelectorAll("a a")).toHaveLength(0);
+    const links = [...container.querySelectorAll("a")];
+    expect(links.map((a) => [a.textContent, a.getAttribute("href")])).toEqual([
+      ["b", "/c"],
+      // The external one carries its glyph and new-tab description inside.
+      [expect.stringContaining("https://a.example"), "https://a.example"],
+    ]);
+    expect(container).toHaveTextContent("[a b d](/e) and [see https://a.example");
   });
 
   it("refuses script and data links, leaving their text and no href anywhere", () => {
@@ -85,8 +120,15 @@ describe("Markdown", () => {
     ["another path on the host", "https://cdn.example.com/private/x.png"],
     ["a protocol-relative URL", "//cdn.example.com/img/x.png"],
     ["another scheme on the host", "http://cdn.example.com/img/x.png"],
+    ["a backslash that makes the path another host", "/\\evil.example/assets/x.png"],
   ])("refuses %s", (_label, src) => {
     expect(imageAllowed(src, ["https://cdn.example.com/img/", "/assets/"])).toBe(false);
+  });
+
+  it("keeps an image whose root-relative src does not parse as its alt text instead of throwing", () => {
+    render(<Markdown imageAllowlist={["/assets/"]}>{"![Diagram](/\\evil.example:99999/assets/x.png)"}</Markdown>);
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByText("Diagram")).toHaveClass("r-content-md-image-alt");
   });
 
   it("renders a fenced block as a CodeBlock and a table as the library Table, both UI islands", () => {

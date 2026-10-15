@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { stubPopover } from "./overlay-stubs.test.helpers";
@@ -103,6 +104,54 @@ describe("Tooltip", () => {
     await user.keyboard("{Escape}");
     expect(outer).toHaveBeenCalledTimes(2);
     expect(outer).toHaveBeenLastCalledWith(false);
+  });
+
+  it("Escape dismisses a hover-opened tooltip while focus is elsewhere (WCAG 1.4.13)", () => {
+    vi.useFakeTimers();
+    render(
+      <>
+        <input aria-label="Search" />
+        <Tooltip content="Later" delay={0}>
+          <button type="button">Hover me</button>
+        </Tooltip>
+      </>
+    );
+    const search = screen.getByRole("textbox", { name: "Search" });
+    act(() => search.focus());
+    const trigger = screen.getByRole("button", { name: "Hover me" });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.mouseMove(trigger);
+    act(() => vi.advanceTimersByTime(1));
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    expect(search).toHaveFocus();
+
+    const escape = fireEvent.keyDown(search, { key: "Escape" });
+    expect(escape).toBe(false);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("stands down when the focused surface used Escape itself", () => {
+    vi.useFakeTimers();
+    const onKeyDown = vi.fn((event: ReactKeyboardEvent) => {
+      if (event.key === "Escape") event.preventDefault();
+    });
+    render(
+      <>
+        <input aria-label="Search" onKeyDown={onKeyDown} />
+        <Tooltip content="Later" delay={0}>
+          <button type="button">Hover me</button>
+        </Tooltip>
+      </>
+    );
+    const search = screen.getByRole("textbox", { name: "Search" });
+    act(() => search.focus());
+    const trigger = screen.getByRole("button", { name: "Hover me" });
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.mouseMove(trigger);
+    act(() => vi.advanceTimersByTime(1));
+    fireEvent.keyDown(search, { key: "Escape" });
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
   });
 
   it("keeps the trigger's own handlers", async () => {

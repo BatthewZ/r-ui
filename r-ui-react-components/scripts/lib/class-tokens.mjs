@@ -34,6 +34,8 @@
 
 import ts from "typescript";
 
+import { scriptKind } from "./raw-tailwind.mjs";
+
 const CLASS_CALLS = new Set(["cn", "clsx", "cx", "twMerge", "twJoin", "cva", "tv"]);
 const CLASS_ATTR = /^(?:class|className|classNames)$|(?:ClassName|ClassNames)$/;
 const CLASS_NAME = /(?:class|classes|classname|classnames)$/i;
@@ -78,7 +80,7 @@ const isClassCall = (node) => ts.isCallExpression(node) && CLASS_CALLS.has(calle
  * @returns {{ tokens: { token: string, line: number, direct: boolean, fragment: boolean, table?: string }[], used: Set<string> }}
  */
 export function classTokens(source, fileName) {
-  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind(fileName));
 
   // Same-file declarations by name: variables, functions, and parameters.
   const decls = new Map();

@@ -12,3 +12,4 @@ Durable lessons for anyone changing this package. Principles only: no tasks, no 
 | [type-roles.md](./type-roles.md) | Putting a face on `text-*` sizes with same-name `@utility` companions, the sort order that lets explicit utilities win, optional roles at the read, where fonts load. |
 | [forced-colors.md](./forced-colors.md) | What Chromium repaints, keeps and backplates under forced colors, and why meaning-bearing fills opt out and remap their ink. |
 | [lines-and-layers.md](./lines-and-layers.md) | `--BORDER-WIDTH` through `--default-border-width`, whole-pixel borders, and the stacking scale as structure. |
+| [c7-print.md](./c7-print.md) | Printing: why print must be `!important` and themes never, dropped backgrounds and fills that carry their own ink, transitions caught at their screen value, flat shadows, emulated print vs a real PDF, previewing the shipped print rules. |

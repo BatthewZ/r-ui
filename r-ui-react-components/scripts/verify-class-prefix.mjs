@@ -14,14 +14,14 @@
 // Usage: node scripts/verify-class-prefix.mjs [--root <dir>]
 
 import { readFileSync } from "node:fs";
-import { basename, dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, join, relative } from "node:path";
 
 import { globSync } from "glob";
 
-const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
-const rootArg = process.argv.indexOf("--root");
-const ROOT = rootArg > -1 ? resolve(process.argv[rootArg + 1]) : PKG;
+import { blankComments, lineAt } from "./lib/css.mjs";
+import { PKG, pathArg } from "./lib/gate.mjs";
+
+const ROOT = pathArg("--root", PKG);
 
 /** The prefix a stylesheet's own names must carry. */
 function prefixFor(file) {
@@ -32,9 +32,9 @@ function prefixFor(file) {
   return null;
 }
 
-/** Strip comments, then blank every functional pseudo-class argument, which only REFERENCES names. */
+/** Blank comments, then every functional pseudo-class argument, which only REFERENCES names. */
 function definedNames(css) {
-  let text = css.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
+  let text = blankComments(css);
   const pseudo = /:(?:is|where|has|not)\(/g;
   let match;
   while ((match = pseudo.exec(text))) {
@@ -48,7 +48,6 @@ function definedNames(css) {
     text = text.slice(0, start) + text.slice(start, i - 1).replace(/[^\n]/g, " ") + text.slice(i - 1);
   }
   const names = [];
-  const lineOf = (index) => text.slice(0, index).split("\n").length;
   // A prelude is the text between a block boundary and the next `{`; nested
   // rules (inside `@media`) start after a `{`, top-level ones after a `}`.
   for (const sel of text.matchAll(/(?<=^|[{};])(\s*)([^{};]*)\{/g)) {
@@ -56,12 +55,12 @@ function definedNames(css) {
     const start = sel.index + sel[1].length;
     const at = prelude.match(/^@keyframes\s+([\w-]+)/);
     if (at) {
-      names.push({ kind: "keyframes", name: at[1], line: lineOf(start) });
+      names.push({ kind: "keyframes", name: at[1], line: lineAt(text, start) });
       continue;
     }
     if (prelude.startsWith("@") || /^(?:from|to|\d+%)/.test(prelude)) continue;
     for (const cls of prelude.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
-      names.push({ kind: "class", name: cls[1], line: lineOf(start + cls.index) });
+      names.push({ kind: "class", name: cls[1], line: lineAt(text, start + cls.index) });
     }
   }
   return names;

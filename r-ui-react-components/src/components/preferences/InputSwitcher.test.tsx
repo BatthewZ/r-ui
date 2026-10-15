@@ -23,7 +23,7 @@ describe("InputSwitcher", () => {
 
   it("forces a mode on <html>, saves it, and auto removes the attribute", async () => {
     const user = userEvent.setup();
-    render(<InputSwitcher storageKey="app:view" labels={{ coarse: "Grob" }} />);
+    render(<InputSwitcher storageKey="app:view" labels={{ inputs: { coarse: "Grob" } }} />);
     await user.click(screen.getByRole("radio", { name: "Grob" }));
     expect(html.getAttribute("data-input")).toBe("coarse");
     expect(JSON.parse(localStorage.getItem("app:view")!)).toEqual({ input: "coarse" });

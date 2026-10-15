@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Field } from "../form";
-import { toISODate } from "./date-core";
-import { DateRangePicker, type DateRangeValue } from "./DateRangePicker";
+import { type DateRange, toISODate } from "./date-core";
+import { DateRangePicker } from "./DateRangePicker";
 
 const day = (m: number, d: number, y = 2026) => new Date(y, m - 1, d);
-const asIso = (v: DateRangeValue) => [toISODate(v.start), toISODate(v.end), v.preset];
+const asIso = (v: DateRange<Date>) => [toISODate(v.start), toISODate(v.end), v.preset];
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
@@ -44,7 +44,7 @@ describe("DateRangePicker", () => {
     // Last 24 hours is a span of instants, not calendar days.
     await user.click(trigger);
     await user.click(screen.getByRole("button", { name: "Last 24 hours" }));
-    const last = onValueChange.mock.calls[1]?.[0] as DateRangeValue;
+    const last = onValueChange.mock.calls[1]?.[0] as DateRange<Date>;
     expect(last.end.getTime() - last.start.getTime()).toBe(86_400_000);
     expect(last.preset).toBe("last-24-hours");
   });
@@ -120,5 +120,89 @@ describe("DateRangePicker", () => {
     await user.click(screen.getByRole("button", { name: /Time range/ }));
     expect(screen.getByRole("button", { name: "Last 30 days" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Last 7 days" })).toBeEnabled();
+  });
+
+  it("Clear empties a committed range: null to the caller, the placeholder, an empty submission", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(
+      <form aria-label="form">
+        <DateRangePicker
+          aria-label="Time range"
+          name="period"
+          locale="en-US"
+          defaultValue={{ start: day(10, 2), end: day(10, 9) }}
+          onValueChange={onValueChange}
+        />
+      </form>,
+    );
+    const trigger = screen.getByRole("button", { name: /^Time range Oct 2\s–\s9, 2026$/ });
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Clear" }));
+    expect(onValueChange.mock.calls).toEqual([[null]]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(trigger).toHaveAccessibleName("Time range Select dates");
+    expect(new FormData(screen.getByRole("form", { name: "form" }) as HTMLFormElement).get("period")).toBe("");
+    // Nothing left to clear.
+    await user.click(trigger);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+  });
+
+  it("follows a controlled open, asking the parent; every opening starts from the committed range", async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <DateRangePicker
+        aria-label="Time range"
+        locale="en-US"
+        open={false}
+        onOpenChange={onOpenChange}
+        defaultValue={{ start: day(10, 1), end: day(10, 7) }}
+      />,
+    );
+    const trigger = screen.getByRole("button", { name: /Time range/ });
+    await user.click(trigger);
+    expect(onOpenChange.mock.calls).toEqual([[true]]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    rerender(
+      <DateRangePicker
+        aria-label="Time range"
+        locale="en-US"
+        open
+        onOpenChange={onOpenChange}
+        defaultValue={{ start: day(10, 1), end: day(10, 7) }}
+      />,
+    );
+    expect(screen.getByRole("dialog", { name: "Choose a date range" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Start" })).toHaveValue("10/01/2026");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onOpenChange.mock.calls).toEqual([[true], [false]]);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("className styles the root; the trigger is a slot and takes ref and the rest", () => {
+    let button: HTMLButtonElement | null = null;
+    const { container } = render(
+      <DateRangePicker
+        aria-label="Time range"
+        locale="en-US"
+        className="justify-self-start"
+        classNames={{ trigger: "w-full" }}
+        data-testid="range-trigger"
+        ref={(el) => {
+          button = el;
+        }}
+      />,
+    );
+    const root = container.firstElementChild!;
+    expect(root).toHaveClass("justify-self-start");
+    const trigger = screen.getByRole("button", { name: /Time range/ });
+    expect(root).toContainElement(trigger);
+    expect(trigger).not.toHaveClass("justify-self-start");
+    expect(trigger).toHaveClass("w-full");
+    expect(trigger).toHaveAttribute("data-testid", "range-trigger");
+    expect(button).toBe(trigger);
   });
 });

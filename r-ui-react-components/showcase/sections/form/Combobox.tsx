@@ -51,7 +51,7 @@ function AsyncRepos() {
         }}
         start={<Search aria-hidden />}
         placeholder="Search repositories"
-        messages={{ empty: query.trim() === "" ? "Type to search" : "No repositories match" }}
+        labels={{ empty: query.trim() === "" ? "Type to search" : "No repositories match" }}
       />
       <Field.Description>Results arrive after 500ms; type “fail” to see the error state.</Field.Description>
     </Field>

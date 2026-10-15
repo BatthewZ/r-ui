@@ -15,13 +15,14 @@ import {
   type RowKey,
   type SelectionParams,
   type SortParams,
-  sortRows,
+  sortOrder,
   useSelection,
   useSort,
 } from "./data-table-model";
 import { EmptyState } from "./EmptyState";
 import { Table, type TableProps } from "./Table";
 import { useRowHeight } from "../../hooks/use-row-height";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 export interface DataTableProps<Row>
   extends SortParams,
@@ -29,7 +30,10 @@ export interface DataTableProps<Row>
     Omit<TableProps, "children" | "classNames" | "tableProps"> {
   columns: readonly DataTableColumn<Row>[];
   rows: readonly Row[];
-  /** A stable key per row: selection and React reconciliation both use it. */
+  /**
+   * A stable key per row: selection and React reconciliation both use it.
+   * `index` is the row's position in `rows`, whatever the sort.
+   */
   getRowKey: (row: Row, index: number) => RowKey;
   /**
    * The rows arrive already in `sort` order (a server sorts them). The table
@@ -38,18 +42,14 @@ export interface DataTableProps<Row>
   manualSorting?: boolean;
   /** Adds a checkbox column with a select-all header (over every row). */
   selectable?: boolean;
-  /** The accessible name of a row's checkbox. Default: "Select " + the first column's text. */
+  /** The accessible name of a row's checkbox. Default: `labels.selectRow` of the first column's text. */
   getRowLabel?: (row: Row) => string;
-  selectAllLabel?: string;
   /** Per-row trailing actions (icon buttons, a menu). */
   rowActions?: (row: Row) => ReactNode;
-  /** Header text for the actions column, read by screen readers only. */
-  rowActionsLabel?: string;
   /** Show skeleton rows (the head stays) and mark the table busy. */
   loading?: boolean;
   /** How many skeleton rows to draw while loading. */
   loadingRows?: number;
-  loadingLabel?: string;
   /** A failure message. Shown instead of rows, with `errorActions` (a retry). */
   error?: ReactNode;
   errorActions?: ReactNode;
@@ -57,8 +57,30 @@ export interface DataTableProps<Row>
   empty?: ReactNode;
   /** A visible caption naming the table (or pass `aria-label`). */
   caption?: ReactNode;
+  labels?: LabelsProp<DataTableLabels>;
   classNames?: SlotClassNames<"table" | "row" | "headerCell" | "cell" | "empty">;
 }
+
+export interface DataTableLabels {
+  /** The select-all checkbox's name. */
+  selectAll: string;
+  /** A row checkbox's name, from the first column's text (`""` when there is no column). */
+  selectRow: (text: string) => string;
+  /** The actions column's header, read by screen readers only. */
+  rowActions: string;
+  /** Announced while `loading`. */
+  loading: string;
+  /** The default empty state's title. */
+  empty: string;
+}
+
+export const DEFAULT_DATA_TABLE_LABELS: DataTableLabels = {
+  selectAll: "Select all rows",
+  selectRow: (text) => (text ? `Select ${text}` : "Select row"),
+  rowActions: "Actions",
+  loading: "Loading",
+  empty: "No data",
+};
 
 /** Internal: VirtualizedTable reuses everything here and windows the body. */
 interface ViewProps<Row> extends DataTableProps<Row> {
@@ -82,12 +104,10 @@ export function DataTableView<Row>({
   defaultSelectedKeys,
   onSelectedKeysChange,
   getRowLabel,
-  selectAllLabel = "Select all rows",
   rowActions,
-  rowActionsLabel = "Actions",
   loading = false,
   loadingRows = 5,
-  loadingLabel = "Loading",
+  labels: labelsProp,
   error,
   errorActions,
   empty,
@@ -97,12 +117,14 @@ export function DataTableView<Row>({
   ref,
   ...tableRest
 }: ViewProps<Row>) {
+  const labels = mergeLabels(DEFAULT_DATA_TABLE_LABELS, labelsProp);
   const [sort, setSort] = useSort({ sort: sortProp, defaultSort, onSortChange });
-  const ordered = useMemo(
-    () => (manualSorting ? rows : sortRows(rows, columns, sort)),
+  const order = useMemo(
+    () => (manualSorting ? rows.map((_, i) => i) : sortOrder(rows, columns, sort)),
     [manualSorting, rows, columns, sort],
   );
-  const keys = useMemo(() => ordered.map((row, i) => getRowKey(row, i)), [ordered, getRowKey]);
+  const ordered = useMemo(() => order.map((i) => rows[i] as Row), [order, rows]);
+  const keys = useMemo(() => order.map((i) => getRowKey(rows[i] as Row, i)), [order, rows, getRowKey]);
   const selection = useSelection(keys, { selectedKeys, defaultSelectedKeys, onSelectedKeysChange });
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -129,7 +151,7 @@ export function DataTableView<Row>({
   const rowLabel = (row: Row) => {
     if (getRowLabel) return getRowLabel(row);
     const first = columns[0];
-    return first ? `Select ${defaultCellText(first, row)}` : "Select row";
+    return labels.selectRow(first ? defaultCellText(first, row) : "");
   };
 
   const start = windowed ? virtual.startIndex : 0;
@@ -145,7 +167,7 @@ export function DataTableView<Row>({
           // the cell); fixed layout needs the width said out loud.
           <Table.HeaderCell truncate={false} className={cn(windowed && CONTROL_COLUMN, classNames?.headerCell)}>
             <Checkbox
-              aria-label={selectAllLabel}
+              aria-label={labels.selectAll}
               checked={selection.all}
               indeterminate={selection.some}
               disabled={state !== "rows"}
@@ -177,7 +199,7 @@ export function DataTableView<Row>({
         })}
         {rowActions && (
           <Table.HeaderCell truncate={false} className={cn(windowed && ACTIONS_COLUMN, classNames?.headerCell)}>
-            <span className="sr-only">{rowActionsLabel}</span>
+            <span className="sr-only">{labels.rowActions}</span>
           </Table.HeaderCell>
         )}
       </Table.Row>
@@ -191,7 +213,7 @@ export function DataTableView<Row>({
         {selectable && <Table.Cell truncate={false} />}
         {columns.map((column, c) => (
           <Table.Cell key={column.id} numeric={column.numeric} priority={column.priority}>
-            {i === 0 && c === 0 && <span className="sr-only">{loadingLabel}</span>}
+            {i === 0 && c === 0 && <span className="sr-only">{labels.loading}</span>}
             <Skeleton
               shape="block"
               className={cn("inline-block h-r3 rounded-sm align-middle", column.numeric ? "w-1/2" : c === 0 ? "w-3/4" : "w-2/3")}
@@ -208,7 +230,7 @@ export function DataTableView<Row>({
           {state === "error" ? (
             <EmptyState role="alert" tone="error" icon={<TriangleAlert />} title={error} actions={errorActions} />
           ) : (
-            (empty ?? <EmptyState icon={<Inbox />} title="No data" />)
+            (empty ?? <EmptyState icon={<Inbox />} title={labels.empty} />)
           )}
         </Table.Cell>
       </Table.Row>

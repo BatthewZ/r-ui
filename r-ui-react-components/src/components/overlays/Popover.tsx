@@ -3,6 +3,7 @@ import {
   type ComponentPropsWithRef,
   createContext,
   type ReactNode,
+  type RefObject,
   useContext,
   useId,
   useMemo,
@@ -21,8 +22,8 @@ import {
 import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
-import { Button, type ButtonProps } from "../primitives";
-import { onEscape, Slot, topLayerExit, useExitPresence } from "./internal";
+import type { ButtonProps } from "../primitives";
+import { ButtonOrSlot, onEscape, type OpenStateProps, topLayerExit, useExitPresence, usePartId, useRegisteredId } from "./internal";
 
 type Floating = ReturnType<typeof useFloating>;
 type Interactions = ReturnType<typeof useInteractions>;
@@ -31,11 +32,14 @@ interface PopoverContextValue {
   open: boolean;
   /** Open, or still running its exit transition. */
   present: boolean;
-  panelRef: React.RefObject<HTMLDivElement | null>;
+  panelRef: RefObject<HTMLDivElement | null>;
   setOpen: (open: boolean) => void;
   contentId: string;
+  /** The id the trigger rendered (the caller's or a generated one), which names the panel. */
+  triggerId: string | undefined;
+  registerTrigger: (id: string | undefined) => void;
   floating: Floating;
-  arrowRef: React.RefObject<HTMLDivElement | null>;
+  arrowRef: RefObject<HTMLDivElement | null>;
   getReferenceProps: Interactions["getReferenceProps"];
   getFloatingProps: Interactions["getFloatingProps"];
 }
@@ -48,10 +52,7 @@ function usePopover(part: string) {
   return ctx;
 }
 
-export interface PopoverProps {
-  open?: boolean;
-  defaultOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
+export interface PopoverProps extends OpenStateProps {
   /** @default "bottom" */
   placement?: Placement;
   children: ReactNode;
@@ -60,6 +61,7 @@ export interface PopoverProps {
 function PopoverRoot({ open: openProp, defaultOpen = false, onOpenChange, placement = "bottom", children }: PopoverProps) {
   const [open, setOpen] = useControllableState({ value: openProp, defaultValue: defaultOpen, onChange: onOpenChange });
   const contentId = useId();
+  const [triggerId, registerTrigger] = useRegisteredId();
   const arrowRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const present = useExitPresence(open, panelRef, topLayerExit);
@@ -76,8 +78,20 @@ function PopoverRoot({ open: openProp, defaultOpen = false, onOpenChange, placem
   ]);
 
   const value = useMemo(
-    () => ({ open, present, panelRef, setOpen, contentId, floating, arrowRef, getReferenceProps, getFloatingProps }),
-    [open, present, setOpen, contentId, floating, getReferenceProps, getFloatingProps]
+    () => ({
+      open,
+      present,
+      panelRef,
+      setOpen,
+      contentId,
+      triggerId,
+      registerTrigger,
+      floating,
+      arrowRef,
+      getReferenceProps,
+      getFloatingProps,
+    }),
+    [open, present, setOpen, contentId, triggerId, registerTrigger, floating, getReferenceProps, getFloatingProps]
   );
   return <PopoverContext.Provider value={value}>{children}</PopoverContext.Provider>;
 }
@@ -87,10 +101,12 @@ export type PopoverTriggerProps = ButtonProps & {
   asChild?: boolean;
 };
 
-function PopoverTrigger({ asChild = false, children, onClick, ...props }: PopoverTriggerProps) {
-  const { open, setOpen, contentId, floating, getReferenceProps } = usePopover("Trigger");
+function PopoverTrigger({ asChild = false, children, onClick, id, ...props }: PopoverTriggerProps) {
+  const { open, setOpen, contentId, registerTrigger, floating, getReferenceProps } = usePopover("Trigger");
+  const ownId = usePartId(id, registerTrigger);
   const triggerProps = getReferenceProps({
     ...props,
+    id: ownId,
     ref: mergeRefs(props.ref, floating.refs.setReference),
     onClick: composeEventHandlers(onClick, () => setOpen(!open)),
     "aria-haspopup": "dialog",
@@ -99,11 +115,10 @@ function PopoverTrigger({ asChild = false, children, onClick, ...props }: Popove
     // Only while open: a closed trigger's Escape belongs to whatever encloses it.
     onKeyDown: open ? composeEventHandlers(props.onKeyDown, onEscape(() => setOpen(false))) : props.onKeyDown,
   });
-  if (asChild) return <Slot {...triggerProps}>{children}</Slot>;
   return (
-    <Button variant="secondary" {...(triggerProps as ButtonProps)}>
+    <ButtonOrSlot asChild={asChild} {...(triggerProps as ButtonProps)}>
       {children}
-    </Button>
+    </ButtonOrSlot>
   );
 }
 
@@ -114,13 +129,17 @@ export type PopoverContentProps = ComponentPropsWithRef<"div"> & {
    * Where focus goes on open: the first tabbable element (default), or a ref.
    * The panel itself takes focus when it holds nothing tabbable.
    */
-  initialFocus?: number | React.RefObject<HTMLElement | null>;
+  initialFocus?: number | RefObject<HTMLElement | null>;
   classNames?: SlotClassNames<"arrow">;
 };
 
 /**
  * The panel: `role="dialog"`, non-modal. Focus moves in on open and back to the
  * trigger on close; Tab out of it, a press outside it or Escape closes it.
+ *
+ * Named by the trigger's text unless you name it yourself (`aria-label`, or
+ * `aria-labelledby` pointing at a heading inside it): a trigger that reads
+ * "Filters" names a panel of filters, an icon trigger names it by its label.
  *
  * Rendered in place (a DOM sibling of the trigger) and promoted to the top
  * layer, so it inherits density, direction and colour from where it is written
@@ -137,7 +156,7 @@ function PopoverContent({
   onKeyDown,
   ...props
 }: PopoverContentProps) {
-  const { open, present, panelRef, setOpen, contentId, floating, arrowRef, getFloatingProps } = usePopover("Content");
+  const { open, present, panelRef, setOpen, contentId, triggerId, floating, arrowRef, getFloatingProps } = usePopover("Content");
   if (!present) return null;
   return (
     // Disabled once closed: that is what hands focus back, at once rather than
@@ -151,11 +170,12 @@ function PopoverContent({
         ref={mergeRefs(ref, panelRef, floating.refs.setFloating)}
         id={contentId}
         role="dialog"
+        aria-labelledby={props["aria-labelledby"] ?? (props["aria-label"] ? undefined : triggerId)}
         // Leaving: on screen for its exit, but no longer interactive.
         inert={!open}
         style={{ ...floating.floatingStyles, ...style }}
         className={cn(
-          "r-overlays-surface max-w-[min(var(--MEASURE),calc(100vw-var(--R-SIZE-2)*2))] rounded-md border border-border bg-surface-0 p-r3 text-body-1 text-fg-primary shadow-md outline-none focus-visible:focus-ring",
+          "r-overlays-surface rounded-md border border-border bg-surface-0 p-r3 text-body-1 text-fg-primary shadow-md outline-none focus-visible:focus-ring",
           className
         )}
       >
@@ -179,15 +199,9 @@ export type PopoverCloseProps = ButtonProps & {
 };
 
 /** Closes the popover. Focus returns to the trigger. */
-function PopoverClose({ asChild = false, onClick, children, ...props }: PopoverCloseProps) {
+function PopoverClose({ asChild = false, onClick, ...props }: PopoverCloseProps) {
   const { setOpen } = usePopover("Close");
-  const handleClick = composeEventHandlers(onClick, () => setOpen(false));
-  if (asChild) return <Slot {...props} onClick={handleClick}>{children}</Slot>;
-  return (
-    <Button variant="secondary" {...props} onClick={handleClick}>
-      {children}
-    </Button>
-  );
+  return <ButtonOrSlot asChild={asChild} {...props} onClick={composeEventHandlers(onClick, () => setOpen(false))} />;
 }
 
 export const Popover = Object.assign(PopoverRoot, {

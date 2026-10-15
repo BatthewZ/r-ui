@@ -9,7 +9,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const run = (root) =>
   spawnSync(process.execPath, [join(HERE, "verify-class-prefix.mjs"), "--root", root], { encoding: "utf8" });
 
-describe("verify:class-prefix", () => {
+// Each case runs the gate as a subprocess, which can take seconds while the full suite loads every core.
+describe("verify:class-prefix", { timeout: 30_000 }, () => {
   it("goes red on every unprefixed class and keyframes name, and only those", () => {
     const result = run(join(HERE, "fixtures/class-prefix/bad"));
     expect(result.status).toBe(1);

@@ -11,10 +11,16 @@ import { createContext, type ElementType, type ReactNode, useContext, useMemo } 
 export interface RouterConfig {
   /**
    * Renders an internal link. It receives `href` and the anchor's other props
-   * (and `ref`). A router whose link takes `to` is adapted once:
-   * `const AppLink = ({ href, ...props }) => <RouterLink to={href} {...props} />`,
-   * declared at module scope (a component made during render remounts every
-   * link). Default: a plain `<a>`.
+   * (and `ref`). A router whose link takes `to` is adapted once, at module
+   * scope (a component made during render remounts every link):
+   *
+   * ```tsx
+   * function AppLink({ href, ...props }: ComponentPropsWithRef<"a"> & { href: string }) {
+   *   return <RouterLink to={href} {...props} />;
+   * }
+   * ```
+   *
+   * Default: a plain `<a>`.
    */
   link?: ElementType;
   /**
@@ -48,11 +54,25 @@ export function useRouter(): ResolvedRouter {
 }
 
 /**
+ * Stand-in app origins. A relative href stays on whichever one it resolves
+ * against; an absolute URL can stay on at most one, so it never passes both.
+ */
+const APP_ORIGINS = ["http://app.invalid", "https://app.invalid"];
+
+/**
  * Whether `href` leaves the app, so the router's link must not handle it: a
- * scheme (`https:`, `mailto:`) or a protocol-relative `//host`.
+ * scheme (`https:`, `mailto:`) or another host. Judged by resolving it as a
+ * browser does, so `/\host`, `///host`, ` //host` and `/<tab>/host` are other
+ * hosts too; an href that does not parse counts as leaving.
  */
 export function isExternalHref(href: string): boolean {
-  return /^[a-z][a-z\d+.-]*:/i.test(href) || href.startsWith("//");
+  return APP_ORIGINS.some((origin) => {
+    try {
+      return new URL(href, origin).origin !== origin;
+    } catch {
+      return true;
+    }
+  });
 }
 
 /**

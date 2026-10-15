@@ -5,34 +5,41 @@ import type { ComponentPropsWithRef, ReactNode } from "react";
 
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "./IconButton";
-import { MARK_TEXT, type StatusTone, ToneGlyph } from "../../util/tone";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { MARK_TEXT, type StatusTone, type Tone, TONE_LABELS, TONE_SUBTLE_BG, TONE_TEXT, ToneGlyph } from "../../util/tone";
 
 /**
  * Subtle status bg + a tinted hairline (the bg alone is a weak edge against a
  * surface). Title in the tone's text-safe ink, body in primary ink: both are
  * contract pairs on the tone's subtle bg (>= 4.5:1); the glyph is the mark
- * (>= 3:1 on that bg). Secondary ink is NOT guaranteed there, so it is not used.
+ * (>= 3:1 on that bg). Secondary ink is NOT guaranteed there, so it is not used:
+ * a neutral title is primary ink.
  */
-const TONE: Record<StatusTone, { box: string; title: string }> = {
-  neutral: { box: "bg-surface-1 border-border", title: "text-fg-primary" },
-  info: { box: "bg-status-info-bg border-status-info/30", title: "text-fg-info" },
-  success: { box: "bg-status-success-bg border-status-success/30", title: "text-fg-success" },
-  warning: { box: "bg-status-warning-bg border-status-warning/30", title: "text-fg-warning" },
-  error: { box: "bg-status-error-bg border-status-error/30", title: "text-fg-error" },
-  serious: { box: "bg-status-serious-bg border-status-serious/30", title: "text-fg-serious" },
-  stale: { box: "bg-status-stale-bg border-status-stale/30", title: "text-fg-stale" },
+const EDGE: Record<StatusTone, string> = {
+  neutral: "border-border",
+  info: "border-status-info/30",
+  success: "border-status-success/30",
+  warning: "border-status-warning/30",
+  error: "border-status-error/30",
+  serious: "border-status-serious/30",
+  stale: "border-status-stale/30",
 };
+const TITLE: Record<StatusTone, string> = { ...TONE_TEXT, neutral: "text-fg-primary" };
 
-/** Spoken before the message, so the severity is not carried by colour and glyph alone. */
-const STATUS_WORD: Record<StatusTone, string> = {
-  neutral: "Note",
-  info: "Information",
-  success: "Success",
-  warning: "Warning",
-  error: "Error",
-  serious: "Serious",
-  stale: "Stale",
-};
+/** Whether a slot was given something to render (`null`, `undefined` and `false` render nothing). */
+const isRendered = (node: ReactNode) => node != null && node !== false;
+
+export interface AlertLabels {
+  /** The dismiss button's accessible name. */
+  dismiss: string;
+  /**
+   * The visually hidden severity word read ahead of the message, per tone. `""`
+   * drops it, for a title that already says it.
+   */
+  tones: Record<Tone, string>;
+}
+
+export const DEFAULT_ALERT_LABELS: AlertLabels = { dismiss: "Dismiss", tones: TONE_LABELS };
 
 export type AlertProps = {
   tone?: StatusTone;
@@ -47,13 +54,7 @@ export type AlertProps = {
    * handler, and move focus somewhere sensible if the button had it.
    */
   onDismiss?: () => void;
-  /** Accessible name of the dismiss button. */
-  dismissLabel?: string;
-  /**
-   * Visually hidden severity word read ahead of the message ("Error", …). `""`
-   * drops it, for a title that already says it.
-   */
-  statusLabel?: string;
+  labels?: LabelsProp<AlertLabels>;
   classNames?: SlotClassNames<"icon" | "title" | "body" | "actions">;
 } & Omit<ComponentPropsWithRef<"div">, "title">;
 
@@ -70,14 +71,14 @@ export function Alert({
   icon,
   actions,
   onDismiss,
-  dismissLabel = "Dismiss",
-  statusLabel,
+  labels: labelsProp,
   classNames,
   className,
   children,
   ...props
 }: AlertProps) {
-  const word = statusLabel ?? STATUS_WORD[tone];
+  const labels = mergeLabels(DEFAULT_ALERT_LABELS, labelsProp);
+  const word = labels.tones[tone];
   // `null` removes the glyph; `??` would treat it as absent and restore it.
   const glyph = icon === undefined ? <ToneGlyph tone={tone} /> : icon;
   return (
@@ -85,12 +86,13 @@ export function Alert({
       role={tone === "error" || tone === "serious" ? "alert" : "status"}
       className={cn(
         "flex items-start gap-r4 rounded-md border p-r3 text-body-1 text-fg-primary",
-        TONE[tone].box,
+        TONE_SUBTLE_BG[tone],
+        EDGE[tone],
         className,
       )}
       {...props}
     >
-      {glyph != null && glyph !== false && (
+      {isRendered(glyph) && (
         // One body-1 line tall and centred, so the glyph sits on the first line
         // of text at any density or theme leading.
         <span className={cn("r-primitives-icon-slot h-lh items-center", MARK_TEXT[tone], classNames?.icon)} aria-hidden>
@@ -99,19 +101,19 @@ export function Alert({
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-r6 break-words">
         {word && <span className="sr-only">{word}: </span>}
-        {title != null && title !== false && (
-          <p className={cn("font-semibold", TONE[tone].title, classNames?.title)}>{title}</p>
+        {isRendered(title) && (
+          <p className={cn("font-semibold", TITLE[tone], classNames?.title)}>{title}</p>
         )}
-        {children != null && children !== false && (
+        {isRendered(children) && (
           <div className={cn("text-fg-primary", classNames?.body)}>{children}</div>
         )}
-        {actions != null && actions !== false && (
+        {isRendered(actions) && (
           <div className={cn("mt-r5 flex flex-wrap items-center gap-r5", classNames?.actions)}>{actions}</div>
         )}
       </div>
       {onDismiss && (
         <IconButton
-          label={dismissLabel}
+          label={labels.dismiss}
           icon={<X />}
           variant="ghost"
           onClick={onDismiss}

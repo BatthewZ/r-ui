@@ -2,13 +2,14 @@
 // Fixture themes use an invented name; example theme names are discovered, never written here.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { contrast } from "./lib/color.mjs";
 import { resolveVars } from "./lib/css.mjs";
+import { measureTheme } from "./check-contrast.mjs";
 import { forbiddenNames } from "./check-theme-rules.mjs";
 import { loadDefaults, readTheme, themeFiles } from "./lib/tokens.mjs";
 
@@ -16,8 +17,8 @@ const PKG = fileURLToPath(new URL("..", import.meta.url));
 const tmpDirs = [];
 after(() => tmpDirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
-function run(script, args = []) {
-  const r = spawnSync(process.execPath, [join(PKG, "scripts", script), ...args], { encoding: "utf8" });
+function run(script, args = [], { cwd } = {}) {
+  const r = spawnSync(process.execPath, [join(PKG, "scripts", script), ...args], { encoding: "utf8", cwd });
   return { code: r.status, out: `${r.stdout}${r.stderr}` };
 }
 
@@ -98,6 +99,25 @@ describe("contrast check", () => {
     assert.match(r.out, /partial theme/);
   });
 
+  // parseColor reads hex as well as oklch(); the scheme test must judge both.
+  test("judges a hex theme's scheme by lightness", () => {
+    const scheme = (overrides) =>
+      measureTheme({ name: "aurora", tokens: new Map([...loadDefaults(PKG), ...overrides]) }).find((r) => r.kind === "scheme");
+    const dark = scheme([["--SCHEME-DARK", "1"], ["--C-CANVAS", "#16181d"], ["--C-TEXT-PRIMARY", "#e8e6e1"]]);
+    assert.equal(dark.pass, true, dark.error);
+    const inverted = scheme([["--SCHEME-DARK", "0"], ["--C-CANVAS", "#16181d"], ["--C-TEXT-PRIMARY", "#e8e6e1"]]);
+    assert.equal(inverted.pass, false);
+    assert.match(inverted.error, /--SCHEME-DARK is 0 but text is lighter than the canvas/);
+  });
+
+  test("measures the print palette and fails when its text is lowered", () => {
+    assert.match(run("check-contrast.mjs").out, /print \(@media print/);
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/print.css"), /--C-TEXT-MUTED: [^;]+;/, "--C-TEXT-MUTED: oklch(0.8 0 0) !important;"));
+    const r = run("check-contrast.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /print \(@media print[\s\S]*FAIL TEXT-MUTED on CANVAS/);
+  });
+
   test("fails when a theme references a token that does not exist", () => {
     const dir = tamperedCopy(() => {});
     const theme = fixtureTheme(dir, "  color-scheme: light;\n  --SCHEME-DARK: 0;\n  --C-TEXT-PRIMARY: var(--C-NOPE);");
@@ -135,6 +155,51 @@ describe("theme rules check", () => {
       assert.match(r.out, expected);
     });
   }
+
+  test("names a caller's theme by the path it was given, and the package's files by the package", () => {
+    const pkg = tamperedCopy(() => {});
+    const app = mkdtempSync(join(tmpdir(), "r-ui-css-app-"));
+    tmpDirs.push(app);
+    mkdirSync(join(app, "themes"));
+    fixtureTheme(join(app, "themes"), "  color-scheme: light;\n  --SCHEME-DARK: 0;");
+    const r = run("check-theme-rules.mjs", ["--pkg", pkg, "themes/aurora.css"], { cwd: app });
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /^ok {3}themes\/aurora\.css$/m);
+    assert.match(r.out, /^ok {3}@batthewz\/r-ui-css\/src\/_theme-template\.css$/m);
+    assert.doesNotMatch(r.out, /\.\.\//);
+  });
+
+  test("fails when a theme declaration is !important (it would outrank print and the user's preferences)", () => {
+    const dir = tamperedCopy(() => {});
+    const r = run("check-theme-rules.mjs", ["--pkg", dir, fixtureTheme(dir, "  color-scheme: dark;\n  --SCHEME-DARK: 1;\n  --C-CANVAS: oklch(0.2 0 0) !important;")]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--C-CANVAS is !important/);
+  });
+
+  test("fails when print stops mapping a colour role", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/print.css"), /\n {4}--C-SURFACE-2: [^\n]+/, ""));
+    const r = run("check-theme-rules.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--C-SURFACE-2 is not set under @media print/);
+  });
+
+  test("fails when a print override loses !important or print keeps a dark scheme", () => {
+    const dir = tamperedCopy((d) => {
+      replaceIn(join(d, "src/tokens/print.css"), "--C-CANVAS: oklch(1 0 0) !important;", "--C-CANVAS: oklch(1 0 0);");
+      replaceIn(join(d, "src/tokens/print.css"), "--SCHEME-DARK: 0 !important;", "--SCHEME-DARK: 1 !important;");
+    });
+    const r = run("check-theme-rules.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--C-CANVAS under @media print is not !important/);
+    assert.match(r.out, /--SCHEME-DARK under @media print is "1", want 0/);
+  });
+
+  test("fails when print keeps a shadow", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/print.css"), "--SHADOW-MD: 0 0 transparent !important;", "--SHADOW-MD: 0 1px 2px black !important;"));
+    const r = run("check-theme-rules.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--SHADOW-MD under @media print/);
+  });
 
   test("fails on a subtree selector or an @media block in a theme", () => {
     const dir = tamperedCopy(() => {});
@@ -183,7 +248,7 @@ describe("theme rules check", () => {
     const dir = tamperedCopy((d) => writeFileSync(join(d, "src/leak.css"), `/* defaults to ${name} */\n`));
     const r = run("check-theme-rules.mjs", ["--pkg", dir]);
     assert.equal(r.code, 1, r.out);
-    assert.match(r.out, /appears in src\/leak\.css/);
+    assert.match(r.out, /appears in @batthewz\/r-ui-css\/src\/leak\.css/);
   });
 
   test("fails when a viewport media query redefines a token", () => {
@@ -313,6 +378,45 @@ describe("compile check", () => {
     const r = run("check-compile.mjs", ["--pkg", dir]);
     assert.equal(r.code, 1, r.out);
     assert.match(r.out, /--container-page: no :root alias back to its lever/);
+  });
+
+  test("fails when a data-print convention or the repeated table head is lost", () => {
+    const dir = tamperedCopy((d) => {
+      replaceIn(join(d, "src/print.css"), /\[data-print~="hide"\] \{[^}]*\}/, "");
+      replaceIn(join(d, "src/print.css"), /thead \{[^}]*\}/, "");
+    });
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /print: no `\[data-print~="hide"\]` rule/);
+    assert.match(r.out, /print: no `thead` rule/);
+    assert.doesNotMatch(r.out, /data-print~="exact"/);
+  });
+
+  test("fails when a meaning-bearing fill stops printing its colour", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/print.css"), /@utility bg-status-error \{[\s\S]*?\n\}\n/, ""));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /\.bg-status-error does not keep its fill in print/);
+    assert.doesNotMatch(r.out, /\.bg-status-info does not keep its fill/);
+  });
+
+  test("fails when the print-only convention leaks onto paper or prose stops printing URLs", () => {
+    const dir = tamperedCopy((d) => {
+      replaceIn(join(d, "src/print.css"), "@media not print {", "@media print {");
+      replaceIn(join(d, "src/print.css"), 'content: " (" attr(href) ")";', 'content: "";');
+    });
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /data-print~="only"\]` rule .* inside @media not print/);
+    assert.match(r.out, /a\[href\^="http"\]/);
+  });
+
+  test("fails when prose links stop reading the link levers", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/prose.css"), "text-underline-offset: var(--LINK-UNDERLINE-OFFSET);", "text-underline-offset: 0.18em;"));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /prose: no `a:not\(\[class\]\)` rule matching .*LINK-UNDERLINE-OFFSET/);
+    assert.doesNotMatch(r.out, /LINK-DECORATION/);
   });
 
   test("fails when the CSS does not compile", () => {

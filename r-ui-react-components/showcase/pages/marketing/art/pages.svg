@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#ebe6de"/>
+  <g transform="rotate(-6 800 450)">
+    <rect x="520" y="170" width="560" height="640" rx="18" fill="#d9d1c5"/>
+  </g>
+  <g transform="rotate(3 800 450)">
+    <rect x="540" y="140" width="560" height="640" rx="18" fill="#f7f4ef"/>
+    <rect x="610" y="220" width="300" height="26" rx="13" fill="#2b2724"/>
+    <rect x="610" y="290" width="420" height="14" rx="7" fill="#b9b0a3"/>
+    <rect x="610" y="324" width="380" height="14" rx="7" fill="#b9b0a3"/>
+    <rect x="610" y="358" width="400" height="14" rx="7" fill="#b9b0a3"/>
+    <rect x="610" y="430" width="90" height="28" rx="14" fill="#2f6f73"/>
+    <rect x="720" y="437" width="290" height="14" rx="7" fill="#b9b0a3"/>
+    <rect x="610" y="500" width="90" height="28" rx="14" fill="#c9825b"/>
+    <rect x="720" y="507" width="250" height="14" rx="7" fill="#b9b0a3"/>
+    <rect x="610" y="570" width="90" height="28" rx="14" fill="#8a8178"/>
+    <rect x="720" y="577" width="270" height="14" rx="7" fill="#b9b0a3"/>
+  </g>
+</svg>

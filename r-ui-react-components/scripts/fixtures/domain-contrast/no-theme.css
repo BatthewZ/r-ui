@@ -1,0 +1,2 @@
+/* Brand overrides with no theme block: nothing here declares --SCHEME-DARK. */
+.brand { color: var(--C-TEXT-PRIMARY); }

@@ -1,0 +1,200 @@
+/* Print rules. The palette lives with the tokens (tokens/print.css); this file is
+   about the page: margins, breaks, what prints at all, links on paper, and the
+   fills that must keep their colour there.
+
+   Defaults (no attribute needed) sit in @layer base, so a utility can override
+   them. The `data-print` conventions are an explicit request from the author, so
+   they are `!important` in the base layer: an important declaration in the
+   earliest layer outranks every later layer's, important or not, so a `flex`
+   or `overflow-auto` utility on the same element can never undo them.
+
+   `data-print` takes a space-separated list (`data-print="avoid-break exact"`):
+     hide          never printed (interactive-only controls)
+     only          printed only, hidden on screen
+     break-before  starts a new page
+     avoid-break   kept on one page when it fits
+     exact         colour is data: backgrounds print (inherited: put it on the
+                   smallest element whose colour carries the data)
+     flow          a window or scroller prints in the flow, full height, unclipped */
+
+@layer base {
+  /* A margin a desk printer can reach. An app's own later `@page` wins. */
+  @page {
+    margin: 15mm 14mm;
+  }
+
+  @media print {
+    /* Paper shows end states. A transition outranks even an important declaration,
+       so a panel opened or a colour remapped for print would otherwise be caught
+       at its screen value until the transition runs, and a subtree the browser
+       skips rendering (`content-visibility: auto`) never runs it. Animations are
+       left alone: an animation's fill can be what makes content visible. */
+    *,
+    ::before,
+    ::after {
+      transition: none !important;
+    }
+
+    /* Text keeps at least three lines at a page edge. */
+    p,
+    li,
+    dd,
+    blockquote {
+      orphans: 3;
+      widows: 3;
+    }
+
+    /* A heading stays with what it introduces. */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      break-after: avoid;
+    }
+
+    /* Units that read as one: never split across pages when they fit on one. */
+    figure,
+    img,
+    svg,
+    video,
+    pre,
+    blockquote,
+    tr {
+      break-inside: avoid;
+    }
+
+    /* A long table repeats its head (and foot) on every page. */
+    thead {
+      display: table-header-group;
+    }
+    tfoot {
+      display: table-footer-group;
+    }
+
+    /* A closed native disclosure prints its content: paper cannot be clicked. */
+    details::details-content {
+      content-visibility: visible;
+    }
+  }
+}
+
+@layer base {
+  @media print {
+    [data-print~="hide"] {
+      display: none !important;
+    }
+    [data-print~="break-before"] {
+      break-before: page !important;
+    }
+    [data-print~="avoid-break"] {
+      break-inside: avoid !important;
+    }
+    [data-print~="exact"] {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    [data-print~="flow"] {
+      position: static !important;
+      inset: auto !important;
+      block-size: auto !important;
+      max-block-size: none !important;
+      overflow: visible !important;
+    }
+  }
+
+  @media not print {
+    [data-print~="only"] {
+      display: none !important;
+    }
+  }
+}
+
+/* On paper a link cannot be followed, so an external link in a prose region
+   prints where it goes. Only class-less links, as in prose.css: a UI link (a nav
+   item, a button-link) carries a class and prints as it is. */
+@layer components {
+  @media print {
+    @scope (.prose, [data-prose]) to (.not-prose, [data-not-prose]) {
+      a[href^="http"]:not([class])::after {
+        content: " (" attr(href) ")";
+        font-size: 0.85em;
+        color: var(--C-TEXT-SECONDARY);
+        overflow-wrap: anywhere;
+      }
+    }
+  }
+}
+
+/* A fill that carries its own text keeps its colour on paper. Dropped like any
+   background, it would leave its `on-*` ink (light on a dark fill) on white paper:
+   a primary button's label, a solid status badge, a selected row. Each is a
+   same-name companion of the fill utility, so its variants (`aria-selected:`)
+   carry it too, as the forced-colors companions do. */
+@utility bg-primary {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-primary-hover {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-primary-active {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-accent {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-accent-hover {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-selection {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-status-error {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-status-success {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-status-warning {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-status-info {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+@utility bg-fg-primary {
+  @media print {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

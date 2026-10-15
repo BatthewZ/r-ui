@@ -6,7 +6,7 @@ working rules.
 
 | Package | What it is |
 | --- | --- |
-| [`r-ui-css/`](r-ui-css/) | `@batthewz/r-ui-css`: the token contract (colour, surfaces, type, spacing, shape, depth, motion), the four sizing axes and two example themes, as Tailwind v4 CSS. Zero JavaScript. |
+| [`r-ui-css/`](r-ui-css/) | `@batthewz/r-ui-css`: the token contract (colour, surfaces, type, spacing, shape, depth, motion), the four sizing axes and three example themes, as Tailwind v4 CSS. Zero JavaScript. |
 | [`r-ui-tw-merge/`](r-ui-tw-merge/) | `@batthewz/r-ui-tw-merge`: `cn()`, a tailwind-merge that knows the r-ui-css utility names. Zero CSS. |
 | [`r-ui-react-components/`](r-ui-react-components/) | `@batthewz/r-ui-react-components`: React 19 components on the two packages above (primitives, form, overlays, data, navigation, layout), the domain tokens a dashboard needs, and the showcase app. |
 
@@ -27,7 +27,7 @@ bun run browser:check   # every real-browser check against a fresh showcase (nee
 ```
 
 Four pages, switched from the top bar, each viewable in any theme (default, nightfall,
-harbour), density and input from the **View** panel:
+harbour, atelier), density and input from the **View** panel:
 
 - **Overview**: every component, every state, one section each.
 - **Dashboard**: an operations dashboard built from library components only, in an `AppShell`

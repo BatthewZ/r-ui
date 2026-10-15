@@ -7,6 +7,18 @@ import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useLinkElement } from "../../util/router";
 import { safeUrl } from "../../util/url";
 import { cn, type SlotClassNames } from "../../util/style";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
+
+export interface LinkLabels {
+  /**
+   * Spoken as the description of a new-tab link. A description rather than
+   * part of the name: name computation joins inline text without a space
+   * ("Docs(opens…)"), and the name stays the visible text. `""` drops it.
+   */
+  newTab: string;
+}
+
+export const DEFAULT_LINK_LABELS: LinkLabels = { newTab: "(opens in a new tab)" };
 
 export interface LinkOwnProps {
   /**
@@ -20,12 +32,7 @@ export interface LinkOwnProps {
    * says so to assistive tech. Defaults to true when `target="_blank"`.
    */
   external?: boolean;
-  /**
-   * Spoken as the description of a new-tab link, in the caller's language.
-   * A description rather than part of the name: name computation joins inline
-   * text without a space ("Docs(opens…)"), and the name stays the visible text.
-   */
-  newTabLabel?: string;
+  labels?: LabelsProp<LinkLabels>;
   classNames?: SlotClassNames<"icon">;
   href?: string;
   target?: string;
@@ -51,14 +58,14 @@ const INK = { accent: "text-fg-accent", inherit: "text-inherit" } as const;
  *
  * `href` passes through `safeUrl`: a refused scheme (`javascript:` …) renders
  * the children as plain text, not a dead or dangerous link. Only an internal
- * `href` (no scheme, not `//host`) goes to the router's link, and never one that
+ * `href` (no scheme, no other host) goes to the router's link, and never one that
  * opens a new tab.
  */
 export function Link<C extends ElementType = "a">({
   as,
   variant = "accent",
   external,
-  newTabLabel = "(opens in a new tab)",
+  labels,
   href,
   target,
   rel,
@@ -86,6 +93,7 @@ export function Link<C extends ElementType = "a">({
     <ExternalLink aria-hidden className={cn("ms-r6 inline size-icon align-text-bottom", classNames?.icon)} />
   );
 
+  const newTabLabel = mergeLabels(DEFAULT_LINK_LABELS, labels).newTab;
   const hint = newTab && newTabLabel ? newTabLabel : "";
 
   return (
@@ -96,7 +104,7 @@ export function Link<C extends ElementType = "a">({
         target={target}
         rel={relValue}
         className={cn(
-          "r-primitives-link break-words rounded-sm decoration-from-font underline-offset-[0.18em] hover:underline",
+          "r-primitives-link break-words rounded-sm decoration-from-font underline-offset-(--LINK-UNDERLINE-OFFSET) hover:underline",
           INK[variant],
           className,
         )}

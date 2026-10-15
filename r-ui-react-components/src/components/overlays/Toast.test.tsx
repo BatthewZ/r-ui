@@ -16,7 +16,7 @@ function setup(props: Partial<ToastProviderProps> = {}) {
       <Capture />
     </ToastProvider>
   );
-  const region = screen.getByRole("region", { name: props.label ?? "Notifications" });
+  const region = screen.getByRole("region", { name: props.labels?.region ?? "Notifications" });
   const [assertive, polite] = region.querySelectorAll("ol");
   if (!assertive || !polite) throw new Error("both live regions must be mounted");
   return { region, assertive, polite };
@@ -51,13 +51,41 @@ describe("ToastProvider + useToast", () => {
   });
 
   it("names the tone in words for assistive tech; the icon is decorative", () => {
-    const { polite } = setup({ toneLabels: { warning: "Careful:" } });
+    const { polite } = setup({ labels: { tones: { warning: "Attention" } } });
     act(() => {
       api.toast({ title: "Disk almost full", tone: "warning" });
+      api.toast({ title: "Synced", tone: "success" });
     });
-    const item = within(polite).getByRole("listitem");
-    expect(item).toHaveTextContent("Careful: Disk almost full");
-    expect(item.querySelector("svg")?.closest("[aria-hidden]")).not.toBeNull();
+    const [warning, success] = within(polite).getAllByRole("listitem");
+    // The override replaces one tone's word; the others keep the shared default.
+    expect(warning).toHaveTextContent("Attention: Disk almost full");
+    expect(success).toHaveTextContent("Success: Synced");
+    expect(warning!.querySelector("svg")?.closest("[aria-hidden]")).not.toBeNull();
+  });
+
+  it("translates the landmark and the dismiss button through labels", () => {
+    setup({ labels: { region: "Benachrichtigungen", dismiss: "Schließen" } });
+    act(() => {
+      api.toast({ title: "Gespeichert" });
+    });
+    expect(screen.getByRole("button", { name: "Schließen" })).toBeInTheDocument();
+  });
+
+  it("serious, like error, interrupts and stays; stale and accent are polite", () => {
+    const { assertive, polite } = setup({ duration: 1000 });
+    act(() => {
+      api.toast({ title: "Latency high", tone: "serious" });
+      api.toast({ title: "Data is an hour old", tone: "stale" });
+      api.toast({ title: "Now viewing EU", tone: "accent" });
+    });
+    expect(within(assertive).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Serious: Latency high"]);
+    expect(within(polite).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
+      "Stale: Data is an hour old",
+      "Current: Now viewing EU",
+    ]);
+    act(() => vi.advanceTimersByTime(60_000));
+    expect(within(assertive).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(polite).queryAllByRole("listitem")).toHaveLength(0);
   });
 
   it("auto-dismisses after its duration", () => {
@@ -95,6 +123,83 @@ describe("ToastProvider + useToast", () => {
     act(() => screen.getByRole("button", { name: "Dismiss" }).focus());
     act(() => vi.advanceTimersByTime(10_000));
     expect(within(polite).getAllByRole("listitem")).toHaveLength(1);
+  });
+
+  it("a toast dismissed from its own button takes the pause with it, so the next one still times out", () => {
+    const { polite } = setup({ duration: 3000 });
+    act(() => {
+      api.toast({ title: "Saved" });
+    });
+    const dismiss = screen.getByRole("button", { name: "Dismiss" });
+    act(() => dismiss.focus());
+    fireEvent.click(dismiss);
+    expect(within(polite).queryAllByRole("listitem")).toHaveLength(0);
+    act(() => {
+      api.toast({ title: "Exported" });
+    });
+    act(() => vi.advanceTimersByTime(2999));
+    expect(within(polite).getAllByRole("listitem")).toHaveLength(1);
+    act(() => vi.advanceTimersByTime(1));
+    expect(within(polite).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("dismissing a toast from its own button moves focus to the next toast's Dismiss", () => {
+    render(
+      <ToastProvider>
+        <Capture />
+        <button type="button">Save</button>
+      </ToastProvider>
+    );
+    act(() => {
+      api.toast({ title: "One", tone: "error" });
+      api.toast({ title: "Two", tone: "error" });
+    });
+    const [first, second] = screen.getAllByRole("listitem");
+    const firstDismiss = within(first!).getByRole("button", { name: "Dismiss" });
+    act(() => firstDismiss.focus());
+    fireEvent.click(firstDismiss);
+    expect(within(second!).getByRole("button", { name: "Dismiss" })).toHaveFocus();
+  });
+
+  it("dismissing the last toast from its own button returns focus to where it was, and the clocks run again", () => {
+    render(
+      <ToastProvider duration={3000}>
+        <Capture />
+        <button type="button">Save</button>
+      </ToastProvider>
+    );
+    const save = screen.getByRole("button", { name: "Save" });
+    act(() => save.focus());
+    act(() => {
+      api.toast({ title: "Saved", tone: "error" });
+    });
+    const dismiss = screen.getByRole("button", { name: "Dismiss" });
+    act(() => dismiss.focus());
+    fireEvent.click(dismiss);
+    expect(save).toHaveFocus();
+    act(() => {
+      api.toast({ title: "Exported" });
+    });
+    act(() => vi.advanceTimersByTime(3000));
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("dismiss(id) on the toast holding focus hands focus on too", () => {
+    render(
+      <ToastProvider>
+        <Capture />
+        <button type="button">Save</button>
+      </ToastProvider>
+    );
+    const save = screen.getByRole("button", { name: "Save" });
+    act(() => save.focus());
+    let id = "";
+    act(() => {
+      id = api.toast({ title: "Archived", action: { label: "Undo", onClick: () => {} } });
+    });
+    act(() => screen.getByRole("button", { name: "Undo" }).focus());
+    act(() => api.dismiss(id));
+    expect(save).toHaveFocus();
   });
 
   it("errors and toasts with an action stay until dismissed", () => {

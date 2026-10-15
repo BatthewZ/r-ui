@@ -15,7 +15,7 @@ function Menu({ onRename = vi.fn(), onDelete = vi.fn() }: { onRename?: () => voi
         <DropdownMenu.Item disabled>Archive</DropdownMenu.Item>
         <DropdownMenu.Item>Duplicate</DropdownMenu.Item>
         <DropdownMenu.Separator />
-        <DropdownMenu.Item tone="error" onSelect={onDelete}>
+        <DropdownMenu.Item variant="danger" onSelect={onDelete}>
           Delete
         </DropdownMenu.Item>
       </DropdownMenu.Content>
@@ -44,6 +44,49 @@ describe("DropdownMenu", () => {
     ]);
   });
 
+  it("a caller's id on the trigger is rendered, and the menu is named through it", async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu>
+        <DropdownMenu.Trigger id="row-actions">Actions</DropdownMenu.Trigger>
+        <DropdownMenu.Content>
+          <DropdownMenu.Item>Rename</DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu>
+    );
+    const trigger = screen.getByRole("button", { name: "Actions" });
+    expect(trigger).toHaveAttribute("id", "row-actions");
+    await user.click(trigger);
+    const menu = screen.getByRole("menu", { name: "Actions" });
+    expect(menu).toHaveAttribute("aria-labelledby", "row-actions");
+  });
+
+  it("without a caller's id, the menu is named through the trigger's generated id", async () => {
+    const user = userEvent.setup();
+    render(<Menu />);
+    const trigger = screen.getByRole("button", { name: "Actions" });
+    expect(trigger.id).not.toBe("");
+    await user.click(trigger);
+    expect(screen.getByRole("menu")).toHaveAttribute("aria-labelledby", trigger.id);
+  });
+
+  it("a caller's aria-labelledby on Content wins over the trigger's name", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <h2 id="row-heading">Incident 4821</h2>
+        <DropdownMenu>
+          <DropdownMenu.Trigger>Actions</DropdownMenu.Trigger>
+          <DropdownMenu.Content aria-labelledby="row-heading">
+            <DropdownMenu.Item>Rename</DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu>
+      </>
+    );
+    await user.click(screen.getByRole("button", { name: "Actions" }));
+    expect(screen.getByRole("menu", { name: "Incident 4821" })).toBeInTheDocument();
+  });
+
   it("opens from the keyboard on the first item; ArrowUp opens on the last", async () => {
     const user = userEvent.setup();
     render(<Menu />);
@@ -66,12 +109,22 @@ describe("DropdownMenu", () => {
     expect(screen.getByRole("menuitem", { name: "Rename" })).toHaveFocus();
   });
 
-  it("arrows skip disabled items and wrap; Home and End jump", async () => {
+  it("arrows land on disabled items too (focusable, not activatable) and wrap; Home and End jump", async () => {
     const user = userEvent.setup();
-    render(<Menu />);
+    const onRename = vi.fn();
+    render(<Menu onRename={onRename} />);
     screen.getByRole("button", { name: "Actions" }).focus();
     await user.keyboard("{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: "Rename" })).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    const archive = screen.getByRole("menuitem", { name: "Archive" });
+    expect(archive).toHaveFocus();
+    expect(archive).toHaveAttribute("aria-disabled", "true");
+    // Enter on it does nothing and keeps the menu open.
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(archive).toHaveFocus();
+    expect(onRename).toHaveBeenCalledTimes(0);
     await user.keyboard("{ArrowDown}");
     expect(screen.getByRole("menuitem", { name: "Duplicate" })).toHaveFocus();
     await user.keyboard("{ArrowDown}{ArrowDown}");
@@ -236,18 +289,21 @@ describe("DropdownMenu", () => {
     expect(screen.getByRole("menu")).toBeInTheDocument();
   });
 
-  it("marks a destructive item with the error tone", async () => {
+  it("marks a destructive item with variant=\"danger\"", async () => {
     render(
       <DropdownMenu defaultOpen>
         <DropdownMenu.Trigger>Actions</DropdownMenu.Trigger>
         <DropdownMenu.Content>
           <DropdownMenu.Item>Keep</DropdownMenu.Item>
-          <DropdownMenu.Item tone="error">Delete</DropdownMenu.Item>
+          <DropdownMenu.Item variant="danger">Delete</DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu>
     );
-    expect(screen.getByRole("menuitem", { name: "Delete" })).toHaveClass("text-fg-error");
+    const danger = screen.getByRole("menuitem", { name: "Delete" });
+    expect(danger).toHaveClass("text-fg-error");
+    expect(danger).toHaveAttribute("data-variant", "danger");
     expect(screen.getByRole("menuitem", { name: "Keep" })).not.toHaveClass("text-fg-error");
+    expect(screen.getByRole("menuitem", { name: "Keep" })).toHaveAttribute("data-variant", "default");
   });
 });
 

@@ -6,12 +6,14 @@ import {
   type ReactElement,
   type ReactNode,
   type RefObject,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
 
 import { mergeProps } from "../../util/merge-props";
+import { Button, type ButtonProps } from "../primitives";
 
 /**
  * `asChild`: hand the part's props to the caller's single element instead of
@@ -22,6 +24,23 @@ export function Slot({ children, ...props }: { children?: ReactNode } & Record<s
   if (!isValidElement(children)) return null;
   const child = children as ReactElement<Record<string, unknown>>;
   return cloneElement(child, mergeProps(child.props, props));
+}
+
+/** A trigger or close part: the caller's own element with `asChild`, else a secondary `Button`. */
+export function ButtonOrSlot({ asChild, children, ...props }: ButtonProps & { asChild: boolean }) {
+  if (asChild) return <Slot {...props}>{children}</Slot>;
+  return (
+    <Button variant="secondary" {...props}>
+      {children}
+    </Button>
+  );
+}
+
+/** Open state, controlled (`open` + `onOpenChange`) or not (`defaultOpen`). */
+export interface OpenStateProps {
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -40,20 +59,26 @@ export function onEscape(close: () => void) {
 }
 
 /**
- * Whether a part is mounted, for an IDREF that must not dangle: a Title or
- * Description registers itself, and the surface only points `aria-labelledby` /
- * `aria-describedby` at parts that exist.
+ * The id a labelling part (a Title, a Description, a trigger) actually
+ * rendered, for an IDREF that must neither dangle nor point at an id the part
+ * did not render. The part registers its id (the caller's own `id`, else a
+ * generated one) and the surface points `aria-labelledby` /
+ * `aria-describedby` at it; `undefined` while no such part is mounted.
  */
-export function usePresence(): [boolean, (present: boolean) => void] {
-  return useState(false);
+export function useRegisteredId(): [string | undefined, (id: string | undefined) => void] {
+  return useState<string | undefined>(undefined);
 }
 
-export function useRegister(register: ((present: boolean) => void) | undefined) {
+/** Renders `own ?? generated` and registers it with the surface while mounted. */
+export function usePartId(own: string | undefined, register: ((id: string | undefined) => void) | undefined): string {
+  const generated = useId();
+  const id = own ?? generated;
   useLayoutEffect(() => {
     if (!register) return;
-    register(true);
-    return () => register(false);
-  }, [register]);
+    register(id);
+    return () => register(undefined);
+  }, [register, id]);
+  return id;
 }
 
 /**

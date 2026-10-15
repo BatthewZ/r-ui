@@ -215,9 +215,26 @@ describe("Stagger", () => {
     expect(screen.getByText("Two")).toHaveClass("stagger-item", "animate-fade-up");
   });
 
-  it("on screen at mount, or under reduced motion, nothing plays and nothing hides", () => {
+  it("on screen at mount, nothing hides and nothing plays, even when it later reports in view", () => {
+    const io = stubObserver();
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+      top: 10, bottom: 60, left: 0, right: 400, width: 400, height: 50, x: 0, y: 10, toJSON: () => ({}),
+    });
+    render(
+      <Stagger data-testid="group">
+        <p>One</p>
+      </Stagger>
+    );
+    const group = screen.getByTestId("group");
+    expect(group).toHaveAttribute("data-reveal", "static");
+    expect(group).not.toHaveClass("scroll-reveal-hidden");
+    io.enter();
+    expect(screen.getByText("One")).not.toHaveClass("stagger-item");
+  });
+
+  it("under reduced motion, below the fold, nothing hides, nothing plays and nothing observes", () => {
     stubReducedMotion(true);
-    stubObserver();
+    const io = stubObserver();
     placeBelowFold();
     render(
       <Stagger data-testid="group">
@@ -226,6 +243,7 @@ describe("Stagger", () => {
     );
     expect(screen.getByTestId("group")).not.toHaveClass("scroll-reveal-hidden");
     expect(screen.getByText("One")).not.toHaveClass("stagger-item");
+    expect(io.observers).toHaveLength(0);
   });
 });
 

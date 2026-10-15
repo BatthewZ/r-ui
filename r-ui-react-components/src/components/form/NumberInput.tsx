@@ -1,14 +1,15 @@
 "use client";
 import { Minus, Plus } from "lucide-react";
-import { type ChangeEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, useState } from "react";
+import { type ChangeEvent, type FocusEvent, type KeyboardEvent, useState } from "react";
 
 import { formatNumber, type FormatNumberOptions } from "../../util/format";
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn } from "../../util/style";
 
 import { useField, useFieldValue } from "./Field";
-import { Input, type InputProps } from "./Input";
+import { Input, type InputProps, keepFocus } from "./Input";
 import { parseLocaleNumber } from "./number-locale";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 export interface NumberInputProps
   extends Omit<InputProps, "type" | "value" | "defaultValue" | "inputMode" | "role" | "min" | "max" | "step"> {
@@ -27,9 +28,19 @@ export interface NumberInputProps
   locale?: string;
   /** Display options, e.g. `{ minimumFractionDigits: 2 }`. Grouping is on by default. */
   formatOptions?: Pick<FormatNumberOptions, "minimumFractionDigits" | "maximumFractionDigits" | "useGrouping">;
-  incrementLabel?: string;
-  decrementLabel?: string;
+  labels?: LabelsProp<NumberInputLabels>;
 }
+
+/** Every string the control says, for localisation: the steppers' names. */
+export interface NumberInputLabels {
+  increment: string;
+  decrement: string;
+}
+
+export const DEFAULT_NUMBER_INPUT_LABELS: NumberInputLabels = {
+  increment: "Increase",
+  decrement: "Decrease",
+};
 
 const MAX_DIGITS = 20;
 
@@ -62,8 +73,7 @@ export function NumberInput({
   precision,
   locale,
   formatOptions,
-  incrementLabel = "Increase",
-  decrementLabel = "Decrease",
+  labels: labelsProp,
   end,
   classNames,
   onChange,
@@ -72,6 +82,7 @@ export function NumberInput({
   onBlur,
   ...props
 }: NumberInputProps) {
+  const labels = mergeLabels(DEFAULT_NUMBER_INPUT_LABELS, labelsProp);
   const field = useField();
   // In a Field bound to a Form, the form owns the number (unless the caller passed one).
   const [current, setValue] = useFieldValue<number | null>({
@@ -98,11 +109,15 @@ export function NumberInput({
     return clamp(rounded, min, max);
   };
 
-  const commit = (text: string) => {
+  /** Commits an edited draft. Returns whether the field may show the committed value again. */
+  const commit = (text: string): boolean => {
+    // Unedited: the display may hold fewer digits than the value (`formatOptions`), so re-reading it would change it.
+    if (text === format(current)) return true;
     const parsed = parseLocaleNumber(text, locale);
-    if (parsed === null) setValue(null);
-    else if (!Number.isNaN(parsed)) setValue(settle(parsed));
     // Unreadable text: keep the last good value; leaving the field shows it again.
+    if (Number.isNaN(parsed)) return false;
+    setValue(parsed === null ? null : settle(parsed));
+    return true;
   };
 
   const stepBy = (steps: number) => {
@@ -132,7 +147,8 @@ export function NumberInput({
       Home: () => jumpTo(min),
       End: () => jumpTo(max),
       Enter: () => {
-        if (draft !== null && !locked) commit(draft);
+        // The field then shows what was committed (rounded, clamped), not what was typed.
+        if (draft !== null && !locked && commit(draft)) setDraft(null);
       },
     };
     const action = actions[event.key];
@@ -143,9 +159,6 @@ export function NumberInput({
     action();
   });
 
-  // Steppers never take focus: keyboard users have the arrow keys, and a
-  // press must not blur (and so commit) a half-typed draft first.
-  const keepFocus = (event: MouseEvent) => event.preventDefault();
   const atMin = current !== null && min !== undefined && current <= min;
   const atMax = current !== null && max !== undefined && current >= max;
 
@@ -174,11 +187,13 @@ export function NumberInput({
       end={
         <>
           {end != null && <span className="r-form-adornment">{end}</span>}
+          {/* Steppers never take focus: keyboard users have the arrow keys, and a
+              press must not blur (and so commit) a half-typed draft first. */}
           <span className="r-form-steppers">
             <button
               type="button"
               tabIndex={-1}
-              aria-label={decrementLabel}
+              aria-label={labels.decrement}
               disabled={locked || atMin}
               onMouseDown={keepFocus}
               onClick={() => stepBy(-1)}
@@ -189,7 +204,7 @@ export function NumberInput({
             <button
               type="button"
               tabIndex={-1}
-              aria-label={incrementLabel}
+              aria-label={labels.increment}
               disabled={locked || atMax}
               onMouseDown={keepFocus}
               onClick={() => stepBy(1)}

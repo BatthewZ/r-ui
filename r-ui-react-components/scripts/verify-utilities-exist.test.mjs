@@ -11,7 +11,8 @@ const run = (root) =>
     encoding: "utf8",
   });
 
-describe("verify:utilities-exist", () => {
+// Each case runs the gate as a subprocess, which can take seconds while the full suite loads every core.
+describe("verify:utilities-exist", { timeout: 30_000 }, () => {
   it("goes red on the bad fixture and names every dead class", () => {
     const result = run(join(HERE, "fixtures/utilities-exist/bad"));
     expect(result.status).toBe(1);
@@ -37,6 +38,8 @@ describe("verify:utilities-exist", () => {
       /Tables\.tsx:4 {2}`no-such-tone` is neither a utility nor a class/,
       // A class-named table nobody uses as classes is still checked for utilities.
       /Tables\.tsx:5 {2}`font-black` generates no CSS/,
+      // A `.ts` file is read as TypeScript: a generic arrow does not hide what follows it.
+      /generic\.ts:3 {2}`font-black` generates no CSS/,
     ]) {
       expect(out).toMatch(line);
     }
@@ -47,7 +50,7 @@ describe("verify:utilities-exist", () => {
     expect(out).not.toMatch(/Bad\.tsx:2 /);
     // The values tested in front of those branches are not classes.
     expect(out).not.toMatch(/`(wide|narrow)`/);
-    expect(out).toMatch(/— 16 dead class\(es\)/);
+    expect(out).toMatch(/— 17 dead class\(es\)/);
   });
 
   it("passes the good fixture: tokens, variants, markers, package classes, followed constants, defaults behind comparisons, a class-named table of labels", () => {

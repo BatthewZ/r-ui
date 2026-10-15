@@ -29,7 +29,7 @@ function ActionsMenu({ label = "Actions" }: { label?: string }) {
           Export (no data yet)
         </DropdownMenu.Item>
         <DropdownMenu.Separator />
-        <DropdownMenu.Item icon={<Trash2 />} tone="error">
+        <DropdownMenu.Item icon={<Trash2 />} variant="danger">
           Delete dashboard
         </DropdownMenu.Item>
       </DropdownMenu.Content>
@@ -117,7 +117,7 @@ export default function DropdownMenuSection() {
               </DropdownMenu.Item>
               <DropdownMenu.Item icon={<Copy />}>تكرار</DropdownMenu.Item>
               <DropdownMenu.Separator />
-              <DropdownMenu.Item icon={<Trash2 />} tone="error">
+              <DropdownMenu.Item icon={<Trash2 />} variant="danger">
                 حذف
               </DropdownMenu.Item>
             </DropdownMenu.Content>

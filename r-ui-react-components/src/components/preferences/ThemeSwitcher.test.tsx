@@ -45,8 +45,8 @@ describe("ThemeSwitcher", () => {
     const user = userEvent.setup();
     render(
       <>
-        <ThemeSwitcher themes={THEMES} label="Header theme" />
-        <ThemeSwitcher themes={THEMES} label="Settings theme" variant="select" />
+        <ThemeSwitcher themes={THEMES} aria-label="Header theme" />
+        <ThemeSwitcher themes={THEMES} aria-label="Settings theme" variant="select" />
       </>,
     );
     await user.click(screen.getByRole("radio", { name: "Aurora" }));
@@ -55,7 +55,7 @@ describe("ThemeSwitcher", () => {
 
   it("select variant: a labelled native select that sets the theme", async () => {
     const user = userEvent.setup();
-    render(<ThemeSwitcher themes={["default", "aurora"]} variant="select" label="Colour theme" />);
+    render(<ThemeSwitcher themes={["default", "aurora"]} variant="select" labels={{ theme: "Colour theme" }} />);
     const select = screen.getByRole("combobox", { name: "Colour theme" });
     expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["default", "aurora"]);
     await user.selectOptions(select, "aurora");

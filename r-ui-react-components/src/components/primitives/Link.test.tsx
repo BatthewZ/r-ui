@@ -49,9 +49,9 @@ describe("Link", () => {
     expect(link).not.toHaveAttribute("aria-describedby");
   });
 
-  it("external={false} suppresses the glyph on a new-tab link; newTabLabel is translatable", () => {
+  it("external={false} suppresses the glyph on a new-tab link; labels.newTab is translatable", () => {
     render(
-      <Link href="https://example.com" target="_blank" external={false} newTabLabel="(nouvel onglet)">
+      <Link href="https://example.com" target="_blank" external={false} labels={{ newTab: "(nouvel onglet)" }}>
         Exemple
       </Link>,
     );
@@ -110,6 +110,22 @@ describe("Link", () => {
     );
     expect(screen.getByRole("link", { name: "Report" })).not.toHaveAttribute("data-router");
     expect(screen.getByRole("link", { name: "Status" })).not.toHaveAttribute("data-router");
+    expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("data-router");
+  });
+
+  it("never routes an href a browser resolves to another host (`/\\host`)", () => {
+    function RouterLink(props: ComponentPropsWithRef<"a">) {
+      return <a data-router="" {...props} />;
+    }
+    render(
+      <RouterProvider link={RouterLink}>
+        <Link href={"/\\evil.example/x"}>Off-site</Link>
+        <Link href="/docs">Docs</Link>
+      </RouterProvider>,
+    );
+    const offSite = screen.getByRole("link", { name: "Off-site" });
+    expect(offSite).toHaveAttribute("href", "/\\evil.example/x");
+    expect(offSite).not.toHaveAttribute("data-router");
     expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("data-router");
   });
 });

@@ -1,0 +1,6 @@
+@theme inline {
+  --color-series-1: var(--C-SERIES-1);
+  --spacing-chart: var(--CHART-H);
+  --text-kpi: var(--KPI-VALUE);
+  --text-kpi--line-height: 1;
+}

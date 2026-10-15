@@ -1,3 +1,5 @@
+import { render } from "@testing-library/react";
+import { createElement, type Ref } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { mergeRefs } from "./merge-refs";
@@ -87,6 +89,35 @@ describe("mergeRefs", () => {
     expect(callbackRef).toHaveBeenCalledTimes(2);
     expect(callbackRef).toHaveBeenNthCalledWith(1, node);
     expect(callbackRef).toHaveBeenNthCalledWith(2, null);
+    expect(refObject.current).toBeNull();
+  });
+
+  // React 19: a callback ref that returns a cleanup is detached by that cleanup,
+  // never by a `null` call. Merged, it must keep that contract.
+  it("runs a callback ref's cleanup on unmount instead of calling it with null", () => {
+    const cleanup = vi.fn();
+    const callbackRef = vi.fn((node: HTMLDivElement | null) => {
+      void node;
+      return cleanup;
+    });
+    const plainRef = vi.fn();
+    const refObject: { current: HTMLDivElement | null } = { current: null };
+    const Box = ({ outer }: { outer: Ref<HTMLDivElement> }) =>
+      createElement("div", { ref: mergeRefs(outer, plainRef, refObject) });
+
+    const { unmount, container } = render(createElement(Box, { outer: callbackRef }));
+    const node = container.firstElementChild;
+    expect(node).toBeInstanceOf(HTMLDivElement);
+    expect(callbackRef).toHaveBeenCalledTimes(1);
+    expect(callbackRef).toHaveBeenCalledWith(node);
+    expect(refObject.current).toBe(node);
+
+    unmount();
+
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(callbackRef).toHaveBeenCalledTimes(1);
+    expect(plainRef).toHaveBeenCalledTimes(2);
+    expect(plainRef).toHaveBeenNthCalledWith(2, null);
     expect(refObject.current).toBeNull();
   });
 });

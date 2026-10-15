@@ -99,7 +99,10 @@ export function useVirtualRows({
   // height and keep the stale scroll height alive.
   const lastStart = Math.max(0, safeRowCount - visibleCount - overscan);
   const startIndex = Math.min(Math.max(0, Math.floor(scrollTop / safeRowHeight) - overscan), lastStart);
-  const endIndex = Math.min(safeRowCount, startIndex + visibleCount + overscan * 2);
+  // A window that starts mid-row shows one row more than `visibleCount`; with no
+  // overscan to cover it, that partly visible last row would be left blank.
+  const lastVisible = Math.ceil((scrollTop + viewportHeight) / safeRowHeight);
+  const endIndex = Math.min(safeRowCount, Math.max(startIndex + visibleCount + overscan * 2, lastVisible + overscan));
 
   const paddingTop = startIndex * safeRowHeight;
   const paddingBottom = Math.max(0, (safeRowCount - endIndex) * safeRowHeight);

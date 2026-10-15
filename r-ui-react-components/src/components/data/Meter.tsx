@@ -3,8 +3,9 @@ import { type HTMLAttributes, type ReactNode, type Ref, useId } from "react";
 
 import { formatNumber, isPresent, MISSING } from "../../util/format";
 import { cn, type SlotClassNames } from "../../util/style";
-import type { Tone } from "../../util/tone";
-import { STATUS_FILL, STATUS_WORD, StatusIcon } from "./data-tone";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type Tone, TONE_LABELS } from "../../util/tone";
+import { STATUS_FILL, StatusIcon } from "./data-tone";
 
 export type MeterTone = Extract<Tone, "neutral" | "success" | "info" | "warning" | "serious" | "error">;
 
@@ -13,6 +14,13 @@ export interface MeterThreshold {
   at: number;
   tone: MeterTone;
 }
+
+export interface MeterLabels {
+  /** The word spoken after the value, per threshold tone ("85%, Warning"). `""` silences it. */
+  tones: Record<Tone, string>;
+}
+
+export const DEFAULT_METER_LABELS: MeterLabels = { tones: TONE_LABELS };
 
 export interface MeterProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   value: number | null | undefined;
@@ -29,8 +37,7 @@ export interface MeterProps extends Omit<HTMLAttributes<HTMLDivElement>, "childr
   worse?: "high" | "low";
   /** The value as text. Default: a percentage of the range. */
   valueText?: string;
-  /** Overrides the spoken word for a threshold tone ("Warning"). `""` silences it. */
-  toneLabel?: string;
+  labels?: LabelsProp<MeterLabels>;
   /**
    * `stacked`: label and value above a full-width track (a list, a card).
    * `inline`: a short track beside the value, label kept for screen readers
@@ -67,7 +74,7 @@ export function Meter({
   thresholds = [],
   worse = "high",
   valueText,
-  toneLabel,
+  labels: labelsProp,
   variant = "stacked",
   className,
   classNames,
@@ -77,10 +84,12 @@ export function Meter({
   const labelId = useId();
   const present = isPresent(value);
   const span = max - min || 1;
-  const ratio = present ? Math.min(1, Math.max(0, (value - min) / span)) : 0;
+  const share = present ? (value - min) / span : 0;
+  // Only the fill clamps: the text says the real share, so 140 of 100 reads "140%", not "100%".
+  const ratio = Math.min(1, Math.max(0, share));
   const tone = present ? meterTone(value, thresholds, worse) : "neutral";
-  const text = valueText ?? (present ? formatNumber(ratio, { style: "percent", maximumFractionDigits: 0 }) : MISSING);
-  const word = toneLabel ?? STATUS_WORD[tone];
+  const text = valueText ?? (present ? formatNumber(share, { style: "percent", maximumFractionDigits: 0 }) : MISSING);
+  const word = mergeLabels(DEFAULT_METER_LABELS, labelsProp).tones[tone];
   const spoken = word ? `${text}, ${word}` : text;
   const showIcon = tone !== "neutral";
 

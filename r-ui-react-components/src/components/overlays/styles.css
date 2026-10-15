@@ -62,6 +62,22 @@
    `display: none` before anything can run), no `@starting-style` (the open is
    instant too), no `overlay` (the exit plays outside the top layer). */
 
+/* Floating panels never reach the viewport's edges. Promoted (`[popover]`:
+   fixed, in the top layer) the containing block is the viewport WITHOUT its
+   scrollbar, so `100%` is the width a panel may use; `100vw` counts the
+   scrollbar and let a wide panel slide under it. In place (no popover
+   support) the containing block is an ancestor, so only the viewport unit
+   can say it. A panel that is wider by design (a date popup's months) sets
+   `--r-overlays-measure` to its own width, lifting the reading measure and
+   keeping the viewport cap. A panel's own `max-w-*` utility (a tooltip's)
+   still wins. */
+.r-overlays-surface {
+  max-inline-size: min(var(--r-overlays-measure, var(--MEASURE)), 100vw - 2 * var(--R-SIZE-2));
+}
+.r-overlays-surface[popover] {
+  max-inline-size: min(var(--r-overlays-measure, var(--MEASURE)), 100% - 2 * var(--R-SIZE-2));
+}
+
 /* Floating panels (popover, menu, tooltip), promoted with `popover`: a fade,
    and no movement, so the panel's geometry is final from its first frame (a
    press during the entrance lands where it will stay; a measurement is not off
@@ -200,4 +216,10 @@
 }
 .r-overlays-toast-region[data-position$="end"] {
   inset-inline-end: var(--R-SIZE-2);
+}
+
+/* ContextMenu region: a finger held still opens the menu, so the platform's own
+   long-press callout (iOS) must not open over it. */
+.r-overlays-context-region {
+  -webkit-touch-callout: none;
 }

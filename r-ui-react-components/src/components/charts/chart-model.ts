@@ -229,6 +229,27 @@ function uniqueNames(names: string[]): string[] {
   });
 }
 
+/**
+ * Each series' slot: a valid pin first (an entity keeps its colour; a slot
+ * already taken is ignored), then the free slots in order. `null` past the last.
+ */
+function assignSlots(requested: readonly unknown[]): (SeriesSlot | null)[] {
+  const taken = new Set<number>();
+  const pinned = requested.map((slot) => {
+    if (typeof slot !== "number" || !Number.isInteger(slot) || slot < 1 || slot > MAX_DRAWN_SERIES || taken.has(slot)) return null;
+    taken.add(slot);
+    return slot as SeriesSlot;
+  });
+  let next = 1;
+  return pinned.map((slot) => {
+    if (slot !== null) return slot;
+    while (taken.has(next)) next += 1;
+    if (next > MAX_DRAWN_SERIES) return null;
+    taken.add(next);
+    return next as SeriesSlot;
+  });
+}
+
 export function modelCartesian(input: CartesianInput): CartesianModel {
   const zone: TimeZoneMode = input.timeZone === "UTC" ? "UTC" : "local";
   const locale = typeof input.locale === "string" ? input.locale : undefined;
@@ -296,22 +317,7 @@ export function modelCartesian(input: CartesianInput): CartesianModel {
     for (const row of rows) if (row.x !== null) row.label = timePointLabel(row.x, xStep, zone, locale);
   }
 
-  // Pinned slots first (an entity keeps its colour), then the free ones in order.
-  const taken = new Set<number>();
-  const pinned = tabulated.map((s) => {
-    const slot = s.slot;
-    if (typeof slot !== "number" || !Number.isInteger(slot) || slot < 1 || slot > MAX_DRAWN_SERIES || taken.has(slot)) return null;
-    taken.add(slot);
-    return slot as SeriesSlot;
-  });
-  let next = 1;
-  const slots = pinned.map((slot) => {
-    if (slot !== null) return slot;
-    while (taken.has(next)) next += 1;
-    if (next > MAX_DRAWN_SERIES) return null;
-    taken.add(next);
-    return next as SeriesSlot;
-  });
+  const slots = assignSlots(tabulated.map((s) => s.slot));
   const series: ModelSeries[] = names.map((name, index) => {
     const slot = slots[index] ?? null;
     return { index, name, slot, shape: slot === null ? null : (SERIES_SHAPES[slot - 1] ?? null) };
@@ -388,20 +394,37 @@ export function valueRange(model: CartesianModel): { low: number; high: number }
   return low <= high ? { low, high } : null;
 }
 
+/** The facts a line or bar chart's default summary is written from (see `ChartLabels.cartesianSummary`). */
+export interface CartesianSummaryParts {
+  /** The chart's kind, from `ChartLabels.kinds` ("Line chart"). */
+  kind: string;
+  /** The series' names, in order. Empty: no data. */
+  series: string[];
+  /** Rows, placed or not. 0: no data. */
+  points: number;
+  /** The first placed x label; `undefined` when nothing is placed. */
+  first?: string;
+  /** The last placed x label; `undefined` unless two or more are placed. */
+  last?: string;
+  /** The formatted value range; `undefined` when no value is present. */
+  low?: string;
+  high?: string;
+}
+
 /**
  * What a screen reader hears after the chart's name, when the caller wrote no
  * summary: the series, the span and the value range. The values themselves are
  * the table's job.
  */
-export function cartesianSummary(kind: string, model: CartesianModel, formatters: Formatters): string {
+export function cartesianSummaryParts(model: CartesianModel, formatters: Formatters): Omit<CartesianSummaryParts, "kind"> {
   const { series, rows } = model;
-  if (rows.length === 0 || series.length === 0) return `${kind}, no data.`;
-  const names = series.map((s) => s.name).join(", ");
   const placed = rows.filter((r) => r.x !== null);
-  const first = placed[0]?.label ?? rows[0]?.label ?? "";
-  const last = placed[placed.length - 1]?.label ?? "";
-  const span = placed.length > 1 ? `, ${first} to ${last}` : placed.length === 1 ? `, ${first}` : "";
   const range = valueRange(model);
-  const values = range ? ` Values from ${formatters.value(range.low)} to ${formatters.value(range.high)}.` : " No values.";
-  return `${kind}, ${series.length === 1 ? "1 series" : `${series.length} series`} (${names}), ${rows.length === 1 ? "1 point" : `${rows.length} points`}${span}.${values}`;
+  return {
+    series: series.map((s) => s.name),
+    points: rows.length,
+    first: placed[0]?.label,
+    last: placed.length > 1 ? placed[placed.length - 1]?.label : undefined,
+    ...(range && { low: formatters.value(range.low), high: formatters.value(range.high) }),
+  };
 }

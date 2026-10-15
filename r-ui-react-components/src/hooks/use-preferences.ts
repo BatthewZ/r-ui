@@ -52,9 +52,9 @@ function useRestore(storageKey: string, key: keyof Preferences, themes: readonly
   }, [storageKey, key, themesKey, defaultTheme]);
 }
 
-function useSetter<V extends string>(storageKey: string, key: keyof Preferences, defaultTheme: string) {
+function useSetter<K extends keyof Preferences>(storageKey: string, key: K, defaultTheme: string) {
   return useCallback(
-    (next: V) => {
+    (next: Preferences[K]) => {
       if (typeof document === "undefined") return;
       applyPreferences({ [key]: next }, defaultTheme, document.documentElement);
       storePreferences(storageKey, { [key]: next });
@@ -94,7 +94,7 @@ export function useTheme(): UseThemeReturn<string>;
 export function useTheme<T extends string>(options: UseThemeOptions<T>): UseThemeReturn<T>;
 export function useTheme<T extends string>(options: UseThemeOptions<T> = {}): UseThemeReturn<T | string> {
   const { storageKey = PREFERENCES_STORAGE_KEY } = options;
-  const registry = (options.themes ?? null) as readonly string[] | null;
+  const registry: readonly string[] | null = options.themes ?? null;
   const registryKey = registry?.join("\u0000") ?? null;
   const fallback = registry?.[0] ?? DEFAULT_THEME;
 
@@ -112,9 +112,9 @@ export function useTheme<T extends string>(options: UseThemeOptions<T> = {}): Us
   const theme = useSyncExternalStore(subscribeTheme, getSnapshot, () => fallback);
 
   useRestore(storageKey, "theme", registry, fallback);
-  const setTheme = useSetter<string>(storageKey, "theme", fallback);
+  const setTheme = useSetter(storageKey, "theme", fallback);
 
-  return { theme, setTheme, themes: (options.themes ?? UNREGISTERED) as readonly string[] };
+  return { theme, setTheme, themes: options.themes ?? UNREGISTERED };
 }
 
 /* ─── Density ──────────────────────────────────────────────────────────── */
@@ -131,7 +131,7 @@ const readDensity = (): Density => (rootAttribute("data-density") === "compact" 
 export function useDensity({ storageKey = PREFERENCES_STORAGE_KEY }: PreferencesConfig = {}): UseDensityReturn {
   const density = useSyncExternalStore(subscribeDensity, readDensity, () => "comfortable" as const);
   useRestore(storageKey, "density", null, DEFAULT_THEME);
-  const setDensity = useSetter<Density>(storageKey, "density", DEFAULT_THEME);
+  const setDensity = useSetter(storageKey, "density", DEFAULT_THEME);
   return { density, setDensity };
 }
 
@@ -156,6 +156,6 @@ export function useInputMode({ storageKey = PREFERENCES_STORAGE_KEY }: Preferenc
   const input = useSyncExternalStore(subscribeInput, readInput, () => "auto" as const);
   const coarsePointer = useMediaQuery("(pointer: coarse)");
   useRestore(storageKey, "input", null, DEFAULT_THEME);
-  const setInput = useSetter<InputMode>(storageKey, "input", DEFAULT_THEME);
+  const setInput = useSetter(storageKey, "input", DEFAULT_THEME);
   return { input, setInput, resolved: input === "auto" ? (coarsePointer ? "coarse" : "fine") : input };
 }

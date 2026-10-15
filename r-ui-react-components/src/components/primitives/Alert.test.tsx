@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { Alert } from "./Alert";
+import { TONE_LABELS } from "../../util/tone";
+import { Alert, DEFAULT_ALERT_LABELS } from "./Alert";
 import { Button } from "./Button";
 
 describe("Alert", () => {
@@ -27,6 +28,14 @@ describe("Alert", () => {
     }
   });
 
+  it("speaks the shared tone word (neutral says nothing), and DEFAULT_ALERT_LABELS is that set", () => {
+    const { rerender } = render(<Alert tone="info">Maintenance at 2am</Alert>);
+    expect(screen.getByRole("status")).toHaveTextContent(/^Info: Maintenance at 2am$/);
+    rerender(<Alert tone="neutral">Maintenance at 2am</Alert>);
+    expect(screen.getByRole("status")).toHaveTextContent(/^Maintenance at 2am$/);
+    expect(DEFAULT_ALERT_LABELS.tones).toBe(TONE_LABELS);
+  });
+
   it("a static callout can opt out of the live role", () => {
     render(
       <Alert role="note" tone="info">
@@ -37,15 +46,15 @@ describe("Alert", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("statusLabel overrides or removes the spoken severity", () => {
+  it("labels.tones overrides or removes the spoken severity", () => {
     const { rerender } = render(
-      <Alert tone="warning" statusLabel="Attention">
+      <Alert tone="warning" labels={{ tones: { warning: "Attention" } }}>
         Quota at 90%
       </Alert>,
     );
     expect(screen.getByRole("status")).toHaveTextContent(/^Attention: Quota at 90%$/);
     rerender(
-      <Alert tone="warning" statusLabel="">
+      <Alert tone="warning" labels={{ tones: { warning: "" } }}>
         Quota at 90%
       </Alert>,
     );
@@ -82,7 +91,7 @@ describe("Alert", () => {
     expect(screen.queryByRole("button", { name: "Dismiss" })).toBeNull();
 
     rerender(
-      <Alert actions={<Button>Retry</Button>} onDismiss={onDismiss} dismissLabel="Close message">
+      <Alert actions={<Button>Retry</Button>} onDismiss={onDismiss} labels={{ dismiss: "Close message" }}>
         Sync failed
       </Alert>,
     );

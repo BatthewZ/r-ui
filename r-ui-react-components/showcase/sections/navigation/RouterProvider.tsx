@@ -46,7 +46,7 @@ export default function RouterProviderSection() {
               </Row>
               <Stack gap="r2">
                 <Row label="Breadcrumbs: the matching crumb is current">
-                  <Breadcrumbs label="Breadcrumb (router demo)">
+                  <Breadcrumbs aria-label="Breadcrumb (router demo)">
                     <Breadcrumbs.Item href="/">Home</Breadcrumbs.Item>
                     <Breadcrumbs.Item href="/settings">Settings</Breadcrumbs.Item>
                     <Breadcrumbs.Item href={location.pathname}>{LABEL[location.pathname] ?? location.pathname}</Breadcrumbs.Item>

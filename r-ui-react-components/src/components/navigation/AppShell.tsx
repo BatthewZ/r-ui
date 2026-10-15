@@ -18,6 +18,7 @@ import { useLinkElement } from "../../util/router";
 import { cn } from "../../util/style";
 import { IconButton } from "../primitives";
 import { NavLink, type NavLinkProps } from "./NavLink";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 interface AppShellContextValue {
   collapsed: boolean;
@@ -45,9 +46,15 @@ export type AppShellProps = {
   /** Uncontrolled initial collapse. Default `false`. */
   defaultCollapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
-  /** Text of the skip link, the first focusable element. Default "Skip to content". */
-  skipLinkLabel?: string;
+  labels?: LabelsProp<AppShellLabels>;
 } & ComponentPropsWithRef<"div">;
+
+export interface AppShellLabels {
+  /** Text of the skip link, the first focusable element. */
+  skipLink: string;
+}
+
+export const DEFAULT_APP_SHELL_LABELS: AppShellLabels = { skipLink: "Skip to content" };
 
 /**
  * The page frame of an app: sidebar, header, main region and, on phones, a bottom
@@ -63,7 +70,7 @@ function AppShellRoot({
   collapsed: collapsedProp,
   defaultCollapsed = false,
   onCollapsedChange,
-  skipLinkLabel = "Skip to content",
+  labels,
   className,
   children,
   ...props
@@ -93,7 +100,7 @@ function AppShellRoot({
     <AppShellContext.Provider value={ctx}>
       <div className={cn("r-navigation-shell", className)} data-collapsed={collapsed || undefined} {...props}>
         <a className="r-navigation-shell-skip" href={`#${mainId}`} onClick={skip}>
-          {skipLinkLabel}
+          {mergeLabels(DEFAULT_APP_SHELL_LABELS, labels).skipLink}
         </a>
         {children}
       </div>
@@ -186,9 +193,19 @@ function NavItem<C extends ElementType = "a">(props: AppShellNavItemProps<C>) {
   return <NavLink {...props} />;
 }
 
+export interface AppShellSidebarToggleLabels {
+  /** The toggle's accessible name in each state. */
+  collapse: string;
+  expand: string;
+}
+
+export const DEFAULT_APP_SHELL_SIDEBAR_TOGGLE_LABELS: AppShellSidebarToggleLabels = {
+  collapse: "Collapse sidebar",
+  expand: "Expand sidebar",
+};
+
 export type AppShellSidebarToggleProps = {
-  /** Accessible names for the two states. */
-  labels?: { collapse: string; expand: string };
+  labels?: LabelsProp<AppShellSidebarToggleLabels>;
   className?: string;
 };
 
@@ -196,10 +213,8 @@ export type AppShellSidebarToggleProps = {
  * Collapses the full sidebar to the rail and back. Shown only where collapse
  * means something (wide viewports); it renders nothing visible elsewhere.
  */
-function SidebarToggle({
-  labels = { collapse: "Collapse sidebar", expand: "Expand sidebar" },
-  className,
-}: AppShellSidebarToggleProps) {
+function SidebarToggle({ labels: labelsProp, className }: AppShellSidebarToggleProps) {
+  const labels = mergeLabels(DEFAULT_APP_SHELL_SIDEBAR_TOGGLE_LABELS, labelsProp);
   const { collapsed, setCollapsed, sidebarId } = useAppShell("SidebarToggle");
   const Icon = collapsed ? PanelLeftOpen : PanelLeftClose;
   return (

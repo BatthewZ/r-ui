@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,6 +10,8 @@ import { checkHalfReads, checkTokens } from "./lib/domain-pairs.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const real = readFileSync(join(HERE, "..", "src", "tokens.css"), "utf8");
+const run = (root) =>
+  spawnSync(process.execPath, [join(HERE, "verify-domain-pairs.mjs"), "--root", root], { encoding: "utf8" });
 const blend = (x) => `color-mix(in oklch, var(--${x}-LIGHT), var(--${x}-DARK) calc(var(--SCHEME-DARK) * 100%))`;
 
 describe("verify:domain-pairs", () => {
@@ -71,5 +74,29 @@ describe("verify:domain-pairs", () => {
   it("flags a component reading one half alone, but not the canonical blend", () => {
     expect(checkHalfReads(`.x { stroke: var(--C-SERIES-1-DARK); }`, "x.css")).toHaveLength(1);
     expect(checkHalfReads(`.x { stroke: ${blend("C-SERIES-1")}; }`, "x.css")).toEqual([]);
+  });
+
+  it("flags a half built in a template, but not a templated blend or the scheme itself", () => {
+    expect(checkHalfReads("const c = `var(--C-SERIES-${slot}-DARK)`;", "x.ts")).toHaveLength(1);
+    expect(checkHalfReads("const c = `" + blend("C-${name}") + "`;", "x.ts")).toEqual([]);
+    expect(checkHalfReads(".x { opacity: calc(var(--SCHEME-DARK) * 0.5); }", "x.css")).toEqual([]);
+  });
+});
+
+// Each case runs the gate as a subprocess, which can take seconds while the full suite loads every core.
+describe("verify:domain-pairs — sources", { timeout: 30_000 }, () => {
+  it("goes red on a half read anywhere under src/, a shared stylesheet and a template included", () => {
+    const result = run(join(HERE, "fixtures/domain-pairs/bad"));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/src\/print\.css:3 {2}`var\(--C-SERIES-1-DARK\)`/);
+    expect(result.stderr).toMatch(/src\/components\/demo\/Chart\.tsx:2 {2}`var\(--C-SERIES-\$\{slot\}-DARK\)`/);
+    expect(result.stderr).toMatch(/— 2 problem\(s\)/);
+  });
+
+  it("passes a templated blend, a read of the scheme, and the token file itself", () => {
+    const result = run(join(HERE, "fixtures/domain-pairs/good"));
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+    expect(result.stdout).toMatch(/2 source file\(s\) read no half alone/);
   });
 });

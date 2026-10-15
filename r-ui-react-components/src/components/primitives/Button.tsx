@@ -1,9 +1,16 @@
 "use client";
 
-import type { ButtonHTMLAttributes, MouseEvent, ReactNode, Ref } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 import { cn, type SlotClassNames } from "../../util/style";
-import { BUTTON_BASE, BUTTON_PRESSED, BUTTON_VARIANT, type ButtonVariant } from "./button-styles";
+import {
+  BUTTON_BASE,
+  BUTTON_PRESSED,
+  BUTTON_VARIANT,
+  type ButtonVariant,
+  guardClick,
+  isAriaDisabled,
+} from "./button-styles";
 import { Spinner } from "./Spinner";
 
 export type ButtonProps = {
@@ -42,18 +49,7 @@ export function Button({
   type = "button",
   ...props
 }: ButtonProps) {
-  const ariaDisabled = props["aria-disabled"] === true || props["aria-disabled"] === "true";
-  const inert = loading || ariaDisabled;
-
-  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    // Enter/Space still fire `click` on an aria-disabled button; preventDefault
-    // also stops a busy submit button from submitting its form again.
-    if (inert) {
-      event.preventDefault();
-      return;
-    }
-    onClick?.(event);
-  };
+  const inert = loading || isAriaDisabled(props["aria-disabled"]);
 
   return (
     <button
@@ -68,9 +64,9 @@ export function Button({
         className,
       )}
       {...props}
-      aria-disabled={loading || props["aria-disabled"] ? true : undefined}
+      aria-disabled={inert || undefined}
       aria-busy={loading || undefined}
-      onClick={handleClick}
+      onClick={guardClick(inert, onClick)}
     >
       <span className={cn("inline-flex min-w-0 items-center gap-r5", loading && "opacity-0")}>
         {iconStart && (

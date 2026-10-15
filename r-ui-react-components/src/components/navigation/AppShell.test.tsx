@@ -125,7 +125,7 @@ describe("AppShell", () => {
     });
 
     it("points its href at main, for when script is unavailable", () => {
-      render(<Shell skipLinkLabel="Zum Inhalt" />);
+      render(<Shell labels={{ skipLink: "Zum Inhalt" }} />);
       const skip = screen.getByRole("link", { name: "Zum Inhalt" });
       expect(skip.getAttribute("href")).toBe(`#${screen.getByRole("main").id}`);
     });

@@ -1,0 +1,4 @@
+/* A near-copy of the allowance is not the allowance. */
+.r-overlays-surface {
+  max-inline-size: min(var(--r-overlays-measure, var(--MEASURE)), 100vw - var(--R-SIZE-2));
+}

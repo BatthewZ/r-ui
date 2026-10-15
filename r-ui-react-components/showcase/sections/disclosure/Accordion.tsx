@@ -23,12 +23,13 @@ const ITEMS = [
     title: "How is an incident routed to the right team when the owning service has been renamed twice since the alert was written?",
     body: "Ownership follows the service's id, not its name, so renames never strand an alert. The history panel shows every name the service has had.",
   },
-  { value: "retention", title: "How long are incidents kept?", body: "Thirteen months, then summarised.", disabled: true },
   {
     value: "export",
     title: "Can we export the timeline?",
     body: "As CSV or JSON, from the incident's menu. Exports include every status change and who made it.",
   },
+  // Last, so a check that End lands on the last ENABLED header can fail.
+  { value: "retention", title: "How long are incidents kept?", body: "Thirteen months, then summarised.", disabled: true },
 ];
 
 function Example(props: { multiple?: boolean; defaultValue?: string; collapsible?: boolean }) {

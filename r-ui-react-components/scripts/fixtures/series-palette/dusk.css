@@ -1,0 +1,6 @@
+/* A light theme that moves series 3 onto series 1: not neighbours, but among the first three any two can touch. */
+:root[data-theme="dusk"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+  --C-SERIES-3-LIGHT: oklch(0.590 0.160 252);
+}

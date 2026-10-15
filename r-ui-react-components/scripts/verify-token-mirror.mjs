@@ -20,14 +20,22 @@
 // prefix wins), or nothing can ever mirror it. `createCn`'s argument is read as
 // a literal; a runtime-built list is a FAILURE, not a skip. Zero names is a
 // FAILURE, so it cannot pass vacuously.
+//
+// Usage: node scripts/verify-token-mirror.mjs [--root <dir>]
+//   --root reads another tree with the same layout (the test's fixtures).
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
+import { join, relative } from "node:path";
+
+import { globSync } from "glob";
 import ts from "typescript";
 import { getDefaultConfig } from "tailwind-merge";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { blankComments, lineAt, themeBlocks } from "./lib/css.mjs";
+import { PKG, pathArg } from "./lib/gate.mjs";
+
+const ROOT = pathArg("--root", PKG);
+
 const SRC = join(ROOT, "src");
 const STYLE_TS = join(ROOT, "src", "util", "style.ts");
 const rel = (p) => relative(ROOT, p);
@@ -59,44 +67,20 @@ function resolveNamespace(variable) {
 /*  Side A — every `@theme` block under src/                           */
 /* ------------------------------------------------------------------ */
 
-function cssFiles(dir, out = []) {
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) cssFiles(full, out);
-    else if (entry.endsWith(".css")) out.push(full);
-  }
-  return out;
-}
-
-/** Blank comment bodies so prose can neither satisfy nor trip the scan. */
-const blankComments = (text) =>
-  text.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "));
-
-// `@theme`, `@theme inline`, `@theme static`, `@theme reference` — every form
-// registers utilities, so every form needs the mirror.
-const THEME_BLOCK = /@theme\b([^{]*)\{/g;
-
 const declared = new Map(); // namespace -> Map<name, "file:line">
 const themeFiles = [];
 
-for (const file of cssFiles(SRC)) {
+// `@theme`, `@theme inline`, `@theme static`, `@theme reference` — every form
+// registers utilities, so every form needs the mirror.
+for (const file of globSync("**/*.css", { cwd: SRC, absolute: true, nodir: true }).sort()) {
   const scannable = blankComments(readFileSync(file, "utf8"));
-  for (const open of scannable.matchAll(THEME_BLOCK)) {
-    const start = open.index + open[0].length;
-    let depth = 1;
-    let end = start;
-    while (end < scannable.length && depth > 0) {
-      if (scannable[end] === "{") depth += 1;
-      else if (scannable[end] === "}") depth -= 1;
-      end += 1;
-    }
-    if (depth !== 0) {
+  for (const { start, body } of themeBlocks(scannable)) {
+    if (body === null) {
       problems.push(`${rel(file)}  unterminated \`@theme\` block — nothing in it was checked.`);
       continue;
     }
     themeFiles.push(rel(file));
-    const body = scannable.slice(start, end - 1);
-    const lineOf = (offset) => scannable.slice(0, start + offset).split("\n").length;
+    const lineOf = (offset) => lineAt(scannable, start + offset);
 
     let offset = 0;
     for (const rawEntry of body.split(";")) {

@@ -6,7 +6,18 @@
  * Every plan is in real pixels for the box it was given (the renderers redraw on
  * resize), so strokes, text and hit targets are never stretched.
  */
-import { type CartesianModel, drawnSeries, type Formatters, MAX_AXIS_CHARS, type SeriesShape, type SeriesSlot, tidyLabel } from "./chart-model";
+import { isPresent } from "../../util/format";
+import {
+  type CartesianModel,
+  type DrawnSeries,
+  drawnSeries,
+  type Formatters,
+  MAX_AXIS_CHARS,
+  type ModelRow,
+  type SeriesShape,
+  type SeriesSlot,
+  tidyLabel,
+} from "./chart-model";
 import {
   type AxisLabel,
   bandTimeLabels,
@@ -14,8 +25,10 @@ import {
   fitLabels,
   linearScale,
   type Measure,
+  type NiceScale,
   niceTicks,
   round2,
+  safeSpan,
   thinLabels,
   timeAxis,
 } from "./chart-scale";
@@ -51,7 +64,7 @@ const MIN_PLOT = 24;
 
 /** A series' marker glyph centred on (x, y), radius r. Closed shapes fill; plus and cross stroke. */
 export function markPath(shape: SeriesShape, x: number, y: number, r: number): string {
-  const p = (n: number) => round2(n);
+  const p = round2;
   switch (shape) {
     case "square":
       return `M${p(x - r * 0.9)} ${p(y - r * 0.9)}h${p(r * 1.8)}v${p(r * 1.8)}h${p(-r * 1.8)}Z`;
@@ -141,10 +154,10 @@ function dataDomain(values: Iterable<number>, includeZero: boolean): Domain | nu
 }
 
 function valueScale(domain: Domain, length: number, fontSize: number, min: number | undefined, max: number | undefined, count?: number) {
-  const pinLo = typeof min === "number" && Number.isFinite(min);
-  const pinHi = typeof max === "number" && Number.isFinite(max);
-  const low = pinLo ? (min as number) : domain.low;
-  const high = pinHi ? (max as number) : domain.high;
+  const pinLo = isPresent(min);
+  const pinHi = isPresent(max);
+  const low = pinLo ? min : domain.low;
+  const high = pinHi ? max : domain.high;
   // A zero span (every value 0, or every value equal with no zero in view) still
   // gets an axis: widen it by one around the value.
   const [lo0, hi0] = low === high && !pinLo && !pinHi ? (low === 0 ? [0, 1] : [Math.min(0, low), Math.max(0, high)]) : [low, high];
@@ -206,11 +219,87 @@ function verticalFrame(box: PlotBox, ticks: { label: string }[]) {
   };
 }
 
+/** A row that can be placed on the x axis, with its position in `model.rows`. */
+interface PlacedRow {
+  r: ModelRow;
+  i: number;
+}
+
+function placedRows(model: CartesianModel): PlacedRow[] {
+  return model.rows.map((r, i) => ({ r, i })).filter(({ r }) => r.x !== null);
+}
+
+interface LinePoint {
+  row: number;
+  x: number;
+  y: number;
+}
+
+/** Runs of adjacent points in `order`; a row with no x or no y ends a run. */
+function pointRuns(order: readonly number[], rowX: readonly (number | null)[], ys: readonly (number | null)[]): LinePoint[][] {
+  const runs: LinePoint[][] = [];
+  let run: LinePoint[] = [];
+  for (const i of order) {
+    const x = rowX[i];
+    const y = ys[i];
+    if (x === null || x === undefined || y === null || y === undefined) {
+      if (run.length) runs.push(run);
+      run = [];
+    } else run.push({ row: i, x, y });
+  }
+  if (run.length) runs.push(run);
+  return runs;
+}
+
+const runPath = (run: readonly LinePoint[]): string => run.map((p, k) => `${k ? "L" : "M"}${p.x} ${p.y}`).join("");
+
+/** The area under a run, closed along `baseline`. */
+function runArea(run: readonly LinePoint[], baseline: number): string {
+  const first = run[0] as LinePoint;
+  const last = run[run.length - 1] as LinePoint;
+  return `M${first.x} ${round2(baseline)}${run.map((p) => `L${p.x} ${p.y}`).join("")}L${last.x} ${round2(baseline)}Z`;
+}
+
+/** Calendar ticks on a time axis, the densest nice numbers that fit on a number axis, thinned rows on a category axis. */
+function lineXLabels(
+  model: CartesianModel,
+  placed: readonly PlacedRow[],
+  rowX: readonly (number | null)[],
+  projectX: (x: number) => number,
+  [xMin, xMax]: readonly [number, number],
+  plotW: number,
+  { width, fontSize, measure }: PlotBox,
+): AxisLabel[] {
+  const gap = fontSize;
+  if (model.xType === "time") {
+    const labels = timeAxis(xMin, xMax, projectX, measure, 0, width, gap, model.zone, model.locale).labels;
+    if (labels.length > 0 || xMin !== xMax) return labels;
+    return thinLabels([{ at: projectX(xMin), text: tidyLabel(model.rows[placed[0]?.i ?? 0]?.label, MAX_AXIS_CHARS) }], measure, 0, width, gap);
+  }
+  if (model.xType === "number") {
+    for (let count = Math.max(2, Math.floor(plotW / (fontSize * 4))); count >= 2; count -= 1) {
+      const ticks = niceTicks(xMin, xMax, count)
+        .ticks.filter((t) => t >= xMin && t <= xMax)
+        .map((t) => ({ at: projectX(t), text: model.formatX(t) }));
+      const fit = fitLabels(ticks, measure, 0, width, gap);
+      if (fit) return fit;
+    }
+    return [];
+  }
+  return thinLabels(
+    placed.map(({ r, i }) => ({ at: rowX[i] ?? 0, text: r.axisLabel })),
+    measure,
+    0,
+    width,
+    gap,
+  );
+}
+
 export function planLine(model: CartesianModel, box: PlotBox, options: LinePlanOptions): LinePlan | null {
-  const { width, height, fontSize, measure } = box;
+  const { width, height, fontSize } = box;
   if (!model.drawable || !(width > MIN_PLOT * 2) || !(height > MIN_PLOT * 2)) return null;
   const drawn = drawnSeries(model.series);
-  const placed = model.rows.map((r, i) => ({ r, i })).filter(({ r }) => r.x !== null);
+  const placed = placedRows(model);
   const order = placed.map(({ i }) => i);
 
   function* values() {
@@ -219,8 +308,7 @@ export function planLine(model: CartesianModel, box: PlotBox, options: LinePlanO
       if (v !== null && v !== undefined) yield v;
     }
   }
-  const includeZero = !(typeof options.min === "number" && Number.isFinite(options.min));
-  const domain = dataDomain(values(), includeZero);
+  const domain = dataDomain(values(), !isPresent(options.min));
   if (!domain) return null;
 
   // Two passes: the tick count depends on the plot height, the gutter on the tick labels.
@@ -242,75 +330,27 @@ export function planLine(model: CartesianModel, box: PlotBox, options: LinePlanO
       ? (x: number) => (model.rows.length > 1 ? plot.left + (plotW * x) / (model.rows.length - 1) : plot.left + plotW / 2)
       : (x: number) => linearScale(xMin, xMax, plot.left, plot.right)(x) ?? plot.left;
   const rowX: (number | null)[] = model.rows.map((r) => (r.x === null ? null : round2(projectX(r.x))));
-
-  const gap = fontSize;
-  let xLabels: AxisLabel[];
-  if (model.xType === "time") {
-    xLabels = timeAxis(xMin, xMax, (t) => projectX(t), measure, 0, width, gap, model.zone, model.locale).labels;
-    if (xLabels.length === 0 && xMin === xMax) {
-      xLabels = thinLabels([{ at: projectX(xMin), text: tidyLabel(model.rows[order[0] ?? 0]?.label, MAX_AXIS_CHARS) }], measure, 0, width, gap);
-    }
-  } else if (model.xType === "number") {
-    xLabels = [];
-    for (let count = Math.max(2, Math.floor(plotW / (fontSize * 4))); count >= 2; count -= 1) {
-      const nice = niceTicks(xMin, xMax, count);
-      const ticks = nice.ticks
-        .filter((t) => t >= xMin && t <= xMax)
-        .map((t) => ({ at: projectX(t), text: model.formatX(t) }));
-      const fit = fitLabels(ticks, measure, 0, width, gap);
-      if (fit) {
-        xLabels = fit;
-        break;
-      }
-    }
-  } else {
-    xLabels = thinLabels(
-      placed.map(({ r, i }) => ({ at: rowX[i] ?? 0, text: r.axisLabel })),
-      measure,
-      0,
-      width,
-      gap,
-    );
-  }
+  const xLabels = lineXLabels(model, placed, rowX, projectX, [xMin, xMax], plotW, box);
 
   const zero = projectY(0);
   const zeroY = zero !== null && scale.lo < 0 && scale.hi > 0 ? round2(zero) : null;
   const baseline = zeroY ?? plot.bottom;
 
   const rowY: (number | null)[][] = model.series.map((s) =>
-    model.rows.map((r) => (s.slot === null ? null : (() => {
+    model.rows.map((r) => {
+      if (s.slot === null) return null;
       const y = projectY(r.values[s.index] ?? null);
       return y === null ? null : round2(y);
-    })())),
+    }),
   );
 
   const sparse = placed.length <= plotW / (fontSize * 2.5);
   const series: LineSeriesPlan[] = drawn.map((s) => {
-    const ys = rowY[s.index] ?? [];
-    const runs: { row: number; x: number; y: number }[][] = [];
-    let run: { row: number; x: number; y: number }[] = [];
-    for (const i of order) {
-      const x = rowX[i];
-      const y = ys[i];
-      if (x === null || x === undefined || y === null || y === undefined) {
-        if (run.length) runs.push(run);
-        run = [];
-      } else run.push({ row: i, x, y });
-    }
-    if (run.length) runs.push(run);
+    const runs = pointRuns(order, rowX, rowY[s.index] ?? []);
     const long = runs.filter((r) => r.length > 1);
-    const path = long.length ? long.map((r) => r.map((p, k) => `${k ? "L" : "M"}${p.x} ${p.y}`).join("")).join("") : null;
-    const area =
-      options.area && long.length
-        ? long
-            .map((r) => {
-              const first = r[0] as { x: number };
-              const last = r[r.length - 1] as { x: number };
-              return `M${first.x} ${round2(baseline)}${r.map((p) => `L${p.x} ${p.y}`).join("")}L${last.x} ${round2(baseline)}Z`;
-            })
-            .join("")
-        : null;
-    const markers = sparse ? runs.flat() : runs.flatMap((r) => (r.length === 1 ? r : [r[r.length - 1] as (typeof r)[number]]));
+    const path = long.length ? long.map(runPath).join("") : null;
+    const area = options.area && long.length ? long.map((r) => runArea(r, baseline)).join("") : null;
+    const markers = sparse ? runs.flat() : runs.flatMap((r) => r.slice(-1));
     return { series: s.index, slot: s.slot, shape: s.shape, path, area, markers };
   });
 
@@ -408,90 +448,134 @@ export interface BarPlanOptions {
 /** The surface gap between touching bars (px), as the mark spec asks. */
 const BAR_GAP = 2;
 
+/** What the value axis must hold: every bar's value, or every stack's positive and negative totals. */
+function* barDomainValues(placed: readonly PlacedRow[], drawn: readonly DrawnSeries[], stacked: boolean): Generator<number> {
+  for (const { r } of placed) {
+    if (stacked) {
+      let pos = 0;
+      let neg = 0;
+      for (const s of drawn) {
+        const v = r.values[s.index] ?? null;
+        if (v === null) continue;
+        if (v >= 0) pos += v;
+        else neg += v;
+      }
+      yield pos;
+      yield neg;
+    } else for (const s of drawn) {
+      const v = r.values[s.index];
+      if (v !== null && v !== undefined) yield v;
+    }
+  }
+}
+
+interface BarFrame {
+  plot: Rect;
+  height: number;
+  scale: NiceScale;
+  /** The size of one category's band along the category axis (px). */
+  band: number;
+}
+
+/**
+ * Horizontal bars: a gutter for the widest category label, room at the end for
+ * the tip values, the densest value ticks whose labels fit along the bottom, and
+ * a height that grows with the category count.
+ */
+function horizontalBarFrame(
+  placed: readonly PlacedRow[],
+  drawn: readonly DrawnSeries[],
+  domain: Domain,
+  { width, fontSize, measure }: PlotBox,
+  options: BarPlanOptions,
+  groupThick: number,
+): BarFrame {
+  const { formatters, min, max } = options;
+  const band = Math.max(groupThick + fontSize * 0.6, fontSize * 1.7);
+  const gutter = Math.min(placed.reduce((most, { r }) => Math.max(most, measure(r.axisLabel)), 0) + fontSize * 0.75, width * 0.4);
+  const tip =
+    options.stacked === true
+      ? fontSize * 0.5
+      : Math.min(
+          placed.reduce((most, { r }) => Math.max(most, ...drawn.map((s) => measure(formatters.value(r.values[s.index] ?? Number.NaN)))), 0) +
+            fontSize * 0.6,
+          width * 0.3,
+        );
+  const left = round2(gutter);
+  const right = round2(width - tip);
+  let scale = valueScale(domain, 0, fontSize, min, max, 2);
+  for (let count = Math.max(2, Math.floor((right - left) / (fontSize * 3))); count > 2; count -= 1) {
+    const candidate = valueScale(domain, 0, fontSize, min, max, count);
+    const at = linearScale(candidate.lo, candidate.hi, left, right);
+    if (fitLabels(candidate.ticks.map((v) => ({ at: at(v) ?? left, text: formatters.tick(v) })), measure, 0, width, fontSize)) {
+      scale = candidate;
+      break;
+    }
+  }
+  const top = round2(fontSize * 0.3);
+  const bottom = round2(top + placed.length * band);
+  return { plot: { left, right, top, bottom }, height: round2(bottom + fontSize * 1.9), scale, band };
+}
+
+/** Vertical bars: the line chart's frame, the plot's width shared equally between the categories. */
+function verticalBarFrame(count: number, domain: Domain, box: PlotBox, options: BarPlanOptions): BarFrame {
+  const { height, fontSize } = box;
+  const scale = valueScale(domain, height - fontSize * 2.6, fontSize, options.min, options.max);
+  const plot = verticalFrame(box, scale.ticks.map((v) => ({ label: options.formatters.tick(v) })));
+  return { plot, height, scale, band: count > 0 ? (plot.right - plot.left) / count : 0 };
+}
+
+/** Horizontal: every category, cut to the gutter. Vertical: calendar boundaries on a time axis, else thinned. */
+function barCategoryLabels(model: CartesianModel, bands: readonly BarBand[], plot: Rect, horizontal: boolean, { width, fontSize, measure }: PlotBox): AxisLabel[] {
+  const labelOf = (b: BarBand) => model.rows[b.row]?.axisLabel ?? "";
+  if (horizontal) {
+    const max = plot.left - fontSize * 0.75;
+    return bands.map((b) => {
+      const text = fitText(labelOf(b), max, measure);
+      return { at: b.center, center: b.center, text, width: measure(text) };
+    });
+  }
+  const gap = fontSize;
+  const timed =
+    model.xType === "time"
+      ? bandTimeLabels(
+          bands.map((b) => model.rows[b.row]?.x ?? null),
+          bands.map((b) => b.center),
+          measure,
+          0,
+          width,
+          gap,
+          model.zone,
+          model.locale,
+        )
+      : null;
+  return timed ?? thinLabels(bands.map((b) => ({ at: b.center, text: labelOf(b) })), measure, 0, width, gap);
+}
+
 export function planBars(model: CartesianModel, box: PlotBox, options: BarPlanOptions): BarPlan | null {
-  const { width, fontSize, measure } = box;
+  const { width, fontSize } = box;
   const horizontal = options.orientation === "horizontal";
   const stacked = options.stacked === true;
   if (!model.drawable || !(width > MIN_PLOT * 2)) return null;
   if (!horizontal && !(box.height > MIN_PLOT * 2)) return null;
 
   const drawn = drawnSeries(model.series);
-  const placed = model.rows.map((r, i) => ({ r, i })).filter(({ r }) => r.x !== null);
+  const placed = placedRows(model);
   const order = placed.map(({ i }) => i);
-  const n = placed.length;
   const k = stacked ? 1 : Math.max(1, drawn.length);
   const thick = Math.max(1, Number.isFinite(options.barThick) && options.barThick > 0 ? options.barThick : fontSize);
 
-  function* values() {
-    for (const { r } of placed) {
-      if (stacked) {
-        let pos = 0;
-        let neg = 0;
-        for (const s of drawn) {
-          const v = r.values[s.index] ?? null;
-          if (v === null) continue;
-          if (v >= 0) pos += v;
-          else neg += v;
-        }
-        yield pos;
-        yield neg;
-      } else for (const s of drawn) {
-        const v = r.values[s.index];
-        if (v !== null && v !== undefined) yield v;
-      }
-    }
-  }
   // A bar's length encodes magnitude, so the domain always holds zero.
-  const domain = dataDomain(values(), true);
+  const domain = dataDomain(barDomainValues(placed, drawn, stacked), true);
   if (!domain) return null;
 
-  const tickFor = options.formatters.tick;
-  let plot: Rect;
-  let height: number;
-  let scale: ReturnType<typeof niceTicks>;
-  let band: number;
-  const tipText = (v: number) => options.formatters.value(v);
-
-  if (horizontal) {
-    const lineBand = fontSize * 1.7;
-    band = Math.max(k * thick + (k - 1) * BAR_GAP + fontSize * 0.6, lineBand);
-    const gutterRoom = width * 0.4;
-    const gutter = Math.min(
-      placed.reduce((most, { r }) => Math.max(most, measure(r.axisLabel)), 0) + fontSize * 0.75,
-      gutterRoom,
-    );
-    const tip = stacked
-      ? fontSize * 0.5
-      : Math.min(
-          placed.reduce((most, { r }) => Math.max(most, ...drawn.map((s) => measure(tipText(r.values[s.index] ?? Number.NaN)))), 0) + fontSize * 0.6,
-          width * 0.3,
-        );
-    const left = round2(gutter);
-    const right = round2(width - tip);
-    // The densest value ticks whose labels fit side by side along the bottom.
-    scale = valueScale(domain, 0, fontSize, options.min, options.max, 2);
-    for (let count = Math.max(2, Math.floor((right - left) / (fontSize * 3))); count > 2; count -= 1) {
-      const candidate = valueScale(domain, 0, fontSize, options.min, options.max, count);
-      const at = linearScale(candidate.lo, candidate.hi, left, right);
-      if (fitLabels(candidate.ticks.map((v) => ({ at: at(v) ?? left, text: tickFor(v) })), measure, 0, width, fontSize)) {
-        scale = candidate;
-        break;
-      }
-    }
-    plot = { left, right, top: round2(fontSize * 0.3), bottom: 0 };
-    plot.bottom = round2(plot.top + n * band);
-    height = round2(plot.bottom + fontSize * 1.9);
-  } else {
-    height = box.height;
-    const roughHeight = height - fontSize * 2.6;
-    scale = valueScale(domain, roughHeight, fontSize, options.min, options.max);
-    plot = verticalFrame(box, scale.ticks.map((v) => ({ label: tickFor(v) })));
-    band = n > 0 ? (plot.right - plot.left) / n : 0;
-  }
+  const { plot, height, scale, band } = horizontal
+    ? horizontalBarFrame(placed, drawn, domain, box, options, k * thick + (k - 1) * BAR_GAP)
+    : verticalBarFrame(placed.length, domain, box, options);
   if (plot.right - plot.left < MIN_PLOT || plot.bottom - plot.top < Math.min(MIN_PLOT, band)) return null;
 
   const project = horizontal ? linearScale(scale.lo, scale.hi, plot.left, plot.right) : linearScale(scale.lo, scale.hi, plot.bottom, plot.top);
-  const valueTicks = scale.ticks.map((v) => ({ pos: round2(project(v) ?? (horizontal ? plot.left : plot.bottom)), label: tickFor(v) }));
+  const valueTicks = scale.ticks.map((v) => ({ pos: round2(project(v) ?? (horizontal ? plot.left : plot.bottom)), label: options.formatters.tick(v) }));
   const zero = round2(clamp(project(0) ?? (horizontal ? plot.left : plot.bottom), Math.min(plot.top, plot.left), Math.max(plot.bottom, plot.right)));
 
   const axisStart = horizontal ? plot.top : plot.left;
@@ -509,7 +593,7 @@ export function planBars(model: CartesianModel, box: PlotBox, options: BarPlanOp
 
   const bars: BarRect[] = [];
   const tips: BarPlan["values"] = [];
-  const rect = (b: BarBand, offset: number, from: number, to: number, end: boolean, s: { index: number; slot: SeriesSlot }) => {
+  const rect = (b: BarBand, offset: number, from: number, to: number, end: boolean, s: DrawnSeries) => {
     const lo = Math.min(from, to);
     const len = Math.abs(to - from);
     if (len <= 0) return;
@@ -553,11 +637,10 @@ export function planBars(model: CartesianModel, box: PlotBox, options: BarPlanOp
         rect(b, j * (t + BAR_GAP), zero, end, true, s);
         if (horizontal) {
           const across = b.center - group / 2 + j * (t + BAR_GAP) + t / 2;
-          const text = tipText(v);
           tips.push({
             x: round2(v >= 0 ? end + fontSize * 0.35 : end - fontSize * 0.35),
             y: round2(across),
-            text,
+            text: options.formatters.value(v),
             anchor: v >= 0 ? "start" : "end",
           });
         }
@@ -565,28 +648,7 @@ export function planBars(model: CartesianModel, box: PlotBox, options: BarPlanOp
     }
   }
 
-  let categoryLabels: AxisLabel[];
-  if (horizontal) {
-    const max = plot.left - fontSize * 0.75;
-    categoryLabels = bands.map((b) => {
-      const text = fitText(model.rows[b.row]?.axisLabel ?? "", max, measure);
-      return { at: b.center, center: b.center, text, width: measure(text) };
-    });
-  } else {
-    const gap = fontSize;
-    const times = model.xType === "time" ? placed.map(({ r }) => r.x) : null;
-    const timed = times ? bandTimeLabels(times, bands.map((b) => b.center), measure, 0, width, gap, model.zone, model.locale) : null;
-    categoryLabels =
-      timed ??
-      thinLabels(
-        bands.map((b) => ({ at: b.center, text: model.rows[b.row]?.axisLabel ?? "" })),
-        measure,
-        0,
-        width,
-        gap,
-      );
-  }
-
+  const categoryLabels = barCategoryLabels(model, bands, plot, horizontal, box);
   return { orientation: horizontal ? "horizontal" : "vertical", width, height, plot, valueTicks, zero, categoryLabels, bands, bars, values: tips, rowPos, order };
 }
 
@@ -631,8 +693,7 @@ export interface HeatmapModel {
  * faintest step.
  */
 export function heatStep(value: number, lo: number, hi: number): HeatStep {
-  const scale = Number.isFinite(hi - lo) ? 1 : 0.5;
-  const span = hi * scale - lo * scale;
+  const { scale, span } = safeSpan(lo, hi);
   if (!(span > 0)) return HEAT_STEPS;
   const t = clamp((value * scale - lo * scale) / span, 0, 1);
   const bin = Math.min(HEAT_STEPS - 1, Math.floor(t * HEAT_STEPS));
@@ -689,8 +750,7 @@ export function modelHeatmap(input: HeatmapInput): HeatmapModel {
 /** The legend: each step with the lower edge of its bin, faintest first. */
 export function heatLegend(model: HeatmapModel, formatters: Formatters): { step: HeatStep; from: string }[] {
   const { lo, hi } = model;
-  const scale = Number.isFinite(hi - lo) ? 1 : 0.5;
-  const span = hi * scale - lo * scale;
+  const { scale, span } = safeSpan(lo, hi);
   return Array.from({ length: HEAT_STEPS }, (_, bin) => ({
     step: (HEAT_STEPS - bin) as HeatStep,
     from: formatters.value(span > 0 ? (lo * scale + (span * bin) / HEAT_STEPS) / scale : lo),

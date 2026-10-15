@@ -64,13 +64,15 @@ function missing(v: unknown): boolean {
 }
 
 /**
- * Rows in `sort` order. Stable (ties keep data order); missing values go last
- * in both directions, because "no data" is never the biggest or the smallest.
+ * The indices of `rows` in `sort` order: a sorted row keeps its source index,
+ * which `getRowKey` is given. Stable (ties keep data order); missing values go
+ * last in both directions, because "no data" is never the biggest or the smallest.
  */
-export function sortRows<Row>(rows: readonly Row[], columns: readonly DataTableColumn<Row>[], sort: SortState): readonly Row[] {
-  if (!sort) return rows;
+export function sortOrder<Row>(rows: readonly Row[], columns: readonly DataTableColumn<Row>[], sort: SortState): number[] {
+  const identity = () => rows.map((_, i) => i);
+  if (!sort) return identity();
   const column = columns.find((c) => c.id === sort.column);
-  if (!column || !isSortable(column)) return rows;
+  if (!column || !isSortable(column)) return identity();
   const sign = sort.direction === "asc" ? 1 : -1;
   const indexed = rows.map((row, i) => ({ row, i }));
   indexed.sort((a, b) => {
@@ -88,7 +90,7 @@ export function sortRows<Row>(rows: readonly Row[], columns: readonly DataTableC
     }
     return c || a.i - b.i;
   });
-  return indexed.map((x) => x.row);
+  return indexed.map((x) => x.i);
 }
 
 /** The next sort after a header click: the column's first direction, then a toggle. */

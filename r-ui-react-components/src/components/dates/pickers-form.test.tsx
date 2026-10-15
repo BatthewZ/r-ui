@@ -4,13 +4,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Field, Form, useForm } from "../form";
 import { DatePicker } from "./DatePicker";
-import { DateRangePicker, type DateRangeValue } from "./DateRangePicker";
+import { type DateRange } from "./date-core";
+import { DateRangePicker } from "./DateRangePicker";
 
 const day = (month: number, date: number) => new Date(2026, month - 1, date);
 
 interface Schedule {
   due: Date | null;
-  period: DateRangeValue | null;
+  period: DateRange<Date> | null;
 }
 
 function Harness({ onSubmit }: { onSubmit: (values: Schedule) => void }) {

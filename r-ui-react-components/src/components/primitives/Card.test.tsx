@@ -37,6 +37,8 @@ describe("Card", () => {
     const card = screen.getByTestId("card");
     expect(card).toHaveClass("@container", "bg-surface-0", "border", "border-border");
     expect(card.className).not.toMatch(/\bshadow/);
+    // On paper it stays on one page when it fits.
+    expect(card).toHaveAttribute("data-print", "avoid-break");
   });
 
   it("groups every non-action child of the header into the text column, in order, with the actions after it", () => {

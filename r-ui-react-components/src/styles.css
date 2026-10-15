@@ -35,6 +35,10 @@
 @import "./components/content/styles.css" layer(components);
 @import "./components/dates/styles.css" layer(components);
 @import "./components/charts/styles.css" layer(components);
+@import "./components/marketing/styles.css" layer(components);
+@import "./components/steps/styles.css" layer(components);
+@import "./components/commands/styles.css" layer(components);
+@import "./print.css" layer(components);
 
 /* Register this package's sources so the utilities the components use are
    generated in the consumer's build. Relative to THIS file, so it resolves

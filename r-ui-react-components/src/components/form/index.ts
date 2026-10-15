@@ -12,9 +12,9 @@ export {
   useFieldControl,
 } from "./Field";
 export { Input, type InputProps } from "./Input";
-export { NumberInput, type NumberInputProps } from "./NumberInput";
+export { DEFAULT_NUMBER_INPUT_LABELS, NumberInput, type NumberInputLabels, type NumberInputProps } from "./NumberInput";
 export { Radio, RadioGroup, type RadioGroupProps, type RadioProps } from "./RadioGroup";
-export { SearchInput, type SearchInputProps } from "./SearchInput";
+export { DEFAULT_SEARCH_INPUT_LABELS, SearchInput, type SearchInputLabels, type SearchInputProps } from "./SearchInput";
 export { SegmentedControl, type SegmentedControlItemProps, type SegmentedControlProps } from "./SegmentedControl";
 export { Select, type SelectProps } from "./Select";
 export { Switch, type SwitchProps } from "./Switch";
@@ -22,12 +22,13 @@ export { Textarea, type TextareaProps } from "./Textarea";
 export {
   Combobox,
   type ComboboxInputChangeReason,
-  type ComboboxMessages,
+  type ComboboxLabels,
   type ComboboxProps,
+  DEFAULT_COMBOBOX_LABELS,
 } from "./Combobox";
-export { MultiSelect, type MultiSelectMessages, type MultiSelectProps } from "./MultiSelect";
+export { DEFAULT_MULTI_SELECT_LABELS, MultiSelect, type MultiSelectLabels, type MultiSelectProps } from "./MultiSelect";
 export { type ComboboxFilter, type ComboboxOption } from "./selection-popup";
-export { TagInput, type TagInputMessages, type TagInputProps } from "./TagInput";
+export { DEFAULT_TAG_INPUT_LABELS, TagInput, type TagInputLabels, type TagInputProps } from "./TagInput";
 export { type FieldBinding, type FieldInputProps, type UseFieldValueParams, useFieldInputProps, useFieldMessage, useFieldValue } from "./Field";
 export {
   Form,
@@ -59,3 +60,14 @@ export {
 } from "./form-state-schema";
 export { ErrorSummary, type ErrorSummaryProps } from "./ErrorSummary";
 export { FormActions, type FormActionsProps, type FormActionsSubmitProps } from "./FormActions";
+export {
+  DEFAULT_FILE_UPLOAD_LABELS,
+  FileUpload,
+  type FileUploadContext,
+  type FileUploadItemInfo,
+  type FileUploadLabels,
+  type FileUploadProps,
+  type FileUploadRules,
+} from "./FileUpload";
+export { DEFAULT_OTP_INPUT_LABELS, OTPInput, type OTPInputLabels, type OTPInputMode, type OTPInputProps } from "./OTPInput";
+export { ColorPicker, type ColorPickerLabels, type ColorPickerProps, type ColorSwatch, DEFAULT_COLOR_PICKER_LABELS } from "./ColorPicker";

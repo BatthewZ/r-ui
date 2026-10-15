@@ -1,0 +1,7 @@
+/* A dark theme that greys series 4 below the chroma floor and sinks series 5 below the lightness band. */
+:root[data-theme="midnight"] {
+  color-scheme: dark;
+  --SCHEME-DARK: 1;
+  --C-SERIES-4-DARK: oklch(0.600 0.050 73.2);
+  --C-SERIES-5-DARK: oklch(0.300 0.171 0.8);
+}

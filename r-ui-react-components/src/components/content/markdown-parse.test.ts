@@ -156,6 +156,21 @@ describe("blocks", () => {
     expect(blocks).toEqual([{ type: "heading", level: 1, children: [{ type: "text", value: "Real" }] }]);
   });
 
+  it("keeps the text between two comments when a later line closes the second", () => {
+    expect(parseBlocks("<!-- a --> keep <!-- b -->\nnext")).toEqual([
+      { type: "paragraph", children: [{ type: "text", value: " keep  next" }] },
+    ]);
+    expect(parseBlocks("<!-- a -->x\n<!-- b -->\ny")).toEqual([
+      { type: "paragraph", children: [{ type: "text", value: "x y" }] },
+    ]);
+  });
+
+  it("drops comments on their own lines, indent and line break included", () => {
+    expect(parseBlocks("a\n  <!-- one --> <!-- two -->\nb")).toEqual([
+      { type: "paragraph", children: [{ type: "text", value: "a b" }] },
+    ]);
+  });
+
   it("keeps a multi-line comment from fragmenting the table it sits in", () => {
     const blocks = parseBlocks("| a |\n| --- |\n<!-- a\nb -->\n| 1 |");
     expect(blocks).toHaveLength(1);
@@ -229,6 +244,22 @@ describe("inline", () => {
     ]);
     const titled = parseInline('[text](/path "Title")')[0];
     expect(titled).toMatchObject({ type: "link", href: "/path", title: "Title" });
+  });
+
+  it("never nests a link: the inner one wins and the outer brackets are text (CommonMark)", () => {
+    const links = (nodes: InlineNode[]): InlineNode[] =>
+      nodes.flatMap((n) => (n.type === "link" ? [n, ...links(n.children)] : "children" in n ? links(n.children) : []));
+    const nested = parseInline("[a [b](/c) d](/e)");
+    expect(textOf(nested)).toBe("[a b d](/e)");
+    expect(links(nested)).toEqual([{ type: "link", href: "/c", title: undefined, children: [{ type: "text", value: "b" }] }]);
+    // An autolink is a link too, and a link inside emphasis inside the label still counts.
+    const auto = parseInline("[see <https://a.example>](/x)");
+    expect(textOf(auto)).toBe("[see https://a.example](/x)");
+    expect(links(auto).map((n) => n.type === "link" && n.href)).toEqual(["https://a.example"]);
+    const deep = parseInline("[**[b](/c)**](/e)");
+    expect(links(deep).map((n) => n.type === "link" && n.href)).toEqual(["/c"]);
+    // A link around an image is still a link.
+    expect(parseInline("[![logo](/l.png)](/home)")[0]).toMatchObject({ type: "link", href: "/home" });
   });
 
   it("leaves a bracket with no destination as literal text", () => {
@@ -396,6 +427,38 @@ describe("pathological input", () => {
     parseInline("[".repeat(100_000));
     // Measured 1.1s once on a loaded machine (six agents testing at once); quadratic was 8.6s.
     expect(performance.now() - start).toBeLessThan(3000);
+  });
+
+  it("parses a long run of unclosed destinations in linear time", () => {
+    // Each `[a](` rescanned to the end for its `)`: 160 000 characters took 4.3s under Bun.
+    const start = performance.now();
+    const nodes = parseInline("[a](".repeat(40_000));
+    expect(performance.now() - start).toBeLessThan(1000);
+    expect(textOf(nodes)).toBe("[a](".repeat(40_000));
+  });
+
+  it("still reads a destination with nested parentheses", () => {
+    expect(parseInline("[w](/wiki/A_(b_(c)))")).toEqual([
+      { type: "link", href: "/wiki/A_(b_(c))", title: undefined, children: [{ type: "text", value: "w" }] },
+    ]);
+  });
+
+  it("parses a long paragraph in linear time", () => {
+    // `text.endsWith` at every line break flattened the growing text: 40 000
+    // lines took 1.3s under Bun, 80 000 took 15s.
+    const start = performance.now();
+    const [paragraph] = parseBlocks("word word\n".repeat(40_000));
+    expect(performance.now() - start).toBeLessThan(500);
+    expect(paragraph?.type).toBe("paragraph");
+  });
+
+  it("drops many unclosed comment openers in linear time", () => {
+    // A lazy regex retried at every `<!--` rescanned to the end each time:
+    // 200 000 characters took 4.9s under Bun.
+    const start = performance.now();
+    const blocks = parseBlocks("<!--\n".repeat(40_000));
+    expect(performance.now() - start).toBeLessThan(1000);
+    expect(blocks).toHaveLength(1);
   });
 
   it("matches a heading with a long whitespace run in linear time", () => {

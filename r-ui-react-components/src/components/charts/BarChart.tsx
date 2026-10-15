@@ -1,11 +1,9 @@
 "use client";
 import { useMemo, useRef } from "react";
 
+import { mergeLabels } from "../../util/labels";
 import { cn } from "../../util/style";
 import {
-  cartesianNotes,
-  cartesianSummary,
-  cartesianTable,
   type ChartSeries,
   type ChartX,
   drawnSeries,
@@ -15,18 +13,19 @@ import {
 } from "./chart-model";
 import { CartesianAxes } from "./chart-axes";
 import {
+  cartesianFrameProps,
   type ChartBaseProps,
   ChartFrame,
   ChartLegend,
   ChartReadout,
   DEFAULT_CHART_LABELS,
-  notesText,
   PlotRegion,
-  type ReadoutRow,
+  readoutStatus,
   SERIES_TEXT,
+  seriesReadout,
   useAxisCursor,
 } from "./chart-parts";
-import { type BarOrientation, nearestRow, planBars } from "./chart-plan";
+import { type BarOrientation, planBars } from "./chart-plan";
 import type { TimeZoneMode } from "./chart-scale";
 import { useChartBox } from "./use-chart-box";
 
@@ -82,7 +81,7 @@ export function BarChart({
   ref,
   ...rest
 }: BarChartProps) {
-  const words = { ...DEFAULT_CHART_LABELS, ...labels };
+  const words = mergeLabels(DEFAULT_CHART_LABELS, labels);
   const horizontal = orientation === "horizontal";
   const formatters = useMemo(() => makeFormatters({ unit, format, formatTick, locale }), [unit, format, formatTick, locale]);
   // Bars sit in bands: a time x is a band axis, so it keeps its order and labels, never a scale.
@@ -102,22 +101,18 @@ export function BarChart({
     order: plan?.order ?? [],
     rowPos: plan?.rowPos ?? [],
     axis: horizontal ? "y" : "x",
-    nearest: nearestRow,
     root: plotRef,
   });
   const row = active === null ? undefined : model.rows[active];
   const band = active === null ? undefined : plan?.bands.find((b) => b.row === active);
   const drawn = drawnSeries(model.series);
-  const readout: ReadoutRow[] = row
-    ? drawn.map((s) => ({ name: s.name, value: formatters.value(row.values[s.index] ?? null), slot: s.slot, shape: s.shape }))
-    : [];
+  const readout = seriesReadout(row, drawn, formatters);
   if (row && stacked && drawn.length > 1) {
     const values = drawn.map((s) => row.values[s.index] ?? null).filter((v): v is number => v !== null);
     readout.push({ name: words.total, value: formatters.value(values.length ? values.reduce((a, b) => a + b, 0) : null), slot: null, shape: null });
   }
-  const status = row && (source === "keyboard" || source === "touch") ? `${row.label}: ${readout.map((r) => `${r.name} ${r.value}`).join(", ")}` : "";
+  const status = row ? readoutStatus(row.label, readout, source) : "";
 
-  const corner = words.corner || (model.xType === "time" ? "Time" : "");
   const anchor =
     plan && band
       ? horizontal
@@ -129,14 +124,9 @@ export function BarChart({
     <ChartFrame
       kind="bar"
       label={label}
-      summaryText={summary ?? cartesianSummary(stacked ? "Stacked bar chart" : "Bar chart", model, formatters)}
+      {...cartesianFrameProps(model, formatters, words, summary, stacked ? "stackedBar" : "bar")}
       legend={<ChartLegend line={false} className={classNames?.legend} entries={drawn} />}
-      notes={notesText(cartesianNotes(model), words)}
-      table={cartesianTable(model, formatters, corner)}
-      undrawable={model.rows.length > 0 && !model.drawable}
-      empty={model.rows.length === 0 || model.series.length === 0}
       status={status}
-      labelsResolved={words}
       className={className}
       classNames={classNames}
       ref={ref}
@@ -144,13 +134,13 @@ export function BarChart({
     >
       <PlotRegion
         ref={plotRef}
+        probeRef={probeRef}
         label={label}
         hint={words.keyboardHint}
         className={cn(horizontal ? "w-full" : "h-chart w-full", classNames?.plot)}
         style={horizontal ? { height: plan?.height ?? 0 } : undefined}
         {...handlers}
       >
-        <span ref={probeRef} aria-hidden className="r-charts-probe h-bar rounded-sm" />
         {plan && (
           <svg aria-hidden width={plan.width} height={plan.height} className="r-charts-svg absolute inset-0 block">
             {band && (

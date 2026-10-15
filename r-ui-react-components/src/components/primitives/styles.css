@@ -48,15 +48,19 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1px var(--C-BORDER);
+  box-shadow: inset 0 0 0 var(--BORDER-WIDTH) var(--C-BORDER);
   pointer-events: none;
 }
+/* The initials' size is a ratio of the box by geometry, not a design choice to
+   theme: two capitals (about 1.3em wide together) must sit inside the circle's
+   inscribed square (~71% of the diameter) with air either side, which caps them
+   near 38% of the box; a single capital may grow to half of it. */
 .r-primitives-avatar-initials {
-  font-size: 38cqi;
+  font-size: calc(100cqi * 0.38);
   line-height: 1;
 }
 .r-primitives-avatar-initials[data-single] {
-  font-size: 50cqi;
+  font-size: calc(100cqi * 0.5);
 }
 
 /* The theme's link lever. `hover:underline` (a utility) still wins on hover. */

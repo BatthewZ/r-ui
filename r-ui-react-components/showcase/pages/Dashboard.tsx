@@ -123,7 +123,7 @@ export function Dashboard() {
 
   return (
     <DashboardFrame>
-      <AppShell skipLinkLabel="Skip to dashboard">
+      <AppShell labels={{ skipLink: "Skip to dashboard" }}>
         <AppShell.Sidebar label="Kestrel Cloud">
           <AppShell.Brand href="#dash-top" onClick={go(NAV[0]!)} mark={<Activity aria-hidden />}>
             Kestrel Cloud

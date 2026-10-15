@@ -19,13 +19,27 @@
 //             reads the contract's scale (`z-raised`, `z-sticky`, `z-docked`,
 //             `z-bypass`) so chrome from different groups orders itself; overlays
 //             use the top layer and need none. `0` and `auto` are allowed.
-//   line      a component stylesheet drawing a structural line at a fixed `1px`
-//             (`border: 1px solid …`, `border-top-width: 1px`) instead of the
-//             theme's `var(--BORDER-WIDTH)`, which the bare `border` utility reads.
+//   line      a line drawn at a fixed `1px` instead of the theme's
+//             `var(--BORDER-WIDTH)` (which the bare `border` utility reads): in a
+//             stylesheet or a style object, a border, outline or box-shadow
+//             (`border: 1px solid …`, `outline-width: 1px`,
+//             `box-shadow: inset 0 0 0 1px …`, `{ boxShadow: "0 0 0 1px …" }`);
+//             in a class, a numbered width or offset (`border-2`, `ring-2`,
+//             `outline-offset-2`) or a `1px` inside a line utility's arbitrary
+//             value (`shadow-[inset_0_0_0_1px_…]`, `outline-[1px]`).
 //   arbitrary an arbitrary value or a string carrying a raw literal: hex,
-//             rgb()/hsl()/oklch(<number>…), or px/rem lengths (`p-[12px]`,
-//             `bg-[#fff]`, `style={{ width: "12px" }}`). `1px` is the hairline
-//             and allowed; `var(--…)` arbitrary values are fine.
+//             rgb()/hsl()/oklch(<number>…), or a length in an absolute,
+//             font-relative, viewport or container unit (`p-[12px]`,
+//             `w-[3rem]`, `mt-[0.25em]`, `max-w-[calc(100vw-…)]`, `bg-[#fff]`,
+//             `style={{ width: "12px" }}`). Allowed lengths are the few that
+//             name a unit itself rather than a size: `1px` (the hairline, where
+//             no line is drawn with it), `1em`, `1lh` and `1ch` (one of the
+//             font's own units, either sign, as in `size-[1em]`, `calc(n * 1ch)`
+//             or a one-unit hang `calc(-1em - …)`),
+//             `100dvh` (the viewport, what the `dvh` keyword utilities are) and
+//             `100cqi` (the container's whole inline size: a part sized as a
+//             ratio of its box writes `calc(100cqi * 0.38)`, as `w-1/2` does).
+//             `var(--…)` arbitrary values are fine.
 //
 // A named default (`text-sm`, `rounded-md`, `shadow-lg`, `max-w-md`) is allowed
 // when the contract or this package declares that exact name in a `@theme`
@@ -33,7 +47,7 @@
 
 import ts from "typescript";
 
-import { blankComments, lineAt } from "./css.mjs";
+import { blankComments, lineAt, themeBlocks } from "./css.mjs";
 
 const NUM = String.raw`\d+(?:\.\d+)?`;
 const SIDES = "(?:[xytrblse])?";
@@ -55,25 +69,45 @@ const RADIUS_STEP = new RegExp(`^rounded${RADIUS_SIDE}-(xs|sm|md|lg|xl|2xl|3xl|4
 const BARE_SHADOW = /^shadow$/;
 const SHADOW_STEP = /^shadow-(2xs|xs|sm|md|lg|xl|2xl)$/;
 const CONTAINER = /^(?:max-w|min-w|w)-(3xs|2xs|xs|sm|md|lg|xl|[2-7]xl|prose)$/;
-const Z_NUMBER = /^z-(\d+)$/;
+const Z_NUMBER = /^z-(?:(\d+)|\[(-?\d+)\])$/;
 const Z_CSS = /^\s*-?(\d+)\s*$/;
-const LINE_PROP = /^border(?:-(?:top|right|bottom|left|block|inline|block-start|block-end|inline-start|inline-end))?(?:-width)?$/;
+const LINE_UTILITY = "border(?:-[xytrblse])?|divide-[xy]|outline|outline-offset|ring|ring-offset|inset-ring";
+const LINE_WIDTH = new RegExp(`^(?:${LINE_UTILITY})-(\\d+)$`);
+const LINE_ARBITRARY = new RegExp(`^(?:${LINE_UTILITY}|shadow|inset-shadow)-\\[(.*)\\]$`);
+// Kebab-case; a style object's camelCase key is converted before the test.
+const LINE_PROP =
+  /^(?:border(?:-(?:top|right|bottom|left|block|inline|block-start|block-end|inline-start|inline-end))?(?:-width)?|outline(?:-width|-offset)?|box-shadow)$/;
 const LINE_1PX = /(?<![\w.-])1px\b/;
+const LINE_HINT = "(use var(--BORDER-WIDTH))";
 const LAYER_HINT = "(use z-raised / z-sticky / z-docked / z-bypass)";
 
 const RAW_HEX = /(?:^|[^\w&])#[0-9a-fA-F]{3,8}(?![\w-])/;
 const RAW_FN = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(\s*[\d.]/;
-const RAW_LEN = /(?<![\w.-])(\d*\.?\d+)(px|rem)\b/g;
+const UNITS = [
+  "px", "rem", "em", "ex", "ch", "lh", "rlh",
+  "vw", "vh", "vi", "vb", "vmin", "vmax", "dvw", "dvh", "svw", "svh", "lvw", "lvh",
+  "cqw", "cqh", "cqi", "cqb", "cqmin", "cqmax",
+];
+// A leading `-` is a sign (`-12px`, `mt-[-12px]`) unless it joins an identifier (`m-12px`).
+const RAW_LEN = new RegExp(String.raw`(?<![\w.])(?<![A-Za-z0-9]-)-?(\d*\.?\d+)(${UNITS.join("|")})\b`, "g");
+// Lengths that name a unit rather than a size; see `arbitrary` above.
+const UNIT_LENGTHS = new Set(["1px", "-1px", "1em", "-1em", "1lh", "-1lh", "1ch", "-1ch", "100dvh", "100cqi"]);
 
-/** Every raw px/rem length in `text` other than 0 and the 1px hairline. */
+/** Every raw length in `text` other than 0 and the allowed unit lengths. */
 function rawLengths(text) {
   const out = [];
   for (const m of text.matchAll(RAW_LEN)) {
-    const n = Number(m[1]);
-    if (n === 0 || (m[2] === "px" && n === 1)) continue;
+    if (Number(m[1]) === 0 || UNIT_LENGTHS.has(m[0])) continue;
     out.push(m[0]);
   }
   return out;
+}
+
+const kebab = (name) => name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+
+/** A line property (`border-top`, `outline`, `boxShadow`) given a fixed 1px weight. */
+function fixedLine(property, value) {
+  return LINE_PROP.test(kebab(property)) && LINE_1PX.test(value);
 }
 
 /** Strip variants (`md:hover:`), `!`, a leading `-`, keeping bracket contents intact. */
@@ -114,8 +148,12 @@ export function checkToken(token, allow = {}) {
   if (shadow && !has("shadow", shadow[1])) return `default shadow \`${token}\``;
   const container = CONTAINER.exec(util);
   if (container && !has("container", container[1])) return `default container width \`${token}\``;
+  const width = LINE_WIDTH.exec(util);
+  if (width && Number(width[1]) !== 0) return `fixed line width \`${token}\` (a bare \`border\` reads --BORDER-WIDTH)`;
+  const arbitrary = LINE_ARBITRARY.exec(util);
+  if (arbitrary && LINE_1PX.test(arbitrary[1].replace(/_/g, " "))) return `fixed line width \`${token}\` ${LINE_HINT}`;
   const z = Z_NUMBER.exec(util);
-  if (z && Number(z[1]) !== 0) return `numeric stacking \`${token}\` ${LAYER_HINT}`;
+  if (z && Number(z[1] ?? z[2]) !== 0) return `numeric stacking \`${token}\` ${LAYER_HINT}`;
   return null;
 }
 
@@ -126,7 +164,8 @@ export function checkString(value, allow = {}) {
     if (!token) continue;
     if (RAW_HEX.test(token)) problems.push(`raw hex colour in \`${token}\``);
     if (RAW_FN.test(token)) problems.push(`raw colour function in \`${token}\``);
-    const lengths = rawLengths(token);
+    // `_` is a space inside an arbitrary value (`shadow-[0_2px_4px_…]`).
+    const lengths = rawLengths(token.replace(/_/g, " "));
     if (lengths.length) problems.push(`raw length ${lengths.join(", ")} in \`${token}\``);
     const problem = checkToken(token, allow);
     if (problem) problems.push(problem);
@@ -134,9 +173,22 @@ export function checkString(value, allow = {}) {
   return problems;
 }
 
+/**
+ * TSX only for `.tsx`: read as TSX, a `.ts` file's generic arrow (`<T>(x) => …`)
+ * opens a JSX element and every string after it becomes JSX text, unscanned.
+ */
+export const scriptKind = (fileName) => (fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+
+/** The key a string is the value of, in an object literal (`{ boxShadow: "…" }`), or null. */
+function styleKey(node) {
+  const parent = node.parent;
+  if (!parent || !ts.isPropertyAssignment(parent) || parent.initializer !== node) return null;
+  return ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name) ? parent.name.text : null;
+}
+
 /** Scan a .ts/.tsx source: every string literal and template text, never comments. */
 export function scanTs(source, fileName, allow = {}) {
-  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind(fileName));
   const found = [];
   const visit = (node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
@@ -151,6 +203,10 @@ export function scanTs(source, fileName, allow = {}) {
       // a type naming a raw value is still a raw value, so it is scanned too.
       const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
       for (const problem of checkString(node.text, allow)) found.push({ line, problem });
+      const property = styleKey(node);
+      if (property && fixedLine(property, node.text)) {
+        found.push({ line, problem: `fixed line weight in \`${property}: "${node.text}"\` ${LINE_HINT}` });
+      }
     }
     ts.forEachChild(node, visit);
   };
@@ -172,15 +228,15 @@ export function scanCss(source, allow = {}) {
   for (const m of text.matchAll(/(?<![\w-])([a-z-]+|--[A-Za-z0-9-]+)\s*:\s*([^;{}]+)[;}]/g)) {
     const value = m[2];
     const line = lineAt(text, m.index);
-    if (RAW_HEX.test(value)) found.push({ line, problem: `raw hex colour in \`${m[0].trim()}\`` });
-    if (RAW_FN.test(value)) found.push({ line, problem: `raw colour function in \`${m[0].trim()}\`` });
+    // One line per finding, however many lines the declaration spans.
+    const decl = m[0].trim().replace(/\s+/g, " ");
+    if (RAW_HEX.test(value)) found.push({ line, problem: `raw hex colour in \`${decl}\`` });
+    if (RAW_FN.test(value)) found.push({ line, problem: `raw colour function in \`${decl}\`` });
     const lengths = rawLengths(value);
-    if (lengths.length) found.push({ line, problem: `raw length ${lengths.join(", ")} in \`${m[0].trim()}\`` });
+    if (lengths.length) found.push({ line, problem: `raw length ${lengths.join(", ")} in \`${decl}\`` });
     const z = m[1] === "z-index" && Z_CSS.exec(value);
-    if (z && Number(z[1]) !== 0) found.push({ line, problem: `numeric stacking in \`${m[0].trim()}\` ${LAYER_HINT}` });
-    if (LINE_PROP.test(m[1]) && LINE_1PX.test(value)) {
-      found.push({ line, problem: `fixed line weight in \`${m[0].trim()}\` (use var(--BORDER-WIDTH))` });
-    }
+    if (z && Number(z[1]) !== 0) found.push({ line, problem: `numeric stacking in \`${decl}\` ${LAYER_HINT}` });
+    if (fixedLine(m[1], value)) found.push({ line, problem: `fixed line weight in \`${decl}\` ${LINE_HINT}` });
   }
   for (const m of text.matchAll(/@(?:media|container)[^{]*/g)) {
     const lengths = rawLengths(m[0]);
@@ -195,9 +251,9 @@ export function scanCss(source, allow = {}) {
 export function allowFromTheme(cssSources) {
   const allow = {};
   for (const css of cssSources) {
-    const text = blankComments(css);
-    for (const open of text.matchAll(/@theme\b[^{]*\{([^}]*)\}/g)) {
-      for (const d of open[1].matchAll(/--([a-z]+)-([A-Za-z0-9-]+)\s*:/g)) {
+    for (const { body } of themeBlocks(blankComments(css))) {
+      if (body === null) continue;
+      for (const d of body.matchAll(/--([a-z]+)-([A-Za-z0-9-]+)\s*:/g)) {
         const [, ns, name] = d;
         if (name.includes("--")) continue; // `--text-kpi--line-height` is a modifier
         (allow[ns] ??= new Set()).add(name);

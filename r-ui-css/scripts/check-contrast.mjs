@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Contrast check: every contract pair, in the default theme and every theme file.
 // Usage: node scripts/check-contrast.mjs [--pkg <dir>] [extra-theme.css ...]
-import { pathToFileURL } from "node:url";
-import { contrast, parseColor } from "./lib/color.mjs";
+import { isMain, parseArgs } from "./lib/cli.mjs";
+import { contrast, relativeLuminance } from "./lib/color.mjs";
 import { resolveVars } from "./lib/css.mjs";
 import { allThemes } from "./lib/tokens.mjs";
 
@@ -38,7 +38,7 @@ function schemeCoherence(theme, get) {
   const r = { fg: "--C-TEXT-PRIMARY", bg: "--C-CANVAS", kind: "scheme", min: 0, ratio: NaN, pass: false };
   try {
     const dark = get("--SCHEME-DARK") === "1";
-    const lighter = parseColor(get("--C-TEXT-PRIMARY")).l > parseColor(get("--C-CANVAS")).l;
+    const lighter = relativeLuminance(get("--C-TEXT-PRIMARY")) > relativeLuminance(get("--C-CANVAS"));
     r.pass = dark === lighter;
     if (!r.pass) r.error = `--SCHEME-DARK is ${dark ? 1 : 0} but text is ${lighter ? "lighter" : "darker"} than the canvas (partial theme?)`;
   } catch (e) {
@@ -99,12 +99,7 @@ export function report(themes, log = console.log) {
 }
 
 function main(argv) {
-  let pkg = new URL("..", import.meta.url).pathname;
-  const extra = [];
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--pkg") pkg = argv[++i];
-    else extra.push(argv[i]);
-  }
+  const { pkg, extra } = parseArgs(argv);
   const failures = report(allThemes(pkg, extra));
   if (failures) {
     console.error(`contrast: ${failures} pair(s) below their minimum`);
@@ -112,4 +107,4 @@ function main(argv) {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv.slice(2));
+if (isMain(import.meta.url)) main(process.argv.slice(2));

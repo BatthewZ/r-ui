@@ -7,8 +7,10 @@
 // Asserts, on the Overview's charts sections:
 //   1. harness: a vertical chart's plot is exactly the root's --CHART-H-COMFORTABLE at
 //      comfortable, and the compact demo's is --CHART-H-COMPACT (shorter);
-//   2. default / nightfall × comfortable / compact × fine / coarse at 1280 and 375: no
-//      console or page error, no tripped section; every axis label in every chart is
+//   2. the default theme and the first dark theme the showcase lists × comfortable /
+//      compact × fine / coarse at 1280 and 375: no console or page error, no tripped
+//      section; every line chart's plot is exactly the --CHART-H it sits under (so
+//      compact boxes and coarse input included); every axis label in every chart is
 //      at least 10px, inside its chart's box, and never overlaps its neighbour (x labels
 //      side by side, y labels stacked, heatmap hour labels); no chart section scrolls
 //      sideways;
@@ -25,13 +27,7 @@ async (page) => {
   const base = page.url().split("#")[0];
   const KEY = "r-ui-showcase:view";
   const problems = [];
-  const errors = [];
-  const onConsole = (msg) => {
-    if (msg.type() === "error") errors.push(`console: ${msg.text()}`);
-  };
-  const onPageError = (err) => errors.push(`pageerror: ${err.message}`);
-  page.on("console", onConsole);
-  page.on("pageerror", onPageError);
+  const { errors, stop: stopErrors } = collectErrors(page);
 
   const load = async (width, view) => {
     await page.setViewportSize({ width, height: 900 });
@@ -104,6 +100,7 @@ async (page) => {
 
   let combos = 0;
   let labelCount = 0;
+  let plotCount = 0;
   const summary = {};
   try {
     // 1: the harness, at comfortable + fine.
@@ -224,8 +221,9 @@ async (page) => {
     for (const e of errors) problems.push(`interactions: ${e}`);
 
     // 2: the matrix.
+    const dark = await darkTheme(page);
     for (const width of [1280, 375]) {
-      for (const theme of ["default", "nightfall"]) {
+      for (const theme of ["default", dark]) {
         for (const density of ["comfortable", "compact"]) {
           for (const input of ["fine", "coarse"]) {
             const label = `${theme}/${density}/${input}@${width}`;
@@ -238,6 +236,22 @@ async (page) => {
               if (m.problem) problems.push(`${label}: ${m.problem}`);
               else labelCount += m.count;
             }
+            const plots = await page.evaluate(() =>
+              [...document.querySelectorAll("#charts-linechart [data-chart-plot]")].map((plot) => {
+                // --CHART-H as resolved where this plot sits (its own density boundary).
+                const probe = document.createElement("div");
+                probe.style.cssText = "position:absolute;visibility:hidden;block-size:var(--CHART-H)";
+                plot.append(probe);
+                const want = probe.getBoundingClientRect().height;
+                probe.remove();
+                return { name: plot.closest("figure")?.getAttribute("aria-label"), height: plot.getBoundingClientRect().height, want };
+              }),
+            );
+            if (plots.length < 5) problems.push(`${label}: ${plots.length} line-chart plots measured, the section draws 5`);
+            for (const p of plots) {
+              if (!(p.want > 0) || Math.abs(p.height - p.want) > 0.5) problems.push(`${label}: "${p.name}" plot is ${p.height}px, its --CHART-H is ${p.want}px`);
+            }
+            plotCount += plots.length;
             for (const e of errors) problems.push(`${label}: ${e}`);
           }
         }
@@ -245,12 +259,11 @@ async (page) => {
     }
     if (labelCount < combos * 50) problems.push(`harness: measured only ${labelCount} axis labels over ${combos} combinations`);
   } finally {
-    page.off("console", onConsole);
-    page.off("pageerror", onPageError);
+    stopErrors();
     await page.evaluate((key) => localStorage.removeItem(key), KEY);
     await page.setViewportSize({ width: 1280, height: 900 });
   }
 
   if (problems.length) throw new Error(`charts-interaction FAILED (${problems.length}):\n  ${problems.slice(0, 40).join("\n  ")}`);
-  return `charts-interaction OK (plot ${summary.heights.first}px = --CHART-H, compact ${summary.heights.compactPlot}px; hover snaps and matches the table; keys and tap announce; ${labelCount} axis labels clear of each other over ${combos} combinations)`;
+  return `charts-interaction OK (plot ${summary.heights.first}px = --CHART-H, compact ${summary.heights.compactPlot}px; hover snaps and matches the table; keys and tap announce; ${plotCount} plots at their --CHART-H and ${labelCount} axis labels clear of each other over ${combos} combinations)`;
 }

@@ -127,8 +127,8 @@ function statusOf(s: Omit<Service, "status" | "owner" | "name" | "deployedMin">)
   return "good";
 }
 
-/** "Now" for the specimen: local midnight, so ticks land on the reader's own day boundaries. */
-const NOW = new Date(2026, 9, 15).getTime();
+/** "Now" for the specimen: local midnight, so ticks land on the reader's own day boundaries and ages read the same on every load. */
+export const NOW = new Date(2026, 9, 15).getTime();
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 export function generate(range: Range, region: Region | "all", env: Env): DashboardData {

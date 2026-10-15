@@ -1,16 +1,17 @@
 "use client";
 
-import type { ButtonHTMLAttributes, MouseEvent, ReactNode, Ref } from "react";
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react";
 
 import { cn } from "../../util/style";
-import { BUTTON_BASE, BUTTON_PRESSED, BUTTON_VARIANT } from "./button-styles";
+import { BUTTON_BASE, BUTTON_PRESSED, BUTTON_VARIANT, type ButtonVariant, guardClick, isAriaDisabled } from "./button-styles";
 
 export type IconButtonProps = {
   /** The accessible name (`aria-label`) and the native `title` hint. Required: the icon says nothing. */
   label: string;
   /** The glyph, sized to `--ICON`. Rendered `aria-hidden`; `label` names the button. */
   icon: ReactNode;
-  variant?: "secondary" | "ghost" | "primary";
+  /** Default `ghost`. `danger` is for a destructive action (delete, revoke), as on `Button`. */
+  variant?: ButtonVariant;
   ref?: Ref<HTMLButtonElement>;
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children">;
 
@@ -30,16 +31,6 @@ export function IconButton({
   type = "button",
   ...props
 }: IconButtonProps) {
-  const ariaDisabled = props["aria-disabled"] === true || props["aria-disabled"] === "true";
-
-  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
-    if (ariaDisabled) {
-      event.preventDefault();
-      return;
-    }
-    onClick?.(event);
-  };
-
   return (
     <button
       type={type}
@@ -54,7 +45,7 @@ export function IconButton({
         className,
       )}
       {...props}
-      onClick={handleClick}
+      onClick={guardClick(isAriaDisabled(props["aria-disabled"]), onClick)}
     >
       <span className="r-primitives-icon-slot" aria-hidden>
         {icon}

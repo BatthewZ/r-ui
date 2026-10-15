@@ -65,7 +65,9 @@ export default function DialogSection() {
                   </DropdownMenu.Content>
                 </DropdownMenu>
                 <Tooltip content="Closes without saving">
-                  <Dialog.Close variant="primary">Done</Dialog.Close>
+                  <Dialog.Close variant="primary" autoFocus>
+                    Done
+                  </Dialog.Close>
                 </Tooltip>
               </Dialog.Footer>
             </Dialog.Content>
@@ -116,7 +118,7 @@ export default function DialogSection() {
         <div dir="rtl">
           <Dialog>
             <Dialog.Trigger>إعادة التسمية</Dialog.Trigger>
-            <Dialog.Content closeLabel="إغلاق">
+            <Dialog.Content labels={{ close: "إغلاق" }}>
               <Dialog.Header>
                 <Dialog.Title>إعادة تسمية لوحة المعلومات</Dialog.Title>
                 <Dialog.Description>زر الإغلاق في الزاوية اليسرى.</Dialog.Description>

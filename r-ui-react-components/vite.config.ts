@@ -71,8 +71,6 @@ export default defineConfig({
         "react/jsx-dev-runtime",
         /^@floating-ui\/.+/,
         /^lucide-react($|\/)/,
-        "clsx",
-        "tailwind-merge",
         /^lowlight($|\/)/,
         /^highlight\.js($|\/)/,
         /^@batthewz\/r-ui-tw-merge($|\/)/,
@@ -82,6 +80,8 @@ export default defineConfig({
         preserveModules: true,
         preserveModulesRoot: "src",
         entryFileNames: "[name].js",
+        // src/ ships beside dist/, so the maps point at it instead of embedding a copy.
+        sourcemapExcludeSources: true,
       },
     },
     sourcemap: true,

@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import { dateTimeFormatter } from "../../util/format";
 import {
   addDays,
   addMonths,
+  dateFormatter,
   formatInputDate,
   formatPattern,
   makeDate,
   monthGrid,
+  monthLabel,
   parseDate,
   parseISODate,
   toISODate,
@@ -58,6 +61,14 @@ describe("parseDate", () => {
       expect(iso(parseDate(formatInputDate(d, locale), locale)), locale).toBe("2026-01-09");
     }
   });
+
+  it("writes and reads the Gregorian calendar where the locale's default is another", () => {
+    const d = new Date(2026, 9, 15);
+    for (const locale of ["th-TH", "fa-IR", "ja-JP-u-ca-japanese"]) {
+      expect(iso(parseDate(formatInputDate(d, locale), locale)), locale).toBe("2026-10-15");
+    }
+    expect(monthLabel(d, "th-TH")).toContain("2026");
+  });
 });
 
 describe("calendar arithmetic", () => {
@@ -108,5 +119,14 @@ describe("locale data", () => {
     expect(formatPattern("en-US")).toBe("MM/DD/YYYY");
     expect(formatPattern("de-DE")).toBe("DD.MM.YYYY");
     expect(formatPattern("de-DE", { day: "TT", month: "MM", year: "JJJJ" })).toBe("TT.MM.JJJJ");
+  });
+});
+
+describe("dateFormatter", () => {
+  it("is the shared Intl cache's formatter, in the Gregorian calendar", () => {
+    const thai = dateFormatter("th-TH", { year: "numeric" });
+    expect(thai).toBe(dateTimeFormatter("th-TH", { year: "numeric", calendar: "gregory" }));
+    expect(thai.resolvedOptions().calendar).toBe("gregory");
+    expect(thai.format(new Date(2026, 0, 1))).toContain("2026");
   });
 });

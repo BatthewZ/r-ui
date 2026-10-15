@@ -26,6 +26,7 @@ describe("CopyButton", () => {
     render(<CopyButton value="npm i lowlight" onCopy={onCopy} />);
     const button = screen.getByRole("button", { name: "Copy" });
     expect(button).toHaveClass("hit-area");
+    expect(button).toHaveAttribute("data-print", "hide");
     expect(status()).toHaveTextContent(/^$/);
 
     await user.click(button);
@@ -148,19 +149,32 @@ describe("CopyButton", () => {
     expect(status()).toHaveTextContent(/^$/);
   });
 
-  it("does not update after unmounting mid-write", async () => {
-    const user = userEvent.setup();
+  it("unmounted mid-write, it reports the copy but starts no confirmation timer", async () => {
+    userEvent.setup();
     let release!: () => void;
     vi.spyOn(navigator.clipboard, "writeText").mockImplementationOnce(() => new Promise<void>((resolve) => (release = resolve)));
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers();
     const onCopy = vi.fn();
     const { unmount } = render(<CopyButton value="x" onCopy={onCopy} />);
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copy" }));
     unmount();
     await act(async () => release());
-    // The write did happen, so it is reported; nothing tried to update the gone button.
+    // The write did happen, so it is reported; nothing scheduled the gone button's reset.
     expect(onCopy).toHaveBeenCalledTimes(1);
-    expect(errors).not.toHaveBeenCalled();
-    errors.mockRestore();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("unmounted while showing its confirmation, it leaves no timer behind", async () => {
+    userEvent.setup();
+    vi.useFakeTimers();
+    const { unmount } = render(<CopyButton value="x" />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+    });
+    expect(screen.getByRole("button", { name: "Copy" })).toHaveAttribute("data-state", "copied");
+    // Positive control: the confirmation's reset is pending.
+    expect(vi.getTimerCount()).toBe(1);
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

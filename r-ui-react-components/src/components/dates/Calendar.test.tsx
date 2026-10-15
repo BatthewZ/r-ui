@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import { Field } from "../form";
 import { Calendar } from "./Calendar";
@@ -35,6 +35,24 @@ describe("Calendar", () => {
     expect(today).toHaveAttribute("aria-current", "date");
     expect(today).toHaveAttribute("tabindex", "0");
     expect(grid.querySelectorAll('button[tabindex="0"]')).toHaveLength(1);
+  });
+
+  it("says the chosen day is selected on the day itself, where focus lands", () => {
+    render(<Calendar aria-label="Due" locale="en-US" defaultValue={day(10, 20)} />);
+    const chosen = screen.getByRole("button", { name: "Tuesday, October 20, 2026, selected" });
+    expect(chosen).toHaveAttribute("tabindex", "0");
+    expect(chosen.closest('[role="gridcell"]')).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: "Thursday, October 15, 2026, today" })).toBeInTheDocument();
+  });
+
+  it("takes one Date | null handler, as its value and the pickers do", async () => {
+    const user = userEvent.setup();
+    const picked: (Date | null)[] = [];
+    const onValueChange: (date: Date | null) => void = (date) => picked.push(date);
+    render(<Calendar aria-label="Due" locale="en-US" onValueChange={onValueChange} />);
+    await user.click(screen.getByRole("button", { name: /October 21, 2026/ }));
+    expect(picked.map((d) => d && toISODate(d))).toEqual(["2026-10-21"]);
+    expectTypeOf<Parameters<NonNullable<React.ComponentProps<typeof Calendar>["onValueChange"]>>[0]>().toEqualTypeOf<Date | null>();
   });
 
   it("starts the week and names the month in the locale", () => {

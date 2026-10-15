@@ -11,10 +11,15 @@ function hasMatchMedia(): boolean {
  * Subscribe to a CSS media query and return whether it currently matches.
  *
  * SSR-safe (returns `false` on the server / before hydration) and re-renders
- * the caller as the match state changes — e.g. on viewport resize or rotation.
+ * the caller as the match state changes.
+ *
+ * Not for density or input: `useDensity` and `useInputMode` read the
+ * `[data-density]` / `[data-input]` the user's choice sets, and a viewport
+ * width moves layout only, never density (a container query usually says it
+ * better). Reach for this for a preference or capability with no attribute.
  *
  * @example
- * const isCompact = useMediaQuery("(width < 40rem)");
+ * const moreContrast = useMediaQuery("(prefers-contrast: more)");
  */
 export function useMediaQuery(query: string): boolean {
   const subscribe = useCallback(

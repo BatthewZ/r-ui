@@ -39,3 +39,9 @@
   in both worlds.
 - **The selection-copy fallback writes its textarea beside the button**, not on `<body>`:
   inside a modal dialog everything outside is inert and the copy silently writes nothing.
+- **Prove a parser refactor by fuzzing it against the parser it replaces.** Example tests
+  hold the cases someone thought of; a hand-written parser's behaviour lives in its corners
+  (unclosed openers, a marker at a line end, nesting at the cap, very long runs). Keep the
+  old parser as a scratch copy outside the package, generate many inputs from the syntax's
+  own markers, and compare the trees. Each difference is a bug or a deliberate fix: fix the
+  first, record the second with a test, then delete the copy.

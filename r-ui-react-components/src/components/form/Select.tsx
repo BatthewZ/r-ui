@@ -1,13 +1,18 @@
 "use client";
 import { ChevronDown } from "lucide-react";
-import type { ComponentPropsWithRef, KeyboardEvent, MouseEvent } from "react";
+import type { ChangeEvent, ComponentPropsWithRef, KeyboardEvent, MouseEvent } from "react";
 
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn, type SlotClassNames } from "../../util/style";
 
 import { useFieldControl, useFieldInputProps } from "./Field";
 
-export interface SelectProps extends Omit<ComponentPropsWithRef<"select">, "size" | "multiple"> {
+export interface SelectProps extends Omit<ComponentPropsWithRef<"select">, "size" | "multiple" | "value" | "defaultValue"> {
+  /** The chosen option's `value` (controlled). The native `onChange` still fires. */
+  value?: string;
+  defaultValue?: string;
+  /** The chosen option's `value`, after the native `onChange`. */
+  onValueChange?: (value: string) => void;
   invalid?: boolean;
   /**
    * A first, unselectable option shown while the value is `""`. With
@@ -44,6 +49,8 @@ export function Select({
   "aria-invalid": ariaInvalidProp,
   onMouseDown,
   onKeyDown,
+  onChange,
+  onValueChange,
   defaultValue,
   ...props
 }: SelectProps) {
@@ -58,7 +65,14 @@ export function Select({
   });
   const readOnly = field.readOnly === true;
   // In a Field bound to a Form, the form owns the value (unless the caller passed one).
-  const { defaultValue: initialValue, ...nativeProps } = useFieldInputProps({ ...props, defaultValue });
+  const { defaultValue: initialValue, ...nativeProps } = useFieldInputProps({
+    ...props,
+    defaultValue,
+    onChange: (event: ChangeEvent<HTMLSelectElement>) => {
+      onChange?.(event);
+      onValueChange?.(event.target.value);
+    },
+  });
 
   return (
     <div className={cn("relative flex w-full min-w-0", className)}>

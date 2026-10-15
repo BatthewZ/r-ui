@@ -12,24 +12,23 @@ import {
   useState,
 } from "react";
 
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 import { cn, type SlotClassNames } from "../../util/style";
-import { MARK_TEXT, ToneGlyph } from "../../util/tone";
+import { MARK_TEXT, type Tone, TONE_LABELS, ToneGlyph } from "../../util/tone";
 import { Button, IconButton } from "../primitives";
 import { afterExit } from "./internal";
-
-export type ToastTone = "neutral" | "success" | "error" | "warning" | "info";
 
 export interface ToastOptions {
   title: ReactNode;
   description?: ReactNode;
-  /** @default "neutral" */
-  tone?: ToastTone;
+  /** `error` and `serious` interrupt (the assertive region) and stay until dismissed. @default "neutral" */
+  tone?: Tone;
   /** One follow-up action. It is not the only route to it: the toast leaves. */
   action?: { label: string; onClick: () => void };
   /**
    * Milliseconds before it dismisses itself; `0` keeps it until dismissed.
    * The clock stops while the pointer or focus is on the stack.
-   * @default the provider's `duration`; `0` for `error` and for a toast with an action
+   * @default the provider's `duration`; `0` for `error`, `serious` and a toast with an action
    */
   duration?: number;
   /** Re-using an id replaces that toast in place. */
@@ -44,7 +43,7 @@ export interface ToastApi {
 
 interface ToastEntry extends ToastOptions {
   id: string;
-  tone: ToastTone;
+  tone: Tone;
   duration: number;
   leaving: boolean;
 }
@@ -60,6 +59,25 @@ export function useToast(): ToastApi {
 
 export type ToastPosition = "top-start" | "top-end" | "bottom-start" | "bottom-end";
 
+/** The stack's own words. */
+export interface ToastLabels {
+  /** The landmark's accessible name. */
+  region: string;
+  /** Each toast's dismiss button. */
+  dismiss: string;
+  /** Spoken before the title, per tone (`""` says nothing: the default for `neutral`). */
+  tones: Readonly<Record<Tone, string>>;
+}
+
+export const DEFAULT_TOAST_LABELS: Readonly<ToastLabels> = {
+  region: "Notifications",
+  dismiss: "Dismiss",
+  tones: TONE_LABELS,
+};
+
+/** Interrupts: announced assertively and kept until dismissed. */
+const isUrgent = (tone: Tone) => tone === "error" || tone === "serious";
+
 export interface ToastProviderProps {
   children: ReactNode;
   /** Corner of the viewport, in logical terms (`end` is the right in LTR). @default "bottom-end" */
@@ -68,35 +86,29 @@ export interface ToastProviderProps {
   duration?: number;
   /** Most toasts on screen; the oldest leaves first. @default 4 */
   max?: number;
-  /** The landmark's accessible name. @default "Notifications" */
-  label?: string;
-  /** The dismiss button's accessible name. @default "Dismiss" */
-  dismissLabel?: string;
-  /** Visually hidden word read before the title, per tone. */
-  toneLabels?: Partial<Record<ToastTone, string>>;
+  /** Translations; `tones` merges per tone over `DEFAULT_TOAST_LABELS.tones`. */
+  labels?: LabelsProp<ToastLabels>;
   className?: string;
   classNames?: SlotClassNames<"toast" | "title" | "description" | "action">;
 }
 
-const TONE_LABEL: Record<ToastTone, string> = {
-  neutral: "",
-  success: "Success:",
-  error: "Error:",
-  warning: "Warning:",
-  info: "Info:",
-};
-
-
 let sequence = 0;
+
+/** A toast's `<li>` in the stack, by id. */
+const toastSelector = (id: string) => `li[data-toast-id="${CSS.escape(id)}"]`;
 
 /**
  * Hosts the toast stack and provides `useToast()`.
  *
  * The stack is two always-mounted live regions (a toast must arrive *into* an
- * existing region to be announced): errors go to the assertive one, everything
- * else to the polite one. It is promoted to the top layer, so it paints over
+ * existing region to be announced): `error` and `serious` go to the assertive
+ * one, everything else to the polite one. It is promoted to the top layer, so it paints over
  * modals opened before it. Unlike every other floating surface here it is not
  * anchored to anything, so it renders where the provider is.
+ *
+ * A toast that leaves while focus is in it (its own Dismiss or action, or
+ * `dismiss(id)`) hands focus to the next toast's Dismiss, else back to where
+ * focus was before it entered the stack, so focus never drops to `<body>`.
  *
  * Known limit: while a modal `<dialog>` is open, everything outside it is inert,
  * so a toast raised then is visible but neither clickable nor announced. Keep
@@ -107,9 +119,7 @@ export function ToastProvider({
   position = "bottom-end",
   duration = 6000,
   max = 4,
-  label = "Notifications",
-  dismissLabel = "Dismiss",
-  toneLabels,
+  labels,
   className,
   classNames,
 }: ToastProviderProps) {
@@ -117,18 +127,49 @@ export function ToastProvider({
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const regionRef = useRef<HTMLElement>(null);
+  /** Where focus was before it entered the stack. */
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const text = mergeLabels(DEFAULT_TOAST_LABELS, labels);
 
-  const dismiss = useCallback((id: string) => {
-    setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+  /**
+   * Before toasts leave: if focus is in one of them, move it to the next
+   * remaining toast's Dismiss, else back where it came from. Done first, while
+   * the focused node is still there: a removed or inert node fires no blur in
+   * every engine, and focus would fall to `<body>`.
+   */
+  const handOffFocus = useCallback((leaving: (id: string) => boolean) => {
+    const region = regionRef.current;
+    const active = document.activeElement;
+    if (!region || !(active instanceof HTMLElement) || !region.contains(active)) return;
+    const current = active.closest<HTMLElement>("li[data-toast-id]");
+    if (!current || !leaving(current.dataset.toastId ?? "")) return;
+    const items = [...region.querySelectorAll<HTMLElement>("li[data-toast-id]:not([data-leaving])")];
+    const at = items.indexOf(current);
+    const stays = (item: HTMLElement | undefined) => item && !leaving(item.dataset.toastId ?? "");
+    const next = items.slice(at + 1).find(stays) ?? items.slice(0, at).reverse().find(stays);
+    const target = next?.querySelector<HTMLElement>("[data-toast-dismiss]") ?? returnFocus.current;
+    if (target?.isConnected) target.focus();
+    else active.blur();
   }, []);
+
+  const dismiss = useCallback(
+    (id: string) => {
+      handOffFocus((other) => other === id);
+      setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, leaving: true } : t)));
+    },
+    [handOffFocus]
+  );
   const remove = useCallback((id: string) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
-  const dismissAll = useCallback(() => setToasts((prev) => prev.map((t) => ({ ...t, leaving: true }))), []);
+  const dismissAll = useCallback(() => {
+    handOffFocus(() => true);
+    setToasts((prev) => prev.map((t) => ({ ...t, leaving: true })));
+  }, [handOffFocus]);
 
   const toast = useCallback(
     (options: ToastOptions) => {
       const id = options.id ?? `toast-${++sequence}`;
       const tone = options.tone ?? "neutral";
-      const sticky = tone === "error" || options.action !== undefined;
+      const sticky = isUrgent(tone) || options.action !== undefined;
       const entry: ToastEntry = {
         ...options,
         id,
@@ -166,20 +207,27 @@ export function ToastProvider({
     region.showPopover();
   }, [count]);
 
+  // Focus is read from the document, not only from focus events: a toast
+  // removed with focus inside it (the oldest pushed out by `max`) takes the
+  // focus away without a blur, which would leave every later clock stopped.
+  useEffect(() => {
+    setFocused(regionRef.current?.contains(document.activeElement) ?? false);
+  }, [toasts]);
+
   const paused = hovered || focused;
   const top = position.startsWith("top");
   // Newest nearest the corner's edge: at the bottom for a bottom stack.
   const ordered = top ? [...toasts].reverse() : toasts;
   const list = (tone: "assertive" | "polite") =>
     ordered
-      .filter((t) => (t.tone === "error") === (tone === "assertive"))
+      .filter((t) => isUrgent(t.tone) === (tone === "assertive"))
       .map((t) => (
         <ToastItem
           key={t.id}
           entry={t}
           paused={paused}
-          dismissLabel={dismissLabel}
-          toneLabel={toneLabels?.[t.tone] ?? TONE_LABEL[t.tone]}
+          dismissLabel={text.dismiss}
+          toneLabel={text.tones[t.tone]}
           classNames={classNames}
           onDismiss={dismiss}
           onRemove={remove}
@@ -193,11 +241,17 @@ export function ToastProvider({
       {children}
       <section
         ref={regionRef}
-        aria-label={label}
+        aria-label={text.region}
         data-position={position}
         onPointerEnter={() => setHovered(true)}
         onPointerLeave={() => setHovered(false)}
-        onFocus={() => setFocused(true)}
+        onFocus={(event) => {
+          // Arriving from outside: remember where from, to hand focus back.
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            returnFocus.current = event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null;
+          }
+          setFocused(true);
+        }}
         onBlur={(event) => {
           if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false);
         }}
@@ -256,7 +310,11 @@ function ToastItem({ entry, paused, dismissLabel, toneLabel, classNames, onDismi
   return (
     <li
       ref={ref}
+      data-toast-id={id}
       data-tone={tone}
+      data-leaving={leaving || undefined}
+      // Leaving: on screen for its exit, but no longer interactive.
+      inert={leaving}
       className={cn(
         "pointer-events-auto flex items-start gap-r4 rounded-md border border-border bg-surface-0 p-r3 text-body-1 text-fg-primary shadow-md",
         leaving ? "animate-fade-out" : "animate-fade-up",
@@ -270,7 +328,7 @@ function ToastItem({ entry, paused, dismissLabel, toneLabel, classNames, onDismi
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-r6">
         <p className={cn("font-medium", classNames?.title)}>
-          {toneLabel && <span className="sr-only">{toneLabel} </span>}
+          {toneLabel && <span className="sr-only">{toneLabel}: </span>}
           {title}
         </p>
         {description && <p className={cn("text-fg-secondary", classNames?.description)}>{description}</p>}
@@ -290,6 +348,7 @@ function ToastItem({ entry, paused, dismissLabel, toneLabel, classNames, onDismi
         )}
       </div>
       <IconButton
+        data-toast-dismiss=""
         label={dismissLabel}
         icon={<X />}
         variant="ghost"

@@ -38,7 +38,7 @@ Dependencies run `r-ui-css + r-ui-tw-merge → r-ui-react-components`. Knowledge
 
 A theme is one CSS file of custom-property overrides, applied with `<html data-theme="…">`. Changing it needs no rebuild and no component edit. The brand is a theme, so the final brand, still undecided, will be a theme-file change.
 
-**The contract is the product; the themes are not.** The default theme *is* `:root`. The example themes (`nightfall`, dark; `harbour`, light and deliberately different in personality) prove that the contract can carry a brand. Nothing depends on them, they sit outside semver, and deleting them breaks nothing. Once a shipped theme gets a privilege that a consumer's theme cannot have (a selector keyed to its name, a slot in a type union, a runtime default, a fixture), the reskinning claim is false. A check enforces this.
+**The contract is the product; the themes are not.** The default theme *is* `:root`. The example themes (`nightfall`, dark; `harbour`, light and deliberately different in personality; `atelier`, light and editorial, naming web faces the app loads) prove that the contract can carry a brand. Nothing depends on them, they sit outside semver, and deleting them breaks nothing. Once a shipped theme gets a privilege that a consumer's theme cannot have (a selector keyed to its name, a slot in a type union, a runtime default, a fixture), the reskinning claim is false. A check enforces this.
 
 ### One theme file, one scheme
 

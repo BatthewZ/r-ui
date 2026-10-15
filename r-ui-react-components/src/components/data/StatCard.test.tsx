@@ -40,6 +40,25 @@ describe("StatCard", () => {
     expect(screen.getByText("vs prior 24h")).toBeInTheDocument();
   });
 
+  it.each([0.04, -0.04])("a delta that rounds to 0 (%d) is drawn flat: no arrow, no hue, no verdict", (d) => {
+    const { container } = render(<StatCard label="Error rate" value="0.42%" delta={d} sentiment="good" />);
+    expect(delta()).toHaveTextContent(/^0$/);
+    expect(delta()).toHaveAttribute("data-sentiment", "neutral");
+    expect(delta()).toHaveClass("text-trend-flat");
+    expect(container.querySelector("svg.lucide-minus")).not.toBeNull();
+    expect(container.querySelector("svg.lucide-arrow-up, svg.lucide-arrow-down")).toBeNull();
+    expect(screen.queryByText("better")).toBeNull();
+  });
+
+  it("a small delta the caller's formatter still shows keeps its arrow and verdict", () => {
+    const { container } = render(
+      <StatCard label="Error rate" value="0.42%" delta={0.04} sentiment="bad" formatDelta={(d) => `+${d.toFixed(2)}`} />,
+    );
+    expect(delta()).toHaveAttribute("data-sentiment", "bad");
+    expect(container.querySelector("svg.lucide-arrow-up")).not.toBeNull();
+    expect(screen.getByText("worse")).toBeInTheDocument();
+  });
+
   it("formats the delta with the caller's formatter and takes its words per instance", () => {
     render(
       <StatCard

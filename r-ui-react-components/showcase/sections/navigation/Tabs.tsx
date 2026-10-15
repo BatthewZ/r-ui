@@ -79,6 +79,11 @@ export default function TabsSection() {
       <Row label="Underline · automatic · one disabled">
         <Example disabled="traces" />
       </Row>
+      <Row label="The selected tab is disabled: the first enabled tab is the tab stop">
+        <div data-sc="tabs-disabled-selected" className="min-w-0">
+          <Example disabled="overview" />
+        </div>
+      </Row>
       <Row label="Underline · icons · manual activation">
         <Example icons activation="manual" />
       </Row>

@@ -77,7 +77,7 @@ export default function AlertSection() {
             </Alert>
           </div>
           <div dir="rtl">
-            <Alert tone="warning" title="تحذير" onDismiss={() => undefined} dismissLabel="إغلاق">
+            <Alert tone="warning" title="تحذير" onDismiss={() => undefined} labels={{ dismiss: "إغلاق" }}>
               تم استخدام 90٪ من الحصة الشهرية.
             </Alert>
           </div>

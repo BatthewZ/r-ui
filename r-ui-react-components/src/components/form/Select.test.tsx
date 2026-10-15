@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { Field } from "./Field";
@@ -27,6 +28,45 @@ describe("Select", () => {
     expect(select).toHaveValue("us");
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith("us");
+  });
+
+  it("takes value / onValueChange beside the native onChange, and defaultValue", async () => {
+    const onChange = vi.fn();
+    const onValueChange = vi.fn();
+    function Controlled() {
+      const [region, setRegion] = useState("eu");
+      return (
+        <>
+          <Select
+            aria-label="Region"
+            value={region}
+            onChange={(event) => onChange(event.target.value)}
+            onValueChange={(next) => {
+              onValueChange(next);
+              setRegion(next);
+            }}
+          >
+            {options}
+          </Select>
+          <output>{region}</output>
+        </>
+      );
+    }
+    render(<Controlled />);
+    const select = screen.getByRole("combobox", { name: "Region" });
+    expect(select).toHaveValue("eu");
+    await userEvent.selectOptions(select, "us");
+    expect(onChange.mock.calls).toEqual([["us"]]);
+    expect(onValueChange.mock.calls).toEqual([["us"]]);
+    expect(screen.getByRole("status")).toHaveTextContent("us");
+    expect(select).toHaveValue("us");
+
+    render(
+      <Select aria-label="Zone" defaultValue="us">
+        {options}
+      </Select>,
+    );
+    expect(screen.getByRole("combobox", { name: "Zone" })).toHaveValue("us");
   });
 
   it("starts on the placeholder when there is no value, and the placeholder cannot be re-picked", () => {

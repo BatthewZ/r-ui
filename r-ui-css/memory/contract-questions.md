@@ -20,6 +20,11 @@ Each entry ran the three-criteria test (standalone-meaningful, cross-cutting, do
   (one sat above the control it surrounds and stole presses from a native input). One utility
   with the stacking fix (`isolation: isolate` on the element, `z-index: -1` on the box) is the
   single source.
+- **`--LINK-UNDERLINE-OFFSET`**. Link treatment is already a brand lever (`--LINK-DECORATION`);
+  where the underline sits under the text is part of the same look, wanted by prose links and by
+  any UI link a consumer writes. A literal `0.18em` had been copied into a component library's
+  link, so a theme could move the prose underline but not the UI one. `em`, so it follows the
+  text it underlines.
 
 ## Out
 

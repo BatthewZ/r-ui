@@ -10,13 +10,15 @@
      a selected name (`--R-SIZE-3`, `--H1`, `--BodyText-1`, `--ICON`) or a derived one
      (`--CONTROL-H`, `--ROW-H`, `--HIT-MIN`); those belong to the axes.
    - No @media blocks: the viewport never redefines a token, and reduced motion /
-     coarse pointer / more contrast are handled by the package for every theme.
+     coarse pointer / more contrast / print are handled by the package for every theme.
+   - No `!important`: the package's preference and print overrides win over a theme
+     only because theirs are important and yours are not.
    - Colour pairs must pass the contrast contract (docs/theme-contract.md).
    - Name font families here; never load them. Faces load in your app's CSS entry
      (docs/theme-contract.md, "Fonts"): an @import in a theme is not allowed and
      would be dropped anyway, after other rules.
    - Not here, because they are not levers: stacking (--LAYER-*) is structure, and
-     forced colors, reduced motion and more contrast are applied by the package. */
+     forced colors, reduced motion, more contrast and print are applied by the package. */
 
 :root[data-theme="my-theme"] {
   /* ═══ Scheme ═══════════════════════════════════════════════════════════════ */
@@ -54,6 +56,7 @@
   --C-SELECTION: oklch(0.91 0.035 222); /* selected text, selected rows/options */
   --C-TEXT-ON-SELECTION: oklch(0.2 0.006 85); /* text on the selection fill */
   --LINK-DECORATION: underline; /* prose links at rest: underline | none (hover always underlines) */
+  --LINK-UNDERLINE-OFFSET: 0.18em; /* gap between a link's text and its underline (em: follows the text size) */
 
   /* ═══ Lever: focus ring (visibility is protected; the look is yours) ═══════ */
   --C-FOCUS: oklch(0.53 0.13 245); /* ring colour (>= 3 on every surface) */

@@ -6,16 +6,26 @@ export {
   type AppShellBottomNavProps,
   type AppShellBrandProps,
   type AppShellHeaderProps,
+  type AppShellLabels,
   type AppShellMainProps,
   type AppShellNavItemProps,
   type AppShellProps,
   type AppShellSidebarProps,
   type AppShellSidebarSectionProps,
+  type AppShellSidebarToggleLabels,
   type AppShellSidebarToggleProps,
+  DEFAULT_APP_SHELL_LABELS,
+  DEFAULT_APP_SHELL_SIDEBAR_TOGGLE_LABELS,
 } from "./AppShell";
-export { Breadcrumbs, type BreadcrumbsItemProps, type BreadcrumbsProps } from "./Breadcrumbs";
+export {
+  Breadcrumbs,
+  type BreadcrumbsItemProps,
+  type BreadcrumbsLabels,
+  type BreadcrumbsProps,
+  DEFAULT_BREADCRUMBS_LABELS,
+} from "./Breadcrumbs";
 export { NavList, type NavListItemProps, type NavListProps, type NavListSectionProps } from "./NavList";
-export { Pagination, type PaginationLabels, type PaginationProps } from "./Pagination";
+export { DEFAULT_PAGINATION_LABELS, Pagination, type PaginationLabels, type PaginationProps } from "./Pagination";
 export {
   Tabs,
   type TabsActivation,

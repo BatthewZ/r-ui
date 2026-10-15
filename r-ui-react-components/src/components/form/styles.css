@@ -285,7 +285,7 @@
 }
 .r-form-switch-track[aria-invalid="true"]:not(:checked) {
   /* Hugs the track (no gap), so it never reads as the offset focus ring. */
-  box-shadow: 0 0 0 1px var(--C-STATUS-ERROR);
+  box-shadow: 0 0 0 var(--BORDER-WIDTH) var(--C-STATUS-ERROR);
 }
 .r-form-switch-thumb {
   inline-size: calc(var(--switch-h) - var(--switch-pad) * 2);
@@ -502,8 +502,20 @@
   background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
 }
 /* Inset: chip rows are a few pixels apart and an outset ring would sit on the next. */
-.r-form-chip-remove:focus-visible {
+.r-form-chip-remove:focus-visible,
+.r-form-chip-summary:focus-visible {
   outline-offset: calc(var(--FOCUS-WIDTH) * -1);
+}
+/* A narrow MultiSelect's "n selected": a chip that unfolds the chips it stands for. */
+.r-form-chip-summary {
+  cursor: pointer;
+  transition: background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-form-chip-summary:hover:not(:disabled) {
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 12%, transparent);
+}
+.r-form-chip-summary:disabled {
+  cursor: not-allowed;
 }
 
 /* The keyboard's option (aria-activedescendant: DOM focus stays in the input)
@@ -556,5 +568,339 @@
   }
   .r-form-option-check {
     color: inherit;
+  }
+}
+
+/* ── FileUpload (FileUpload.tsx) ──
+   The drop zone is a button with a dashed field edge (3:1, like a frame). A drag
+   over it turns the edge solid accent and swaps the prompt and icon, so the state
+   never rests on colour; under forced colours the edge doubles as well. */
+.r-form-upload-zone {
+  min-block-size: calc(var(--CONTROL-H) * 3);
+  border: var(--BORDER-WIDTH) dashed var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-LG);
+  background-color: var(--C-SURFACE-0);
+  color: var(--C-TEXT-PRIMARY);
+  cursor: pointer;
+  transition-property: border-color, background-color;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+.r-form-upload-zone:hover:not(:disabled, [data-invalid], [data-readonly]) {
+  border-color: var(--C-TEXT-MUTED);
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 4%, var(--C-SURFACE-0));
+}
+.r-form-upload-zone[data-invalid] {
+  border-color: var(--C-STATUS-ERROR);
+}
+.r-form-upload-zone[data-dragging] {
+  border-style: solid;
+  border-color: var(--C-ACCENT);
+  background-color: color-mix(in oklab, var(--C-ACCENT) 8%, var(--C-SURFACE-0));
+}
+.r-form-upload-zone[data-readonly] {
+  background-color: var(--C-SURFACE-1);
+  border-color: var(--C-BORDER);
+  cursor: default;
+}
+.r-form-upload-zone:disabled {
+  opacity: var(--OPACITY-DISABLED);
+  cursor: not-allowed;
+}
+.r-form-upload-zone-icon {
+  display: grid;
+  place-items: center;
+  inline-size: var(--CONTROL-H);
+  block-size: var(--CONTROL-H);
+  border-radius: var(--RADIUS-FULL);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  color: var(--C-TEXT-SECONDARY);
+}
+.r-form-upload-zone[data-dragging] .r-form-upload-zone-icon {
+  border-color: var(--C-ACCENT);
+  color: var(--C-TEXT-ACCENT);
+}
+/* A row is at least the hit floor tall (its thumbnail is --CONTROL-H), so the
+   action buttons of stacked rows sit a floor apart. */
+.r-form-upload-thumb {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  overflow: hidden;
+  inline-size: var(--CONTROL-H);
+  block-size: var(--CONTROL-H);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  border-radius: var(--RADIUS-MD);
+  background-color: var(--C-SURFACE-1);
+  color: var(--C-TEXT-SECONDARY);
+}
+
+/* ── OTPInput (OTPInput.tsx) ──
+   One transparent <input> lies over the boxes: it takes every press, key, paste
+   and autofill; the boxes only draw its value and its caret. The box the caret is
+   on carries the focus ring, so the input's own outline is zeroed. */
+.r-form-otp-box {
+  display: grid;
+  flex: 0 1 auto;
+  place-items: center;
+  inline-size: var(--CONTROL-H);
+  min-inline-size: 0;
+  block-size: var(--CONTROL-H);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-MD);
+  background-color: var(--C-SURFACE-0);
+  color: var(--C-TEXT-PRIMARY);
+  font-size: var(--H2);
+  line-height: var(--H2-line-height);
+  font-weight: var(--WEIGHT-MEDIUM);
+  font-variant-numeric: var(--NUMERALS-DATA);
+  transition-property: border-color;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+.r-form-otp:hover:not([data-invalid], [data-disabled], [data-readonly]) .r-form-otp-box {
+  border-color: var(--C-TEXT-MUTED);
+}
+.r-form-otp[data-invalid] .r-form-otp-box {
+  border-color: var(--C-STATUS-ERROR);
+}
+.r-form-otp[data-readonly] .r-form-otp-box {
+  background-color: var(--C-SURFACE-1);
+  border-color: var(--C-BORDER);
+}
+.r-form-otp[data-disabled] {
+  opacity: var(--OPACITY-DISABLED);
+}
+.r-form-otp-box[data-active] {
+  outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+  outline-offset: var(--FOCUS-OFFSET);
+}
+/* The caret in the first empty box (the input's own is invisible). */
+.r-form-otp-box[data-active]:not([data-filled])::after {
+  content: "";
+  block-size: 50%;
+  border-inline-start: var(--FOCUS-WIDTH) solid var(--C-ACCENT);
+}
+.r-form-otp-separator {
+  flex-shrink: 0;
+  color: var(--C-TEXT-MUTED);
+  font-size: var(--H2);
+  line-height: var(--H2-line-height);
+}
+.r-form-otp-input {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  caret-color: transparent;
+  /* At least 16px, or iOS zooms the page on focus. */
+  font-size: var(--H2);
+  cursor: text;
+  /* Forced colours would repaint the hidden text over the boxes. */
+  forced-color-adjust: none;
+}
+.r-form-otp-input:focus,
+.r-form-otp-input:focus-visible {
+  outline: 0 none;
+}
+.r-form-otp-input::selection {
+  background: transparent;
+}
+.r-form-otp-input:disabled {
+  cursor: not-allowed;
+}
+
+@media (forced-colors: active) {
+  .r-form-upload-zone[data-dragging],
+  .r-form-upload-zone[data-invalid],
+  .r-form-otp[data-invalid] .r-form-otp-box {
+    border-width: calc(var(--BORDER-WIDTH) * 2);
+  }
+  .r-form-upload-zone[data-dragging] {
+    border-color: Highlight;
+  }
+}
+
+/* ── ColorPicker (ColorPicker.tsx, color-controls.tsx) ──────────────────────
+   The colour IS the information here, so every painted part opts out of forced
+   colours (the contract's rule 4) and carries its own edge, and the value is
+   always text beside it. Paint arrives as `--r-form-color-paint`, an sRGB colour
+   computed from the value, laid over a checkerboard where it can be translucent.
+   Tracks and the area are drawn from the inline start, so RTL mirrors them. */
+.r-form-color-trigger {
+  cursor: pointer;
+}
+.r-form-color-trigger[data-readonly] {
+  cursor: default;
+}
+
+.r-form-color-chip {
+  display: block;
+  flex-shrink: 0;
+  inline-size: calc(var(--ICON) * 1.25);
+  block-size: calc(var(--ICON) * 1.25);
+  border: var(--BORDER-WIDTH) solid color-mix(in oklab, var(--C-TEXT-PRIMARY) 30%, transparent);
+  border-radius: var(--RADIUS-SM);
+  background:
+    linear-gradient(var(--r-form-color-paint), var(--r-form-color-paint)),
+    repeating-conic-gradient(var(--C-BORDER) 0 25%, var(--C-SURFACE-0) 0 50%) 0 0 / var(--R-SIZE-4) var(--R-SIZE-4);
+  forced-color-adjust: none;
+}
+/* No colour: a struck-through empty chip, so "none" is not a white swatch. */
+.r-form-color-chip[data-empty] {
+  background: linear-gradient(
+      to top right,
+      transparent calc(50% - var(--BORDER-WIDTH)),
+      var(--C-TEXT-MUTED) 0 calc(50% + var(--BORDER-WIDTH)),
+      transparent 0
+    ),
+    var(--C-SURFACE-0);
+}
+
+/* Lightness × chroma. What sRGB cannot show is left clear by the canvas, over
+   a hatch, so the gamut's edge is drawn by the hatch meeting the colour. */
+.r-form-color-area {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: var(--RADIUS-MD);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--C-SURFACE-1) 0 var(--R-SIZE-5),
+    var(--C-BORDER) 0 calc(var(--R-SIZE-5) + var(--BORDER-WIDTH))
+  );
+  touch-action: none;
+  user-select: none;
+  cursor: crosshair;
+  forced-color-adjust: none;
+}
+.r-form-color-area::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: var(--BORDER-WIDTH) solid color-mix(in oklab, var(--C-TEXT-PRIMARY) 15%, transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.r-form-color-area-canvas {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+}
+.r-form-color-area-canvas:dir(rtl),
+.r-form-color-track-paint:dir(rtl) {
+  scale: -1 1;
+}
+
+/* A thumb reads on any colour: the paint, a surface ring, an ink hairline. Its
+   centre sits on the value (negative logical margins, so RTL needs no sign). */
+.r-form-color-thumb {
+  --r-form-color-thumb: calc(var(--ICON) * 1.25);
+  position: absolute;
+  inline-size: var(--r-form-color-thumb);
+  block-size: var(--r-form-color-thumb);
+  margin-inline-start: calc(var(--r-form-color-thumb) / -2);
+  margin-block-start: calc(var(--r-form-color-thumb) / -2);
+  border: calc(var(--BORDER-WIDTH) * 2) solid var(--C-SURFACE-0);
+  border-radius: var(--RADIUS-FULL);
+  background-color: var(--r-form-color-paint);
+  box-shadow: 0 0 0 var(--BORDER-WIDTH) var(--C-TEXT-PRIMARY);
+  forced-color-adjust: none;
+  cursor: grab;
+}
+.r-form-color-thumb-hit {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+}
+
+/* One-axis slider: the root is the press target, at least the hit floor tall;
+   the rail is inset by half a thumb so the thumb's centre reaches both ends. */
+.r-form-color-slider {
+  display: flex;
+  block-size: max(var(--HIT-MIN), calc(var(--ICON) * 1.25));
+  padding-inline: calc(var(--ICON) * 0.625);
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+.r-form-color-rail {
+  position: relative;
+  flex: 1 1 auto;
+}
+.r-form-color-track {
+  position: absolute;
+  inset-inline: 0;
+  inset-block: 0;
+  block-size: calc(var(--ICON) * 0.75);
+  margin-block: auto;
+  overflow: hidden;
+  border: var(--BORDER-WIDTH) solid color-mix(in oklab, var(--C-TEXT-PRIMARY) 15%, transparent);
+  border-radius: var(--RADIUS-FULL);
+  forced-color-adjust: none;
+}
+.r-form-color-track[data-checker] {
+  background: repeating-conic-gradient(var(--C-BORDER) 0 25%, var(--C-SURFACE-0) 0 50%) 0 0 / var(--R-SIZE-4) var(--R-SIZE-4);
+}
+.r-form-color-track-paint {
+  position: absolute;
+  inset: 0;
+}
+
+/* Swatches: each at least the hit floor, so rows never reach into each other.
+   The chosen one is ringed in ink; a ring, not a colour, says which. */
+.r-form-color-swatches {
+  --r-form-color-swatch: max(var(--HIT-MIN), calc(var(--ICON) * 1.75));
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--r-form-color-swatch));
+  gap: var(--R-SIZE-5);
+}
+.r-form-color-swatch {
+  display: grid;
+  inline-size: var(--r-form-color-swatch);
+  block-size: var(--r-form-color-swatch);
+  padding: var(--BORDER-WIDTH);
+  border: calc(var(--BORDER-WIDTH) * 2) solid transparent;
+  border-radius: var(--RADIUS-MD);
+  cursor: pointer;
+  transition: border-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-form-color-swatch > .r-form-color-chip {
+  inline-size: 100%;
+  block-size: 100%;
+}
+.r-form-color-swatch:hover:not([aria-checked="true"]) {
+  border-color: var(--C-BORDER-STRONG);
+}
+.r-form-color-swatch[aria-checked="true"] {
+  border-color: var(--C-TEXT-PRIMARY);
+}
+
+/* Forced colours: the paint stays (it is the value), every edge around it is a
+   system colour: chips and tracks CanvasText, thumbs a Canvas ring inside a
+   CanvasText one, the chosen swatch Highlight against Canvas. */
+@media (forced-colors: active) {
+  .r-form-color-chip,
+  .r-form-color-track,
+  .r-form-color-area::after {
+    border-color: CanvasText;
+  }
+  .r-form-color-thumb {
+    border-color: Canvas;
+    box-shadow: 0 0 0 calc(var(--BORDER-WIDTH) * 2) CanvasText;
+  }
+  .r-form-color-swatch {
+    forced-color-adjust: none;
+    border-color: Canvas;
+  }
+  .r-form-color-swatch[aria-checked="true"] {
+    border-color: Highlight;
   }
 }

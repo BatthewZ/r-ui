@@ -5,8 +5,8 @@
 // state drawn by a wash, a shadow ring or a hue alone disappears. jsdom has no CSS;
 // this reads computed styles in a real browser, where they are the FORCED values.
 //
-// With forced colors emulated (Chromium's default palette), in the default and
-// nightfall themes at 1280 wide, it asserts that each audited "on" element differs
+// With forced colors emulated (Chromium's default palette), in the default theme and
+// the first dark theme the showcase lists, at 1280 wide, it asserts that each audited "on" element differs
 // from its "off" sibling in a property that survives forcing:
 //   1. checkbox / radio checked vs not: the box's fill; the check mark is drawn in a
 //      colour other than its fill;
@@ -24,7 +24,8 @@
 //   9. accordion expanded vs collapsed: the chevron's rotation;
 //  10. meter: the track has an edge (else the fill's length means nothing), and the
 //      fill differs from the track;
-//  11. skeleton and avatar: each has an edge (both were fills or shadows);
+//  11. skeleton and avatar: each has an edge (both were fills or shadows), the
+//      avatar's at --BORDER-WIDTH;
 //  12. breadcrumb link vs current crumb: the link is in a different system colour;
 //  13. a nav count pill has an edge;
 //  14. menu: the item under the pointer is filled, its siblings are not, and its text
@@ -67,8 +68,10 @@ async (page) => {
     await page.waitForTimeout(300);
   };
 
+  // Read before any emulation: under forced colours --SCHEME-DARK follows the forced palette.
+  const dark = await darkTheme(page);
   try {
-    for (const theme of ["default", "nightfall"]) {
+    for (const theme of ["default", dark]) {
       await load(theme, 1280);
       const label = `${theme}@1280`;
 
@@ -231,6 +234,15 @@ async (page) => {
         // 11. skeleton, avatar
         edged("skeleton", sec("primitives-loading")?.querySelector(".r-primitives-skeleton"));
         edged("avatar", sec("primitives-avatar")?.querySelector(".r-primitives-avatar"), "::after");
+        // ...drawn at the theme's line weight: a retuned --BORDER-WIDTH moves it.
+        const avatar = sec("primitives-avatar")?.querySelector(".r-primitives-avatar");
+        if (need("avatar (weight)", avatar)) {
+          n++;
+          avatar.style.setProperty("--BORDER-WIDTH", "3px");
+          const weight = Number.parseFloat(cs(avatar, "::after").borderTopWidth);
+          avatar.style.removeProperty("--BORDER-WIDTH");
+          if (weight !== 3) out.push(`avatar: its hairline is ${weight}px under --BORDER-WIDTH 3px (not read from the line weight)`);
+        }
 
         // 12. breadcrumbs
         const bc = sec("navigation-breadcrumbs");
@@ -270,7 +282,7 @@ async (page) => {
       if (hover.error) problems.push(`${label}: menu: ${hover.error}`);
       else if (hover.hot === hover.cold) problems.push(`${label}: menu: the item under the pointer is not filled (${hover.hot})`);
       else if (hover.color === hover.hot) problems.push(`${label}: menu: highlighted text ${hover.color} on its own fill`);
-      const destructive = menu.locator('[role="menuitem"][data-tone="error"]');
+      const destructive = menu.locator('[role="menuitem"][data-variant="danger"]');
       if ((await destructive.count()) === 0) problems.push(`${label}: menu: missing a destructive item`);
       else {
         await destructive.first().hover();
@@ -377,5 +389,5 @@ async (page) => {
 
   if (checked < 60) problems.push(`harness: only ${checked} assertions ran; expected at least 60`);
   if (problems.length) throw new Error(`forced-colors-states: ${problems.length} problem(s)\n${problems.join("\n")}`);
-  return `forced colors: ${checked} state assertions across default and nightfall at 1280, plus the rail at 900 and the bottom nav at 375`;
+  return `forced colors: ${checked} state assertions across default and ${dark} at 1280, plus the rail at 900 and the bottom nav at 375`;
 }

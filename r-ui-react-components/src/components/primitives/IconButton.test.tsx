@@ -28,6 +28,12 @@ describe("IconButton", () => {
     expect(screen.getByRole("button", { name: "Add" })).toHaveClass("bg-primary", "text-fg-on-primary");
   });
 
+  it("has a danger variant for destructive actions: the error fill, boxed like Button", () => {
+    render(<IconButton label="Delete" icon={<svg />} variant="danger" />);
+    const button = screen.getByRole("button", { name: "Delete" });
+    expect(button).toHaveClass("bg-status-error", "text-fg-on-error", "size-control");
+  });
+
   it("takes the control height when it draws a box, so it lines up with Buttons", () => {
     render(
       <>

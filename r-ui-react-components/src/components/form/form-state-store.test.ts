@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { canonicalPath, getIn, isWithin, issuePath, parsePath, setIn } from "./form-state-path";
 import { FormStore, type FieldRegistration, type FieldValidator } from "./form-state-store";
-import { defineSchema, deferred, issue } from "./form-state.test.schema";
+import { defineSchema, deferred, issue, type TestIssue } from "./form-state.test.schema";
 
 const field = (validate?: FieldValidator): FieldRegistration => ({
   getElement: () => null,
@@ -220,6 +220,32 @@ describe("FormStore: async validation", () => {
     expect(store.getFieldSnapshot("name").error).toBe("That name is taken");
   });
 
+  it("re-checks a value changed while a submit waited for its check, and submits only on that answer", async () => {
+    const answers: Array<ReturnType<typeof deferred<string | undefined>>> = [];
+    const store = newRuleStore({ defaultValues: { name: "cpu", threshold: "1" } });
+    store.registerField(
+      "name",
+      field(() => {
+        const answer = deferred<string | undefined>();
+        answers.push(answer);
+        return answer.promise;
+      }),
+    );
+    const onValid = vi.fn();
+    const submitting = store.submit(onValid);
+    await flush();
+    expect(answers).toHaveLength(1);
+    // Typing meanwhile aborts the check the submit waits for.
+    store.change("name", "cpu-high");
+    await flush();
+    expect(onValid).not.toHaveBeenCalled();
+    expect(answers).toHaveLength(2);
+    answers[1]?.resolve("That name is taken");
+    expect(await submitting).toBe(false);
+    expect(onValid).not.toHaveBeenCalled();
+    expect(store.getFieldSnapshot("name").error).toBe("That name is taken");
+  });
+
   it("lets a submit go on when a field it waits for unmounts, even if its check ignores the signal", async () => {
     const store = newRuleStore({ defaultValues: { name: "cpu", threshold: "1" } });
     const unregister = store.registerField("name", field(() => new Promise(() => {})));
@@ -330,6 +356,47 @@ describe("FormStore: field arrays", () => {
     expect(store.getFieldSnapshot("conditions[0].metric").error).toBe("Choose a metric");
   });
 
+  it("keeps a field check's answer with its row when the rows' Fields re-register at their new paths", async () => {
+    const known: FieldValidator = (value) => (value === "bogus" ? "Unknown metric" : undefined);
+    const store = new FormStore({ defaultValues: { conditions: [{ metric: "cpu" }, { metric: "bogus" }, { metric: "disk" }] } });
+    const cpu = field(known);
+    const bogus = field(known);
+    const disk = field(known);
+    const off = [
+      store.registerField("conditions[0].metric", cpu),
+      store.registerField("conditions[1].metric", bogus),
+      store.registerField("conditions[2].metric", disk),
+    ];
+    await store.submit();
+    expect(store.getFieldSnapshot("conditions[1].metric").error).toBe("Unknown metric");
+
+    // What React does for keyed rows: every Field whose path moved unregisters, then registers anew.
+    store.move("conditions", 1, 0);
+    off[0]?.();
+    off[1]?.();
+    off[0] = store.registerField("conditions[0].metric", bogus);
+    off[1] = store.registerField("conditions[1].metric", cpu);
+    await flush();
+    expect(store.getFieldSnapshot("conditions[0].metric").error).toBe("Unknown metric");
+    expect(store.getFieldSnapshot("conditions[1].metric").error).toBeUndefined();
+
+    store.remove("conditions", 0);
+    off[0]?.();
+    off[1]?.();
+    off[2]?.();
+    off[0] = store.registerField("conditions[0].metric", cpu);
+    off[1] = store.registerField("conditions[1].metric", disk);
+    await flush();
+    expect(store.getErrorEntries()).toEqual([]);
+
+    // A Field that is simply gone takes its answer with it.
+    store.change("conditions[1].metric", "bogus");
+    expect(store.getFieldSnapshot("conditions[1].metric").error).toBe("Unknown metric");
+    off[1]?.();
+    await flush();
+    expect(store.getFieldSnapshot("conditions[1].metric").error).toBeUndefined();
+  });
+
   it("reports an error about the list itself once the list was edited", () => {
     const store = new FormStore({ defaultValues: { conditions: [{ metric: "cpu" }] }, schema: conditionsSchema });
     expect(store.getArraySnapshot("conditions").error).toBeUndefined();
@@ -414,5 +481,94 @@ describe("FormStore: error entries", () => {
     expect(store.getFormSnapshot()).toBe(store.getFormSnapshot());
     expect(store.getErrorEntries()).toBe(store.getErrorEntries());
     expect(store.getArraySnapshot("rows")).toBe(store.getArraySnapshot("rows"));
+  });
+});
+
+describe("FormStore: validating part of the form (a wizard step)", () => {
+  interface Invite {
+    team: string;
+    members: { email: string }[];
+    note: string;
+  }
+  const inviteSchema = defineSchema<Invite>((value) => [
+    ...(value.team ? [] : [issue("Name the team", "team")]),
+    ...(value.members.length > 0 ? [] : [issue("Add someone", "members")]),
+    ...value.members.flatMap((m, i) => (m.email.includes("@") ? [] : [issue("Enter an email", "members", i, "email")])),
+    ...(value.note ? [] : [issue("Add a note", "note")]),
+  ]);
+  const newInviteStore = (validateOn: "blur" | "change" | "submit" = "submit") =>
+    new FormStore<Invite>({ defaultValues: { team: "", members: [{ email: "x" }], note: "" }, schema: inviteSchema, validateOn });
+
+  it("answers only for the paths asked about and shows only their errors, under any validateOn", async () => {
+    for (const validateOn of ["blur", "change", "submit"] as const) {
+      const store = newInviteStore(validateOn);
+      store.registerField("team", field());
+      store.registerField("members[0].email", field());
+      store.registerField("note", field());
+      expect(await store.validatePaths(["members"])).toBe(false);
+      expect(store.getFieldSnapshot("members[0].email").error).toBe("Enter an email");
+      // Elsewhere stays quiet, and does not count.
+      expect(store.getFieldSnapshot("team").error).toBeUndefined();
+      expect(store.hasErrorWithin(["team", "note"])).toBe(false);
+      expect(store.hasErrorWithin(["members"])).toBe(true);
+
+      store.change("members[0].email", "a@b.c");
+      expect(await store.validatePaths(["members"])).toBe(true);
+      expect(await store.validatePaths(["team"])).toBe(false);
+      expect(store.getFieldSnapshot("team").error).toBe("Name the team");
+    }
+  });
+
+  it("shows an error that blocks the step even where no mounted field covers it", async () => {
+    const store = newInviteStore();
+    expect(await store.validatePaths(["members"])).toBe(false);
+    expect(store.getErrorEntries().map((entry) => [entry.path, entry.message])).toEqual([["members[0].email", "Enter an email"]]);
+    store.change("members", []);
+    expect(await store.validatePaths(["members"])).toBe(false);
+    expect(store.getErrorEntries().map((entry) => [entry.path, entry.message])).toEqual([["members", "Add someone"]]);
+  });
+
+  it("runs the field checks inside the paths only", async () => {
+    const store = newInviteStore();
+    const teamCheck = vi.fn(() => "Taken");
+    const noteCheck = vi.fn(() => undefined);
+    store.change("team", "Ops");
+    store.change("note", "hi");
+    store.change("members[0].email", "a@b.c");
+    store.registerField("team", field(teamCheck));
+    store.registerField("note", field(noteCheck));
+    expect(await store.validatePaths(["team"])).toBe(false);
+    expect(store.getFieldSnapshot("team").error).toBe("Taken");
+    expect(teamCheck).toHaveBeenCalledTimes(1);
+    expect(noteCheck).not.toHaveBeenCalled();
+  });
+
+  it("answers false, not a stale verdict, when the form is reset meanwhile", async () => {
+    const gate = deferred<TestIssue[]>();
+    const store = new FormStore<{ team: string }>({
+      defaultValues: { team: "" },
+      schema: defineSchema<{ team: string }>(() => gate.promise),
+    });
+    const verdict = store.validatePaths(["team"]);
+    store.reset();
+    gate.resolve([]);
+    expect(await verdict).toBe(false);
+  });
+
+  it("focuses the first invalid field in DOM order within the paths only", async () => {
+    const team = document.createElement("input");
+    const email = document.createElement("input");
+    document.body.append(team, email);
+    const store = newInviteStore();
+    store.registerField("team", { ...field(), getElement: () => team });
+    store.registerField("members[0].email", { ...field(), getElement: () => email });
+    await store.submit();
+    expect(store.focusFirstError(["members"])).toBe(true);
+    expect(document.activeElement).toBe(email);
+    expect(store.focusFirstError()).toBe(true);
+    expect(document.activeElement).toBe(team);
+    expect(store.focusFirstError(["note"])).toBe(false);
+    team.remove();
+    email.remove();
   });
 });

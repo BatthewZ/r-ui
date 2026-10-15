@@ -4,6 +4,7 @@ import {
   isValidElement,
   type ReactElement,
   type ReactNode,
+  useEffect,
   useId,
   useRef,
 } from "react";
@@ -22,9 +23,9 @@ import {
 import { mergeProps } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
-import { topLayerExit, useExitPresence } from "./internal";
+import { onEscape, type OpenStateProps, topLayerExit, useExitPresence } from "./internal";
 
-export interface TooltipProps {
+export interface TooltipProps extends OpenStateProps {
   /**
    * A short supplementary description. Never the only place important
    * information lives: touch users never see it and it only describes, it does
@@ -41,9 +42,6 @@ export interface TooltipProps {
   arrow?: boolean;
   /** Suppress the tooltip without unwrapping the trigger. */
   disabled?: boolean;
-  open?: boolean;
-  defaultOpen?: boolean;
-  onOpenChange?: (open: boolean) => void;
   /** Classes for the bubble. */
   className?: string;
   classNames?: SlotClassNames<"arrow">;
@@ -55,7 +53,9 @@ export interface TooltipProps {
  * - Opens on mouse hover (after `delay`) and on keyboard focus (`:focus-visible`
  *   only). A touch tap never opens it, so it never sits on top of what the
  *   finger was aiming at, and the tap goes straight through to the trigger.
- * - Escape closes it without closing whatever surface it sits in.
+ * - Escape closes it without closing whatever surface it sits in, wherever
+ *   focus is: a tooltip opened by hovering can be dismissed without moving the
+ *   pointer (WCAG 1.4.13).
  * - Wired as `aria-describedby` (appended to any the trigger already has).
  * - Rendered in place, right after the trigger, and promoted to the top layer:
  *   it inherits the density, direction and colour of where it is written and is
@@ -110,6 +110,21 @@ export function Tooltip({
     useDismiss(context, { escapeKey: false, referencePress: true }),
   ]);
 
+  // Escape while it is shown and focus is elsewhere (a hover-opened tooltip).
+  // On `document`, so every surface's own handler ran first: one that used the
+  // key (a popover with focus inside closing) prevented it, and this stands down.
+  useEffect(() => {
+    if (!shown) return;
+    const ownerDocument = bubbleRef.current?.ownerDocument ?? document;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      setOpen(false);
+    };
+    ownerDocument.addEventListener("keydown", onKeyDown);
+    return () => ownerDocument.removeEventListener("keydown", onKeyDown);
+  }, [shown, setOpen]);
+
   if (!isValidElement(children)) return children;
   const child = children as ReactElement<Record<string, unknown>>;
   const childDescribedBy = child.props["aria-describedby"] as string | undefined;
@@ -123,11 +138,8 @@ export function Tooltip({
         // A list: append, never replace what the trigger already points at.
         "aria-describedby":
           [childDescribedBy, shown ? id : undefined].filter(Boolean).join(" ") || undefined,
-        onKeyDown: (event: React.KeyboardEvent) => {
-          if (event.key !== "Escape" || !shown || event.defaultPrevented) return;
-          event.preventDefault();
-          setOpen(false);
-        },
+        // Only while shown: a hidden tooltip's Escape belongs to whatever encloses it.
+        onKeyDown: shown ? onEscape(() => setOpen(false)) : undefined,
       }) as Record<string, unknown>
     )
   );

@@ -106,7 +106,8 @@ async (page) => {
   const bad = await typed("datepicker-en", "13/45/2026");
   if (bad.invalid !== "true" || !bad.described.includes("is not a date") || bad.submitted !== "due = (empty)") fail.push(`typed refusal: ${JSON.stringify(bad)}`);
 
-  // ── 5. popup from a compact clipping card ─────────────────────────────────
+  // ── 5. popup from a compact clipping card (its trigger at the card's --CONTROL-H;
+  //       Clear, Cancel and Apply on one footer row inside the panel, Clear at the start) ──
   await open("dates-daterangepicker");
   const card = page.locator('[data-sc="range-toolbar-card"]');
   await card.scrollIntoViewIfNeeded();
@@ -139,6 +140,21 @@ async (page) => {
         return p.bottom > clip.bottom + 20 || p.top < clip.top - 20;
       })(),
       hitOutside: Boolean(hit && outside && hit.closest("[data-date]") === outside),
+      trigger: card.querySelector('button[aria-haspopup="dialog"], button[aria-expanded]')?.getBoundingClientRect().height,
+      footer: (() => {
+        const p = panel.getBoundingClientRect();
+        const button = (text) => [...panel.querySelectorAll("button")].find((b) => b.textContent.trim() === text);
+        const box = (b) => b && b.checkVisibility() && b.getBoundingClientRect();
+        const [clear, cancel, apply] = ["Clear", "Cancel", "Apply"].map((t) => box(button(t)));
+        if (!clear || !cancel || !apply) return { clear: Boolean(clear), cancel: Boolean(cancel), apply: Boolean(apply) };
+        return {
+          inside: [clear, cancel, apply].every((r) => r.left >= p.left && r.right <= p.right && r.top >= p.top && r.bottom <= p.bottom),
+          oneRow: Math.abs(clear.top + clear.height / 2 - (apply.top + apply.height / 2)) < 2,
+          // At the row's start edge, apart from Cancel and Apply at its end.
+          clearAtStart: Math.abs(clear.left - button("Clear").parentElement.getBoundingClientRect().left) < 1 && clear.right < cancel.left - 1,
+          heights: [clear.height, cancel.height, apply.height],
+        };
+      })(),
     };
   });
   if (!popup.panel) fail.push("popup: no dialog inside the card after pressing the trigger");
@@ -147,6 +163,9 @@ async (page) => {
     if (popup.overflow !== "hidden") fail.push(`popup harness: the card is overflow ${popup.overflow}, expected hidden`);
     if (!(popup.cardControl === 28 && popup.pageControl === 36 && popup.cell === 28)) fail.push(`popup: day cell ${popup.cell}px, card --CONTROL-H ${popup.cardControl}, page ${popup.pageControl} (expected compact 28 in a 36 page)`);
     if (!popup.reachesPast || !popup.hitOutside) fail.push(`popup: reaches past the clip ${popup.reachesPast}, a day outside it takes the press ${popup.hitOutside}`);
+    if (popup.trigger !== popup.cardControl) fail.push(`trigger: ${popup.trigger}px tall in the compact card, its --CONTROL-H is ${popup.cardControl}px`);
+    const f = popup.footer;
+    if (!f.inside || !f.oneRow || !f.clearAtStart || f.heights.some((h) => h !== popup.cardControl)) fail.push(`footer: Clear, Cancel, Apply not laid out on one row inside the panel at --CONTROL-H, Clear first (${JSON.stringify(f)})`);
   }
   // A DOM click: the press itself was measured above, and a clipped panel must
   // report its failures rather than time out here.
@@ -187,9 +206,13 @@ async (page) => {
       dayMin: Math.min(...days.map((r) => Math.min(r.width, r.height))),
       navMin: Math.min(...nav.map((r) => Math.min(r.width, r.height))),
       days: days.length,
+      navs: nav.length,
     };
   });
-  if (!(coarse.days > 100 && coarse.dayMin >= 44 && coarse.navMin >= 44)) fail.push(`coarse: smallest day ${coarse.dayMin}px, month button ${coarse.navMin}px over ${coarse.days} days`);
+  // Math.min of nothing is Infinity: both lists must hold something before their minimum means anything.
+  if (!(coarse.days > 100 && coarse.navs >= 2 && coarse.dayMin >= 44 && coarse.navMin >= 44)) {
+    fail.push(`coarse: smallest day ${coarse.dayMin}px over ${coarse.days} days, month button ${coarse.navMin}px over ${coarse.navs}`);
+  }
   await open("dates-daterangepicker", { input: "coarse" });
   const trigger = await card.getByRole("button", { name: /Time range/ }).boundingBox();
   if (!(trigger.height >= 44)) fail.push(`coarse: toolbar trigger ${trigger.height}px tall`);

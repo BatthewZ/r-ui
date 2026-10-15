@@ -1,4 +1,4 @@
-export { useActiveSection } from "./use-active-section";
+export { useActiveSection, type UseActiveSectionOptions } from "./use-active-section";
 export { useClickOutside } from "./use-click-outside";
 export {
   useControllableState,
@@ -16,12 +16,6 @@ export { type ArrowSide, floatingArrowProps, type Placement, useFloating, type U
 export { useFocusTrap } from "./use-focus-trap";
 export { useLightDismiss } from "./use-light-dismiss";
 export { useMediaQuery } from "./use-media-query";
-export {
-  type PanelTransitionPhase,
-  usePanelTransition,
-  type UsePanelTransitionOptions,
-  type UsePanelTransitionReturn,
-} from "./use-panel-transition";
 export { usePrefersReducedMotion } from "./use-reduced-motion";
 export { useRovingFocus } from "./use-roving-focus";
 export {

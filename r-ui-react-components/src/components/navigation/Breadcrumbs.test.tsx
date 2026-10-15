@@ -76,6 +76,53 @@ describe("Breadcrumbs", () => {
     expect(screen.getByRole("link", { name: "Services" })).toHaveFocus();
   });
 
+  it("expanding onto a plain-text crumb focuses the first revealed link instead", async () => {
+    const user = userEvent.setup();
+    render(
+      <Breadcrumbs maxItems={4}>
+        <Breadcrumbs.Item href="/">Home</Breadcrumbs.Item>
+        <Breadcrumbs.Item>Services</Breadcrumbs.Item>
+        <Breadcrumbs.Item href="/services/payments">Payments</Breadcrumbs.Item>
+        <Breadcrumbs.Item href="/eu">eu-west-1</Breadcrumbs.Item>
+        <Breadcrumbs.Item href="/api">payments-api</Breadcrumbs.Item>
+        <Breadcrumbs.Item current>Deploy</Breadcrumbs.Item>
+      </Breadcrumbs>,
+    );
+    await user.click(screen.getByRole("button", { name: "Show 3 more" }));
+    expect(screen.getByRole("link", { name: "Payments" })).toHaveFocus();
+  });
+
+  it("expanding a run of plain-text crumbs focuses the first of them, never <body>", async () => {
+    const user = userEvent.setup();
+    render(
+      <Breadcrumbs maxItems={3} itemsAfterCollapse={1}>
+        <Breadcrumbs.Item href="/">Home</Breadcrumbs.Item>
+        <Breadcrumbs.Item>Region</Breadcrumbs.Item>
+        <Breadcrumbs.Item>Zone</Breadcrumbs.Item>
+        <Breadcrumbs.Item current>Deploy</Breadcrumbs.Item>
+      </Breadcrumbs>,
+    );
+    await user.click(screen.getByRole("button", { name: "Show 2 more" }));
+    const items = screen.getAllByRole("listitem");
+    expect(items[1]).toHaveTextContent("Region");
+    expect(items[1]).toHaveFocus();
+  });
+
+  it("flattens fragments and skips holes in its children", () => {
+    const show = false;
+    render(
+      <Breadcrumbs>
+        <Breadcrumbs.Item href="/">Home</Breadcrumbs.Item>
+        {show && <Breadcrumbs.Item href="/x">Hidden</Breadcrumbs.Item>}
+        <>
+          <Breadcrumbs.Item href="/a">A</Breadcrumbs.Item>
+          <Breadcrumbs.Item current>B</Breadcrumbs.Item>
+        </>
+      </Breadcrumbs>,
+    );
+    expect(screen.getAllByRole("listitem").map((li) => li.textContent)).toEqual(["Home", "A", "B"]);
+  });
+
   it("never collapses a single crumb into a button", () => {
     render(
       <Breadcrumbs maxItems={3}>
@@ -91,7 +138,7 @@ describe("Breadcrumbs", () => {
 
   it("takes a translated landmark and expand label", () => {
     render(
-      <Breadcrumbs label="Fil d'Ariane" maxItems={3} expandLabel={(n) => `Afficher ${n} de plus`}>
+      <Breadcrumbs maxItems={3} labels={{ nav: "Fil d'Ariane", expand: (n) => `Afficher ${n} de plus` }}>
         <Breadcrumbs.Item href="/">A</Breadcrumbs.Item>
         <Breadcrumbs.Item href="/b">B</Breadcrumbs.Item>
         <Breadcrumbs.Item href="/c">C</Breadcrumbs.Item>

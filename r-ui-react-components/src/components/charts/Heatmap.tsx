@@ -1,7 +1,7 @@
 "use client";
-import { type CSSProperties, type KeyboardEvent, type PointerEvent, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type RefObject, useMemo, useRef, useState } from "react";
 
-import { useClickOutside } from "../../hooks/use-click-outside";
+import { mergeLabels } from "../../util/labels";
 import { cn } from "../../util/style";
 import { type ChartTable, makeFormatters, tidyLabel, type ValueFormatOptions } from "./chart-model";
 import {
@@ -10,7 +10,8 @@ import {
   ChartReadout,
   DEFAULT_CHART_LABELS,
   PlotRegion,
-  useCursor,
+  readoutStatus,
+  usePlotCursor,
 } from "./chart-parts";
 import { heatLegend, type HeatmapModel, type HeatStep, modelHeatmap, planHeatAxis } from "./chart-plan";
 import { useChartBox } from "./use-chart-box";
@@ -46,6 +47,44 @@ function heatTable(model: HeatmapModel, value: (v: number | null) => string, cor
   };
 }
 
+function parseCellKey(key: string | null): { r: number; c: number } | null {
+  if (key === null) return null;
+  const [r, c] = key.split(":").map(Number);
+  return r === undefined || c === undefined ? null : { r, c };
+}
+
+/**
+ * The heatmap's cursor is a cell's `"row:column"` key. Arrows move cell by
+ * cell, Home/End to the row's ends (with Ctrl, the grid's), and keyboard focus
+ * starts at the first cell.
+ */
+function useGridCursor(rows: number, columns: number, root: RefObject<HTMLElement | null>) {
+  const empty = rows === 0 || columns === 0;
+  const key = (r: number, c: number) => `${Math.min(rows - 1, Math.max(0, r))}:${Math.min(columns - 1, Math.max(0, c))}`;
+  return usePlotCursor<string>({
+    root,
+    pick: (event) => (event.target as Element).closest?.("[data-cell]")?.getAttribute("data-cell") ?? null,
+    keyTarget(active, event) {
+      if (empty) return undefined;
+      const at = parseCellKey(active);
+      const r = at?.r ?? 0;
+      const c = at?.c ?? 0;
+      const next: Partial<Record<string, string>> = {
+        ArrowRight: key(r, c + 1),
+        ArrowLeft: key(r, c - 1),
+        ArrowDown: key(r + 1, c),
+        ArrowUp: key(r - 1, c),
+        Home: event.ctrlKey ? key(0, 0) : key(r, 0),
+        End: event.ctrlKey ? key(rows - 1, columns - 1) : key(r, columns - 1),
+      };
+      const to = next[event.key];
+      if (to === undefined) return undefined;
+      return at ? to : key(0, 0);
+    },
+    start: () => (empty ? null : key(0, 0)),
+  });
+}
+
 /**
  * Magnitude over two categorical axes (weekday × hour): each cell one step of the
  * sequential ramp (seven equal bins, darkest = greatest on a light theme,
@@ -62,7 +101,7 @@ export function Heatmap({
   rows,
   columns,
   values,
-  valueLabel = "Value",
+  valueLabel,
   unit,
   format,
   locale,
@@ -72,7 +111,7 @@ export function Heatmap({
   ref,
   ...rest
 }: HeatmapProps) {
-  const words = { ...DEFAULT_CHART_LABELS, ...labels };
+  const words = mergeLabels(DEFAULT_CHART_LABELS, labels);
   const formatters = useMemo(() => makeFormatters({ unit, format, locale }), [unit, format, locale]);
   const model = useMemo(() => modelHeatmap({ rows, columns, values }), [rows, columns, values]);
   const plotRef = useRef<HTMLDivElement>(null);
@@ -80,83 +119,33 @@ export function Heatmap({
   const box = useChartBox(plotRef, probeRef);
   const axis = useMemo(() => planHeatAxis(model, box.width, box.fontSize, box.measure), [model, box]);
   const legend = useMemo(() => heatLegend(model, formatters), [model, formatters]);
-  const name = tidyLabel(valueLabel) || "Value";
+  const name = tidyLabel(valueLabel ?? "") || words.value;
 
-  const { active, source, set } = useCursor<string>();
-  const parse = (key: string | null) => {
-    if (key === null) return null;
-    const [r, c] = key.split(":").map(Number);
-    return r === undefined || c === undefined ? null : { r, c };
-  };
-  const at = parse(active);
-  const cell = at ? model.cells[at.r]?.[at.c] : undefined;
   const nRows = model.rows.length;
   const nCols = model.columns.length;
-  const key = (r: number, c: number) => `${Math.min(nRows - 1, Math.max(0, r))}:${Math.min(nCols - 1, Math.max(0, c))}`;
+  const { active, source, handlers } = useGridCursor(nRows, nCols, plotRef);
+  const at = parseCellKey(active);
+  const cell = at ? model.cells[at.r]?.[at.c] : undefined;
   const title = cell ? `${model.rows[cell.row] ?? ""} · ${model.columns[cell.column] ?? ""}` : "";
   const valueText = cell ? formatters.value(cell.value) : "";
-  const status = cell && (source === "keyboard" || source === "touch") ? `${title}: ${name} ${valueText}` : "";
+  const readout = [{ name, value: valueText, slot: null, shape: null }];
+  const status = cell ? readoutStatus(title, readout, source) : "";
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
-  useClickOutside(plotRef, () => set(null, null), source === "touch");
-
-  const target = (event: PointerEvent<HTMLElement>) => (event.target as Element).closest?.("[data-cell]")?.getAttribute("data-cell") ?? null;
-  const handlers = {
-    onPointerMove(event: PointerEvent<HTMLElement>) {
-      if (event.pointerType === "touch") return;
-      set(target(event), "pointer");
-    },
-    onPointerLeave(event: PointerEvent<HTMLElement>) {
-      if (event.pointerType !== "touch" && source === "pointer") set(null, null);
-    },
-    onPointerDown(event: PointerEvent<HTMLElement>) {
-      if (event.pointerType === "touch") set(target(event), "touch");
-    },
-    onKeyDown(event: KeyboardEvent<HTMLElement>) {
-      if (nRows === 0 || nCols === 0) return;
-      if (event.key === "Escape") {
-        if (active === null) return;
-        event.preventDefault();
-        set(null, null);
-        return;
-      }
-      const r = at?.r ?? 0;
-      const c = at?.c ?? 0;
-      const next: Record<string, string> = {
-        ArrowRight: key(r, c + 1),
-        ArrowLeft: key(r, c - 1),
-        ArrowDown: key(r + 1, c),
-        ArrowUp: key(r - 1, c),
-        Home: event.ctrlKey ? key(0, 0) : key(r, 0),
-        End: event.ctrlKey ? key(nRows - 1, nCols - 1) : key(r, nCols - 1),
-      };
-      const to = next[event.key];
-      if (to === undefined) return;
-      event.preventDefault();
-      set(at ? to : key(0, 0), "keyboard");
-    },
-    onFocus(event: React.FocusEvent<HTMLElement>) {
-      let visible = false;
-      try {
-        visible = event.currentTarget.matches(":focus-visible");
-      } catch {
-        visible = false;
-      }
-      if (visible && active === null && nRows > 0 && nCols > 0) set(key(0, 0), "keyboard");
-    },
-    onBlur() {
-      if (source === "keyboard") set(null, null);
-    },
-  };
-
   const hasMissing = model.cells.some((r) => r.some((c) => c.value === null));
-  const range =
-    model.drawable && nRows > 0 && nCols > 0
-      ? ` Values from ${formatters.value(model.lo)} to ${formatters.value(model.hi)}.`
-      : " No values.";
+  const valued = model.drawable && nRows > 0 && nCols > 0;
   const summaryText =
     summary ??
-    `Heatmap, ${nRows} rows (${model.rows[0] ?? ""} to ${model.rows[nRows - 1] ?? ""}) by ${nCols} columns (${model.columns[0] ?? ""} to ${model.columns[nCols - 1] ?? ""}).${range}`;
+    words.heatmapSummary({
+      kind: words.kinds.heatmap,
+      rows: nRows,
+      firstRow: model.rows[0] ?? "",
+      lastRow: model.rows[nRows - 1] ?? "",
+      columns: nCols,
+      firstColumn: model.columns[0] ?? "",
+      lastColumn: model.columns[nCols - 1] ?? "",
+      ...(valued && { low: formatters.value(model.lo), high: formatters.value(model.hi) }),
+    });
   const notes: string[] = [];
   if (model.dropped.rows > 0 || model.dropped.columns > 0) {
     notes.push(words.gridCapped(nRows, nRows + model.dropped.rows, nCols, nCols + model.dropped.columns));
@@ -199,8 +188,14 @@ export function Heatmap({
       ref={ref}
       {...rest}
     >
-      <PlotRegion ref={plotRef} label={label} hint={words.keyboardHint} className={cn("w-full", classNames?.plot)} {...handlers}>
-        <span ref={probeRef} aria-hidden className="r-charts-probe h-bar rounded-sm" />
+      <PlotRegion
+        ref={plotRef}
+        probeRef={probeRef}
+        label={label}
+        hint={words.keyboardHint}
+        className={cn("w-full", classNames?.plot)}
+        {...handlers}
+      >
         <div aria-hidden className="r-charts-heat grid gap-px" style={gridStyle}>
           {model.cells.map((row, r) => [
             <span key={`l${r}`} className="truncate pe-r6 leading-(--HEAT-CELL) text-fg-muted">
@@ -237,7 +232,7 @@ export function Heatmap({
           anchorElement={active === null ? null : anchorEl}
           placement="top"
           title={title}
-          rows={[{ name, value: valueText, slot: null, shape: null }]}
+          rows={readout}
           className={classNames?.tooltip}
         />
       </PlotRegion>

@@ -8,8 +8,10 @@
 // `run-code`, then closes the session and stops the server, pass or fail.
 //
 // Every script runs with `scripts/lib/browser-prelude.js` in scope (the shared
-// `waitForShowcase`). Not part of `check`: it needs a browser
-// (`playwright-cli install-browser`).
+// `waitForShowcase`, `showcaseThemes` / `darkTheme`, `collectErrors`), and is
+// followed by its `resetShowcase`, pass or fail, so one failing check cannot
+// leave its View, emulation or viewport to the next. Not part of `check`: it
+// needs a browser (`playwright-cli install-browser`).
 // Usage: bun run browser:check [name-filter]
 //        node scripts/browser-check.mjs --print <name>   (the code to `run-code` by hand)
 
@@ -34,10 +36,33 @@ if (scripts.length === 0) {
 }
 
 const prelude = readFileSync(join(PKG, "scripts/lib/browser-prelude.js"), "utf8");
-/** The script's `async (page) => …` expression, called inside a scope that holds the prelude. */
+/**
+ * The script's `async (page) => …` expression, called inside a scope that holds
+ * the prelude, then `resetShowcase` whether it passed or threw. A reset that
+ * fails after a passing check fails it; after a failing one, the check's own
+ * error is the one reported.
+ */
 const wrap = (file) => {
   const script = readFileSync(file, "utf8").trim().replace(/;$/, "");
-  return `async (page) => {\n${prelude}\nreturn (${script}\n)(page);\n}`;
+  return [
+    "async (page) => {",
+    prelude,
+    'const home = page.url().split("#")[0];',
+    "let failed = false;",
+    "try {",
+    `  return await (${script}\n)(page);`,
+    "} catch (error) {",
+    "  failed = true;",
+    "  throw error;",
+    "} finally {",
+    "  try {",
+    "    await resetShowcase(page, home);",
+    "  } catch (error) {",
+    "    if (!failed) throw error;",
+    "  }",
+    "}",
+    "}",
+  ].join("\n");
 };
 
 if (print) {
@@ -97,7 +122,7 @@ try {
   await waitForServer(url, server);
   cli("open", url);
   opened = true;
-  cli("resize", "1280", "900");
+  cli("resize", "1280", "900"); // SHOWCASE_VIEWPORT in the prelude, which every check is reset to
   for (const file of scripts) {
     const name = basename(file, ".js");
     const started = Date.now();

@@ -1,22 +1,28 @@
 "use client";
 
-import { Check, CircleAlert, Copy } from "lucide-react";
+import { Check, CircleAlert, Copy, type LucideIcon } from "lucide-react";
 import { type MouseEvent, type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 
 import { mergeRefs } from "../../util/merge-refs";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Button, IconButton, type IconButtonProps } from "../primitives";
 
-type CopyState = "idle" | "copied" | "failed";
+const COPY_STATES = ["idle", "copied", "failed"] as const;
+type CopyState = (typeof COPY_STATES)[number];
+
+const STATE_GLYPH: Record<CopyState, LucideIcon> = { idle: Copy, copied: Check, failed: CircleAlert };
 
 export interface CopyButtonLabels {
-  /** The button's name (icon-only) or its text (with `showLabel`). Default "Copy". */
-  copy?: string;
-  /** Announced, and shown with `showLabel`, after a successful copy. Default "Copied". */
-  copied?: string;
-  /** Announced, and shown with `showLabel`, when nothing reached the clipboard. Default "Copy failed". */
-  failed?: string;
+  /** The button's name (icon-only) or its text (with `showLabel`). */
+  copy: string;
+  /** Announced, and shown with `showLabel`, after a successful copy. */
+  copied: string;
+  /** Announced, and shown with `showLabel`, when nothing reached the clipboard. */
+  failed: string;
 }
+
+export const DEFAULT_COPY_BUTTON_LABELS: Readonly<CopyButtonLabels> = { copy: "Copy", copied: "Copied", failed: "Copy failed" };
 
 export type CopyButtonProps = {
   /** The text that goes on the clipboard. */
@@ -24,7 +30,7 @@ export type CopyButtonProps = {
   /** Show the label beside the icon (a `Button`). Default: icon only (an `IconButton`, named by `labels.copy`). */
   showLabel?: boolean;
   variant?: IconButtonProps["variant"];
-  labels?: CopyButtonLabels;
+  labels?: LabelsProp<CopyButtonLabels>;
   /** How long the confirmation stays, in ms. Default 2000. */
   resetAfter?: number;
   /** Called once per successful copy, with the value written. */
@@ -35,7 +41,8 @@ export type CopyButtonProps = {
   ref?: Ref<HTMLButtonElement>;
 } & Omit<IconButtonProps, "label" | "icon" | "value" | "variant" | "ref">;
 
-const DEFAULT_LABELS: Required<CopyButtonLabels> = { copy: "Copy", copied: "Copied", failed: "Copy failed" };
+/** Each state's label: the button's own (`idle`) or the outcome's. */
+const STATE_LABEL: Record<CopyState, keyof CopyButtonLabels> = { idle: "copy", copied: "copied", failed: "failed" };
 
 /**
  * `document.execCommand("copy")` from a hidden textarea, for where the Clipboard
@@ -114,7 +121,7 @@ export function CopyButton({
   ref,
   ...props
 }: CopyButtonProps) {
-  const text = { ...DEFAULT_LABELS, ...labels };
+  const text = mergeLabels(DEFAULT_COPY_BUTTON_LABELS, labels);
   const [state, setState] = useState<CopyState>("idle");
   // Flips each time, so a second identical announcement is still a change.
   const [nonce, setNonce] = useState(false);
@@ -154,30 +161,29 @@ export function CopyButton({
     }
   };
 
-  const message = state === "copied" ? text.copied : state === "failed" ? text.failed : "";
+  const message = state === "idle" ? "" : text[STATE_LABEL[state]];
   const icon: ReactNode = (
     // All three glyphs share one grid cell and cross-fade, so the box never moves.
     <span className={cn("grid size-icon place-items-center *:col-start-1 *:row-start-1", classNames?.icon)} aria-hidden>
-      {(
-        [
-          ["idle", Copy],
-          ["copied", Check],
-          ["failed", CircleAlert],
-        ] as const
-      ).map(([key, Glyph]) => (
-        <Glyph
-          key={key}
-          className={cn(
-            "size-icon transition-[opacity,scale] duration-normal ease-standard",
-            state === key ? "scale-100 opacity-100" : "scale-50 opacity-0",
-            key === "failed" && "text-fg-error",
-          )}
-        />
-      ))}
+      {COPY_STATES.map((key) => {
+        const Glyph = STATE_GLYPH[key];
+        return (
+          <Glyph
+            key={key}
+            className={cn(
+              "size-icon transition-[opacity,scale] duration-normal ease-standard",
+              state === key ? "scale-100 opacity-100" : "scale-50 opacity-0",
+              key === "failed" && "text-fg-error",
+            )}
+          />
+        );
+      })}
     </span>
   );
 
   const common = {
+    // Paper cannot copy.
+    "data-print": "hide",
     ...props,
     ref: mergeRefs(own, ref),
     disabled,
@@ -197,9 +203,9 @@ export function CopyButton({
           {/* Every label in one cell, the inactive ones invisible (no name, no
               box change): the width holds while the text swaps. */}
           <span className="inline-grid justify-items-start *:col-start-1 *:row-start-1">
-            {(["idle", "copied", "failed"] as const).map((key) => (
+            {COPY_STATES.map((key) => (
               <span key={key} aria-hidden={state !== key || undefined} className={cn(state !== key && "invisible")}>
-                {key === "idle" ? text.copy : key === "copied" ? text.copied : text.failed}
+                {text[STATE_LABEL[key]]}
               </span>
             ))}
           </span>

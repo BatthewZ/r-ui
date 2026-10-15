@@ -2,6 +2,7 @@
    reset.css must stay first: it clears Tailwind's default scales. */
 @import "./reset.css";
 @import "./color.css";
+@import "./print.css";
 @import "./forced-colors.css";
 @import "./type.css";
 @import "./density.css";

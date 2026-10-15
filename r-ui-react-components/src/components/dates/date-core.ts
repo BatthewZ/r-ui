@@ -11,12 +11,21 @@
  * wire format is `YYYY-MM-DD` (`toISODate`).
  */
 
+import { dateTimeFormatter } from "../../util/format";
+
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-/** A date range. `end` is `null` while the second endpoint is being chosen. */
-export interface DateRange {
-  start: Date | null;
-  end: Date | null;
+/**
+ * A range of calendar days, `end` inclusive. While a `RangeCalendar` waits for
+ * the second endpoint `end` is `null`; a committed range (`DateRange<Date>`, a
+ * `DateRangePicker`'s value) has both. `preset` names the `DateRangePicker`
+ * preset that produced it, so a dashboard can re-resolve "last 24 hours" on
+ * refresh.
+ */
+export interface DateRange<TDate extends Date | null = Date | null> {
+  start: TDate;
+  end: TDate;
+  preset?: string;
 }
 
 /**
@@ -110,26 +119,20 @@ export function parseISODate(text: string): Date | null {
 
 // ── Intl ────────────────────────────────────────────────────────────────────
 
-const formatters = new Map<string, Intl.DateTimeFormat>();
-
 /**
- * One `Intl.DateTimeFormat` per locale and option set. Building one costs far
- * more than formatting with it, and a month grid names 42 days per render.
+ * The shared `Intl.DateTimeFormat` cache (`dateTimeFormatter`), always in the
+ * Gregorian calendar, whatever the locale's default: the grid, the arithmetic
+ * and `parseDate` are Gregorian, so `th-TH` (Buddhist year 2569) or `fa-IR`
+ * (Persian months) would label a Gregorian month with another calendar's name
+ * and type a year `parseDate` reads back 543 years late.
  */
 export function dateFormatter(locale: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
-  const key = `${locale}|${JSON.stringify(options)}`;
-  let formatter = formatters.get(key);
-  if (!formatter) {
-    if (formatters.size > 64) formatters.clear();
-    formatter = new Intl.DateTimeFormat(locale, options);
-    formatters.set(key, formatter);
-  }
-  return formatter;
+  return dateTimeFormatter(locale, { ...options, calendar: "gregory" });
 }
 
 /** The caller's locale, else the runtime's default. */
 export function resolveLocale(locale: string | undefined): string {
-  return locale ?? new Intl.DateTimeFormat().resolvedOptions().locale;
+  return locale ?? dateTimeFormatter(undefined).resolvedOptions().locale;
 }
 
 /**
@@ -150,7 +153,8 @@ interface WeekInfoLocale {
 export function weekStartFor(locale: string): Weekday {
   try {
     const loc = new Intl.Locale(locale);
-    const info = (loc as unknown as WeekInfoLocale).getWeekInfo?.() ?? (loc as unknown as WeekInfoLocale).weekInfo;
+    const week = loc as unknown as WeekInfoLocale;
+    const info = week.getWeekInfo?.() ?? week.weekInfo;
     // Intl numbers days 1 (Monday) … 7 (Sunday).
     if (info && info.firstDay >= 1 && info.firstDay <= 7) return (info.firstDay % 7) as Weekday;
     const region = loc.maximize().region ?? "";

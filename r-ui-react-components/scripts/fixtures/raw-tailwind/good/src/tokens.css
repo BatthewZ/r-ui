@@ -1,0 +1,5 @@
+/* The domain token file declares raw values; that is its job. */
+:root {
+  --C-DEMO-LIGHT: oklch(0.5 0.1 200);
+  --CHART-H-COMFORTABLE: 12rem;
+}

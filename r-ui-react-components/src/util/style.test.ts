@@ -25,6 +25,8 @@ describe("cn", () => {
   it("resolves conflicting domain size utilities last-wins", () => {
     expect(cn("h-chart", "h-bar")).toBe("h-bar");
     expect(cn("size-heat-cell", "size-full")).toBe("size-full");
+    expect(cn("h-spark", "h-r1")).toBe("h-r1");
+    expect(cn("h-control", "h-spark")).toBe("h-spark");
   });
 
   it("knows text-kpi is a font SIZE, so it does not swallow a text colour", () => {

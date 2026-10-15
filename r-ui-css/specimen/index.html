@@ -51,6 +51,10 @@
               <option value="coarse">Coarse</option>
             </select>
           </label>
+          <label class="flex items-center gap-r4 text-body-2 text-fg-secondary">
+            <input type="checkbox" id="print-preview" />
+            Print preview
+          </label>
         </form>
         <p class="ms-auto font-mono text-body-3 text-fg-muted" id="readout"></p>
       </div>
@@ -256,6 +260,26 @@
       </section>
 
       <!-- Motion -->
+      <section class="sp-section py-r1" aria-labelledby="h-print">
+        <h2 id="h-print">Print</h2>
+        <p class="mt-r5 max-w-measure text-fg-secondary">Tick "Print preview" (or print the page): any theme becomes ink on paper, shadows and motion go, and the <code class="font-mono">data-print</code> conventions apply.</p>
+        <p class="mt-r4 rounded-md border border-dashed px-r3 py-r4 text-body-2" data-print="only">Printed from the r-ui-css specimen (<code class="font-mono">data-print="only"</code>: hidden on screen).</p>
+        <div class="mt-r2 grid gap-r3 sp-split">
+          <div class="rounded-lg border bg-surface-0 p-r2" data-print="avoid-break">
+            <p class="font-medium">A card that stays on one page</p>
+            <p class="text-body-2 text-fg-secondary"><code class="font-mono">data-print="avoid-break"</code></p>
+            <div class="mt-r3 flex items-center gap-r4">
+              <span class="size-icon rounded-sm bg-accent" data-print="exact"></span>
+              <span class="text-body-2">A colour that is data: <code class="font-mono">data-print="exact"</code></span>
+            </div>
+            <button type="button" class="mt-r3 h-control rounded-md border border-border-strong px-r3 text-body-2" data-print="hide">Copy (data-print="hide")</button>
+          </div>
+          <div class="prose rounded-lg border bg-surface-0 p-r2">
+            <p>In a prose region an external link, like <a href="https://www.w3.org/TR/css-print/">the CSS print spec</a>, prints its address; <a class="font-medium" href="https://example.com/">a UI link with a class</a> does not.</p>
+          </div>
+        </div>
+      </section>
+
       <section class="sp-section py-r1" aria-labelledby="h-motion">
         <h2 id="h-motion">Motion</h2>
         <p class="mt-r5 max-w-measure text-fg-secondary">Short, small, eased. Under reduced motion every duration and distance collapses at the token level.</p>
@@ -328,6 +352,29 @@
       for (const b of document.querySelectorAll("#density [role=radio]")) {
         b.addEventListener("click", () => setAttr("data-density", b.dataset.value === "compact" ? "compact" : ""));
       }
+
+      // ── Print preview: the package's own print rules, applied to the screen by
+      // switching each `@media print` block to `all` (and `not print` to `not all`).
+      const previewed = new Map(); // rule -> its original media text
+      function setPrintPreview(on) {
+        if (!on) {
+          for (const [rule, text] of previewed) rule.media.mediaText = text;
+          previewed.clear();
+        } else {
+          const visit = (rules) => {
+            for (const r of rules) {
+              if (r instanceof CSSMediaRule && (r.media.mediaText === "print" || r.media.mediaText === "not print")) {
+                previewed.set(r, r.media.mediaText);
+                r.media.mediaText = r.media.mediaText === "print" ? "all" : "not all";
+              }
+              if (r.cssRules) visit(r.cssRules);
+            }
+          };
+          for (const sheet of document.styleSheets) visit(sheet.cssRules);
+        }
+        requestAnimationFrame(refresh);
+      }
+      $("#print-preview").addEventListener("change", (e) => setPrintPreview(e.target.checked));
 
       // ── Content
       const surfaces = [

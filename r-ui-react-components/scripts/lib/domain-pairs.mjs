@@ -25,9 +25,16 @@
 import { blankComments, lineAt, readBlocks } from "./css.mjs";
 import { parseOklch } from "./color.mjs";
 
-const BLEND =
-  /^color-mix\(\s*in oklch,\s*var\(--([A-Z0-9-]+)-LIGHT\),\s*var\(--\1-DARK\)\s+calc\(\s*var\(--SCHEME-DARK\)\s*\*\s*100%\s*\)\s*\)$/;
-const ALIAS = /^var\(\s*(--[A-Za-z0-9-]+)\s*\)$/;
+/** The canonical blend of one pair; group 1 is the pair's base (`C-SERIES-1`). */
+const blendSource = (base) =>
+  String.raw`color-mix\(\s*in oklch,\s*var\(--(${base})-LIGHT\),\s*var\(--\1-DARK\)\s+calc\(\s*var\(--SCHEME-DARK\)\s*\*\s*100%\s*\)\s*\)`;
+export const BLEND = new RegExp(`^${blendSource("[A-Z0-9-]+")}$`);
+/** A pair's base as source text may build it: `C-SERIES-1`, or `C-${name}` in a template. */
+const SOURCE_BASE = String.raw`(?:[A-Z0-9-]|\$\{[^}]*\})+`;
+/** A read of one half; `--SCHEME-DARK` ends in `-DARK` but is the scheme, not a half. */
+const HALF_READ = new RegExp(String.raw`var\(\s*--(?!SCHEME-DARK\b)${SOURCE_BASE}-(?:LIGHT|DARK)\b`, "g");
+/** A whole value that is one `var(--NAME)`; group 1 is the name. */
+export const ALIAS = /^var\(\s*(--[A-Za-z0-9-]+)\s*\)$/;
 const RAW_COLOUR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(\s*[\d.]/;
 const DATA = /^C-(?:SERIES|SEQ)-\d+$/;
 const SYSTEM_COLOUR =
@@ -138,12 +145,9 @@ export function checkTokens(css, file = "src/tokens.css") {
 
 /** `var(--X-LIGHT|DARK)` reads outside the canonical blend, in any source text. */
 export function checkHalfReads(source, file) {
-  const text = blankComments(source).replace(
-    /color-mix\(\s*in oklch,\s*var\(--([A-Z0-9-]+)-LIGHT\),\s*var\(--\1-DARK\)\s+calc\(\s*var\(--SCHEME-DARK\)\s*\*\s*100%\s*\)\s*\)/g,
-    (m) => " ".repeat(m.length),
-  );
+  const text = blankComments(source).replace(new RegExp(blendSource(SOURCE_BASE), "g"), (m) => " ".repeat(m.length));
   const problems = [];
-  for (const m of text.matchAll(/var\(\s*--[A-Z0-9-]+-(?:LIGHT|DARK)\b/g)) {
+  for (const m of text.matchAll(HALF_READ)) {
     problems.push(
       `${file}:${lineAt(text, m.index)}  \`${m[0]})\` reads one half of a pair, so it ignores the theme's scheme.\n` +
         `    Use the utility (\`bg-series-1\`), or \`domainColor()\` from src/util/domain-color.ts.`,

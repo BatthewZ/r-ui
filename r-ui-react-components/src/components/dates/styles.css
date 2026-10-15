@@ -109,18 +109,21 @@
   border-radius: var(--RADIUS-FULL);
 }
 
-/* The range popup: wide enough for the preset column and `months` months,
-   capped at the viewport. A definite width, so its content can be a size
-   container (presets beside the calendar or above it). */
-.r-dates-range-panel {
-  inline-size: min(
-    calc(
-      (var(--COLUMN-SM) + var(--R-SIZE-3)) * var(--r-dates-presets, 1) + var(--CONTROL-H) * 7 *
-        var(--r-dates-months, 1) + var(--R-SIZE-2) * (var(--r-dates-months, 1) - 1) + var(--R-SIZE-3) * 2 +
-        var(--BORDER-WIDTH) * 2
-    ),
-    calc(100vw - var(--R-SIZE-2) * 2)
+/* A date popup is as wide as its months (and the range popup's preset
+   column): it lifts the overlay surface's reading-measure cap to that width
+   and keeps the surface's viewport cap. */
+.r-dates-panel {
+  --r-overlays-measure: calc(
+    (var(--COLUMN-SM) + var(--R-SIZE-3)) * var(--r-dates-presets, 0) + var(--CONTROL-H) * 7 *
+      var(--r-dates-months, 1) + var(--R-SIZE-2) * (var(--r-dates-months, 1) - 1) + var(--R-SIZE-3) * 2 +
+      var(--BORDER-WIDTH) * 2
   );
+}
+
+/* A definite width, so the range popup's content can be a size container
+   (presets beside the calendar or above it). */
+.r-dates-range-panel {
+  inline-size: var(--r-overlays-measure);
 }
 
 /* Forced colors. Endpoints and the selected day are `bg-accent` (Highlight with

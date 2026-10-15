@@ -16,22 +16,25 @@ import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 
 import { useFieldControl, useFieldValue } from "./Field";
-import { HiddenValues, keepFocus, SelectionFrame, SelectionToggle } from "./selection-field";
-import { foldText } from "./selection-filter";
+import { keepFocus } from "./Input";
+import { focusLeaves, HiddenValues, SelectionFrame, SelectionToggle } from "./selection-field";
+import { foldText } from "../../util/text-match";
 import {
   buildSelectionList,
   type ComboboxFilter,
   type ComboboxOption,
+  resultsStatus,
   type SelectionItem,
   SelectionListbox,
   useSelectionPopup,
 } from "./selection-popup";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 /** Why the text in the field changed. Async callers fetch on `"input"` only. */
 export type ComboboxInputChangeReason = "input" | "select" | "reset" | "clear";
 
 /** Every string the control says, for localisation. */
-export interface ComboboxMessages {
+export interface ComboboxLabels {
   loading: string;
   empty: string;
   /** Announced while typing. */
@@ -42,7 +45,7 @@ export interface ComboboxMessages {
   clear: string;
 }
 
-const MESSAGES: ComboboxMessages = {
+export const DEFAULT_COMBOBOX_LABELS: ComboboxLabels = {
   loading: "Loading…",
   empty: "No results",
   results: (count) => (count === 1 ? "1 result" : `${count} results`),
@@ -80,7 +83,7 @@ export interface ComboboxProps
   start?: ReactNode;
   /** Lists longer than this are windowed. @default 100 */
   virtualizeThreshold?: number;
-  messages?: Partial<ComboboxMessages>;
+  labels?: LabelsProp<ComboboxLabels>;
   /** `className` styles the root (width lands there); `ref` and the rest address the `<input>`. */
   classNames?: SlotClassNames<"frame" | "input" | "listbox" | "option">;
 }
@@ -112,7 +115,7 @@ export function Combobox({
   invalid: invalidProp,
   start,
   virtualizeThreshold = 100,
-  messages: messagesProp,
+  labels: labelsProp,
   className,
   classNames,
   ref,
@@ -129,7 +132,7 @@ export function Combobox({
   form,
   ...props
 }: ComboboxProps) {
-  const messages = { ...MESSAGES, ...messagesProp };
+  const labels = mergeLabels(DEFAULT_COMBOBOX_LABELS, labelsProp);
   const field = useFieldControl({
     id: idProp,
     invalid: invalidProp,
@@ -146,7 +149,7 @@ export function Combobox({
   const rootRef = useRef<HTMLDivElement>(null);
 
   // The label of every option ever chosen: async results move on, the field keeps its text.
-  const labels = useRef(new Map<string, string>());
+  const knownLabels = useRef(new Map<string, string>());
   const optionFor = (v: string | null) => (v === null ? null : (options.find((o) => o.value === v) ?? null));
   // Inside a Field bound to a Form (and with no `value`), the form owns the value.
   const [value, setValue, fieldName] = useFieldValue<string | null>({
@@ -156,7 +159,7 @@ export function Combobox({
     fromForm: (v) => (typeof v === "string" && v !== "" ? v : null),
   });
   const labelOf = (v: string | null) =>
-    v === null ? "" : (optionFor(v)?.label ?? labels.current.get(v) ?? v);
+    v === null ? "" : (optionFor(v)?.label ?? knownLabels.current.get(v) ?? v);
 
   // `editing`: the text is the user's own, so it filters. Otherwise the field
   // shows the chosen label and the list shows everything.
@@ -175,15 +178,16 @@ export function Combobox({
   const offerCustom =
     allowCustomValue && editing && trimmed !== "" && !options.some((o) => foldText(o.label) === foldText(trimmed));
   const top: SelectionItem[] = offerCustom
-    ? [{ kind: "action", key: "custom", label: messages.custom(trimmed), icon: <Plus />, disabled: false }]
+    ? [{ kind: "action", key: "custom", label: labels.custom(trimmed), icon: <Plus />, disabled: false }]
     : [];
-  const list = buildSelectionList(options, { query, filter, top });
+  // A failed load lists no options: the cursor (and Enter) must not reach rows nobody sees.
+  const list = buildSelectionList(loadError === undefined ? options : [], { query, filter, top });
   const popup = useSelectionPopup({ items: list.items, open: openProp, defaultOpen, onOpenChange });
   const { open, setOpen, activeIndex, activeSource } = popup;
   const selectedIndex = list.items.findIndex((item) => item.kind === "option" && item.option.value === value);
 
   const choose = (next: string | null, label: string) => {
-    if (next !== null) labels.current.set(next, label);
+    if (next !== null) knownLabels.current.set(next, label);
     setValue(next);
     setText(label, next === null ? "clear" : "select", false);
   };
@@ -246,15 +250,13 @@ export function Combobox({
   };
 
   const handleBlur = (event: FocusEvent<HTMLInputElement>) => {
-    if (rootRef.current?.contains(event.relatedTarget as Node | null)) return;
+    if (!focusLeaves(rootRef.current, event)) return;
     setOpen(false);
     settle();
   };
 
   // Spoken while typing: the eye sees the list change, the ear needs the count.
-  const count = list.items.filter((item) => item.kind === "option").length;
-  const status =
-    !open || !editing ? "" : loading ? messages.loading : (loadError ?? (count === 0 ? messages.empty : messages.results(count)));
+  const status = open && editing ? resultsStatus(list, { loading, loadError, labels }) : "";
 
   return (
     <div ref={rootRef} className={cn("relative w-full min-w-0", className)}>
@@ -273,7 +275,7 @@ export function Combobox({
                 <button
                   type="button"
                   tabIndex={-1}
-                  aria-label={messages.clear}
+                  aria-label={labels.clear}
                   onMouseDown={keepFocus}
                   onClick={() => {
                     choose(null, "");
@@ -284,15 +286,7 @@ export function Combobox({
                   <X aria-hidden />
                 </button>
               )}
-              <SelectionToggle
-                open={open}
-                label={messages.toggle}
-                controls={popup.present ? popup.listboxId : undefined}
-                onToggle={() => {
-                  inputRef.current?.focus();
-                  setOpen(!open);
-                }}
-              />
+              <SelectionToggle popup={popup} label={labels.toggle} inputRef={inputRef} />
             </>
           )
         }
@@ -301,17 +295,11 @@ export function Combobox({
         <input
           ref={setInputRef}
           type="text"
-          role="combobox"
+          {...popup.comboboxProps}
           id={field.id}
           required={field.required}
           disabled={field.disabled}
           readOnly={field.readOnly}
-          autoComplete="off"
-          aria-autocomplete="list"
-          aria-expanded={open}
-          // The listbox renders nothing while closed: an IDREF must not dangle.
-          aria-controls={popup.present ? popup.listboxId : undefined}
-          aria-activedescendant={open && activeIndex >= 0 ? popup.optionId(activeIndex) : undefined}
           {...field.ariaProps}
           form={form}
           {...props}
@@ -340,9 +328,9 @@ export function Combobox({
         labelledBy={field.labelId}
         label={props["aria-label"]}
         loading={loading}
-        loadingMessage={messages.loading}
+        loadingMessage={labels.loading}
         error={loadError}
-        emptyMessage={messages.empty}
+        emptyMessage={labels.empty}
         virtualizeThreshold={virtualizeThreshold}
         className={classNames?.listbox}
         optionClassName={classNames?.option}

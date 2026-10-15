@@ -1,7 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 
-import { DateRangePicker, type DateRangePreset, type DateRangeValue, toISODate } from "../../../src/components/dates";
+import { type DateRange, DateRangePicker, type DateRangePreset, toISODate } from "../../../src/components/dates";
 import { Field } from "../../../src/components/form";
 import { Card, IconButton } from "../../../src/components/primitives";
 import { day, Grid, Row, Stack } from "./parts/demo";
@@ -14,12 +14,12 @@ export const meta = {
     "The dashboard time range: a toolbar control at h-control showing the range compactly, quick ranges beside typed start/end fields and a RangeCalendar. A preset applies at once; a custom range on Apply.",
 };
 
-const shown = (v: DateRangeValue | null) =>
+const shown = (v: DateRange<Date> | null) =>
   v ? `${toISODate(v.start)} → ${toISODate(v.end)}${v.preset ? ` (${v.preset})` : ""}` : "—";
 
 /** The dashboard case: a compact card that clips, with the time range in its header. */
 function ToolbarCard() {
-  const [range, setRange] = useState<DateRangeValue | null>({ start: day(10, 9), end: day(10, 15), preset: "last-7-days" });
+  const [range, setRange] = useState<DateRange<Date> | null>({ start: day(10, 9), end: day(10, 15), preset: "last-7-days" });
   return (
     <Card data-density="compact" data-sc="range-toolbar-card" className="max-w-column-lg overflow-hidden">
       <Card.Header>
@@ -44,7 +44,7 @@ const SHIFTS: DateRangePreset[] = [
 ];
 
 export default function DateRangePickerSection() {
-  const [custom, setCustom] = useState<DateRangeValue | null>({ start: day(10, 1), end: day(10, 7) });
+  const [custom, setCustom] = useState<DateRange<Date> | null>({ start: day(10, 1), end: day(10, 7) });
   return (
     <Stack>
       <Row label="Dashboard toolbar in a compact card that clips">

@@ -7,7 +7,7 @@ export const meta = {
   group: "overlays",
   order: 60,
   description:
-    "useToast() from the app root's ToastProvider. Neutral cards, status as icon + word; errors announce assertively and stay. Hover or focus the stack to pause the clock.",
+    "useToast() from the app root's ToastProvider. Neutral cards, status as icon + word; errors and serious toasts announce assertively and stay. Hover or focus the stack to pause the clock; dismissing a toast from its own button hands focus to the next toast, else back where it was.",
 };
 
 function Triggers() {
@@ -43,6 +43,18 @@ function Triggers() {
         }
       >
         Error (stays)
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={() => toast({ title: "Checkout latency over budget", description: "p95 is 1.8 s against a 1.2 s target.", tone: "serious" })}
+      >
+        Serious (stays)
+      </Button>
+      <Button
+        variant="secondary"
+        onClick={() => toast({ title: "Figures are 2 hours old", description: "The last refresh did not finish.", tone: "stale" })}
+      >
+        Stale
       </Button>
       <Button
         variant="secondary"

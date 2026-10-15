@@ -12,10 +12,12 @@
   "files": [
     "src",
     "docs",
-    "scripts",
-    "!scripts/**/*.test.mjs",
+    "scripts/check-contrast.mjs",
+    "scripts/check-theme-rules.mjs",
+    "scripts/lib",
     "AGENTS.md",
     "CHANGELOG.md",
+    "LICENSE",
     "README.md"
   ],
   "exports": {

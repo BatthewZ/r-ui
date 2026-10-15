@@ -1,7 +1,7 @@
 import { ArrowRight, Flame } from "lucide-react";
 import { type SubmitEvent, useId, useState } from "react";
 
-import { Badge, Button, Card, Container, Grid, Inline, Input, Section, Stack } from "../../../src";
+import { Badge, Button, Card, Container, Hero, Inline, Input, Stack } from "../../../src";
 import { href } from "../../shell/router";
 import { CUSTOMERS, NAV, PRODUCT } from "./content";
 
@@ -32,38 +32,45 @@ export function SiteHeader() {
   );
 }
 
-export function Hero() {
+/**
+ * The library's Hero, split: the text on the start side and the release preview
+ * beside it once the hero is wide, under it when narrow. The eyebrow is a link
+ * (UI scale), the sign-up form rides in the text column as the hero's children.
+ */
+export function PageHero() {
   return (
-    <Section padding="section-2" aria-labelledby="mkt-hero-title">
-      <Container>
-        <Grid columns={{ base: 1, "@4xl": 2 }} className="items-center gap-section-2">
-          <div className="min-w-0">
-            <a
-              href={href("marketing", "journal")}
-              className="inline-flex min-h-hit items-center gap-r5 text-body-2 font-medium text-fg-accent hover:underline"
-            >
-              New: why nobody reads your changelog
-              <ArrowRight aria-hidden className="size-icon" />
-            </a>
-            <h1 id="mkt-hero-title" data-mkt="display" className="mt-r3 text-balance text-display-1 text-fg-primary">
-              Release notes your customers actually read.
-            </h1>
-            <p className="mt-[var(--PROSE-FLOW)] max-w-measure text-pretty text-prose-1 text-fg-secondary">
-              {PRODUCT} drafts a changelog from the pull requests you already merged, sorts every change by
-              who it affects, and publishes it to your docs, your app and your customers&rsquo; inboxes. You
-              edit a sentence or two, and ship.
-            </p>
-            <Inline gap="r4" className="mt-section-3">
-              <Button iconEnd={<ArrowRight />}>Start free</Button>
-              <Button variant="secondary">Book a demo</Button>
-            </Inline>
-            <GuideSignup />
-          </div>
-          <ReleasePreview />
-        </Grid>
-        <Proof />
-      </Container>
-    </Section>
+    <Hero
+      data-mkt="hero"
+      layout="split"
+      className="py-section-2"
+      eyebrow={
+        <a
+          href={href("marketing", "journal")}
+          className="inline-flex min-h-hit items-center gap-r5 text-fg-accent hover:underline"
+        >
+          New: why nobody reads your changelog
+          <ArrowRight aria-hidden className="size-icon rtl:-scale-x-100" />
+        </a>
+      }
+      title="Release notes your customers actually read."
+      lead={
+        <>
+          {PRODUCT} drafts a changelog from the pull requests you already merged, sorts every change by who it
+          affects, and publishes it to your docs, your app and your customers&rsquo; inboxes. You edit a sentence or
+          two, and ship.
+        </>
+      }
+      actions={
+        <>
+          <Button iconEnd={<ArrowRight />}>Start free</Button>
+          <Button variant="secondary">Book a demo</Button>
+        </>
+      }
+      media={<ReleasePreview />}
+      proof={<Proof />}
+    >
+      <GuideSignup />
+    </Hero>
   );
 }
 
@@ -148,7 +155,7 @@ function ReleasePreview() {
 /** Social proof, said quietly: muted wordmarks in the UI face, no logos, no colour. */
 function Proof() {
   return (
-    <div className="mt-section-2">
+    <div>
       <p className="text-body-2 text-fg-muted">Writing release notes for 1,400 product teams, including</p>
       <ul className="mt-r3 flex flex-wrap gap-x-r1 gap-y-r4" aria-label="Customers">
         {CUSTOMERS.map((name) => (

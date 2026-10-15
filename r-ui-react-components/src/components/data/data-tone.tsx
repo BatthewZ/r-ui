@@ -20,18 +20,6 @@ export const STATUS_FILL: Record<Tone, string> = {
   stale: "bg-status-stale",
 };
 
-/** The spoken word for a measured state, for places the label is not visible. */
-export const STATUS_WORD: Record<Tone, string> = {
-  neutral: "",
-  accent: "",
-  success: "Healthy",
-  info: "Info",
-  warning: "Warning",
-  serious: "Serious",
-  error: "Critical",
-  stale: "Stale",
-};
-
 /** The tone's mark alone, decorative. Pair it with a visible or spoken label. */
 export function StatusIcon({ tone, className }: { tone: Tone; className?: string }) {
   return <ToneGlyph tone={tone} className={cn("size-icon shrink-0", MARK_TEXT[tone], className)} />;

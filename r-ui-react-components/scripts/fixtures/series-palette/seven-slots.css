@@ -1,0 +1,17 @@
+/* A token file whose palette lost its eighth slot. */
+:root {
+  --C-SERIES-1-LIGHT: oklch(0.575 0.163 255.5);
+  --C-SERIES-1-DARK: oklch(0.622 0.161 255.1);
+  --C-SERIES-2-LIGHT: oklch(0.671 0.175 40.6);
+  --C-SERIES-2-DARK: oklch(0.622 0.173 40.1);
+  --C-SERIES-3-LIGHT: oklch(0.669 0.141 162.1);
+  --C-SERIES-3-DARK: oklch(0.621 0.128 163.1);
+  --C-SERIES-4-LIGHT: oklch(0.764 0.161 75.1);
+  --C-SERIES-4-DARK: oklch(0.670 0.143 73.2);
+  --C-SERIES-5-LIGHT: oklch(0.716 0.141 357.4);
+  --C-SERIES-5-DARK: oklch(0.622 0.171 0.8);
+  --C-SERIES-6-LIGHT: oklch(0.529 0.180 142.5);
+  --C-SERIES-6-DARK: oklch(0.529 0.180 142.5);
+  --C-SERIES-7-LIGHT: oklch(0.433 0.167 283.6);
+  --C-SERIES-7-DARK: oklch(0.670 0.145 286.8);
+}

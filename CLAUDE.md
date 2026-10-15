@@ -26,7 +26,7 @@ Tokens are the only vocabulary. No raw hex, `rem`, `px` or Tailwind defaults (`p
 
 ## Theming: read before touching anything theme-shaped
 
-- **The example themes `nightfall` and `harbour` have no privileges.** Never write their names into a selector, type, default, config list or test fixture in library code. If a fixture needs a theme name, invent one (`aurora`, `midnight`). If something must vary per theme, make it a token the consumer's theme controls too. Prose may discuss them as examples. The **showcase app is a consumer** and may list them.
+- **The example themes `nightfall`, `harbour` and `atelier` have no privileges.** Never write their names into a selector, type, default, config list or test fixture in library code. If a fixture needs a theme name, invent one (`aurora`, `midnight`). If something must vary per theme, make it a token the consumer's theme controls too. Prose may discuss them as examples. The **showcase app is a consumer** and may list them.
 - One theme file = one scheme. Every theme sets `color-scheme` and `--SCHEME-DARK` (`0`/`1`). No `light-dark()`.
 - Themes apply only via `:root[data-theme="name"]`. No subtree themes.
 - Domain colours are `-LIGHT`/`-DARK` pairs blended by `--SCHEME-DARK` at the read, so themes never need to name them.

@@ -75,7 +75,9 @@ export function Sparkline({
 
   const step = values.length > 1 ? (W - PAD * 2) / (values.length - 1) : 0;
   const x = (i: number) => (values.length > 1 ? PAD + i * step : W / 2);
-  const y = (v: number) => (max === min ? H / 2 : PAD + (H - PAD * 2) * (1 - (v - min) / (max - min)));
+  // Halved before dividing: `1e308 - -1e308` is Infinity, and Infinity / Infinity a NaN path.
+  const y = (v: number) => (max === min ? H / 2 : PAD + (H - PAD * 2) * (1 - (v / 2 - min / 2) / (max / 2 - min / 2)));
+  const point = (i: number, v: number) => `${x(i).toFixed(2)},${y(v).toFixed(2)}`;
 
   // Runs of consecutive present values; a null breaks the line.
   let d = "";
@@ -85,7 +87,7 @@ export function Sparkline({
       pen = false;
       return;
     }
-    d += `${pen ? "L" : "M"}${x(i).toFixed(2)},${y(v).toFixed(2)}`;
+    d += `${pen ? "L" : "M"}${point(i, v)}`;
     pen = true;
   });
 
@@ -93,7 +95,7 @@ export function Sparkline({
   const prev = n > 1 ? values[n - 2] : undefined;
   const tail =
     isPresent(last) && isPresent(prev)
-      ? `M${x(n - 2).toFixed(2)},${y(prev).toFixed(2)}L${x(n - 1).toFixed(2)},${y(last).toFixed(2)}`
+      ? `M${point(n - 2, prev)}L${point(n - 1, last)}`
       : "";
 
   return (
@@ -103,7 +105,7 @@ export function Sparkline({
       aria-label={`${label}: ${spoken}`}
       viewBox={`0 0 ${W} ${H}`}
       preserveAspectRatio="none"
-      className={cn("block h-[calc(var(--KPI-MIN)*1.25)] w-full overflow-visible", STROKE[series], className)}
+      className={cn("block h-spark w-full overflow-visible", STROKE[series], className)}
       fill="none"
       {...rest}
     >
@@ -122,7 +124,7 @@ export function Sparkline({
         // a true circle even though the SVG is stretched.
         <path
           data-sparkline-point=""
-          d={`M${x(n - 1).toFixed(2)},${y(last).toFixed(2)}h0`}
+          d={`M${point(n - 1, last)}h0`}
           strokeWidth={6}
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"

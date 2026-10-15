@@ -3,36 +3,22 @@ import { SlidersHorizontal } from "lucide-react";
 import { useId } from "react";
 
 import { useDensity, useInputMode, useTheme } from "../../hooks/use-preferences";
-import { DENSITIES, type Density, INPUT_MODES, type InputMode, type PreferencesConfig } from "../../util/preferences";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
+import type { PreferencesConfig } from "../../util/preferences";
 import type { Placement } from "../../hooks/use-floating";
 import { DropdownMenu } from "../overlays";
-import { DEFAULT_DENSITY_LABELS } from "./DensitySwitcher";
-import { DEFAULT_INPUT_LABELS } from "./InputSwitcher";
+import { type ChoiceOption, onOptionValue } from "./Choice";
+import { densityOptions } from "./DensitySwitcher";
+import { inputOptions } from "./InputSwitcher";
+import { DEFAULT_PREFERENCES_MENU_LABELS, type PreferencesMenuLabels } from "./preferences-labels";
 import { type ThemeOption, toOption } from "./ThemeSwitcher";
-
-export interface PreferencesMenuLabels {
-  /** The trigger's text. Default "View". */
-  trigger: string;
-  theme: string;
-  density: string;
-  input: string;
-  densities: Partial<Record<Density, string>>;
-  inputs: Partial<Record<InputMode, string>>;
-}
-
-const DEFAULT_LABELS: Omit<PreferencesMenuLabels, "densities" | "inputs"> = {
-  trigger: "View",
-  theme: "Theme",
-  density: "Density",
-  input: "Input",
-};
 
 export interface PreferencesMenuProps extends PreferencesConfig {
   /** The themes to offer, first = default. Omitted or with one entry: no theme group. */
   themes?: readonly ThemeOption[];
   /** Leave out the density or input group. */
   hide?: readonly ("density" | "input")[];
-  labels?: Partial<PreferencesMenuLabels>;
+  labels?: LabelsProp<PreferencesMenuLabels>;
   /** Default "bottom-end": the menu usually sits at the end of a header. */
   placement?: Placement;
   className?: string;
@@ -51,9 +37,7 @@ export function PreferencesMenu({
   storageKey,
   className,
 }: PreferencesMenuProps) {
-  const labels = { ...DEFAULT_LABELS, ...labelsProp };
-  const densityWords = { ...DEFAULT_DENSITY_LABELS, ...labelsProp?.densities };
-  const inputWords = { ...DEFAULT_INPUT_LABELS, ...labelsProp?.inputs };
+  const labels = mergeLabels(DEFAULT_PREFERENCES_MENU_LABELS, labelsProp);
   const options = themes.map(toOption);
   const { theme, setTheme } = useTheme({ themes: options.map((o) => o.value), storageKey });
   const { density, setDensity } = useDensity({ storageKey });
@@ -70,8 +54,8 @@ export function PreferencesMenu({
         id={`${id}-density`}
         title={labels.density}
         value={density}
-        onChange={(v) => setDensity(v as Density)}
-        options={DENSITIES.map((value) => ({ value, label: densityWords[value] }))}
+        onChange={setDensity}
+        options={densityOptions(labels.densities)}
       />
     ),
     !hide.includes("input") && (
@@ -80,8 +64,8 @@ export function PreferencesMenu({
         id={`${id}-input`}
         title={labels.input}
         value={input}
-        onChange={(v) => setInput(v as InputMode)}
-        options={INPUT_MODES.map((value) => ({ value, label: inputWords[value] }))}
+        onChange={setInput}
+        options={inputOptions(labels.inputs)}
       />
     ),
   ].filter(Boolean);
@@ -98,19 +82,19 @@ export function PreferencesMenu({
   );
 }
 
-interface GroupProps {
+interface GroupProps<V extends string> {
   id: string;
   title: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: readonly { value: string; label: string }[];
+  value: V;
+  onChange: (value: V) => void;
+  options: readonly ChoiceOption<V>[];
 }
 
-function Group({ id, title, value, onChange, options }: GroupProps) {
+function Group<V extends string>({ id, title, value, onChange, options }: GroupProps<V>) {
   return (
     <>
       <DropdownMenu.Label id={id}>{title}</DropdownMenu.Label>
-      <DropdownMenu.RadioGroup aria-labelledby={id} value={value} onValueChange={onChange}>
+      <DropdownMenu.RadioGroup aria-labelledby={id} value={value} onValueChange={onOptionValue(options, onChange)}>
         {options.map((o) => (
           <DropdownMenu.RadioItem key={o.value} value={o.value}>
             {o.label}

@@ -24,6 +24,25 @@ interface RadioGroupContextValue {
 
 const RadioGroupContext = createContext<RadioGroupContextValue | null>(null);
 
+/**
+ * A radio group's value (also SegmentedControl's): `undefined` until one is
+ * chosen. In a Field bound to a Form, the form owns it (unless the caller passed one).
+ */
+export function useRadioValue(
+  value: string | undefined,
+  defaultValue: string | undefined,
+  onValueChange: ((value: string) => void) | undefined,
+) {
+  return useFieldValue<string | undefined>({
+    value,
+    defaultValue,
+    onChange: (next) => {
+      if (next !== undefined) onValueChange?.(next);
+    },
+    fromForm: (raw) => (raw === undefined || raw === null ? undefined : String(raw)),
+  });
+}
+
 export interface RadioGroupProps
   extends Omit<ComponentPropsWithRef<"div">, "defaultValue" | "onChange" | "role"> {
   value?: string;
@@ -72,15 +91,7 @@ export function RadioGroup({
     "aria-describedby": describedByProp,
     "aria-invalid": ariaInvalidProp,
   });
-  // In a Field bound to a Form, the form owns the value (unless the caller passed one).
-  const [current, setValue, fieldName] = useFieldValue<string | undefined>({
-    value,
-    defaultValue,
-    onChange: (next) => {
-      if (next !== undefined) onValueChange?.(next);
-    },
-    fromForm: (raw) => (raw === undefined || raw === null ? undefined : String(raw)),
-  });
+  const [current, setValue, fieldName] = useRadioValue(value, defaultValue, onValueChange);
 
   return (
     <RadioGroupContext

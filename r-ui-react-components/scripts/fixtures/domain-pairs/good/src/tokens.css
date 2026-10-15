@@ -1,0 +1,4 @@
+/* The token file is checked as tokens, not as a source. */
+:root {
+  --C-DEMO: var(--C-SERIES-1-DARK);
+}

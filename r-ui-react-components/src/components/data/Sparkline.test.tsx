@@ -23,6 +23,14 @@ describe("Sparkline", () => {
     expect(screen.getByRole("img")).toHaveAccessibleName("Gappy: low 1, high 5, latest 5");
   });
 
+  it("draws a span wider than a double can hold without a NaN in any path", () => {
+    const { container } = render(<Sparkline label="Hostile" values={[1e308, -1e308, 0]} />);
+    const paths = Array.from(container.querySelectorAll("path"), (p) => p.getAttribute("d") ?? "");
+    expect(paths).toHaveLength(3);
+    expect(paths[0]).toBe("M3.00,3.00L50.00,29.00L97.00,16.00");
+    for (const d of paths) expect(d).not.toMatch(/NaN|Infinity/);
+  });
+
   it("says when there is no data and draws no point", () => {
     const { container } = render(<Sparkline label="Empty" values={[]} />);
     expect(screen.getByRole("img", { name: "Empty: no data" })).toBeInTheDocument();
@@ -49,5 +57,11 @@ describe("Sparkline", () => {
     const svg = screen.getByRole("img");
     expect(svg).toHaveClass("stroke-series-3", "h-r1");
     expect(svg).not.toHaveClass("stroke-series-1");
+    expect(svg).not.toHaveClass("h-spark");
+  });
+
+  it("takes its height from the density-selected sparkline token", () => {
+    render(<Sparkline label="x" values={[1, 2]} />);
+    expect(screen.getByRole("img")).toHaveClass("h-spark");
   });
 });

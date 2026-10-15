@@ -10,15 +10,28 @@ No JavaScript ships from this package.
 - **A theme is one file.** Flip `<html data-theme="…">` and colour, faces, figures, shape, line weight, depth, motion and what "comfortable" and "compact" mean all change. Components never do.
 - **Sizing follows the situation, not the screen.** Density can change per element, a coarse pointer raises the hit floor, components size to their container. The viewport only moves layout.
 - **Two type scales, split by role.** A flat UI scale for everything interactive, a fluid prose/display scale for long-form and marketing text. A button inside an article is still a UI button.
-- **Accessible in every theme.** Contrast floors are measured, hit targets follow the input axis, motion collapses under reduced motion, and forced colors (Windows High Contrast) map every role to a system colour.
+- **Accessible in every theme.** Contrast floors are measured, hit targets follow the input axis, motion collapses under reduced motion, and forced colors (Windows High Contrast) map every role to a system colour. Every theme prints as ink on paper.
 - **Checked, not hoped.** `bun run check` measures every contrast pair in every theme, enforces the theme rules, and compiles the package.
 
 ## Quick start
 
+Tailwind v4 must be in your build (the Vite plugin, the PostCSS plugin or the CLI). The package is CSS and has no other dependency:
+
+```sh
+bun add @batthewz/r-ui-css
+bun add -d tailwindcss @tailwindcss/vite   # or @tailwindcss/postcss, @tailwindcss/cli
+```
+
 ```css
 /* app.css */
 @import "@batthewz/r-ui-css";
-@source "./src/**/*.{html,tsx,vue,svelte}"; /* your own markup, relative to this file */
+```
+
+Tailwind finds the class names in your own markup by itself: it scans the directory the build runs in, skipping `node_modules` and anything git ignores. Add `@source` only for markup it skips, such as a package that ships templates or a sibling folder outside the project. The path is relative to the CSS file that declares it:
+
+```css
+/* src/styles/app.css */
+@source "../../node_modules/some-ui-kit/dist"; /* markup Tailwind would not scan */
 ```
 
 ```html
@@ -43,6 +56,15 @@ No JavaScript ships from this package.
 ```
 
 The default theme is `:root` itself: light, warm neutrals, an ink primary, one restrained accent. For another theme, copy [`src/_theme-template.css`](src/_theme-template.css), import it after the package and set `data-theme` on `<html>`. Three worked examples (one dark; two light, with different personalities, one of them naming web faces that the app loads) live under [`src/examples/themes/`](src/examples/themes/); nothing imports them.
+
+Check your own theme with the same scripts the package runs on its examples. They ship with the package and need nothing installed beyond Node:
+
+```sh
+node node_modules/@batthewz/r-ui-css/scripts/check-contrast.mjs ./src/themes/aurora.css
+node node_modules/@batthewz/r-ui-css/scripts/check-theme-rules.mjs ./src/themes/aurora.css
+```
+
+The first measures every contrast pair in your theme; the second enforces the theme rules (root selector only, one scheme, no selected density names, no `@media`, no `!important`). The theme's file name must match its `data-theme` name. [docs/theme-contract.md](docs/theme-contract.md) explains each rule.
 
 ## Read next
 

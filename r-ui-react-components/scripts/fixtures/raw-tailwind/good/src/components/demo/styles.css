@@ -1,11 +1,16 @@
 .demo {
   padding: var(--R-SIZE-3);
   border: var(--BORDER-WIDTH) solid var(--C-BORDER-DEFAULT);
-  outline: 1px solid transparent;
+  outline: var(--BORDER-WIDTH) solid transparent;
+  box-shadow: inset 0 0 0 var(--BORDER-WIDTH) var(--C-BORDER);
+  block-size: 1em;
+  margin-block: calc((1lh - 1em) / 2);
+  margin-inline-start: calc(-1em - var(--R-SIZE-6));
+  padding: 1px;
   z-index: var(--LAYER-STICKY);
   inline-size: calc(100% - var(--R-SIZE-2));
   color: color-mix(in oklch, var(--C-TEXT-PRIMARY), transparent 20%);
 }
-@container (inline-size > 20em) {
-  .demo { display: grid; }
+@media (forced-colors: active) {
+  .demo { border-color: CanvasText; }
 }

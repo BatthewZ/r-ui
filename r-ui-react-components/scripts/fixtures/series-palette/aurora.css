@@ -1,0 +1,6 @@
+/* A light theme that retunes series 2 into series 1's blue: adjacent slots that read as one colour. */
+:root[data-theme="aurora"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+  --C-SERIES-2-LIGHT: oklch(0.585 0.160 250);
+}

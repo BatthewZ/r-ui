@@ -19,7 +19,11 @@ export default function SearchInputSection() {
   const results = useMemo(() => SERVICES.filter((s) => s.includes(query.trim().toLowerCase())), [query]);
 
   useEffect(() => {
-    if (!query) return;
+    // A clear mid-search cancels the pending timer, so it must settle here.
+    if (!query) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const t = window.setTimeout(() => setLoading(false), 600);
     return () => window.clearTimeout(t);
@@ -54,7 +58,7 @@ export default function SearchInputSection() {
             <SearchInput defaultValue="compact" />
           </div>
           <div dir="rtl">
-            <SearchInput aria-label="بحث" placeholder="بحث" defaultValue="الدفع" clearLabel="مسح" />
+            <SearchInput aria-label="بحث" placeholder="بحث" defaultValue="الدفع" labels={{ clear: "مسح" }} />
           </div>
         </Grid>
       </Row>

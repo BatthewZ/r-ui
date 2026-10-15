@@ -47,10 +47,18 @@ function formatter(locale: FormatNumberOptions["locale"], options: Intl.NumberFo
   const key = JSON.stringify([locale ?? null, options]);
   let f = cache.get(key);
   if (!f) {
-    f = new Intl.NumberFormat(locale as string | string[] | undefined, options);
+    f = new Intl.NumberFormat(locale, options);
     cache.set(key, f);
   }
   return f;
+}
+
+/**
+ * A default fraction cap that never undercuts the caller's own minimum: Intl
+ * throws when `maximumFractionDigits` is below `minimumFractionDigits`.
+ */
+function fractionCap(digits: number, options: Pick<FormatNumberOptions, "minimumFractionDigits">): number {
+  return Math.max(digits, options.minimumFractionDigits ?? 0);
 }
 
 /** True for a value a formatter can render as a number. */
@@ -76,7 +84,7 @@ export function formatCompact(
   value: number | null | undefined,
   options: Omit<FormatNumberOptions, "notation"> = {},
 ): string {
-  return formatNumber(value, { maximumFractionDigits: 1, ...options, notation: "compact" });
+  return formatNumber(value, { maximumFractionDigits: fractionCap(1, options), ...options, notation: "compact" });
 }
 
 /**
@@ -87,7 +95,7 @@ export function formatPercent(
   value: number | null | undefined,
   options: Omit<FormatNumberOptions, "style"> = {},
 ): string {
-  return formatNumber(value, { maximumFractionDigits: 1, ...options, style: "percent" });
+  return formatNumber(value, { maximumFractionDigits: fractionCap(1, options), ...options, style: "percent" });
 }
 
 /**
@@ -126,15 +134,78 @@ export function formatBytes(
   options: Omit<FormatNumberOptions, "style" | "unit"> = {},
 ): string {
   if (!isPresent(bytes)) return options.missing ?? MISSING;
+  const { maximumFractionDigits, maximumSignificantDigits } = options;
+  const digitsFor = (unit: number) => maximumFractionDigits ?? fractionCap(unit === 0 ? 0 : 1, options);
+  // The number as it will print, so the unit steps up on the rounded value:
+  // 1,048,575 bytes is 1023.999 kB, which would otherwise print "1,024 kB".
+  const shown = (n: number, unit: number) =>
+    Number(
+      formatter("en-US", {
+        useGrouping: false,
+        maximumFractionDigits: digitsFor(unit),
+        ...(maximumSignificantDigits !== undefined && { maximumSignificantDigits }),
+      }).format(n),
+    );
   let unit = 0;
   let n = Math.abs(bytes);
-  while (n >= 1024 && unit < BYTE_UNITS.length - 1) {
+  while (unit < BYTE_UNITS.length - 1 && (n >= 1024 || shown(n, unit) >= 1024)) {
     n /= 1024;
     unit += 1;
   }
   const signed = Math.sign(bytes) * n;
-  return formatUnit(signed, BYTE_UNITS[unit] ?? "byte", {
-    maximumFractionDigits: unit === 0 ? 0 : 1,
-    ...options,
-  });
+  return formatUnit(signed, BYTE_UNITS[unit] ?? "byte", { ...options, maximumFractionDigits: digitsFor(unit) });
+}
+
+// ── Dates ───────────────────────────────────────────────────────────────────
+
+/** BCP 47 locale(s) as Intl takes them. Omitted: the runtime default. */
+export type Locales = string | readonly string[] | undefined;
+
+/** Distinct locale + option sets kept before the caches start over (bounds memory, not hits). */
+const INTL_CACHE_MAX = 128;
+
+function cached<F>(cache: Map<string, F>, key: string, make: () => F): F {
+  let f = cache.get(key);
+  if (!f) {
+    if (cache.size >= INTL_CACHE_MAX) cache.clear();
+    f = make();
+    cache.set(key, f);
+  }
+  return f;
+}
+
+/** Builds with `locale`, else (a malformed tag throws) with the runtime default. */
+function withLocaleFallback<F>(locale: Locales, make: (locale: string[] | undefined) => F): F {
+  const tags = locale === undefined ? undefined : typeof locale === "string" ? [locale] : [...locale];
+  try {
+    return make(tags);
+  } catch (error) {
+    if (tags === undefined) throw error;
+    return make(undefined);
+  }
+}
+
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+const relativeTimeFormats = new Map<string, Intl.RelativeTimeFormat>();
+
+/**
+ * One shared `Intl.DateTimeFormat` per locale + options: building one costs far
+ * more than formatting with it, and a chart axis or a timeline formats hundreds
+ * of dates per render. A malformed locale falls back to the runtime default
+ * instead of throwing mid-render; bad OPTIONS (an unknown `timeZone`) still throw.
+ */
+export function dateTimeFormatter(locale: Locales, options: Intl.DateTimeFormatOptions = {}): Intl.DateTimeFormat {
+  return cached(dateTimeFormats, JSON.stringify([locale ?? null, options]), () =>
+    withLocaleFallback(locale, (tags) => new Intl.DateTimeFormat(tags, options)),
+  );
+}
+
+/** `dateTimeFormatter`'s counterpart for `Intl.RelativeTimeFormat` ("3 days ago"). */
+export function relativeTimeFormatter(
+  locale: Locales,
+  options: Intl.RelativeTimeFormatOptions = {},
+): Intl.RelativeTimeFormat {
+  return cached(relativeTimeFormats, JSON.stringify([locale ?? null, options]), () =>
+    withLocaleFallback(locale, (tags) => new Intl.RelativeTimeFormat(tags, options)),
+  );
 }

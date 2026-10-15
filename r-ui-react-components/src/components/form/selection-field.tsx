@@ -1,8 +1,8 @@
 "use client";
 import { ChevronDown, X } from "lucide-react";
 import {
+  type FocusEvent,
   type KeyboardEvent,
-  type MouseEvent,
   type ReactNode,
   type Ref,
   type RefObject,
@@ -14,7 +14,8 @@ import {
 
 import { cn } from "../../util/style";
 
-const INTERACTIVE = "input, textarea, select, button, a, [tabindex]";
+import { focusInputFromFrame, keepFocus } from "./Input";
+import type { SelectionPopup } from "./selection-popup";
 
 export interface SelectionFrameProps {
   frameRef: Ref<HTMLDivElement>;
@@ -50,15 +51,6 @@ export function SelectionFrame({
   className,
   children,
 }: SelectionFrameProps) {
-  const onMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    // Only interactive elements INSIDE the frame count: an ancestor with a
-    // tabindex (a focusable <main>) must not swallow the press.
-    const interactive = (event.target as HTMLElement).closest(INTERACTIVE);
-    if (disabled || (interactive && event.currentTarget.contains(interactive))) return;
-    event.preventDefault();
-    inputRef.current?.focus();
-    if (!readOnly) onPress?.();
-  };
   return (
     <div
       ref={frameRef}
@@ -70,7 +62,9 @@ export function SelectionFrame({
       data-invalid={invalid ? "" : undefined}
       data-disabled={disabled ? "" : undefined}
       data-readonly={readOnly ? "" : undefined}
-      onMouseDown={onMouseDown}
+      onMouseDown={(event) => {
+        if (focusInputFromFrame(event, inputRef.current, disabled) && !readOnly) onPress?.();
+      }}
     >
       {start != null && <span className={cn("r-form-adornment", chips && "r-form-chip-adornment")}>{start}</span>}
       {chips ? <div className="r-form-chip-row">{children}</div> : children}
@@ -79,13 +73,17 @@ export function SelectionFrame({
   );
 }
 
-/** On a button beside the input: the press must not take focus from it. */
-export function keepFocus(event: MouseEvent) {
-  event.preventDefault();
-}
-
 /** The chevron that opens and closes the list. Out of the tab order: the keyboard has the arrows. */
-export function SelectionToggle({ open, label, controls, onToggle }: { open: boolean; label: string; controls: string | undefined; onToggle: () => void }) {
+export function SelectionToggle({
+  popup,
+  label,
+  inputRef,
+}: {
+  popup: SelectionPopup;
+  label: string;
+  inputRef: RefObject<HTMLInputElement | null>;
+}) {
+  const { open, setOpen, controls } = popup;
   return (
     <button
       type="button"
@@ -94,12 +92,21 @@ export function SelectionToggle({ open, label, controls, onToggle }: { open: boo
       aria-expanded={open}
       aria-controls={controls}
       onMouseDown={keepFocus}
-      onClick={onToggle}
+      onClick={() => {
+        inputRef.current?.focus();
+        setOpen(!open);
+      }}
       className="r-form-icon-button hit-area"
     >
       <ChevronDown aria-hidden className={cn("transition-transform duration-fast", open && "rotate-180")} />
     </button>
   );
+}
+
+/** Whether a blur takes focus out of `root` (not into a part of it, such as the list rendered in place inside it). */
+export function focusLeaves(root: HTMLElement | null, event: FocusEvent): boolean {
+  const next = event.relatedTarget;
+  return !(next instanceof Node && root?.contains(next));
 }
 
 /**
@@ -127,6 +134,8 @@ export interface ChipItem {
 }
 
 export interface SelectionChipsProps {
+  /** The list's id (a summary that expands it points at it). */
+  id?: string;
   chips: ChipItem[];
   /** Names the list ("Selected regions"). */
   label: string;
@@ -146,6 +155,7 @@ export interface SelectionChipsProps {
  * chip that took its place, else the one before, else the input.
  */
 export function SelectionChips({
+  id,
   chips,
   label,
   removeLabel,
@@ -194,7 +204,7 @@ export function SelectionChips({
 
   return (
     // `display: contents`: the chips wrap in the frame's own row beside the input.
-    <ul ref={listRef} aria-label={label} className={cn("contents", className)}>
+    <ul ref={listRef} id={id} aria-label={label} className={cn("contents", className)}>
       {chips.map((chip, index) => (
         <li key={chip.key} className={cn("r-form-chip", chipClassName)}>
           <span className="min-w-0 truncate" title={chip.label}>
@@ -218,17 +228,30 @@ export function SelectionChips({
   );
 }
 
-/** Moves from the input's start onto the last chip (ArrowLeft in LTR, ArrowRight in RTL). */
+/** Whether `el` has a box: a `display: none` ancestor (a container query folding chips away) takes it out. */
+function isRendered(el: Element): boolean {
+  if (typeof el.checkVisibility === "function") return el.checkVisibility();
+  for (let node: Element | null = el; node; node = node.parentElement) {
+    if (getComputedStyle(node).display === "none") return false;
+  }
+  return true;
+}
+
+/**
+ * Moves from the input's start onto the last chip (ArrowLeft in LTR, ArrowRight
+ * in RTL), or onto the summary standing in for chips a narrow field hides.
+ */
 export function focusLastChip(event: KeyboardEvent<HTMLInputElement>, frame: HTMLElement | null): boolean {
   const input = event.currentTarget;
   if (input.selectionStart !== 0 || input.selectionEnd !== 0) return false;
   const rtl = getComputedStyle(input).direction === "rtl";
   if (event.key !== (rtl ? "ArrowRight" : "ArrowLeft")) return false;
-  const buttons = frame?.querySelectorAll<HTMLButtonElement>(".r-form-chip-remove");
-  const last = buttons?.[buttons.length - 1];
-  if (!last || last.disabled) return false;
+  const removes = frame?.querySelectorAll<HTMLButtonElement>(".r-form-chip-remove");
+  const candidates = [removes?.[removes.length - 1], frame?.querySelector<HTMLButtonElement>(".r-form-chip-summary")];
+  const target = candidates.find((button) => button && !button.disabled && isRendered(button));
+  if (!target) return false;
   event.preventDefault();
-  last.focus();
+  target.focus();
   return true;
 }
 

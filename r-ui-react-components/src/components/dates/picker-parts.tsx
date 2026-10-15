@@ -40,6 +40,12 @@ export const DEFAULT_DATE_ENTRY_LABELS: DateEntryLabels = {
   unavailable: (date) => `${date} is not available.`,
 };
 
+/** Typed text a field refused, and why. */
+export interface RejectedEntry {
+  reason: DateRejection;
+  text: string;
+}
+
 export interface DateRules {
   locale: string;
   min?: Date;
@@ -55,13 +61,7 @@ export function rejectionFor(date: Date | null, rules: DateRules): DateRejection
   return null;
 }
 
-export function rejectionMessage(
-  reason: DateRejection,
-  text: string,
-  pattern: string,
-  rules: DateRules,
-  labels: DateEntryLabels,
-): string {
+export function rejectionMessage({ reason, text }: RejectedEntry, pattern: string, rules: DateRules, labels: DateEntryLabels): string {
   const long = (d: Date) => dateFormatter(rules.locale, { dateStyle: "medium" }).format(d);
   if (reason === "unparseable") return labels.unparseable(text, pattern);
   if (reason === "outOfRange") {
@@ -89,7 +89,7 @@ export function useDateText({
   rules: DateRules;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
-  const [rejected, setRejected] = useState<{ reason: DateRejection; text: string } | null>(null);
+  const [rejected, setRejected] = useState<RejectedEntry | null>(null);
   const text = draft ?? (value ? formatInputDate(value, rules.locale) : "");
 
   const commit = () => {

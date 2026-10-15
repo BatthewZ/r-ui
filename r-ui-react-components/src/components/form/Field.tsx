@@ -12,7 +12,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 
 import { useControllableState, type UseControllableStateParams } from "../../hooks/use-controllable-state";
@@ -21,6 +20,7 @@ import { mergeRefs } from "../../util/merge-refs";
 import { ErrorLine } from "../../util/error-line";
 import { cn, type SlotClassNames } from "../../util/style";
 
+import { useStoreSnapshot } from "../../hooks/use-store-snapshot";
 import { useFormStore } from "./form-state-context";
 import { canonicalPath } from "./form-state-path";
 import type { FieldStateSnapshot, FieldValidator } from "./form-state-store";
@@ -31,7 +31,7 @@ import type { FieldStateSnapshot, FieldValidator } from "./form-state-store";
 type SingleSlot = "control" | "label";
 type ListSlot = "description" | "error" | "outlet";
 type Slot = SingleSlot | ListSlot;
-const LIST_SLOTS: readonly Slot[] = ["description", "error", "outlet"];
+const isListSlot = (slot: Slot): slot is ListSlot => slot !== "control" && slot !== "label";
 
 type Mounted = Partial<Record<SingleSlot, string>> & Record<ListSlot, readonly string[]>;
 const NOTHING_MOUNTED: Mounted = { description: [], error: [], outlet: [] };
@@ -245,8 +245,6 @@ function spokenText(id: string | undefined): string | undefined {
   return copy.textContent?.trim() || undefined;
 }
 
-const subscribeNothing = () => () => {};
-
 export interface FieldProps extends ComponentPropsWithRef<"div"> {
   /**
    * The value's path in the surrounding `Form` (`email`, `conditions[0].metric`).
@@ -299,13 +297,13 @@ function FieldRoot({
   const [mounted, setMounted] = useState<Mounted>(NOTHING_MOUNTED);
 
   const register = useCallback((slot: Slot, id: string) => {
-    if (LIST_SLOTS.includes(slot)) {
-      const list = slot as ListSlot;
+    if (isListSlot(slot)) {
+      const list = slot;
       setMounted((prev) => (prev[list].includes(id) ? prev : { ...prev, [list]: [...prev[list], id] }));
       return () =>
         setMounted((prev) => (prev[list].includes(id) ? { ...prev, [list]: prev[list].filter((x) => x !== id) } : prev));
     }
-    const single = slot as SingleSlot;
+    const single = slot;
     setMounted((prev) => (prev[single] === id ? prev : { ...prev, [single]: id }));
     return () =>
       setMounted((prev) => {
@@ -319,8 +317,7 @@ function FieldRoot({
   // Form binding: only with a `name`, inside a `Form`.
   const store = useFormStore();
   const path = name === undefined ? undefined : canonicalPath(name);
-  const getSnapshot = () => (store && path !== undefined ? store.getFieldSnapshot(path) : undefined);
-  const snapshot = useSyncExternalStore(store?.subscribe ?? subscribeNothing, getSnapshot, getSnapshot);
+  const snapshot = useStoreSnapshot(store, (bound) => (path === undefined ? undefined : bound.getFieldSnapshot(path)));
   const setValue = useCallback(
     (value: unknown) => {
       if (store && path !== undefined) store.change(path, value);

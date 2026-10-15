@@ -23,6 +23,30 @@ export interface InputProps extends Omit<ComponentPropsWithRef<"input">, "type" 
 
 const INTERACTIVE = "input, textarea, select, button, a, [tabindex]";
 
+/**
+ * A press on a text frame's padding or on a decorative adornment focuses its
+ * input, as if the whole box were the input; interactive adornments keep
+ * theirs. Returns whether the frame took the press.
+ */
+export function focusInputFromFrame(
+  event: MouseEvent<HTMLElement>,
+  input: HTMLInputElement | null,
+  disabled: boolean | undefined,
+): boolean {
+  // Only interactive elements INSIDE the frame count: an ancestor with a
+  // tabindex (a focusable <main>, a dialog) must not swallow the press.
+  const interactive = event.target instanceof Element ? event.target.closest(INTERACTIVE) : null;
+  if (disabled || (interactive && event.currentTarget.contains(interactive))) return false;
+  event.preventDefault();
+  input?.focus();
+  return true;
+}
+
+/** On a button beside the input: the press must not take focus from it. */
+export function keepFocus(event: MouseEvent) {
+  event.preventDefault();
+}
+
 /** Text field with optional start and end adornments. Height `h-control`. */
 export function Input({
   type = "text",
@@ -53,24 +77,13 @@ export function Input({
   // In a Field bound to a Form, the form owns the value (unless the caller passed one).
   const nativeProps = useFieldInputProps(props);
 
-  // A press on the frame's padding or on a decorative adornment focuses the
-  // field, as if the whole box were the input. Interactive adornments keep theirs.
-  const onFrameMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    // Only interactive elements INSIDE the frame count: an ancestor with a
-    // tabindex (a focusable <main>, a dialog) must not swallow the press.
-    const interactive = (event.target as HTMLElement).closest(INTERACTIVE);
-    if (field.disabled || (interactive && event.currentTarget.contains(interactive))) return;
-    event.preventDefault();
-    inputRef.current?.focus();
-  };
-
   return (
     <div
       className={cn("r-form-frame r-form-text-frame flex h-control w-full min-w-0 items-center gap-r4 px-r3", className)}
       data-invalid={field.invalid ? "" : undefined}
       data-disabled={field.disabled ? "" : undefined}
       data-readonly={field.readOnly ? "" : undefined}
-      onMouseDown={onFrameMouseDown}
+      onMouseDown={(event) => focusInputFromFrame(event, inputRef.current, field.disabled)}
     >
       {start != null && <span className={cn("r-form-adornment", classNames?.start)}>{start}</span>}
       <input

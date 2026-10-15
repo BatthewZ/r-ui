@@ -107,26 +107,22 @@ function AccordionRoot(props: AccordionProps) {
     multiple = false,
     value,
     defaultValue,
-    onValueChange,
+    onValueChange: _onValueChange,
     collapsible = true,
     headingLevel = 3,
     className,
     children,
     ...rest
-  } = props as AccordionBaseProps & {
-    multiple?: boolean;
-    value?: string | null | string[];
-    defaultValue?: string | null | string[];
-    onValueChange?: (value: never) => void;
-    collapsible?: boolean;
-  };
-  const emit = onValueChange as ((value: string | null | string[]) => void) | undefined;
+  } = props;
 
   const [openValues, setOpenValues] = useControllableState<readonly string[]>({
     value: value === undefined ? undefined : toList(value),
     // A single accordion seeded with several values opens only the first.
     defaultValue: multiple ? toList(defaultValue) : toList(defaultValue).slice(0, 1),
-    onChange: (next) => emit?.(multiple ? [...next] : (next[0] ?? null)),
+    onChange: (next) => {
+      if (props.multiple) props.onValueChange?.([...next]);
+      else props.onValueChange?.(next[0] ?? null);
+    },
   });
 
   const locked = !multiple && !collapsible;

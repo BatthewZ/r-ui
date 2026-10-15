@@ -338,7 +338,8 @@
 
   .r-navigation-shell:not([data-collapsed]) {
     & .r-navigation-shell-sidebar-inner {
-      inline-size: calc(var(--MEASURE) * 0.4);
+      /* One auto-fit column: the width a card or field column gets. */
+      inline-size: var(--COLUMN-MD);
       align-items: stretch;
       overflow-y: auto;
       scrollbar-width: thin;

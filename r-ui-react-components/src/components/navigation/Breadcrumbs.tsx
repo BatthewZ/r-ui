@@ -1,24 +1,33 @@
 "use client";
 import { ChevronRight, Ellipsis } from "lucide-react";
 import {
-  Children,
   type ComponentPropsWithRef,
   type ElementType,
-  isValidElement,
   type ReactNode,
-  type Ref,
   useEffect,
   useRef,
   useState,
 } from "react";
 
+import { elementChildren } from "../../util/children";
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useIsCurrent, useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
+import { type LabelsProp, mergeLabels } from "../../util/labels";
+
+export interface BreadcrumbsLabels {
+  /** The navigation landmark's name. */
+  nav: string;
+  /** The accessible name of the button standing in for `hidden` collapsed crumbs. */
+  expand: (hidden: number) => string;
+}
+
+export const DEFAULT_BREADCRUMBS_LABELS: BreadcrumbsLabels = {
+  nav: "Breadcrumb",
+  expand: (hidden) => `Show ${hidden} more`,
+};
 
 export type BreadcrumbsProps = {
-  /** The navigation landmark's name. Default "Breadcrumb". */
-  label?: string;
   /**
    * Collapse the middle crumbs behind a "more" button when there are more than
    * this many. Default: never collapse.
@@ -28,32 +37,32 @@ export type BreadcrumbsProps = {
   itemsBeforeCollapse?: number;
   /** Crumbs kept after the collapsed run. Default 2. */
   itemsAfterCollapse?: number;
-  /** Accessible name of the "more" button. Default "Show N more". */
-  expandLabel?: (hidden: number) => string;
+  labels?: LabelsProp<BreadcrumbsLabels>;
   classNames?: SlotClassNames<"list" | "item" | "separator" | "expand">;
 } & ComponentPropsWithRef<"nav">;
-
-const defaultExpandLabel = (hidden: number) => `Show ${hidden} more`;
 
 /**
  * The trail from the root to the current page: `Breadcrumbs.Item`s, the last one
  * `current`. A long trail can collapse its middle into one button that expands it
- * in place and moves focus to the first crumb it revealed.
+ * in place and moves focus to the first crumb it revealed (its link, or the
+ * crumb itself when it is plain text).
  */
 function BreadcrumbsRoot({
-  label = "Breadcrumb",
+  labels: labelsProp,
   maxItems,
   itemsBeforeCollapse = 1,
   itemsAfterCollapse = 2,
-  expandLabel = defaultExpandLabel,
   className,
   classNames,
   children,
   ...props
 }: BreadcrumbsProps) {
-  const crumbs = Children.toArray(children).filter(isValidElement);
+  const labels = mergeLabels(DEFAULT_BREADCRUMBS_LABELS, labelsProp);
+  const crumbs = elementChildren(children);
   const [expanded, setExpanded] = useState(false);
-  const revealRef = useRef<HTMLLIElement>(null);
+  const listRef = useRef<HTMLOListElement>(null);
+  /** How many crumbs the expand button stood for, while focus waits to land on them. */
+  const revealed = useRef(0);
   const focusReveal = useRef(false);
 
   const before = Math.max(0, itemsBeforeCollapse);
@@ -61,18 +70,29 @@ function BreadcrumbsRoot({
   const hidden = crumbs.length - before - after;
   const collapsed = !expanded && maxItems !== undefined && crumbs.length > maxItems && hidden > 1;
 
+  // The button that had focus is gone: focus the first revealed crumb that can
+  // take it, else the first revealed crumb itself, so focus never drops to <body>.
   useEffect(() => {
-    if (!expanded || !focusReveal.current) return;
-    focusReveal.current = false;
-    revealRef.current?.querySelector<HTMLElement>("a, button, [tabindex]")?.focus();
-  }, [expanded]);
+    const count = revealed.current;
+    if (!expanded || count === 0) return;
+    revealed.current = 0;
+    const run = Array.from(listRef.current?.children ?? []).slice(before, before + count) as HTMLElement[];
+    const target = run
+      .map((li) => li.querySelector<HTMLElement>('a[href], button, input, [tabindex]:not([tabindex="-1"])'))
+      .find((el) => el !== null);
+    if (target) return target.focus();
+    const first = run[0];
+    if (!first) return;
+    first.tabIndex = -1;
+    first.focus();
+  }, [expanded, before]);
 
   const separator = (
     <ChevronRight aria-hidden className={cn("size-icon shrink-0 text-fg-muted rtl:-scale-x-100", classNames?.separator)} />
   );
 
-  const item = (node: ReactNode, index: number, ref?: Ref<HTMLLIElement>) => (
-    <li key={index} ref={ref} className={cn("inline-flex min-w-0 items-center gap-r5", classNames?.item)}>
+  const item = (node: ReactNode, index: number) => (
+    <li key={index} className={cn("inline-flex min-w-0 items-center gap-r5", classNames?.item)}>
       {index > 0 && separator}
       {node}
     </li>
@@ -85,13 +105,13 @@ function BreadcrumbsRoot({
           {before > 0 && separator}
           <button
             type="button"
-            aria-label={expandLabel(hidden)}
+            aria-label={labels.expand(hidden)}
             className={cn(
               "hit-area inline-flex items-center rounded-sm px-r6 text-fg-secondary hover:bg-fg-primary/8 hover:text-fg-primary",
               classNames?.expand,
             )}
             onClick={() => {
-              focusReveal.current = true;
+              revealed.current = hidden;
               setExpanded(true);
             }}
           >
@@ -100,11 +120,11 @@ function BreadcrumbsRoot({
         </li>,
         ...crumbs.slice(crumbs.length - after).map((node, i) => item(node, crumbs.length - after + i)),
       ]
-    : crumbs.map((node, i) => item(node, i, i === before ? revealRef : undefined));
+    : crumbs.map((node, i) => item(node, i));
 
   return (
-    <nav aria-label={label} className={className} {...props}>
-      <ol className={cn("flex flex-wrap items-center gap-x-r5 gap-y-r6 text-body-2", classNames?.list)}>{items}</ol>
+    <nav aria-label={labels.nav} className={className} {...props}>
+      <ol ref={listRef} className={cn("flex flex-wrap items-center gap-x-r5 gap-y-r6 text-body-2", classNames?.list)}>{items}</ol>
     </nav>
   );
 }

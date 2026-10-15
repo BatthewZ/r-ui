@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Additive to the 0.1.0 contract, with two behaviour changes marked **Changed**.
+Additive to the 0.1.0 contract, with three behaviour changes marked **Changed** (the third, under Print, can break a theme: a theme may no longer use `!important`).
 
 - **Face roles.** New optional `--FONT-HEADING` (in-app headings: `h1`–`h6`, `text-h*`) between `--FONT-UI` and `--FONT-DISPLAY`; `--FONT-DISPLAY` now falls back to it. New utility `font-heading`. Optional per-face `--FONT-UI-SIZE-ADJUST`, `--FONT-HEADING-SIZE-ADJUST`, `--FONT-DISPLAY-SIZE-ADJUST` (undeclared; `none` when unset).
 - **Changed:** `text-h1`…`text-h6` carry the heading face and `--HEADING-CASE`; `text-display-1`…`4` carry the display face, `--HEADING-CASE` and prose figures. A `font-*`, case or numeric utility on the same element still overrides them.
@@ -14,7 +14,14 @@ Additive to the 0.1.0 contract, with two behaviour changes marked **Changed**.
 - **Examples.** A third worked example: light, editorial, naming web faces (a serif for headings and display, a sans for the rest) that the app loads, with a 2px border-led depth.
 - **Container variants.** `--container-measure`, `--container-page` and `--container-column-*` are literal lengths equal to the defaults of `--MEASURE`, `--PAGE-MAX` and `--COLUMN-*`, so `@column-md:`, `@max-column-sm:`, `@max-page:` and the rest compile (a container query cannot read a custom property, so they compiled to nothing before). The box utilities (`max-w-page`, `w-column-md`, `basis-column-*`) still read the lever through a `:root` alias, so a theme that retunes it moves every box; the variants keep the default lengths. Themes may not set the aliases.
 - **Forced colors.** Inside a meaning-bearing fill the status text roles take the fill's text colour too, and so does `--C-FOCUS` for the fill's descendants (an error label or a focused control in a selected row reads; the filled element's own outer ring keeps Highlight). `--SCHEME-DARK` follows the forced palette (`prefers-color-scheme` there), not the theme, so anything still blended by it suits the forced Canvas.
+- **Print.** Under `@media print` every theme prints as ink on paper: one light palette for every colour role (`!important` on `:root`), `color-scheme: light`, `--SCHEME-DARK: 0`, flat shadows, collapsed motion, underlined links; `@page` margins, orphans and widows, no breaks inside figures, rows, images, `pre` and `blockquote`, repeated table heads, closed `<details>` printed open, revealed scroll-reveal content, external prose links printing their URL, and the meaning-bearing fills (`bg-primary*`, `bg-accent*`, `bg-selection`, `bg-status-*`, `bg-fg-primary`) keeping their colour on paper. New `data-print` conventions: `hide`, `only`, `break-before`, `avoid-break`, `exact`, `flow`. **Changed:** a theme may not use `!important`. Checks: the print palette is measured against the contrast contract, must map every colour role (important), and its rules must compile.
 - **Checks.** Compile: every `@utility` is discovered from source, each `@theme` name must sit in a known namespace, heading and display sizes must read their face, bare borders the line weight, and meaning-bearing fills must opt out under forced colors (and remap the status text roles, and `--C-FOCUS` for their descendants); each container variant compiles to its lever's default and keeps its alias. Theme rules: no `--LAYER-*` or `--container-*` in a theme, no font loading in a theme, every `--C-*` role needs a forced-colors mapping, and `--SCHEME-DARK` must follow the forced palette.
+- **Link offset.** `--LINK-UNDERLINE-OFFSET` (default `0.18em`), a link-treatment lever beside `--LINK-DECORATION`: the gap between a link's text and its underline. Prose links read it, and the compile check fails if they stop.
+- **Packaging.** `LICENSE` (MIT) ships. Only the consumer-facing checks are published (`scripts/check-contrast.mjs`, `scripts/check-theme-rules.mjs` and `scripts/lib`); the compile check and the specimen builder, which need this repository, no longer are. Theme-rule output labels a consumer's theme by its own path and a shipped file as `@batthewz/r-ui-css/…`.
+
+### Verification
+
+- Checks: the contrast check's scheme test compares luminance, so a theme written in hex is judged by its lightness (a coherent dark hex theme no longer fails as "partial", an inverted light one no longer passes).
 
 ## 0.1.0 (unreleased)
 

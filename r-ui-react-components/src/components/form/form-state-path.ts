@@ -19,7 +19,7 @@ export function parsePath(path: string): PathSegment[] {
 }
 
 /** `["a", "b", 0, "c"]` → `a.b[0].c`. */
-export function formatPath(segments: readonly PathSegment[]): string {
+function formatPath(segments: readonly PathSegment[]): string {
   let out = "";
   for (const segment of segments) {
     if (typeof segment === "number") out += `[${segment}]`;

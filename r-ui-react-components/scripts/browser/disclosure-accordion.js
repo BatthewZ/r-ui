@@ -12,8 +12,10 @@
 //      input (where `--ROW-H` is raised to `--HIT-MIN`), so rows follow density
 //      and never fall under the hit floor;
 //   3. keyboard (real key presses): ArrowDown moves to the next header, End to
-//      the last ENABLED one (the disabled item is skipped), Home back to the
-//      first, and Enter on a closed header opens it;
+//      the last ENABLED one, then ArrowDown crosses the disabled last header and
+//      wraps to the first, ArrowUp crosses it back to the last enabled one (harness:
+//      the demo's last header is disabled, so each of these can fail), Home goes
+//      back to the first, and Enter on a closed header opens it;
 //   4. opening animates: two frames after the state flips the panel is taller
 //      than 0 and shorter than its content; it settles at the content's height, and
 //      closing runs the other way and ends at 0 with the content hidden;
@@ -35,6 +37,7 @@ async (page) => {
   const QUESTIONS = {
     alerts: "Which alerts page someone?",
     export: "Can we export the timeline?",
+    retention: "How long are incidents kept?",
   };
 
   // Height of the panel controlled by a header, and of its content.
@@ -87,18 +90,31 @@ async (page) => {
   if (!(compact.rowH < comfortable.rowH)) fail.push(`rows: compact --ROW-H ${compact.rowH} is not below comfortable ${comfortable.rowH}`);
   if (!(coarse.height >= 44)) fail.push(`rows: at coarse input the trigger is ${coarse.height}px, under the 44px floor`);
 
-  // 3. Keyboard, with real key presses.
+  // 3. Keyboard, with real key presses. Harness: the demo's LAST header is the disabled one.
+  const order = await page.evaluate(
+    (scope) => [...document.querySelectorAll(`${scope} button[aria-controls]`)].map((b) => ({ title: b.textContent.trim(), disabled: b.disabled })),
+    first,
+  );
+  const lastHeader = order[order.length - 1];
+  if (order.length < 3 || lastHeader?.title !== QUESTIONS.retention || !lastHeader.disabled || order.slice(0, -1).some((h) => h.disabled)) {
+    fail.push(`harness: headers ${JSON.stringify(order)}, expected enabled ones then "${QUESTIONS.retention}" disabled last`);
+  }
   const focused = () => page.evaluate(() => document.activeElement?.textContent?.trim() ?? "");
   await page.locator(first).getByRole("button", { name: QUESTIONS.alerts }).focus();
-  await page.keyboard.press("ArrowDown");
-  const afterDown = await focused();
-  await page.keyboard.press("End");
-  const afterEnd = await focused();
-  await page.keyboard.press("Home");
-  const afterHome = await focused();
-  if (!afterDown.startsWith("How is an incident routed")) fail.push(`keyboard: ArrowDown landed on "${afterDown}"`);
-  if (afterEnd !== QUESTIONS.export) fail.push(`keyboard: End landed on "${afterEnd}", expected the last enabled header`);
-  if (afterHome !== QUESTIONS.alerts) fail.push(`keyboard: Home landed on "${afterHome}"`);
+  const keys = [];
+  for (const [key, want] of [
+    ["ArrowDown", "How is an incident routed"],
+    ["End", QUESTIONS.export],
+    // Crossing the disabled last header, both ways.
+    ["ArrowDown", QUESTIONS.alerts],
+    ["ArrowUp", QUESTIONS.export],
+    ["Home", QUESTIONS.alerts],
+  ]) {
+    await page.keyboard.press(key);
+    const now = await focused();
+    keys.push(`${key}→${now.slice(0, 24)}`);
+    if (!now.startsWith(want)) fail.push(`keyboard: ${keys.join(", ")}: ${key} landed on "${now}", expected "${want}"`);
+  }
 
   // 4. The height animates, both ways. Enter on the focused (closed) last header.
   const animate = () =>

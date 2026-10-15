@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Field } from "./Field";
 import { SearchInput } from "./SearchInput";
+import { Form, useForm } from "./use-form";
 
 describe("SearchInput", () => {
   it("is a searchbox named 'Search' by default, and stands aside for a Field label", () => {
@@ -96,8 +97,37 @@ describe("SearchInput", () => {
     expect(screen.getByRole("searchbox")).not.toHaveAttribute("aria-busy");
   });
 
-  it("takes a custom clear label", async () => {
-    render(<SearchInput defaultValue="x" clearLabel="Effacer" />);
+  it("speaks its labels: the clear button, and the default name and placeholder", async () => {
+    render(<SearchInput defaultValue="x" labels={{ clear: "Effacer", search: "Rechercher" }} />);
     expect(screen.getByRole("button", { name: "Effacer" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "Rechercher" })).toHaveAttribute("placeholder", "Rechercher");
+  });
+  it("binds to a Form through Field name, like every control", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    function Filters() {
+      const form = useForm({ defaultValues: { query: "cpu" }, onSubmit });
+      return (
+        <Form form={form}>
+          <Field name="query">
+            <Field.Label>Find incidents</Field.Label>
+            <SearchInput />
+          </Field>
+          <button type="submit">Apply</button>
+        </Form>
+      );
+    }
+    render(<Filters />);
+    const input = screen.getByRole("searchbox", { name: "Find incidents" });
+    expect(input).toHaveValue("cpu");
+    expect(input).toHaveAttribute("name", "query");
+    await user.type(input, "-high");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit.mock.calls[0]?.[0]).toEqual({ query: "cpu-high" });
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(input).toHaveValue("");
+    await user.click(screen.getByRole("button", { name: "Apply" }));
+    expect(onSubmit.mock.calls[1]?.[0]).toEqual({ query: "" });
   });
 });

@@ -91,6 +91,11 @@ function over(fgLin, alpha, bgLin) {
 
 const luminance = ([r, g, b]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
 
+/** WCAG relative luminance of a colour (alpha ignored): which of two is lighter. */
+export function relativeLuminance(str) {
+  return luminance(linearOf(parseColor(str), "clip"));
+}
+
 export function ratioOfLinear(a, b) {
   const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);

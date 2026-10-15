@@ -6,10 +6,15 @@ import {
   type ReactNode,
   useContext,
   useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { composeEventHandlers } from "../../util/merge-props";
+import { mergeRefs } from "../../util/merge-refs";
 import { cn } from "../../util/style";
 
 /**
@@ -30,6 +35,9 @@ interface TabsContextValue {
   variant: TabsVariant;
   activation: TabsActivation;
   baseId: string;
+  /** The tab that holds the tab stop when the selected one cannot (disabled, or no tab has the value). */
+  fallback: string | null;
+  setFallback: (value: string | null) => void;
 }
 
 const TabsContext = createContext<TabsContextValue | null>(null);
@@ -69,8 +77,13 @@ function TabsRoot({
     onChange: onValueChange,
   });
   const baseId = useId();
+  const [fallback, setFallback] = useState<string | null>(null);
+  const ctx = useMemo(
+    () => ({ value, select, variant, activation, baseId, fallback, setFallback }),
+    [value, select, variant, activation, baseId, fallback],
+  );
   return (
-    <TabsContext.Provider value={{ value, select, variant, activation, baseId }}>
+    <TabsContext.Provider value={ctx}>
       <div className={cn("flex min-w-0 flex-col gap-r3", className)} {...props}>
         {children}
       </div>
@@ -86,18 +99,33 @@ const LIST: Record<TabsVariant, string> = {
 };
 
 /** The row of tabs. Name it with `aria-label` (or `aria-labelledby`). Scrolls when it overflows. */
-function TabsList({ className, onKeyDown, ...props }: TabsListProps) {
-  const { select, variant, activation } = useTabs("List");
+/** This list's own enabled tabs, in order (not a nested tablist's). */
+const enabledTabs = (list: HTMLElement) =>
+  Array.from(list.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
+    (tab) => !tab.disabled && tab.closest('[role="tablist"]') === list,
+  );
+
+function TabsList({ ref, className, onKeyDown, ...props }: TabsListProps) {
+  const { value, select, variant, activation, setFallback } = useTabs("List");
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // The selected tab is the tab stop; when it is disabled or no tab has the
+  // value, the first enabled tab takes it, or the list could not be reached.
+  // Read from the DOM after every render: tabs register nowhere else.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const tabs = enabledTabs(list);
+    const next = tabs.some((tab) => tab.dataset.value === value) ? null : (tabs[0]?.dataset.value ?? null);
+    setFallback(next);
+  });
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const list = event.currentTarget;
-    const tabs = Array.from(list.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
-      (tab) => !tab.disabled && tab.closest('[role="tablist"]') === list,
-    );
+    const tabs = enabledTabs(event.currentTarget);
     const current = tabs.indexOf(event.target as HTMLButtonElement);
     if (current === -1) return;
 
-    const rtl = getComputedStyle(list).direction === "rtl";
+    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
     const forward = rtl ? "ArrowLeft" : "ArrowRight";
     const back = rtl ? "ArrowRight" : "ArrowLeft";
     let next: number;
@@ -126,6 +154,7 @@ function TabsList({ className, onKeyDown, ...props }: TabsListProps) {
 
   return (
     <div
+      ref={mergeRefs(listRef, ref)}
       role="tablist"
       aria-orientation="horizontal"
       className={cn(LIST[variant], className)}
@@ -145,10 +174,10 @@ const TAB: Record<TabsVariant, string> = {
   underline:
     "r-navigation-tab-underline px-r3 text-fg-secondary enabled:hover:text-fg-primary aria-selected:text-fg-primary",
   enclosed:
-    "rounded-sm px-r3 text-fg-secondary enabled:hover:text-fg-primary enabled:not-aria-selected:hover:bg-fg-primary/8 aria-selected:bg-surface-0 aria-selected:text-fg-primary aria-selected:shadow-[inset_0_0_0_1px_var(--C-BORDER-STRONG)] forced-colors:aria-selected:bg-selection forced-colors:aria-selected:[--C-FOCUS:var(--C-TEXT-ON-SELECTION)] forced-colors:aria-selected:focus-visible:outline-offset-[calc(var(--FOCUS-WIDTH)*-2)]",
+    "rounded-sm px-r3 text-fg-secondary enabled:hover:text-fg-primary enabled:not-aria-selected:hover:bg-fg-primary/8 aria-selected:bg-surface-0 aria-selected:text-fg-primary aria-selected:shadow-[inset_0_0_0_var(--BORDER-WIDTH)_var(--C-BORDER-STRONG)] forced-colors:aria-selected:bg-selection forced-colors:aria-selected:[--C-FOCUS:var(--C-TEXT-ON-SELECTION)] forced-colors:aria-selected:focus-visible:outline-offset-[calc(var(--FOCUS-WIDTH)*-2)]",
 };
 
-/** One tab. Roving tab stop: only the selected tab is in the Tab order. */
+/** One tab. Roving tab stop: only the selected tab (else the first enabled one) is in the Tab order. */
 function TabsTab({ value, icon, disabled, className, onClick, children, ...props }: TabsTabProps) {
   const ctx = useTabs("Tab");
   const selected = ctx.value === value;
@@ -159,7 +188,7 @@ function TabsTab({ value, icon, disabled, className, onClick, children, ...props
       id={tabId(ctx.baseId, value)}
       aria-selected={selected}
       aria-controls={panelId(ctx.baseId, value)}
-      tabIndex={selected ? 0 : -1}
+      tabIndex={(selected && !disabled) || ctx.fallback === value ? 0 : -1}
       disabled={disabled}
       data-value={value}
       className={cn(

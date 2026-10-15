@@ -97,6 +97,38 @@ describe("NumberInput", () => {
     expect(onValueChange).toHaveBeenLastCalledWith(100);
   });
 
+  it("shows the committed value after Enter, not the text that was typed", async () => {
+    render(<NumberInput aria-label="N" max={100} precision={1} />);
+    const spin = screen.getByRole("spinbutton");
+    await userEvent.type(spin, "500{Enter}");
+    expect(spin).toHaveAttribute("aria-valuenow", "100");
+    expect(spin).toHaveValue("100");
+    await userEvent.clear(spin);
+    await userEvent.type(spin, "3.14159{Enter}");
+    expect(spin).toHaveValue("3.1");
+    // Unreadable text stays to be fixed; leaving the field reverts it.
+    await userEvent.clear(spin);
+    await userEvent.type(spin, "abc{Enter}");
+    expect(spin).toHaveValue("abc");
+    await userEvent.tab();
+    expect(spin).toHaveValue("3.1");
+  });
+
+  it("leaves the value alone when the field is focused and left without an edit", async () => {
+    const onValueChange = vi.fn();
+    render(
+      <NumberInput aria-label="N" defaultValue={1.234} formatOptions={{ maximumFractionDigits: 2 }} onValueChange={onValueChange} />,
+    );
+    const spin = screen.getByRole("spinbutton");
+    expect(spin).toHaveValue("1.23");
+    await userEvent.click(spin);
+    await userEvent.tab();
+    await userEvent.click(spin);
+    await userEvent.keyboard("{Enter}");
+    expect(onValueChange).toHaveBeenCalledTimes(0);
+    expect(spin).toHaveAttribute("aria-valuenow", "1.234");
+  });
+
   it("steps decimals without float drift", async () => {
     const onValueChange = vi.fn();
     render(<NumberInput aria-label="N" defaultValue={0.2} step={0.1} onValueChange={onValueChange} />);
@@ -127,6 +159,12 @@ describe("NumberInput", () => {
     await userEvent.click(dec);
     expect(onValueChange.mock.calls).toEqual([[2], [1], [0]]);
     expect(dec).toBeDisabled();
+  });
+
+  it("names its steppers from labels", () => {
+    render(<NumberInput aria-label="Menge" labels={{ increment: "Erhöhen", decrement: "Verringern" }} />);
+    expect(screen.getByRole("button", { name: "Erhöhen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Verringern" })).toBeInTheDocument();
   });
 
   it("steps from a half-typed draft rather than the stale committed value", async () => {

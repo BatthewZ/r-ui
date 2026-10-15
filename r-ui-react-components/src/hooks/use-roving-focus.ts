@@ -1,6 +1,8 @@
 "use client";
 import { type KeyboardEvent, useCallback, useRef, useState } from "react";
 
+import { isRtl } from "../util/direction";
+
 interface UseRovingFocusOptions {
   orientation: "horizontal" | "vertical";
   loop?: boolean;
@@ -12,25 +14,30 @@ interface RovingProps {
   ref: (el: HTMLElement | null) => void;
 }
 
+/** Natively disabled items cannot take focus, so the arrows pass over them. */
+const focusable = (element: HTMLElement | undefined): element is HTMLElement =>
+  element !== undefined && !element.matches(":disabled");
+
 /**
  * A roving tab stop for a composite widget: one tab stop for the whole group,
  * arrow keys between its items.
  *
  * Two ways in, and a widget uses one or the other:
  *
- * - **`getRovingProps(i).onKeyDown`** — the built-in key model, for a widget
+ * - **`getRovingProps(i).onKeyDown`**: the built-in key model, for a widget
  *   where moving focus means nothing else (a toolbar, a menubar). It moves
- *   focus and nothing more.
- * - **`setFocusedIndex`** — for a widget where the tab stop is *derived* from a
- *   value, which is what a `radiogroup` is: its tab stop must be the checked
- *   radio, so focus and selection are one state machine and the widget owns its
- *   own keys. Both in-package consumers (`Rating`, `ThemeSwitcher`) are that
- *   shape and take this route; each documents the reason on its own page.
+ *   focus and nothing more. Arrows follow the orientation, and a horizontal
+ *   group mirrors them under `dir="rtl"` (ArrowLeft is "next"). Home and End go
+ *   to the ends. Natively `disabled` items are passed over, since they cannot
+ *   take focus; an `aria-disabled` item stays in the walk (APG: it is
+ *   discoverable, its widget refuses to activate it).
+ * - **`setFocusedIndex`**: for a widget whose tab stop is *derived* from a
+ *   value, as a `radiogroup`'s is (its tab stop must be the checked radio), so
+ *   focus and selection are one state machine and the widget owns its keys.
  *
- * `setFocusedIndex` moves DOM focus with the tab stop **when the group already
- * holds focus**, so it never steals focus into the widget, and it never leaves
- * a `tabIndex={-1}` element focused. That last part used to be hand-rolled at
- * both call sites.
+ * `setFocusedIndex` moves DOM focus with the tab stop **only when the group
+ * already holds focus**, so it never pulls focus into the widget from
+ * elsewhere, and it never leaves a `tabIndex={-1}` element focused.
  */
 export function useRovingFocus(options: UseRovingFocusOptions): {
   getRovingProps: (index: number) => RovingProps;
@@ -43,9 +50,6 @@ export function useRovingFocus(options: UseRovingFocusOptions): {
   focusedIndexRef.current = focusedIndex;
 
   const elementsRef = useRef<Map<number, HTMLElement>>(new Map());
-
-  const prevKey = orientation === "horizontal" ? "ArrowLeft" : "ArrowUp";
-  const nextKey = orientation === "horizontal" ? "ArrowRight" : "ArrowDown";
 
   const setFocusedIndex = useCallback((index: number) => {
     setFocusedIndexState(index);
@@ -65,37 +69,56 @@ export function useRovingFocus(options: UseRovingFocusOptions): {
     (index: number): RovingProps => ({
       tabIndex: index === focusedIndexRef.current ? 0 : -1,
       onKeyDown: (e: KeyboardEvent) => {
-        const count = elementsRef.current.size;
-        if (count === 0) return;
+        const elements = elementsRef.current;
+        // Registered items in index order; an unmounted item leaves a gap, not a hole in the walk.
+        const indices = [...elements.keys()].sort((a, b) => a - b);
+        if (indices.length === 0) return;
 
+        /** The next focusable item from `current` in `delta`'s direction, wrapping when `loop`. */
+        const step = (current: number, delta: 1 | -1): number | undefined => {
+          const n = indices.length;
+          let position = indices.indexOf(current);
+          if (position === -1) position = delta > 0 ? -1 : n;
+          for (let tried = 0; tried < n; tried += 1) {
+            position += delta;
+            if (position < 0 || position >= n) {
+              if (!loop) return undefined;
+              position = (position + n) % n;
+            }
+            const candidate = indices[position]!;
+            if (focusable(elements.get(candidate))) return candidate;
+          }
+          return undefined;
+        };
+
+        const mirrored = orientation === "horizontal" && isRtl(e.currentTarget);
+        const nextKey = orientation === "horizontal" ? (mirrored ? "ArrowLeft" : "ArrowRight") : "ArrowDown";
+        const prevKey = orientation === "horizontal" ? (mirrored ? "ArrowRight" : "ArrowLeft") : "ArrowUp";
         const current = focusedIndexRef.current;
         let nextIndex: number | undefined;
 
         switch (e.key) {
           case nextKey:
-            nextIndex = loop
-              ? (current + 1) % count
-              : Math.min(current + 1, count - 1);
+            nextIndex = step(current, 1);
             break;
           case prevKey:
-            nextIndex = loop
-              ? (current - 1 + count) % count
-              : Math.max(current - 1, 0);
+            nextIndex = step(current, -1);
             break;
           case "Home":
-            nextIndex = 0;
+            nextIndex = indices.find((i) => focusable(elements.get(i)));
             break;
           case "End":
-            nextIndex = count - 1;
+            nextIndex = [...indices].reverse().find((i) => focusable(elements.get(i)));
             break;
           default:
             return;
         }
 
+        // At an end without `loop`, the key is still ours: it must not scroll the page.
         e.preventDefault();
         // Focus follows from here: the handler runs on the focused item, so the
         // "already inside the group" test above is satisfied by definition.
-        setFocusedIndex(nextIndex);
+        if (nextIndex !== undefined) setFocusedIndex(nextIndex);
       },
       ref: (el: HTMLElement | null) => {
         if (el) {
@@ -105,7 +128,7 @@ export function useRovingFocus(options: UseRovingFocusOptions): {
         }
       },
     }),
-    [loop, nextKey, prevKey, setFocusedIndex]
+    [loop, orientation, setFocusedIndex]
   );
 
   return { getRovingProps, focusedIndex, setFocusedIndex };

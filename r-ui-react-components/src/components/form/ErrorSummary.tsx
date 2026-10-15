@@ -1,19 +1,19 @@
 "use client";
-import { type ComponentPropsWithRef, type MouseEvent, type ReactNode, useSyncExternalStore } from "react";
+import { type ComponentPropsWithRef, type MouseEvent, type ReactNode } from "react";
 
 import { Alert, Link } from "../primitives";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn } from "../../util/style";
 
+import { useStoreSnapshot } from "../../hooks/use-store-snapshot";
 import { useFormStore } from "./form-state-context";
-import type { FormErrorEntry } from "./form-state-store";
+import { compareDocumentOrder, type FormErrorEntry } from "./form-state-store";
 
 export interface ErrorSummaryProps extends Omit<ComponentPropsWithRef<"div">, "title" | "children"> {
   /** The headline, in the caller's language. */
   title?: ReactNode;
 }
 
-const subscribeNothing = () => () => {};
 const NONE: FormErrorEntry[] = [];
 
 function byDomOrder(entries: FormErrorEntry[]): Array<FormErrorEntry & { element: HTMLElement | null }> {
@@ -21,8 +21,7 @@ function byDomOrder(entries: FormErrorEntry[]): Array<FormErrorEntry & { element
   // Fields in the order they sit on the page; errors with no field after them.
   return rows.sort((a, b) => {
     if (!a.element || !b.element) return a.element ? -1 : b.element ? 1 : 0;
-    if (a.element === b.element) return 0;
-    return a.element.compareDocumentPosition(b.element) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    return compareDocumentOrder(a.element, b.element);
   });
 }
 
@@ -36,11 +35,8 @@ function byDomOrder(entries: FormErrorEntry[]): Array<FormErrorEntry & { element
  */
 export function ErrorSummary({ title = "Fix these to continue", className, ref, ...props }: ErrorSummaryProps) {
   const store = useFormStore();
-  const subscribe = store?.subscribe ?? subscribeNothing;
-  const getFailed = () => store?.getFormSnapshot().submitFailed ?? false;
-  const failed = useSyncExternalStore(subscribe, getFailed, getFailed);
-  const getEntries = () => store?.getErrorEntries() ?? NONE;
-  const entries = useSyncExternalStore(subscribe, getEntries, getEntries);
+  const failed = useStoreSnapshot(store, (form) => form.getFormSnapshot().submitFailed) ?? false;
+  const entries = useStoreSnapshot(store, (form) => form.getErrorEntries()) ?? NONE;
   if (!store) throw new Error("<ErrorSummary> must be rendered inside a <Form>.");
   if (!failed || entries.length === 0) return null;
 

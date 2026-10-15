@@ -12,7 +12,16 @@ export interface Route {
 
 export function parseHash(hash: string, fallback: string): Route {
   const [page, anchor] = hash.replace(/^#\/?/, "").split("/");
-  return { page: page || fallback, anchor: anchor ? decodeURIComponent(anchor) : null };
+  return { page: page || fallback, anchor: anchor ? decode(anchor) : null };
+}
+
+/** A malformed escape (a typed `%`) would throw during render and blank the app; keep it as written. */
+function decode(part: string): string {
+  try {
+    return decodeURIComponent(part);
+  } catch {
+    return part;
+  }
 }
 
 export const href = (page: string, anchor?: string) =>

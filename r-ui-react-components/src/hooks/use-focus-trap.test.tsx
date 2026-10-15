@@ -47,14 +47,41 @@ describe("useFocusTrap", () => {
     expect(document.activeElement).toBe(screen.getByTestId("last"));
   });
 
-  it("does not trap focus when disabled", () => {
+  it("does not trap focus when disabled: Tab leaves the last item and focus may go outside", () => {
     const externalButton = document.createElement("button");
     document.body.appendChild(externalButton);
     externalButton.focus();
 
     render(<TrapComponent enabled={false} />);
+    expect(document.activeElement).toBe(externalButton);
 
-    expect(document.activeElement).not.toBe(screen.getByTestId("first"));
+    const last = screen.getByTestId("last");
+    last.focus();
+    // An enabled trap cancels this Tab and wraps to the first item.
+    const tab = fireEvent.keyDown(last, { key: "Tab" });
+    expect(tab).toBe(true);
+    expect(document.activeElement).toBe(last);
+
+    // An enabled trap pulls focus that lands outside back in.
+    externalButton.focus();
+    expect(document.activeElement).toBe(externalButton);
+
+    document.body.removeChild(externalButton);
+  });
+
+  it("releases the trap when it turns off", () => {
+    const externalButton = document.createElement("button");
+    document.body.appendChild(externalButton);
+    const { rerender } = render(<TrapComponent enabled={true} />);
+    expect(document.activeElement).toBe(screen.getByTestId("first"));
+
+    rerender(<TrapComponent enabled={false} />);
+    const last = screen.getByTestId("last");
+    last.focus();
+    expect(fireEvent.keyDown(last, { key: "Tab" })).toBe(true);
+    expect(document.activeElement).toBe(last);
+    externalButton.focus();
+    expect(document.activeElement).toBe(externalButton);
 
     document.body.removeChild(externalButton);
   });

@@ -34,7 +34,7 @@ export function FloatingPanel() {
               <DropdownMenu.Item icon={<Download />}>Export CSV</DropdownMenu.Item>
               <DropdownMenu.Item icon={<Archive />}>Archive</DropdownMenu.Item>
               <DropdownMenu.Separator />
-              <DropdownMenu.Item icon={<Trash2 />} tone="error">
+              <DropdownMenu.Item icon={<Trash2 />} variant="danger">
                 Delete row
               </DropdownMenu.Item>
             </DropdownMenu.Content>

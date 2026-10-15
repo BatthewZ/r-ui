@@ -1,0 +1,55 @@
+/* "steps" group stylesheet (Stepper, Wizard). Imported by src/styles.css inside
+   `@layer components`, so a caller's utility (`className`) always beats these
+   rules. Plain rules, tokens only. */
+
+/* The marker is an icon-sized glyph in a ring; both follow density. */
+.r-steps-stepper {
+  --r-steps-pad: var(--R-SIZE-5);
+  --r-steps-marker: calc(var(--ICON) + 2 * var(--R-SIZE-5));
+}
+
+/* The ring's weight and style; its colour is a utility (forced colours map it).
+   Current and error are double weight, skipped is dashed: a second cue beside
+   the glyph that survives when every ring is CanvasText. */
+.r-steps-marker {
+  border: var(--BORDER-WIDTH) solid;
+}
+.r-steps-marker[data-ring="double"] {
+  border-width: calc(2 * var(--BORDER-WIDTH));
+}
+.r-steps-marker[data-ring="dashed"] {
+  border-style: dashed;
+}
+
+/* The text's first line centred on the marker, at any leading. */
+.r-steps-text {
+  padding-block-start: calc((var(--r-steps-marker) - var(--BodyText-1-line-height)) / 2);
+}
+
+/* The line joining a step to the next: firmer once the step is behind you. */
+.r-steps-connector {
+  border: 0 solid var(--C-BORDER);
+}
+.r-steps-step[data-position="complete"] > .r-steps-connector {
+  border-color: var(--C-BORDER-STRONG);
+}
+.r-steps-list[data-orientation="horizontal"] > .r-steps-step > .r-steps-connector {
+  flex: 1 1 0;
+  min-inline-size: var(--R-SIZE-3);
+  margin-block-start: calc(var(--r-steps-pad) + var(--r-steps-marker) / 2);
+  border-block-start-width: var(--BORDER-WIDTH);
+}
+.r-steps-list[data-orientation="vertical"] > .r-steps-step > .r-steps-connector {
+  position: absolute;
+  inset-block: calc(2 * var(--r-steps-pad) + var(--r-steps-marker)) 0;
+  inset-inline-start: calc(var(--r-steps-pad) + var(--r-steps-marker) / 2 - var(--BORDER-WIDTH) / 2);
+  border-inline-start-width: var(--BORDER-WIDTH);
+}
+
+/* The collapsed form's segments: under forced colours a tint is repainted as
+   Canvas and an upcoming segment would vanish, so every segment keeps an edge. */
+@media (forced-colors: active) {
+  .r-steps-segment {
+    border: var(--BORDER-WIDTH) solid CanvasText;
+  }
+}

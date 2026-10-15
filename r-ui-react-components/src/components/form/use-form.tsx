@@ -1,6 +1,8 @@
 "use client";
 import { type ComponentPropsWithRef, type SubmitEvent, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 
+import { useStoreSnapshot } from "../../hooks/use-store-snapshot";
+import { reportUncaught } from "../../util/report-uncaught";
 import { FormStoreContext, useFormStore } from "./form-state-context";
 import { canonicalPath } from "./form-state-path";
 import type { StandardSchemaInput, StandardSchemaOutput, StandardSchemaV1 } from "./form-state-schema";
@@ -54,7 +56,13 @@ export interface FormApi<TValues, TOutput = TValues> {
   reset: (values?: TValues) => void;
   /** Runs every check without submitting. Errors show only on fields the user has reached. */
   validate: () => Promise<boolean>;
-  focusFirstError: () => boolean;
+  /**
+   * Checks part of the form (a wizard step): those paths show their errors from
+   * now on, and it resolves to whether none of them has one. Errors elsewhere stay hidden.
+   */
+  validatePaths: (paths: readonly string[]) => Promise<boolean>;
+  /** Focuses the first invalid field in DOM order; with `paths`, the first one at or under them. */
+  focusFirstError: (paths?: readonly string[]) => boolean;
 }
 
 /**
@@ -105,16 +113,12 @@ export function useForm(options: UseFormOptions<unknown, unknown>): FormApi<unkn
       setErrors: store.setErrors,
       reset: store.reset,
       validate: store.validate,
+      validatePaths: store.validatePaths,
       focusFirstError: store.focusFirstError,
     }),
     [store, state, submit],
   );
 }
-
-const report = (error: unknown) => {
-  if (typeof globalThis.reportError === "function") globalThis.reportError(error);
-  else console.error(error);
-};
 
 export interface FormProps<TValues, TOutput> extends Omit<ComponentPropsWithRef<"form">, "onSubmit" | "onReset" | "noValidate"> {
   form: FormApi<TValues, TOutput>;
@@ -142,7 +146,7 @@ export function Form<TValues, TOutput>({ form, children, ...props }: FormProps<T
         noValidate
         onSubmit={(event: SubmitEvent<HTMLFormElement>) => {
           event.preventDefault();
-          submit().catch(report);
+          submit().catch(reportUncaught);
         }}
         onReset={(event: SyntheticEvent<HTMLFormElement>) => {
           event.preventDefault();
@@ -163,15 +167,13 @@ export interface FormHandle {
   >;
 }
 
-const subscribeNothing = () => () => {};
 const NO_FORM = (hook: string) => new Error(`${hook} needs a <Form> around it, or the form as its last argument.`);
 
 /** The surrounding (or given) form's state: submitting, submitCount, dirty, validating… */
 export function useFormState(form?: FormHandle): FormStateSnapshot {
   const contextStore = useFormStore();
   const store = form?.store ?? contextStore;
-  const getSnapshot = () => store?.getFormSnapshot();
-  const state = useSyncExternalStore(store?.subscribe ?? subscribeNothing, getSnapshot, getSnapshot);
+  const state = useStoreSnapshot(store, (form) => form.getFormSnapshot());
   if (!state) throw NO_FORM("useFormState");
   return state;
 }
@@ -180,8 +182,7 @@ export function useFormState(form?: FormHandle): FormStateSnapshot {
 export function useFormValue<T = unknown>(name: string, form?: FormHandle): T {
   const contextStore = useFormStore();
   const store = form?.store ?? contextStore;
-  const getSnapshot = () => store?.getValue(name);
-  const value = useSyncExternalStore(store?.subscribe ?? subscribeNothing, getSnapshot, getSnapshot);
+  const value = useStoreSnapshot(store, (form) => form.getValue(name));
   if (!store) throw NO_FORM("useFormValue");
   return value as T;
 }
@@ -215,8 +216,7 @@ export function useFieldArray<TRow = unknown>(name: string, form?: FormHandle): 
   const contextStore = useFormStore();
   const store = form?.store ?? contextStore;
   const path = canonicalPath(name);
-  const getSnapshot = () => store?.getArraySnapshot(path) ?? NO_ROWS;
-  const { keys, error } = useSyncExternalStore(store?.subscribe ?? subscribeNothing, getSnapshot, getSnapshot);
+  const { keys, error } = useStoreSnapshot(store, (form) => form.getArraySnapshot(path)) ?? NO_ROWS;
   const items = useMemo(
     () => keys.map((key, index) => ({ key: String(key), index, name: `${path}[${index}]` })),
     [keys, path],

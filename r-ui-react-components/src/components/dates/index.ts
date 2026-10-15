@@ -10,7 +10,6 @@ export {
   type DateRangePickerLabels,
   type DateRangePickerProps,
   type DateRangePreset,
-  type DateRangeValue,
   DEFAULT_DATE_RANGE_PICKER_LABELS,
   DEFAULT_DATE_RANGE_PRESETS,
 } from "./DateRangePicker";

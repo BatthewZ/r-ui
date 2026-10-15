@@ -1,7 +1,8 @@
 // Token resolution for the checks: the default theme is every top-level `:root`
 // declaration reachable from the entry; a theme is its `:root[data-theme="x"]` block
 // layered on top. Media-query blocks (reduced motion, coarse pointer, more contrast)
-// are deliberately ignored: they are axes, not themes.
+// are deliberately ignored: they are axes, not themes. The print palette is the one
+// media block read on purpose (`printDecls`): it replaces every theme's colours.
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { declsFor, loadSheet, parse, splitSelectors } from "./css.mjs";
@@ -55,10 +56,30 @@ export function readTheme(file) {
   return { file, stem: basename(file, ".css"), names: [...names], decls, nodes };
 }
 
-/** All themes to measure: the default (:root) first, then each theme file over it. */
+/**
+ * Every declaration on `:root` inside an `@media print` block reachable from the entry,
+ * as `prop -> { value, important }`.
+ */
+export function printDecls(pkgDir) {
+  const out = new Map();
+  const visit = (nodes, inPrint) => {
+    for (const n of nodes) {
+      const here = inPrint || (n.type === "at" && n.name === "media" && /(^|[\s,(])print\b/.test(n.prelude) && !/\bnot\s+print\b/.test(n.prelude));
+      if (here && n.type === "rule" && splitSelectors(n.selector).includes(":root")) {
+        for (const d of n.decls) out.set(d.prop, { value: d.value, important: d.important });
+      }
+      if (n.children) visit(n.children, here);
+    }
+  };
+  visit(loadSheet(pkgPaths(pkgDir).entry), false);
+  return out;
+}
+
+/** All themes to measure: the default (:root) first, the print palette, then each theme file over the default. */
 export function allThemes(pkgDir, extra = []) {
   const defaults = loadDefaults(pkgDir);
-  const out = [{ name: "default (:root)", tokens: defaults }];
+  const print = new Map([...defaults, ...[...printDecls(pkgDir)].map(([p, d]) => [p, d.value])]);
+  const out = [{ name: "default (:root)", tokens: defaults }, { name: "print (@media print, over any theme)", tokens: print }];
   for (const file of themeFiles(pkgDir, extra)) {
     const t = readTheme(file);
     out.push({ name: t.names[0] ?? t.stem, tokens: new Map([...defaults, ...t.decls]) });

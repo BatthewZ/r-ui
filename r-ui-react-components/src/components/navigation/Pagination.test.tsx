@@ -90,6 +90,38 @@ describe("Pagination", () => {
     expect(screen.getByRole("button", { name: "Next page" })).toHaveFocus();
   });
 
+  it("with two pages, focus crosses to the arrow the move just enabled, both ways", async () => {
+    const user = userEvent.setup();
+    render(<Pagination pageCount={2} />);
+    await user.click(screen.getByRole("button", { name: "Next page" }));
+    expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Previous page" })).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Next page" })).toHaveFocus();
+  });
+
+  it("does not take focus on a later page change when the owner refused the move", async () => {
+    const user = userEvent.setup();
+    function Owner() {
+      const [p, setP] = useState(1);
+      return (
+        <>
+          <Pagination pageCount={2} page={p} onPageChange={() => {}} />
+          <button type="button" onClick={() => setP(2)}>
+            elsewhere
+          </button>
+        </>
+      );
+    }
+    render(<Owner />);
+    await user.click(screen.getByRole("button", { name: "Next page" }));
+    expect(page(1)).toHaveAttribute("aria-current", "page");
+    await user.click(screen.getByRole("button", { name: "elsewhere" }));
+    expect(page(2)).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "elsewhere" })).toHaveFocus();
+  });
+
   it("shows the compact status for narrow containers, with formatted numbers", () => {
     render(<Pagination pageCount={12345} defaultPage={1234} />);
     expect(screen.getByText(`Page ${formatNumber(1234)} of ${formatNumber(12345)}`)).toBeInTheDocument();
@@ -98,6 +130,25 @@ describe("Pagination", () => {
   it("clamps an out-of-range page into range", () => {
     render(<Pagination pageCount={4} page={9} onPageChange={() => {}} />);
     expect(page(4)).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
+  });
+
+  it("reads a page that is not a whole number (a bad ?page= query) as page 1, with real links", () => {
+    const href = (p: number) => `/results?page=${p}`;
+    const { rerender } = render(<Pagination pageCount={4} page={Number("abc")} getHref={href} />);
+    expect(screen.getByRole("link", { name: "Page 1" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Previous page" })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("href", "/results?page=2");
+    expect(screen.getByText(`Page ${formatNumber(1)} of ${formatNumber(4)}`)).toBeInTheDocument();
+    rerender(<Pagination pageCount={4} page={2.5} getHref={href} />);
+    expect(screen.getByRole("link", { name: "Page 2" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("href", "/results?page=3");
+  });
+
+  it("reads a page count that is not a number (0 / 0) as one page", () => {
+    render(<Pagination pageCount={0 / 0} defaultPage={1} />);
+    expect(page(1)).toHaveAttribute("aria-current", "page");
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Next page" })).toBeDisabled();
   });
 
@@ -157,6 +208,22 @@ describe("Pagination", () => {
       await user.click(next);
       expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("aria-disabled", "true");
       expect(screen.getByRole("link", { name: "Previous page" })).toHaveFocus();
+    });
+
+    it("with two pages, focus reaches the arrow that only becomes a link once the URL's page commits", async () => {
+      const user = userEvent.setup();
+      function Owner() {
+        const [p, setP] = useState(1);
+        return <Pagination pageCount={2} page={p} onPageChange={setP} getHref={href} />;
+      }
+      render(<Owner />);
+      const next = screen.getByRole("link", { name: "Next page" });
+      next.addEventListener("click", (e) => e.preventDefault());
+      await user.click(next);
+      expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("aria-disabled", "true");
+      const previous = screen.getByRole("link", { name: "Previous page" });
+      expect(previous).toHaveAttribute("href", "/results?page=1");
+      expect(previous).toHaveFocus();
     });
   });
 });

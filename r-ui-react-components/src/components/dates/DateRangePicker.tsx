@@ -2,6 +2,7 @@
 import { CalendarRange, ChevronDown } from "lucide-react";
 import { type ComponentPropsWithRef, type CSSProperties, useId, useState } from "react";
 
+import { useControllableState } from "../../hooks/use-controllable-state";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Field, Input, useFieldControl, useFieldValue } from "../form";
 import { type Placement } from "../../hooks/use-floating";
@@ -23,13 +24,7 @@ import {
 } from "./date-core";
 import { DEFAULT_DATE_ENTRY_LABELS, type DateEntryLabels, EntryMessages, rejectionMessage, useDateText } from "./picker-parts";
 import { RangeCalendar } from "./RangeCalendar";
-
-/** A committed range. `preset` names the preset that produced it, so a dashboard can re-resolve "last 24 hours" on refresh. */
-export interface DateRangeValue {
-  start: Date;
-  end: Date;
-  preset?: string;
-}
+import { type LabelsProp, mergeLabels } from "../../util/labels";
 
 /**
  * A quick range. `range` runs when the preset is chosen, with the current time.
@@ -58,6 +53,10 @@ export interface DateRangePickerLabels extends DateEntryLabels {
   end: string;
   apply: string;
   cancel: string;
+  /** Empties the committed range. */
+  clear: string;
+  /** The trigger's text with no range. */
+  placeholder: string;
   /** The end typed before the start. */
   endBeforeStart: string;
 }
@@ -70,15 +69,21 @@ export const DEFAULT_DATE_RANGE_PICKER_LABELS: DateRangePickerLabels = {
   end: "End",
   apply: "Apply",
   cancel: "Cancel",
+  clear: "Clear",
+  placeholder: "Select dates",
   endBeforeStart: "The end is before the start.",
 };
 
 export interface DateRangePickerProps
   extends Omit<ComponentPropsWithRef<"button">, "value" | "defaultValue" | "onChange" | "children"> {
-  value?: DateRangeValue | null;
-  defaultValue?: DateRangeValue | null;
-  /** On a preset, or on Apply after a custom range. */
-  onValueChange?: (value: DateRangeValue) => void;
+  value?: DateRange<Date> | null;
+  defaultValue?: DateRange<Date> | null;
+  /** On a preset, on Apply after a custom range, and `null` on Clear. */
+  onValueChange?: (value: DateRange<Date> | null) => void;
+  /** The popup (controlled). */
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
   /** Quick ranges listed beside the calendar. Default {@link DEFAULT_DATE_RANGE_PRESETS}; `[]` for none. */
   presets?: DateRangePreset[];
   locale?: string;
@@ -89,22 +94,26 @@ export interface DateRangePickerProps
   max?: Date;
   isDateUnavailable?: (date: Date) => boolean;
   invalid?: boolean;
-  /** Trigger text with no value. */
+  /** Trigger text with no value. Default `labels.placeholder`. */
   placeholder?: string;
   /** @default "bottom-start" */
   placement?: Placement;
-  labels?: Partial<DateRangePickerLabels>;
-  /** `className` styles the trigger. */
-  classNames?: SlotClassNames<"panel" | "presets" | "preset" | "calendar">;
+  labels?: LabelsProp<DateRangePickerLabels>;
+  /** `className` styles the root; `ref` and the rest address the trigger `<button>`. */
+  classNames?: SlotClassNames<"trigger" | "panel" | "presets" | "preset" | "calendar">;
 }
 
 const EMPTY: DateRange = { start: null, end: null };
 
-/** "Oct 1 – 7, 2026" / "1.–7. Okt. 2026": the locale's own compact range. */
-const isRangeValue = (raw: unknown): raw is DateRangeValue =>
-  typeof raw === "object" && raw !== null && (raw as DateRangeValue).start instanceof Date && (raw as DateRangeValue).end instanceof Date;
+const isRangeValue = (raw: unknown): raw is DateRange<Date> =>
+  typeof raw === "object" && raw !== null && (raw as DateRange).start instanceof Date && (raw as DateRange).end instanceof Date;
 
-function rangeText(value: DateRangeValue, locale: string): string {
+/** Every opening starts from the committed range, as calendar days. */
+const draftOf = (committed: DateRange<Date> | null): DateRange =>
+  committed ? { start: startOfDay(committed.start), end: startOfDay(committed.end) } : EMPTY;
+
+/** "Oct 1 – 7, 2026" / "1.–7. Okt. 2026": the locale's own compact range. */
+function rangeText(value: DateRange<Date>, locale: string): string {
   const format = dateFormatter(locale, { month: "short", day: "numeric", year: "numeric" });
   return isSameDay(value.start, value.end) ? format.format(value.start) : format.formatRange(value.start, value.end);
 }
@@ -115,7 +124,7 @@ function rangeText(value: DateRangeValue, locale: string): string {
  * ranges beside typed start and end fields and a `RangeCalendar`.
  *
  * - A preset applies and closes at once. A custom range is a draft until Apply;
- *   Cancel, Escape or a press outside discard it.
+ *   Cancel, Escape or a press outside discard it. Clear empties the range.
  * - The popup is in place + top layer (compact in a compact card, never clipped)
  *   and fades out. It is sized from tokens (the preset column and
  *   `months × 7 × --CONTROL-H`, capped at the viewport); presets sit beside the
@@ -137,8 +146,11 @@ export function DateRangePicker({
   max,
   isDateUnavailable,
   invalid,
-  placeholder = "Select dates",
+  placeholder,
   placement = "bottom-start",
+  open: openProp,
+  defaultOpen = false,
+  onOpenChange,
   labels: labelsProp,
   name,
   form,
@@ -151,7 +163,7 @@ export function DateRangePicker({
   "aria-label": ariaLabel,
   ...props
 }: DateRangePickerProps) {
-  const labels = { ...DEFAULT_DATE_RANGE_PICKER_LABELS, ...labelsProp };
+  const labels = mergeLabels(DEFAULT_DATE_RANGE_PICKER_LABELS, labelsProp);
   const locale = resolveLocale(localeProp);
   const field = useFieldControl({
     id: idProp,
@@ -161,30 +173,30 @@ export function DateRangePicker({
     "aria-invalid": ariaInvalidProp,
   });
   // In a Field bound to a Form, the form owns the range (unless the caller passed one).
-  const [committed, setCommitted, fieldName] = useFieldValue<DateRangeValue | null>({
+  const [committed, setCommitted, fieldName] = useFieldValue<DateRange<Date> | null>({
     value,
     defaultValue,
-    onChange: (next) => {
-      if (next) onValueChange?.(next);
-    },
+    onChange: onValueChange,
     fromForm: (raw) => (isRangeValue(raw) ? raw : null),
   });
   const submitName = name ?? fieldName;
-  const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<DateRange>(EMPTY);
+  const [open, setOpen] = useControllableState({ value: openProp, defaultValue: defaultOpen, onChange: onOpenChange });
+  const [draft, setDraft] = useState<DateRange>(() => draftOf(committed));
+  // Every opening (ours or a controlling parent's) starts from the committed
+  // range; closing without Apply discards the draft.
+  const [seenOpen, setSeenOpen] = useState(open);
+  if (seenOpen !== open) {
+    setSeenOpen(open);
+    if (open) setDraft(draftOf(committed));
+  }
 
   const uid = useId();
   const valueId = `${uid}-value`;
   const nameId = `${uid}-name`;
   const preset = committed?.preset ? presets.find((p) => p.id === committed.preset) : undefined;
-  const text = committed ? (preset?.label ?? rangeText(committed, locale)) : placeholder;
+  const text = committed ? (preset?.label ?? rangeText(committed, locale)) : (placeholder ?? labels.placeholder);
 
-  const openChange = (next: boolean) => {
-    // Every opening starts from the committed range; closing without Apply discards the draft.
-    if (next) setDraft(committed ? { start: startOfDay(committed.start), end: startOfDay(committed.end) } : EMPTY);
-    setOpen(next);
-  };
-  const commit = (next: DateRangeValue) => {
+  const commit = (next: DateRange<Date> | null) => {
     setCommitted(next);
     setOpen(false);
   };
@@ -193,8 +205,8 @@ export function DateRangePicker({
   const labelledBy = field.labelId ?? (ariaLabel ? nameId : undefined);
 
   return (
-    <>
-      <Popover open={open} onOpenChange={openChange} placement={placement}>
+    <div className={cn("inline-flex min-w-0 max-w-full", className)}>
+      <Popover open={open} onOpenChange={setOpen} placement={placement}>
         <Popover.Trigger
           {...props}
           id={field.id}
@@ -205,11 +217,11 @@ export function DateRangePicker({
           iconStart={<CalendarRange />}
           iconEnd={<ChevronDown />}
           className={cn(
-            "min-w-0",
+            "min-w-0 flex-1",
             // Invalid loses its red in forced colors: a doubled edge is the second cue, as on every field.
             field.invalid &&
               "border-status-error hover:border-status-error forced-colors:border-[length:calc(var(--BORDER-WIDTH)*2)]",
-            className,
+            classNames?.trigger,
           )}
         >
           <span id={valueId} className={cn(!committed && "text-fg-muted")}>
@@ -219,7 +231,7 @@ export function DateRangePicker({
         <Popover.Content
           aria-label={labels.dialog}
           className={cn(
-            "r-dates-range-panel max-h-[calc(100dvh-var(--R-SIZE-2)*2)] max-w-[calc(100vw-var(--R-SIZE-2)*2)] overflow-y-auto",
+            "r-dates-panel r-dates-range-panel max-h-[calc(100dvh-var(--R-SIZE-2)*2)] overflow-y-auto",
             classNames?.panel,
           )}
           style={{ "--r-dates-months": Math.max(1, Math.floor(months)), "--r-dates-presets": presets.length > 0 ? 1 : 0 } as CSSProperties}
@@ -232,6 +244,7 @@ export function DateRangePicker({
             onPreset={(p) => commit({ ...p.range(new Date()), preset: p.id })}
             onApply={() => draft.start && draft.end && commit({ start: draft.start, end: draft.end })}
             onCancel={() => setOpen(false)}
+            onClear={committed ? () => commit(null) : undefined}
             locale={locale}
             weekStartsOn={weekStartsOn}
             months={months}
@@ -257,7 +270,7 @@ export function DateRangePicker({
           value={committed ? `${toISODate(committed.start)}/${toISODate(committed.end)}` : ""}
         />
       )}
-    </>
+    </div>
   );
 }
 
@@ -269,6 +282,7 @@ function RangePanel({
   onPreset,
   onApply,
   onCancel,
+  onClear,
   locale,
   weekStartsOn,
   months,
@@ -285,6 +299,8 @@ function RangePanel({
   onPreset: (preset: DateRangePreset) => void;
   onApply: () => void;
   onCancel: () => void;
+  /** Present while there is a committed range to empty. */
+  onClear: (() => void) | undefined;
   locale: string;
   weekStartsOn: DateRangePickerProps["weekStartsOn"];
   months: number;
@@ -302,7 +318,7 @@ function RangePanel({
   const reversed = draft.start && draft.end && dayNumber(draft.end) < dayNumber(draft.start);
   const rejected = startEntry.rejected ?? endEntry.rejected;
   const error = rejected
-    ? rejectionMessage(rejected.reason, rejected.text, pattern, rules, labels)
+    ? rejectionMessage(rejected, pattern, rules, labels)
     : reversed
       ? labels.endBeforeStart
       : null;
@@ -376,6 +392,11 @@ function RangePanel({
             }}
           />
           <div className="flex flex-wrap justify-end gap-r4">
+            {onClear && (
+              <Button variant="ghost" className="me-auto" onClick={onClear}>
+                {labels.clear}
+              </Button>
+            )}
             <Button variant="ghost" onClick={onCancel}>
               {labels.cancel}
             </Button>

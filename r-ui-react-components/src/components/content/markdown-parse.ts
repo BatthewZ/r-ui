@@ -35,8 +35,10 @@ export type ListItem = { children: BlockNode[]; checked?: boolean };
 
 export type TableAlign = "left" | "center" | "right" | null;
 
+export type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
 export type BlockNode =
-  | { type: "heading"; level: 1 | 2 | 3 | 4 | 5 | 6; children: InlineNode[] }
+  | { type: "heading"; level: HeadingLevel; children: InlineNode[] }
   | { type: "paragraph"; children: InlineNode[] }
   | { type: "code"; value: string; lang?: string }
   /** `loose`: a blank line separated two items, so each item is a paragraph. */
@@ -68,17 +70,7 @@ function stripComments(src: string): string {
 
   const flush = () => {
     if (!pending.length) return;
-    out.push(
-      pending
-        .join("\n")
-        // A comment occupying whole lines takes its trailing newline with it.
-        // Leaving the blank line behind would be worse than leaving the
-        // comment: a blank line is a block terminator, so a comment sitting
-        // between two rows of a table would split it into two tables.
-        .replace(/^[ \t]*<!--[\s\S]*?-->[ \t]*\n/gm, "")
-        // Then the ones embedded in a line of prose, which leave no blank.
-        .replace(/<!--[\s\S]*?-->/g, "")
-    );
+    out.push(dropComments(pending.join("\n")));
     pending = [];
   };
 
@@ -104,9 +96,62 @@ function stripComments(src: string): string {
   return out.join("\n");
 }
 
+const OWN_LINE_END = /[ \t]*\n/y;
+const isBlank = (s: string) => /^[ \t]*$/.test(s);
+
+/**
+ * Removes each `<!-- … -->` in one left-to-right pass. A comment alone on its
+ * line(s) takes its indent and line break with it: the blank line left behind
+ * would be a block terminator, so a comment between two table rows would split
+ * the table. The pass replaced a whole-line regex that, lazy across lines,
+ * matched from one comment to a later line's and deleted the text between
+ * them, and that rescanned to the end at every unclosed `<!--` (quadratic).
+ */
+function dropComments(text: string): string {
+  const kept: string[] = [];
+  // Nothing but spaces and tabs kept since the last line break.
+  let lineBlank = true;
+  const keep = (part: string) => {
+    if (!part) return;
+    kept.push(part);
+    const lastBreak = part.lastIndexOf("\n");
+    lineBlank = lastBreak === -1 ? lineBlank && isBlank(part) : isBlank(part.slice(lastBreak + 1));
+  };
+  const dropIndent = () => {
+    for (let last = kept.at(-1); last !== undefined; last = kept.at(-1)) {
+      let end = last.length;
+      while (end > 0 && (last[end - 1] === " " || last[end - 1] === "\t")) end--;
+      if (end === last.length) return;
+      if (end > 0) {
+        kept[kept.length - 1] = last.slice(0, end);
+        return;
+      }
+      kept.pop();
+    }
+  };
+
+  let at = 0;
+  for (;;) {
+    const open = text.indexOf("<!--", at);
+    if (open === -1) break;
+    const close = text.indexOf("-->", open + 4);
+    // Unclosed: no later comment can close either, so the rest stays text.
+    if (close === -1) break;
+    keep(text.slice(at, open));
+    at = close + 3;
+    OWN_LINE_END.lastIndex = at;
+    if (lineBlank && OWN_LINE_END.test(text)) {
+      at = OWN_LINE_END.lastIndex;
+      dropIndent();
+    }
+  }
+  keep(text.slice(at));
+  return kept.join("");
+}
+
 /** The closing run for an opening fence: same character, at least as long. */
 function fenceCloser(open: string): RegExp {
-  return new RegExp(`^ {0,3}${open[0] === "`" ? "`" : "~"}{${open.length},}[ \t]*$`);
+  return new RegExp(`^ {0,3}${open[0] === "`" ? "`" : "~"}{${open.length},}\\s*$`);
 }
 
 /**
@@ -127,8 +172,7 @@ function normalise(src: string): string {
 const ESCAPABLE = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/;
 
 const AUTOLINK = /^<((?:https?|mailto|tel):[^\s<>]+)>/i;
-const LINK_OPEN = /^!?\[/;
-
+const WORD_CHAR = /[\p{L}\p{N}]/u;
 
 /**
  * Scans forward from an opening `[` to its matching `]`, honouring nesting and
@@ -162,6 +206,14 @@ function findClosingBracket(src: string, open: number): number {
 }
 
 /**
+ * cmark's own cap on parenthesis nesting in a destination (CommonMark allows a
+ * limit). Uncapped, every `[a](` in a run of them rescanned to the end of the
+ * string looking for its `)`: 160 000 characters took 4.3s under Bun. Capped, a scan
+ * fails once 32 openers are pending, so the scans overlap at most 32 deep.
+ */
+const MAX_PAREN_DEPTH = 32;
+
+/**
  * Reads the `(url "title")` half of a link. Returns null when it is not there,
  * so `[text]` with no destination falls back to literal text rather than
  * silently swallowing the label — the failure mode of a greedy link parser.
@@ -179,8 +231,9 @@ function readDestination(
       i++;
       continue;
     }
-    if (ch === "(") depth++;
-    else if (ch === ")") {
+    if (ch === "(") {
+      if (++depth > MAX_PAREN_DEPTH) return null;
+    } else if (ch === ")") {
       depth--;
       if (depth === 0) break;
     }
@@ -280,7 +333,7 @@ function findEmphasisClose(src: string, from: number, delim: string): number {
 function isIntraword(src: string, index: number, delim: string): boolean {
   if (delim[0] !== "_") return false;
   const before = src[index - 1];
-  return before !== undefined && /[\p{L}\p{N}]/u.test(before);
+  return before !== undefined && WORD_CHAR.test(before);
 }
 
 /**
@@ -291,10 +344,114 @@ function isIntrawordClose(src: string, index: number, delim: string): boolean {
   if (delim[0] !== "_") return false;
   const before = src[index - 1];
   const after = src[index + delim.length];
-  const word = /[\p{L}\p{N}]/u;
-  return (
-    before !== undefined && after !== undefined && word.test(before) && word.test(after)
+  return before !== undefined && after !== undefined && WORD_CHAR.test(before) && WORD_CHAR.test(after);
+}
+
+/** A construct read at an index: the nodes it makes and the index after it. */
+type InlineRead = { nodes: InlineNode[]; end: number };
+
+function readCode(src: string, start: number): InlineRead | null {
+  const span = readCodeSpan(src, start);
+  return span && { nodes: [{ type: "code", value: span.value }], end: span.end };
+}
+
+function readAutolink(src: string, start: number): InlineRead | null {
+  const auto = AUTOLINK.exec(src.slice(start));
+  if (!auto) return null;
+  const target = auto[1] ?? "";
+  const href = safeUrl(target);
+  const node: InlineNode = href
+    ? { type: "link", href, children: [{ type: "text", value: target }] }
+    : { type: "text", value: auto[0] };
+  return { nodes: [node], end: start + auto[0].length };
+}
+
+/** `[label](dest)` or `![alt](dest)`: null without a closing bracket and a destination. */
+function readLinkOrImage(src: string, start: number): InlineRead | null {
+  const isImage = src[start] === "!";
+  const open = start + (isImage ? 1 : 0);
+  const close = findClosingBracket(src, open);
+  if (close === -1) return null;
+  const dest = readDestination(src, close + 1);
+  if (!dest) return null;
+  const label = src.slice(open + 1, close);
+  if (isImage) {
+    const imageSrc = safeUrl(dest.href);
+    // An image whose src is refused becomes its own alt text: dropping
+    // the node would lose the author's words, and an <img> with no src
+    // is a broken-image icon in every browser.
+    const node: InlineNode = imageSrc
+      ? { type: "image", src: imageSrc, alt: unescape(label), title: dest.title }
+      : { type: "text", value: unescape(label) };
+    return { nodes: [node], end: dest.end };
+  }
+  const children = parseInline(label);
+  // Links never nest (an <a> inside an <a> is invalid HTML). As CommonMark
+  // has it, the inner link wins: these brackets are literal text, and the
+  // destination after them is parsed as ordinary text from `]` on. The label's
+  // nodes are kept as parsed, so nothing is parsed twice.
+  if (containsLink(children)) {
+    return { nodes: joinText([{ type: "text", value: "[" }, ...children, { type: "text", value: "]" }]), end: close + 1 };
+  }
+  const href = safeUrl(dest.href);
+  // Same reasoning: a refused href leaves the link text behind rather
+  // than an <a> that goes nowhere.
+  return { nodes: href ? [{ type: "link", href, title: dest.title, children }] : children, end: dest.end };
+}
+
+/** Merges neighbouring text nodes, so literal brackets read as one run with the text beside them. */
+function joinText(nodes: readonly InlineNode[]): InlineNode[] {
+  const out: InlineNode[] = [];
+  for (const node of nodes) {
+    const last = out[out.length - 1];
+    if (node.type === "text" && last?.type === "text") out[out.length - 1] = { type: "text", value: last.value + node.value };
+    else out.push(node);
+  }
+  return out;
+}
+
+function containsLink(nodes: readonly InlineNode[]): boolean {
+  return nodes.some(
+    (node) =>
+      node.type === "link" ||
+      ((node.type === "strong" || node.type === "em" || node.type === "del") && containsLink(node.children)),
   );
+}
+
+function readStrikethrough(src: string, start: number): InlineRead | null {
+  const close = findEmphasisClose(src, start + 2, "~~");
+  if (close === -1) return null;
+  return { nodes: [{ type: "del", children: parseInline(src.slice(start + 2, close)) }], end: close + 2 };
+}
+
+/** `*em*`, `_em_`, `**strong**` or `__strong__` opening at `start`. */
+function readEmphasis(src: string, start: number): InlineRead | null {
+  const ch = src[start] ?? "";
+  const double = src.startsWith(ch + ch, start);
+  const delim = double ? ch + ch : ch;
+  // An emphasis run must not open on whitespace — `a * b * c` is three
+  // words and a pair of stray asterisks, not emphasis.
+  const after = src[start + delim.length];
+  if (after === undefined || /\s/.test(after)) return null;
+  const close = findEmphasisClose(src, start + delim.length, delim);
+  if (close === -1 || /\s/.test(src[close - 1] ?? " ")) return null;
+  const children = parseInline(src.slice(start + delim.length, close));
+  return { nodes: [{ type: double ? "strong" : "em", children }], end: close + delim.length };
+}
+
+/** The construct opening at `index`, or null when its character is literal text there. */
+function readConstruct(src: string, index: number): InlineRead | null {
+  const ch = src[index];
+  const next = src[index + 1];
+  if (ch === "`") return readCode(src, index);
+  // A `<` that opens no autolink stays literal text, and because the AST
+  // carries text rather than markup, React escapes it on render — which is
+  // what makes `<GridColumnCount>` in a table cell show up verbatim.
+  if (ch === "<") return readAutolink(src, index);
+  if (ch === "[" || (ch === "!" && next === "[")) return readLinkOrImage(src, index);
+  if (ch === "~" && next === "~") return readStrikethrough(src, index);
+  if ((ch === "*" || ch === "_") && !isIntraword(src, index, ch)) return readEmphasis(src, index);
+  return null;
 }
 
 export function parseInline(src: string): InlineNode[] {
@@ -308,7 +465,6 @@ export function parseInline(src: string): InlineNode[] {
 
   let i = 0;
   while (i < src.length) {
-    const rest = src.slice(i);
     const ch = src[i];
 
     if (ch === "\\") {
@@ -332,8 +488,10 @@ export function parseInline(src: string): InlineNode[] {
 
     if (ch === "\n") {
       // Two or more trailing spaces before the newline is a hard break;
-      // otherwise a newline inside a paragraph is a space.
-      if (text.endsWith("  ")) {
+      // otherwise a newline inside a paragraph is a space. Read from the
+      // source: `text.endsWith` flattened the growing string at every line,
+      // quadratic in a long paragraph (80 000 lines took 15s under Bun).
+      if (src[i - 1] === " " && src[i - 2] === " ") {
         text = text.replace(/ +$/, "");
         flush();
         out.push({ type: "break" });
@@ -344,105 +502,13 @@ export function parseInline(src: string): InlineNode[] {
       continue;
     }
 
-    if (ch === "`") {
-      const span = readCodeSpan(src, i);
-      if (span) {
-        flush();
-        out.push({ type: "code", value: span.value });
-        i = span.end;
-        continue;
-      }
-      text += ch;
-      i++;
+    const read = readConstruct(src, i);
+    if (read) {
+      flush();
+      out.push(...read.nodes);
+      i = read.end;
       continue;
     }
-
-    if (ch === "<") {
-      const auto = AUTOLINK.exec(rest);
-      if (auto) {
-        const target = auto[1] ?? "";
-        const href = safeUrl(target);
-        flush();
-        if (href) out.push({ type: "link", href, children: [{ type: "text", value: target }] });
-        else out.push({ type: "text", value: auto[0] });
-        i += auto[0].length;
-        continue;
-      }
-      // Not an autolink: a literal `<`. It stays text, and because the AST
-      // carries text rather than markup, React escapes it on render — which is
-      // what makes `<GridColumnCount>` in a table cell show up verbatim.
-      text += ch;
-      i++;
-      continue;
-    }
-
-    if (LINK_OPEN.test(rest)) {
-      const isImage = ch === "!";
-      const open = i + (isImage ? 1 : 0);
-      const close = findClosingBracket(src, open);
-      if (close !== -1) {
-        const dest = readDestination(src, close + 1);
-        if (dest) {
-          const label = src.slice(open + 1, close);
-          flush();
-          if (isImage) {
-            const src2 = safeUrl(dest.href);
-            // An image whose src is refused becomes its own alt text: dropping
-            // the node would lose the author's words, and an <img> with no src
-            // is a broken-image icon in every browser.
-            if (src2) out.push({ type: "image", src: src2, alt: unescape(label), title: dest.title });
-            else out.push({ type: "text", value: unescape(label) });
-          } else {
-            const href = safeUrl(dest.href);
-            const children = parseInline(label);
-            // Same reasoning: a refused href leaves the link text behind rather
-            // than an <a> that goes nowhere.
-            if (href) out.push({ type: "link", href, title: dest.title, children });
-            else out.push(...children);
-          }
-          i = dest.end;
-          continue;
-        }
-      }
-      text += ch;
-      i++;
-      continue;
-    }
-
-    if (rest.startsWith("~~")) {
-      const close = findEmphasisClose(src, i + 2, "~~");
-      if (close !== -1) {
-        flush();
-        out.push({ type: "del", children: parseInline(src.slice(i + 2, close)) });
-        i = close + 2;
-        continue;
-      }
-      text += ch;
-      i++;
-      continue;
-    }
-
-    if ((ch === "*" || ch === "_") && !isIntraword(src, i, ch)) {
-      const double = rest.startsWith(ch + ch);
-      const delim = double ? ch + ch : ch;
-      // An emphasis run must not open on whitespace — `a * b * c` is three
-      // words and a pair of stray asterisks, not emphasis.
-      const after = src[i + delim.length];
-      if (after !== undefined && !/\s/.test(after)) {
-        const close = findEmphasisClose(src, i + delim.length, delim);
-        if (close !== -1 && !/\s/.test(src[close - 1] ?? " ")) {
-          flush();
-          const children = parseInline(src.slice(i + delim.length, close));
-          out.push({ type: double ? "strong" : "em", children });
-          i = close + delim.length;
-          continue;
-        }
-      }
-      text += ch;
-      i++;
-      continue;
-    }
-
     text += ch;
     i++;
   }
@@ -615,187 +681,194 @@ function startsBlock(line: string, next: string | undefined): boolean {
  */
 const MAX_BLOCK_DEPTH = 8;
 
+/** A block read from `lines` at an index: the node and the index of the line after it. */
+type BlockRead = { node: BlockNode; end: number };
+
+const lineAt = (lines: readonly string[], index: number): string => lines[index] ?? "";
+
+function readFence(lines: readonly string[], start: number, fence: RegExpExecArray): BlockRead {
+  const close = fenceCloser(fence[1] ?? "```");
+  const body: string[] = [];
+  let i = start + 1;
+  // An unclosed fence runs to the end of the document rather than throwing
+  // or falling back to paragraphs — the same choice CommonMark makes, and
+  // the one that keeps a half-streamed LLM response readable.
+  while (i < lines.length) {
+    const line = lineAt(lines, i++);
+    if (close.test(line)) break;
+    body.push(line);
+  }
+  return { node: { type: "code", value: body.join("\n"), lang: fence[2] || undefined }, end: i };
+}
+
+/**
+ * A table is a header row plus a delimiter row whose cell count MATCHES,
+ * which is GFM's rule and not a detail: without the count check
+ * `Some | text` followed by `---` became a two-column table with an empty
+ * body, swallowing a thematic rule that should have followed a paragraph.
+ */
+function readTable(lines: readonly string[], start: number): BlockRead | null {
+  const line = lineAt(lines, start);
+  if (!line.includes("|") || start + 1 >= lines.length || !TABLE_DELIM.test(lineAt(lines, start + 1))) return null;
+  const headerCells = splitRow(line);
+  const align = readAlign(lineAt(lines, start + 1));
+  if (align.length !== headerCells.length) return null;
+  const header = headerCells.map((cell) => parseInline(cell));
+  const rows: InlineNode[][][] = [];
+  let i = start + 2;
+  while (i < lines.length && lineAt(lines, i).trim() !== "" && lineAt(lines, i).includes("|")) {
+    rows.push(splitRow(lineAt(lines, i)).map((cell) => parseInline(cell)));
+    i++;
+  }
+  return { node: { type: "table", align, header, rows }, end: i };
+}
+
+function readBlockquote(lines: readonly string[], start: number, depth: number): BlockRead {
+  const body: string[] = [];
+  let i = start;
+  // Every line must carry its own `>`. Lazy continuation — a bare line
+  // adopted into the quote because the previous one was quoted — is one of
+  // the constructs this subset drops, and accepting it here would let a
+  // quote swallow the heading that follows it.
+  while (i < lines.length) {
+    const m = BLOCKQUOTE.exec(lineAt(lines, i));
+    if (!m) break;
+    body.push(m[1] ?? "");
+    i++;
+  }
+  return { node: { type: "blockquote", children: parseBlocks(body.join("\n"), depth + 1) }, end: i };
+}
+
+function readList(lines: readonly string[], start: number, first: ItemMatch, depth: number): BlockRead {
+  const { indent: baseIndent, ordered, marker, start: startAt, contentIndent } = first;
+  const items: ListItem[] = [];
+  let buffer: string[] = [];
+  // A blank line between two items makes the list LOOSE, which is what
+  // decides whether each item gets a paragraph. Splitting the list at the
+  // blank instead — the old behaviour — turned `- a\n\n- b` into two
+  // one-item lists, announced by a screen reader as "list, 1 item" twice,
+  // and blank-separated bullets are the dominant shape in generated prose.
+  let loose = false;
+  let sawBlank = false;
+
+  let checked: boolean | undefined;
+
+  const commit = () => {
+    if (buffer.length) {
+      const children = parseBlocks(buffer.join("\n"), depth + 1);
+      items.push(checked === undefined ? { children } : { children, checked });
+    }
+    buffer = [];
+    checked = undefined;
+  };
+
+  let i = start;
+  while (i < lines.length) {
+    const current = lineAt(lines, i);
+
+    if (current.trim() === "") {
+      // Look past the run of blanks. The list continues if what follows is
+      // a sibling item or indented continuation; anything else ends it.
+      let j = i;
+      while (j < lines.length && lineAt(lines, j).trim() === "") j++;
+      const next = lines[j];
+      if (next === undefined) break;
+      const nextItem = readItem(next);
+      const continues =
+        indentOf(next) > baseIndent ||
+        (nextItem !== null &&
+          nextItem.indent === baseIndent &&
+          nextItem.ordered === ordered &&
+          nextItem.marker === marker);
+      if (!continues) break;
+      sawBlank = true;
+      buffer.push("");
+      i = j;
+      continue;
+    }
+
+    const here = readItem(current);
+    const indent = indentOf(current);
+
+    if (here && indent === baseIndent) {
+      // CommonMark: a different bullet character, or a different ordered
+      // delimiter, starts a NEW list rather than continuing this one.
+      if (here.ordered !== ordered || here.marker !== marker) break;
+      if (sawBlank) loose = true;
+      sawBlank = false;
+      commit();
+      // GFM task item: `[ ]` / `[x]` opening the item, then whitespace or nothing.
+      const task = TASK.exec(here.content);
+      checked = task ? task[1] !== " " : undefined;
+      buffer.push(task ? here.content.slice(task[0].length) : here.content);
+      i++;
+      continue;
+    }
+    if (indent > baseIndent) {
+      buffer.push(current.slice(Math.min(indent, contentIndent)));
+      i++;
+      continue;
+    }
+    break;
+  }
+  commit();
+  return { node: { type: "list", ordered, start: startAt, loose, items }, end: i };
+}
+
+/** A paragraph runs to the next blank line or block start. */
+function readParagraph(lines: readonly string[], start: number): BlockRead {
+  const para: string[] = [lineAt(lines, start)];
+  let i = start + 1;
+  while (i < lines.length && !startsBlock(lineAt(lines, i), lines[i + 1])) {
+    para.push(lineAt(lines, i));
+    i++;
+  }
+  return { node: { type: "paragraph", children: parseInline(para.join("\n")) }, end: i };
+}
+
+/** The block starting on the (non-blank) line at `start`. */
+function readBlock(lines: readonly string[], start: number, depth: number): BlockRead {
+  const line = lineAt(lines, start);
+
+  const fence = FENCE.exec(line);
+  if (fence) return readFence(lines, start, fence);
+
+  const atx = ATX.exec(line);
+  if (atx) {
+    const level = (atx[1] ?? "#").length as HeadingLevel;
+    const children = parseInline(trimClosingHashes((atx[2] ?? "").trimEnd()));
+    return { node: { type: "heading", level, children }, end: start + 1 };
+  }
+
+  // HR is tested before list items so `---` is a rule, not a bullet.
+  if (HR.test(line)) return { node: { type: "hr" }, end: start + 1 };
+
+  const table = readTable(lines, start);
+  if (table) return table;
+
+  if (BLOCKQUOTE.test(line)) return readBlockquote(lines, start, depth);
+
+  const first = readItem(line);
+  if (first) return readList(lines, start, first, depth);
+
+  return readParagraph(lines, start);
+}
+
 export function parseBlocks(src: string, depth = 0): BlockNode[] {
   if (depth > MAX_BLOCK_DEPTH) {
     return src.trim() ? [{ type: "paragraph", children: [{ type: "text", value: src }] }] : [];
   }
   const lines = normalise(src).split("\n");
-  const at = (k: number): string => lines[k] ?? "";
   const out: BlockNode[] = [];
   let i = 0;
-
   while (i < lines.length) {
-    const line = at(i);
-
-    if (line.trim() === "") {
+    if (lineAt(lines, i).trim() === "") {
       i++;
       continue;
     }
-
-    const fence = FENCE.exec(line);
-    if (fence) {
-      const run = fence[1] ?? "```";
-      const marker = run[0];
-      const width = run.length;
-      const lang = fence[2] || undefined;
-      const body: string[] = [];
-      const close = new RegExp(`^ {0,3}${marker === "`" ? "`" : "~"}{${width},}\\s*$`);
-      i++;
-      // An unclosed fence runs to the end of the document rather than throwing
-      // or falling back to paragraphs — the same choice CommonMark makes, and
-      // the one that keeps a half-streamed LLM response readable.
-      while (i < lines.length) {
-        if (close.test(at(i))) {
-          i++;
-          break;
-        }
-        body.push(at(i));
-        i++;
-      }
-      out.push({ type: "code", value: body.join("\n"), lang });
-      continue;
-    }
-
-    const atx = ATX.exec(line);
-    if (atx) {
-      out.push({
-        type: "heading",
-        level: (atx[1] ?? "#").length as 1 | 2 | 3 | 4 | 5 | 6,
-        children: parseInline(trimClosingHashes((atx[2] ?? "").trimEnd())),
-      });
-      i++;
-      continue;
-    }
-
-    // HR is tested before list items so `---` is a rule, not a bullet.
-    if (HR.test(line)) {
-      out.push({ type: "hr" });
-      i++;
-      continue;
-    }
-
-    // A table is a header row plus a delimiter row whose cell count MATCHES,
-    // which is GFM's rule and not a detail: without the count check
-    // `Some | text` followed by `---` became a two-column table with an empty
-    // body, swallowing a thematic rule that should have followed a paragraph.
-    if (line.includes("|") && i + 1 < lines.length && TABLE_DELIM.test(at(i + 1))) {
-      const headerCells = splitRow(line);
-      const align = readAlign(at(i + 1));
-      if (align.length === headerCells.length) {
-        const header = headerCells.map((cell) => parseInline(cell));
-        i += 2;
-        const rows: InlineNode[][][] = [];
-        while (i < lines.length && at(i).trim() !== "" && at(i).includes("|")) {
-          rows.push(splitRow(at(i)).map((cell) => parseInline(cell)));
-          i++;
-        }
-        out.push({ type: "table", align, header, rows });
-        continue;
-      }
-    }
-
-    if (BLOCKQUOTE.test(line)) {
-      const body: string[] = [];
-      // Every line must carry its own `>`. Lazy continuation — a bare line
-      // adopted into the quote because the previous one was quoted — is one of
-      // the constructs this subset drops, and accepting it here would let a
-      // quote swallow the heading that follows it.
-      while (i < lines.length) {
-        const m = BLOCKQUOTE.exec(at(i));
-        if (!m) break;
-        body.push(m[1] ?? "");
-        i++;
-      }
-      out.push({ type: "blockquote", children: parseBlocks(body.join("\n"), depth + 1) });
-      continue;
-    }
-
-    const first = readItem(line);
-    if (first) {
-      const { indent: baseIndent, ordered, marker, start: startAt, contentIndent } = first;
-      const items: ListItem[] = [];
-      let buffer: string[] = [];
-      // A blank line between two items makes the list LOOSE, which is what
-      // decides whether each item gets a paragraph. Splitting the list at the
-      // blank instead — the old behaviour — turned `- a\n\n- b` into two
-      // one-item lists, announced by a screen reader as "list, 1 item" twice,
-      // and blank-separated bullets are the dominant shape in generated prose.
-      let loose = false;
-      let sawBlank = false;
-
-      let checked: boolean | undefined;
-
-      const commit = () => {
-        if (buffer.length) {
-          const children = parseBlocks(buffer.join("\n"), depth + 1);
-          items.push(checked === undefined ? { children } : { children, checked });
-        }
-        buffer = [];
-        checked = undefined;
-      };
-
-      while (i < lines.length) {
-        const current = at(i);
-
-        if (current.trim() === "") {
-          // Look past the run of blanks. The list continues if what follows is
-          // a sibling item or indented continuation; anything else ends it.
-          let j = i;
-          while (j < lines.length && at(j).trim() === "") j++;
-          const next = lines[j];
-          if (next === undefined) break;
-          const nextItem = readItem(next);
-          const continues =
-            indentOf(next) > baseIndent ||
-            (nextItem !== null &&
-              nextItem.indent === baseIndent &&
-              nextItem.ordered === ordered &&
-              nextItem.marker === marker);
-          if (!continues) break;
-          sawBlank = true;
-          buffer.push("");
-          i = j;
-          continue;
-        }
-
-        const here = readItem(current);
-        const indent = indentOf(current);
-
-        if (here && indent === baseIndent) {
-          // CommonMark: a different bullet character, or a different ordered
-          // delimiter, starts a NEW list rather than continuing this one.
-          if (here.ordered !== ordered || here.marker !== marker) break;
-          if (sawBlank) loose = true;
-          sawBlank = false;
-          commit();
-          // GFM task item: `[ ]` / `[x]` opening the item, then whitespace or nothing.
-          const task = TASK.exec(here.content);
-          checked = task ? task[1] !== " " : undefined;
-          buffer.push(task ? here.content.slice(task[0].length) : here.content);
-          i++;
-          continue;
-        }
-        if (indent > baseIndent) {
-          buffer.push(current.slice(Math.min(indent, contentIndent)));
-          i++;
-          continue;
-        }
-        break;
-      }
-      commit();
-      out.push({ type: "list", ordered, start: startAt, loose, items });
-      continue;
-    }
-
-    // Paragraph: run to the next blank line or block start.
-    const para: string[] = [line];
-    i++;
-    while (i < lines.length && !startsBlock(at(i), lines[i + 1])) {
-      para.push(at(i));
-      i++;
-    }
-    out.push({ type: "paragraph", children: parseInline(para.join("\n")) });
+    const { node, end } = readBlock(lines, i, depth);
+    out.push(node);
+    i = end;
   }
-
   return out;
 }

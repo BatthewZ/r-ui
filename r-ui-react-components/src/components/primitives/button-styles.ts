@@ -1,3 +1,5 @@
+import type { AriaAttributes, MouseEventHandler } from "react";
+
 /**
  * Shared by Button and IconButton so a toolbar of both reads as one family.
  *
@@ -40,3 +42,26 @@ export const BUTTON_VARIANT: Record<ButtonVariant, string> = {
  * token fill, so it also survives forced colors (as Highlight).
  */
 export const BUTTON_PRESSED = "aria-pressed:bg-selection aria-pressed:text-fg-on-selection";
+
+/** Whether `aria-disabled` is on, in either form React accepts. */
+export function isAriaDisabled(value: AriaAttributes["aria-disabled"]): boolean {
+  return value === true || value === "true";
+}
+
+/**
+ * `onClick`, unless the button is inert. Enter/Space still fire `click` on an
+ * aria-disabled button; preventDefault also stops a busy submit button from
+ * submitting its form again.
+ */
+export function guardClick(
+  inert: boolean,
+  onClick: MouseEventHandler<HTMLButtonElement> | undefined,
+): MouseEventHandler<HTMLButtonElement> {
+  return (event) => {
+    if (inert) {
+      event.preventDefault();
+      return;
+    }
+    onClick?.(event);
+  };
+}
