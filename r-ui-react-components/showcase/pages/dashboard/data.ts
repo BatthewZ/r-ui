@@ -80,8 +80,12 @@ export interface Endpoint {
 }
 
 export interface DashboardData {
+  /** One timestamp (epoch ms) per traffic and error point, oldest first. */
+  times: number[];
   traffic: Series[];
   errors: Series[];
+  /** 5xx errors by weekday (Mon first) × hour of day, over the last 7 days. */
+  heat: number[][];
   kpis: Record<KpiId, Kpi>;
   services: Service[];
   endpoints: Endpoint[];
@@ -122,6 +126,10 @@ function statusOf(s: Omit<Service, "status" | "owner" | "name" | "deployedMin">)
   if ((s.cpu ?? 0) > 80 || s.p95 > 500) return "warning";
   return "good";
 }
+
+/** "Now" for the specimen: local midnight, so ticks land on the reader's own day boundaries. */
+const NOW = new Date(2026, 9, 15).getTime();
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 export function generate(range: Range, region: Region | "all", env: Env): DashboardData {
   const r = rng(`${range}|${env}`);
@@ -187,13 +195,27 @@ export function generate(range: Range, region: Region | "all", env: Env): Dashbo
     return { name, owner, deployedMin, ...metrics, status: statusOf(metrics) };
   });
 
+  const times = Array.from({ length: points }, (_, i) => NOW - (points - 1 - i) * stepHours * 3_600_000);
+
+  // 5xx by weekday × hour: a business-hours hump, quieter weekends, and the
+  // checkout incident on Thursday afternoon.
+  const h5 = rng(`heat|${env}|${region}`);
+  const heat = WEEKDAYS.map((_, d) =>
+    Array.from({ length: 24 }, (__, h) => {
+      const busy = Math.max(0.08, Math.sin(((h - 6) / 24) * Math.PI * 2));
+      const weekend = d >= 5 ? 0.45 : 1;
+      const incident = d === 3 && h >= 14 && h <= 16 ? 4.5 : 1;
+      return Math.round(60 * busy * weekend * incident * share * envScale * (0.8 + h5() * 0.4));
+    }),
+  );
+
   const endpoints = ENDPOINTS.map(([name, ms]) => ({
     name,
     p95: Math.round(ms * (0.92 + r() * 0.16)),
     calls: Math.round((20000 + r() * 400000) * share * envScale),
   }));
 
-  return { traffic, errors, kpis, services, endpoints };
+  return { times, traffic, errors, heat, kpis, services, endpoints };
 }
 
 /** How each service status reads: tone (mark + glyph), word, and severity rank. */

@@ -29,6 +29,12 @@
 @import "./components/data/styles.css" layer(components);
 @import "./components/navigation/styles.css" layer(components);
 @import "./components/layout/styles.css" layer(components);
+@import "./components/preferences/styles.css" layer(components);
+@import "./components/motion/styles.css" layer(components);
+@import "./components/disclosure/styles.css" layer(components);
+@import "./components/content/styles.css" layer(components);
+@import "./components/dates/styles.css" layer(components);
+@import "./components/charts/styles.css" layer(components);
 
 /* Register this package's sources so the utilities the components use are
    generated in the consumer's build. Relative to THIS file, so it resolves

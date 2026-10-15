@@ -15,6 +15,13 @@
 //   radius    bare `rounded` / `rounded-t` and default radius steps
 //   shadow    bare `shadow` and default shadow steps
 //   container default container widths (`max-w-md`, `w-sm`)
+//   layer     a numeric stacking order (`z-10`, `z-index: 2`): in-flow stacking
+//             reads the contract's scale (`z-raised`, `z-sticky`, `z-docked`,
+//             `z-bypass`) so chrome from different groups orders itself; overlays
+//             use the top layer and need none. `0` and `auto` are allowed.
+//   line      a component stylesheet drawing a structural line at a fixed `1px`
+//             (`border: 1px solid …`, `border-top-width: 1px`) instead of the
+//             theme's `var(--BORDER-WIDTH)`, which the bare `border` utility reads.
 //   arbitrary an arbitrary value or a string carrying a raw literal: hex,
 //             rgb()/hsl()/oklch(<number>…), or px/rem lengths (`p-[12px]`,
 //             `bg-[#fff]`, `style={{ width: "12px" }}`). `1px` is the hairline
@@ -48,6 +55,11 @@ const RADIUS_STEP = new RegExp(`^rounded${RADIUS_SIDE}-(xs|sm|md|lg|xl|2xl|3xl|4
 const BARE_SHADOW = /^shadow$/;
 const SHADOW_STEP = /^shadow-(2xs|xs|sm|md|lg|xl|2xl)$/;
 const CONTAINER = /^(?:max-w|min-w|w)-(3xs|2xs|xs|sm|md|lg|xl|[2-7]xl|prose)$/;
+const Z_NUMBER = /^z-(\d+)$/;
+const Z_CSS = /^\s*-?(\d+)\s*$/;
+const LINE_PROP = /^border(?:-(?:top|right|bottom|left|block|inline|block-start|block-end|inline-start|inline-end))?(?:-width)?$/;
+const LINE_1PX = /(?<![\w.-])1px\b/;
+const LAYER_HINT = "(use z-raised / z-sticky / z-docked / z-bypass)";
 
 const RAW_HEX = /(?:^|[^\w&])#[0-9a-fA-F]{3,8}(?![\w-])/;
 const RAW_FN = /\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(\s*[\d.]/;
@@ -102,6 +114,8 @@ export function checkToken(token, allow = {}) {
   if (shadow && !has("shadow", shadow[1])) return `default shadow \`${token}\``;
   const container = CONTAINER.exec(util);
   if (container && !has("container", container[1])) return `default container width \`${token}\``;
+  const z = Z_NUMBER.exec(util);
+  if (z && Number(z[1]) !== 0) return `numeric stacking \`${token}\` ${LAYER_HINT}`;
   return null;
 }
 
@@ -162,6 +176,11 @@ export function scanCss(source, allow = {}) {
     if (RAW_FN.test(value)) found.push({ line, problem: `raw colour function in \`${m[0].trim()}\`` });
     const lengths = rawLengths(value);
     if (lengths.length) found.push({ line, problem: `raw length ${lengths.join(", ")} in \`${m[0].trim()}\`` });
+    const z = m[1] === "z-index" && Z_CSS.exec(value);
+    if (z && Number(z[1]) !== 0) found.push({ line, problem: `numeric stacking in \`${m[0].trim()}\` ${LAYER_HINT}` });
+    if (LINE_PROP.test(m[1]) && LINE_1PX.test(value)) {
+      found.push({ line, problem: `fixed line weight in \`${m[0].trim()}\` (use var(--BORDER-WIDTH))` });
+    }
   }
   for (const m of text.matchAll(/@(?:media|container)[^{]*/g)) {
     const lengths = rawLengths(m[0]);

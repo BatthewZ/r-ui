@@ -16,7 +16,7 @@ export {
 export { type DataTableColumn, type RowKey, type SortState } from "./data-table-model";
 export { DataTable, type DataTableProps } from "./DataTable";
 export { VirtualizedTable, type VirtualizedTableProps } from "./VirtualizedTable";
-export { type Sentiment, StatCard, type StatCardProps } from "./StatCard";
+export { type Sentiment, StatCard, type StatCardLabels, type StatCardProps } from "./StatCard";
 export { type SeriesSlot, Sparkline, type SparklineProps } from "./Sparkline";
 export { Meter, type MeterProps, type MeterThreshold, type MeterTone, meterTone } from "./Meter";
 export { DescriptionList, type DescriptionListItemProps, type DescriptionListProps } from "./DescriptionList";

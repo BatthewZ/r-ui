@@ -73,6 +73,8 @@ export default defineConfig({
         /^lucide-react($|\/)/,
         "clsx",
         "tailwind-merge",
+        /^lowlight($|\/)/,
+        /^highlight\.js($|\/)/,
         /^@batthewz\/r-ui-tw-merge($|\/)/,
         /^@batthewz\/r-ui-css($|\/)/,
       ],

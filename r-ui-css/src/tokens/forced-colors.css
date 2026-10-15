@@ -1,0 +1,313 @@
+/* Forced colors (Windows High Contrast). Three parts, all automatic for every theme.
+
+   1. Every colour role resolves to a system colour. The browser repaints author
+      colours anyway, but it keeps a system colour the author chose, so a fill that
+      carries meaning survives: selection and accent become Highlight, the primary
+      fill an inverted button, status marks and borders CanvasText. `!important` so
+      it outranks a theme's :root[data-theme]; after prefers-contrast (which forced
+      colors usually implies) so it wins there too.
+
+   2. An element painted with a meaning-bearing fill opts its subtree out
+      (`forced-color-adjust: none`). The browser otherwise draws a Canvas backplate
+      behind every text run, which hides the fill's own text colour, and leaves
+      icons in a colour chosen for Canvas, not for the fill. Inside the fill the
+      neutral ink, line and status text roles become the fill's text colour, so
+      secondary text, dividers and an error label in a selected row still read.
+      The focus colour follows for descendants only: a control inside the fill
+      rings in the fill's ink, while the filled element's own ring is drawn
+      outside it, on Canvas, where Highlight reads (a ring drawn INSIDE its own
+      fill is the component's to recolour). Status marks keep CanvasText: a solid
+      status badge nested in a fill must keep its own fill. Each fill utility
+      carries this as a companion `@utility` of the same name, so variants (`aria-selected:`,
+      `hover:`) carry it too; a translucent wash (`bg-accent/10`) does not opt out
+      and simply becomes Canvas. */
+
+@media (forced-colors: active) {
+  :root {
+    --C-CANVAS: Canvas !important;
+    --C-SURFACE-0: Canvas !important;
+    --C-SURFACE-1: Canvas !important;
+    --C-SURFACE-2: Canvas !important;
+    --C-SURFACE-3: Canvas !important;
+    --C-TEXT-PRIMARY: CanvasText !important;
+    --C-TEXT-SECONDARY: CanvasText !important;
+    --C-TEXT-MUTED: CanvasText !important;
+    --C-TEXT-INVERSE: Canvas !important;
+    --C-BORDER: CanvasText !important;
+    --C-BORDER-STRONG: CanvasText !important;
+    --C-SCRIM: color-mix(in srgb, Canvas 60%, transparent) !important;
+
+    --C-PRIMARY: ButtonText !important;
+    --C-PRIMARY-HOVER: ButtonText !important;
+    --C-PRIMARY-ACTIVE: ButtonText !important;
+    --C-TEXT-ON-PRIMARY: ButtonFace !important;
+
+    --C-ACCENT: Highlight !important;
+    --C-ACCENT-HOVER: Highlight !important;
+    --C-TEXT-ON-ACCENT: HighlightText !important;
+    --C-TEXT-ACCENT: LinkText !important;
+    --C-SELECTION: Highlight !important;
+    --C-TEXT-ON-SELECTION: HighlightText !important;
+    --C-FOCUS: Highlight !important;
+
+    --C-STATUS-ERROR: CanvasText !important;
+    --C-STATUS-SUCCESS: CanvasText !important;
+    --C-STATUS-WARNING: CanvasText !important;
+    --C-STATUS-INFO: CanvasText !important;
+    --C-TEXT-ERROR: CanvasText !important;
+    --C-TEXT-SUCCESS: CanvasText !important;
+    --C-TEXT-WARNING: CanvasText !important;
+    --C-TEXT-INFO: CanvasText !important;
+    --C-STATUS-ERROR-BG: Canvas !important;
+    --C-STATUS-SUCCESS-BG: Canvas !important;
+    --C-STATUS-WARNING-BG: Canvas !important;
+    --C-STATUS-INFO-BG: Canvas !important;
+    --C-TEXT-ON-ERROR: Canvas !important;
+    --C-TEXT-ON-SUCCESS: Canvas !important;
+    --C-TEXT-ON-WARNING: Canvas !important;
+    --C-TEXT-ON-INFO: Canvas !important;
+  }
+}
+
+/* 3. --SCHEME-DARK follows the FORCED palette, not the theme: a dark theme under a
+      light high-contrast palette paints on a light Canvas, so anything that still
+      blends light and dark values by it (a colour that opts out of repainting,
+      like a data series) must take its light values there. A UA reports the
+      forced palette's lightness as `prefers-color-scheme`. */
+@media (forced-colors: active) {
+  :root {
+    --SCHEME-DARK: 0 !important;
+  }
+}
+@media (forced-colors: active) and (prefers-color-scheme: dark) {
+  :root {
+    --SCHEME-DARK: 1 !important;
+  }
+}
+
+/* Highlight fills: accent markers and fills, selected items. */
+@utility bg-accent {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: HighlightText;
+    --C-TEXT-PRIMARY: HighlightText;
+    --C-TEXT-SECONDARY: HighlightText;
+    --C-TEXT-MUTED: HighlightText;
+    --C-TEXT-ACCENT: HighlightText;
+    --C-BORDER: HighlightText;
+    --C-BORDER-STRONG: HighlightText;
+    --C-TEXT-ERROR: HighlightText;
+    --C-TEXT-SUCCESS: HighlightText;
+    --C-TEXT-WARNING: HighlightText;
+    --C-TEXT-INFO: HighlightText;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: HighlightText;
+    }
+  }
+}
+@utility bg-accent-hover {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: HighlightText;
+    --C-TEXT-PRIMARY: HighlightText;
+    --C-TEXT-SECONDARY: HighlightText;
+    --C-TEXT-MUTED: HighlightText;
+    --C-TEXT-ACCENT: HighlightText;
+    --C-BORDER: HighlightText;
+    --C-BORDER-STRONG: HighlightText;
+    --C-TEXT-ERROR: HighlightText;
+    --C-TEXT-SUCCESS: HighlightText;
+    --C-TEXT-WARNING: HighlightText;
+    --C-TEXT-INFO: HighlightText;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: HighlightText;
+    }
+  }
+}
+@utility bg-selection {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: HighlightText;
+    --C-TEXT-PRIMARY: HighlightText;
+    --C-TEXT-SECONDARY: HighlightText;
+    --C-TEXT-MUTED: HighlightText;
+    --C-TEXT-ACCENT: HighlightText;
+    --C-BORDER: HighlightText;
+    --C-BORDER-STRONG: HighlightText;
+    --C-TEXT-ERROR: HighlightText;
+    --C-TEXT-SUCCESS: HighlightText;
+    --C-TEXT-WARNING: HighlightText;
+    --C-TEXT-INFO: HighlightText;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: HighlightText;
+    }
+  }
+}
+
+/* ButtonText fills: the primary action, an inverted button. */
+@utility bg-primary {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: ButtonFace;
+    --C-TEXT-PRIMARY: ButtonFace;
+    --C-TEXT-SECONDARY: ButtonFace;
+    --C-TEXT-MUTED: ButtonFace;
+    --C-TEXT-ACCENT: ButtonFace;
+    --C-BORDER: ButtonFace;
+    --C-BORDER-STRONG: ButtonFace;
+    --C-TEXT-ERROR: ButtonFace;
+    --C-TEXT-SUCCESS: ButtonFace;
+    --C-TEXT-WARNING: ButtonFace;
+    --C-TEXT-INFO: ButtonFace;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: ButtonFace;
+    }
+  }
+}
+@utility bg-primary-hover {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: ButtonFace;
+    --C-TEXT-PRIMARY: ButtonFace;
+    --C-TEXT-SECONDARY: ButtonFace;
+    --C-TEXT-MUTED: ButtonFace;
+    --C-TEXT-ACCENT: ButtonFace;
+    --C-BORDER: ButtonFace;
+    --C-BORDER-STRONG: ButtonFace;
+    --C-TEXT-ERROR: ButtonFace;
+    --C-TEXT-SUCCESS: ButtonFace;
+    --C-TEXT-WARNING: ButtonFace;
+    --C-TEXT-INFO: ButtonFace;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: ButtonFace;
+    }
+  }
+}
+@utility bg-primary-active {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: ButtonFace;
+    --C-TEXT-PRIMARY: ButtonFace;
+    --C-TEXT-SECONDARY: ButtonFace;
+    --C-TEXT-MUTED: ButtonFace;
+    --C-TEXT-ACCENT: ButtonFace;
+    --C-BORDER: ButtonFace;
+    --C-BORDER-STRONG: ButtonFace;
+    --C-TEXT-ERROR: ButtonFace;
+    --C-TEXT-SUCCESS: ButtonFace;
+    --C-TEXT-WARNING: ButtonFace;
+    --C-TEXT-INFO: ButtonFace;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: ButtonFace;
+    }
+  }
+}
+
+/* CanvasText fills: status marks used as fills, and inverse ink (tooltips). */
+@utility bg-status-error {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: Canvas;
+    --C-TEXT-PRIMARY: Canvas;
+    --C-TEXT-SECONDARY: Canvas;
+    --C-TEXT-MUTED: Canvas;
+    --C-TEXT-ACCENT: Canvas;
+    --C-BORDER: Canvas;
+    --C-BORDER-STRONG: Canvas;
+    --C-TEXT-ERROR: Canvas;
+    --C-TEXT-SUCCESS: Canvas;
+    --C-TEXT-WARNING: Canvas;
+    --C-TEXT-INFO: Canvas;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: Canvas;
+    }
+  }
+}
+@utility bg-status-success {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: Canvas;
+    --C-TEXT-PRIMARY: Canvas;
+    --C-TEXT-SECONDARY: Canvas;
+    --C-TEXT-MUTED: Canvas;
+    --C-TEXT-ACCENT: Canvas;
+    --C-BORDER: Canvas;
+    --C-BORDER-STRONG: Canvas;
+    --C-TEXT-ERROR: Canvas;
+    --C-TEXT-SUCCESS: Canvas;
+    --C-TEXT-WARNING: Canvas;
+    --C-TEXT-INFO: Canvas;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: Canvas;
+    }
+  }
+}
+@utility bg-status-warning {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: Canvas;
+    --C-TEXT-PRIMARY: Canvas;
+    --C-TEXT-SECONDARY: Canvas;
+    --C-TEXT-MUTED: Canvas;
+    --C-TEXT-ACCENT: Canvas;
+    --C-BORDER: Canvas;
+    --C-BORDER-STRONG: Canvas;
+    --C-TEXT-ERROR: Canvas;
+    --C-TEXT-SUCCESS: Canvas;
+    --C-TEXT-WARNING: Canvas;
+    --C-TEXT-INFO: Canvas;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: Canvas;
+    }
+  }
+}
+@utility bg-status-info {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: Canvas;
+    --C-TEXT-PRIMARY: Canvas;
+    --C-TEXT-SECONDARY: Canvas;
+    --C-TEXT-MUTED: Canvas;
+    --C-TEXT-ACCENT: Canvas;
+    --C-BORDER: Canvas;
+    --C-BORDER-STRONG: Canvas;
+    --C-TEXT-ERROR: Canvas;
+    --C-TEXT-SUCCESS: Canvas;
+    --C-TEXT-WARNING: Canvas;
+    --C-TEXT-INFO: Canvas;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: Canvas;
+    }
+  }
+}
+/* Inverse ink: the fill IS --C-TEXT-PRIMARY, so that role keeps its value here
+   (text on it is --C-TEXT-INVERSE, already Canvas). */
+@utility bg-fg-primary {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: Canvas;
+    --C-TEXT-SECONDARY: Canvas;
+    --C-TEXT-MUTED: Canvas;
+    --C-TEXT-ACCENT: Canvas;
+    --C-BORDER: Canvas;
+    --C-BORDER-STRONG: Canvas;
+    --C-TEXT-ERROR: Canvas;
+    --C-TEXT-SUCCESS: Canvas;
+    --C-TEXT-WARNING: Canvas;
+    --C-TEXT-INFO: Canvas;
+    /* Descendants only: the element's own ring is drawn outside its fill. */
+    & * {
+      --C-FOCUS: Canvas;
+    }
+  }
+}

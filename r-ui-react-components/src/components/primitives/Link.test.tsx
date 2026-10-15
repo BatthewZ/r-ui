@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
+import type { ComponentPropsWithRef } from "react";
 import { describe, expect, it } from "vitest";
 
+import { RouterProvider } from "../../util/router";
 import { Link } from "./Link";
 
 describe("Link", () => {
@@ -74,5 +76,40 @@ describe("Link", () => {
     render(<Link href="javascript:alert(1)">Click</Link>);
     expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByText("Click").tagName).toBe("SPAN");
+  });
+
+  it("renders `as` with the link's own styling and passes the component's props through", () => {
+    function RouterLink({ to, ...props }: { to: string } & ComponentPropsWithRef<"a">) {
+      return <a data-router="" href={to} {...props} />;
+    }
+    render(
+      <Link as={RouterLink} to="/settings" variant="inherit">
+        Settings
+      </Link>,
+    );
+    const link = screen.getByRole("link", { name: "Settings" });
+    expect(link).toHaveAttribute("data-router");
+    expect(link).toHaveAttribute("href", "/settings");
+    expect(link).toHaveClass("r-primitives-link", "text-inherit");
+  });
+
+  it("a new-tab or external link stays a plain <a> under a router", () => {
+    function RouterLink(props: ComponentPropsWithRef<"a">) {
+      return <a data-router="" {...props} />;
+    }
+    render(
+      <RouterProvider link={RouterLink}>
+        <Link href="/report.pdf" target="_blank">
+          Report
+        </Link>
+        <Link href="/status" external>
+          Status
+        </Link>
+        <Link href="/docs">Docs</Link>
+      </RouterProvider>,
+    );
+    expect(screen.getByRole("link", { name: "Report" })).not.toHaveAttribute("data-router");
+    expect(screen.getByRole("link", { name: "Status" })).not.toHaveAttribute("data-router");
+    expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute("data-router");
   });
 });

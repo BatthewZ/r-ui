@@ -17,7 +17,7 @@ export type DrawerContentProps = ModalContentProps & {
 
 const sideClasses = {
   // Only the edge that faces the page carries the hairline.
-  end: "r-overlays-drawer-end border-0 border-s animate-slide-in-end",
+  end: "r-overlays-drawer-end border-0 border-s",
   bottom: "r-overlays-drawer-bottom border-0 border-t rounded-ss-lg rounded-se-lg",
 } as const;
 

@@ -33,3 +33,10 @@ export const BUTTON_VARIANT: Record<ButtonVariant, string> = {
   danger:
     "bg-status-error text-fg-on-error hover:bg-[color-mix(in_oklab,var(--C-STATUS-ERROR),var(--C-TEXT-PRIMARY)_14%)] active:bg-[color-mix(in_oklab,var(--C-STATUS-ERROR),var(--C-TEXT-PRIMARY)_24%)]",
 };
+
+/**
+ * A toggle's "on" (`aria-pressed="true"`): the selection pair, on any variant, so a
+ * pressed Button and a pressed IconButton in one toolbar read the same. It is a
+ * token fill, so it also survives forced colors (as Highlight).
+ */
+export const BUTTON_PRESSED = "aria-pressed:bg-selection aria-pressed:text-fg-on-selection";

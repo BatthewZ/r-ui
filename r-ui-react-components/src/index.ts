@@ -11,6 +11,12 @@ export * from "./components/overlays";
 export * from "./components/data";
 export * from "./components/navigation";
 export * from "./components/layout";
+export * from "./components/preferences";
+export * from "./components/motion";
+export * from "./components/disclosure";
+export * from "./components/content";
+export * from "./components/dates";
+export * from "./components/charts";
 
 export * from "./hooks";
 export * from "./util";

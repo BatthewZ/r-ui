@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode, Ref } from "react";
 
 import { cn } from "../../util/style";
-import { BUTTON_BASE, BUTTON_VARIANT } from "./button-styles";
+import { BUTTON_BASE, BUTTON_PRESSED, BUTTON_VARIANT } from "./button-styles";
 
 export type IconButtonProps = {
   /** The accessible name (`aria-label`) and the native `title` hint. Required: the icon says nothing. */
@@ -50,7 +50,7 @@ export function IconButton({
         "hit-area r-primitives-icon-button rounded-md",
         variant !== "ghost" && "size-control",
         BUTTON_VARIANT[variant],
-        "aria-pressed:bg-selection aria-pressed:text-fg-on-selection",
+        BUTTON_PRESSED,
         className,
       )}
       {...props}

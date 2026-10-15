@@ -39,7 +39,7 @@ Rules:
 - **Top level, not `extend`.** `theme`, `classGroups`, `conflictingClassGroups`, `conflictingClassGroupModifiers`, `postfixLookupClassGroups` and `orderSensitiveModifiers` go at the top level of the extension. Passing `extend` throws: it would otherwise be silently replaced.
 - **Concatenated, never replaced.** Your `theme` and `classGroups` arrays are appended to the built-ins key by key, so extending `spacing` cannot wipe `text`, and adding to `opacity` keeps `opacity-disabled`.
 - **Everything else passes through**: `cacheSize`, `prefix`, `experimentalParseClassName`, `override`, and the conflict maps.
-- **Pick the key by the Tailwind namespace of the CSS variable.** `--color-x` -> `theme.color`, `--spacing-x` -> `theme.spacing`, `--text-x` -> `theme.text`, `--font-x` -> `theme.font`, `--font-weight-x` -> `theme["font-weight"]`, `--container-x` -> `theme.container`, `--radius-x`, `--shadow-x`, `--ease-x`, `--animate-x` likewise. `--opacity-x` -> `classGroups.opacity: [{ opacity: ["x"] }]`, `--transition-duration-x` -> `classGroups.duration: [{ duration: ["x"] }]`. An `@utility x` -> a class group of its own.
+- **Pick the key by the Tailwind namespace of the CSS variable.** `--color-x` -> `theme.color`, `--spacing-x` -> `theme.spacing`, `--text-x` -> `theme.text`, `--font-x` -> `theme.font`, `--font-weight-x` -> `theme["font-weight"]`, `--container-x` -> `theme.container`, `--radius-x`, `--shadow-x`, `--ease-x`, `--animate-x` likewise. `--opacity-x` -> `classGroups.opacity: [{ opacity: ["x"] }]`, `--transition-duration-x` -> `classGroups.duration: [{ duration: ["x"] }]`, `--z-index-x` -> `classGroups.z: [{ z: ["x"] }]`. An `@utility x` -> a class group of its own.
 - **Colour is the forgiving one.** tailwind-merge already treats any unknown `bg-*` / `text-*` suffix as a colour, so a missing colour name rarely changes the result. Register colours anyway; every other namespace changes behaviour when a name is missing.
 
 ## The mirror rule
@@ -47,7 +47,7 @@ Rules:
 `tailwindMergeExtension` in `src/index.js` lists every utility name r-ui-css declares, and nothing else:
 
 - every name in every `@theme` block reachable from r-ui-css's `"."` export (relative `@import`s followed), excluding wildcard resets, `--default-*` and sub-properties like `--text-h1--line-height`;
-- every `@utility` name.
+- every `@utility` name, except one with the exact class of a theme utility (`@utility text-h1` beside `--text-h1`, `@utility bg-accent` beside `--color-accent`): Tailwind emits both under one class, so it is still the one theme name.
 
 `bun run check` parses r-ui-css at test time from the workspace and compares, namespace by namespace, in both directions. A name in the CSS and not here is **missing**; a name here and not in the CSS is **stale**; a declaration in a namespace this package does not mirror, or in no known namespace, is a **problem**. All three fail. The check has no allowlist.
 

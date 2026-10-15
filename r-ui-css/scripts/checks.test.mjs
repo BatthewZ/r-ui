@@ -113,7 +113,7 @@ describe("theme rules check", () => {
 
   test("forbidden names cover every selected density name and the axis tokens", () => {
     const f = forbiddenNames(loadDefaults(PKG));
-    for (const n of ["--R-SIZE-3", "--H1", "--H1-line-height", "--BodyText-1", "--ICON", "--CONTROL-H", "--ROW-H", "--HIT-MIN"]) {
+    for (const n of ["--R-SIZE-3", "--H1", "--H1-line-height", "--BodyText-1", "--ICON", "--CONTROL-H", "--ROW-H", "--HIT-MIN", "--LAYER-STICKY"]) {
       assert.ok(f.has(n), n);
     }
     assert.ok(!f.has("--R-SIZE-3-COMPACT"));
@@ -122,6 +122,7 @@ describe("theme rules check", () => {
   const cases = [
     ["a theme sets a selected density name", "--SCHEME-DARK: 0; color-scheme: light; --R-SIZE-3: 1rem;", /sets --R-SIZE-3: set --R-SIZE-3-COMFORTABLE/],
     ["a theme sets a derived axis token", "--SCHEME-DARK: 0; color-scheme: light; --CONTROL-H: 3rem;", /sets --CONTROL-H/],
+    ["a theme sets a layer token", "--SCHEME-DARK: 0; color-scheme: light; --LAYER-STICKY: 50;", /sets --LAYER-STICKY: stacking is structure/],
     ["a theme omits --SCHEME-DARK", "color-scheme: light;", /missing --SCHEME-DARK/],
     ["a theme omits color-scheme", "--SCHEME-DARK: 0;", /missing color-scheme/],
     ["--SCHEME-DARK disagrees with color-scheme", "color-scheme: dark; --SCHEME-DARK: 0;", /--SCHEME-DARK is 0 but color-scheme is dark/],
@@ -148,6 +149,33 @@ describe("theme rules check", () => {
     assert.match(r.out, /@media is not allowed/);
   });
 
+  test("fails when a theme loads a font instead of naming one", () => {
+    const dir = tamperedCopy(() => {});
+    const file = join(dir, "aurora.css");
+    writeFileSync(
+      file,
+      `@import "@fontsource-variable/inter";\n@font-face { font-family: "Aurora Sans"; src: url(aurora.woff2); }\n:root[data-theme="aurora"] { color-scheme: light; --SCHEME-DARK: 0; --FONT-UI: "Aurora Sans", sans-serif; }\n`,
+    );
+    const r = run("check-theme-rules.mjs", ["--pkg", dir, file]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /@import is not allowed/);
+    assert.match(r.out, /@font-face is not allowed/);
+  });
+
+  test("fails when a colour role has no forced-colors mapping", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/forced-colors.css"), "    --C-SELECTION: Highlight !important;\n", ""));
+    const r = run("check-theme-rules.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--C-SELECTION has no forced-colors mapping/);
+  });
+
+  test("fails when a forced-colors mapping is not a system colour", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/forced-colors.css"), "--C-FOCUS: Highlight !important;", "--C-FOCUS: oklch(0.5 0.1 245) !important;"));
+    const r = run("check-theme-rules.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--C-FOCUS maps to .*not a system colour/);
+  });
+
   test("fails when an example theme name leaks outside its own file", () => {
     const [first] = themeFiles(PKG);
     assert.ok(first, "the package ships at least one example theme");
@@ -167,11 +195,25 @@ describe("theme rules check", () => {
     assert.match(r.out, /declares a custom property/);
   });
 
+  test("fails when forced colors stop setting the scheme from the forced palette", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/forced-colors.css"), "--SCHEME-DARK: 1 !important;", "--SCHEME-DARK: 0 !important;"));
+    const r = run("check-theme-rules.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--SCHEME-DARK must follow the forced palette/);
+  });
+
   test("fails when the template drifts from the defaults", () => {
     const dir = tamperedCopy((d) => replaceIn(join(d, "src/_theme-template.css"), /--RADIUS-MD: [^;]+;/, "--RADIUS-MD: 1rem;"));
     const r = run("check-theme-rules.mjs", ["--pkg", dir]);
     assert.equal(r.code, 1, r.out);
     assert.match(r.out, /template --RADIUS-MD/);
+  });
+
+  test("fails when the template omits a themeable token", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/_theme-template.css"), /\n {2}--BORDER-WIDTH: [^\n]+/, ""));
+    const r = run("check-theme-rules.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /template is missing --BORDER-WIDTH/);
   });
 });
 
@@ -188,11 +230,89 @@ describe("compile check", () => {
     assert.match(r.out, /missing utility \.h-control/);
   });
 
+  test("fails when a heading size loses its face", () => {
+    const dir = tamperedCopy((d) =>
+      replaceIn(join(d, "src/tokens/type.css"), /@utility text-h3 \{[^}]*\}/, ""),
+    );
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /\.text-h3 does not read --FONT-HEADING in font-family/);
+    assert.doesNotMatch(r.out, /\.text-h2 does not read/);
+  });
+
+  test("fails when a display size reads the wrong face", () => {
+    const dir = tamperedCopy((d) =>
+      replaceIn(join(d, "src/tokens/type.css"), /(@utility text-display-2 \{\s*font-family: )[^;]+;/, "$1var(--FONT-HEADING, var(--FONT-UI));"),
+    );
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /\.text-display-2 does not read --FONT-DISPLAY in font-family/);
+  });
+
+  test("fails when a bare border stops reading the line weight", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/shape.css"), "--default-border-width: var(--BORDER-WIDTH);", ""));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /\.border does not read --BORDER-WIDTH/);
+    assert.match(r.out, /\.divide-y does not read --BORDER-WIDTH/);
+  });
+
+  test("fails when a meaning-bearing fill stops opting out of forced colors", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/forced-colors.css"), /@utility bg-selection \{[\s\S]*?\n\}\n/, ""));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /\.bg-selection does not opt out under forced colors/);
+    assert.match(r.out, /\.aria-selected:bg-selection does not opt out/);
+  });
+
+  test("fails when a fill stops remapping status text and its descendants' focus", () => {
+    const dir = tamperedCopy((d) =>
+      replaceIn(
+        join(d, "src/tokens/forced-colors.css"),
+        /(@utility bg-accent \{[\s\S]*?)    --C-TEXT-ERROR: HighlightText;[\s\S]*?    & \* \{\n      --C-FOCUS: HighlightText;\n    \}\n/,
+        "$1",
+      ),
+    );
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /\.bg-accent does not remap the status text roles/);
+    assert.match(r.out, /\.bg-accent does not remap --C-FOCUS for its descendants/);
+    assert.doesNotMatch(r.out, /\.bg-selection does not remap/);
+  });
+
+  test("fails when a layer mapping is broken", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/layer.css"), "--z-index-sticky:", "--zindex-sticky:"));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--zindex-sticky is in no namespace/);
+  });
+
   test("fails when the namespace reset is removed", () => {
     const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/reset.css"), "--color-*: initial;", ""));
     const r = run("check-compile.mjs", ["--pkg", dir]);
     assert.equal(r.code, 1, r.out);
     assert.match(r.out, /Tailwind default \.bg-blue-500 still generates/);
+  });
+
+  test("fails when a container variant drifts from its lever's default", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/type.css"), "--container-column-md: 16rem;", "--container-column-md: 18rem;"));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--container-column-md: the container variant compiles to 18rem, but --COLUMN-MD defaults to 16rem/);
+  });
+
+  test("fails when a container size reads a custom property (the variant compiles to nothing)", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/type.css"), "--container-column-sm: 11rem;", "--container-column-sm: var(--COLUMN-SM);"));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /variant @max-column-sm:flex does not compile to @container \(width < var\(--COLUMN-SM\)\)/);
+  });
+
+  test("fails when a container size loses its alias back to the lever", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/tokens/type.css"), "  --container-page: var(--PAGE-MAX);\n", ""));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--container-page: no :root alias back to its lever/);
   });
 
   test("fails when the CSS does not compile", () => {

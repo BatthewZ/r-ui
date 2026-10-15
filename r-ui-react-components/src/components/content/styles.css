@@ -1,0 +1,98 @@
+/* "content" group stylesheet (CodeBlock, CopyButton, Markdown). Imported by
+   src/styles.css inside `@layer components`, so a caller's utility wins.
+   Plain rules, tokens only. */
+
+/* ── CodeBlock ─────────────────────────────────────────────────────────── */
+
+/* The <pre> is the horizontal scrollport. Block padding lives here; inline
+   padding lives on each line, so a highlighted line's band reaches both edges. */
+.r-content-code-pre {
+  margin: 0;
+  padding-block: var(--R-SIZE-4);
+  overflow-x: auto;
+  tab-size: 2;
+  font-variant-numeric: var(--NUMERALS-DATA);
+}
+
+/* Unwrapped: as wide as the longest line, never narrower than the block, so
+   every line's band spans the whole scroll width. */
+.r-content-code {
+  display: block;
+  inline-size: max-content;
+  min-inline-size: 100%;
+  font-family: inherit;
+  white-space: pre;
+}
+.r-content-code-pre[data-wrap] .r-content-code {
+  inline-size: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* One block per line. An empty line keeps its line box (it has no text to
+   give it one). */
+.r-content-code-line {
+  display: flex;
+  min-block-size: 1lh;
+  padding-inline: var(--R-SIZE-3);
+}
+.r-content-code-text {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/* Line numbers are generated content: never selected, never copied. The gutter
+   is as wide as the largest number, so code starts at one column. */
+.r-content-code[data-line-numbers] .r-content-code-line::before {
+  content: attr(data-line);
+  flex: none;
+  inline-size: calc(var(--r-content-code-digits, 2) * 1ch);
+  margin-inline-end: var(--R-SIZE-3);
+  text-align: end;
+  color: var(--C-TEXT-MUTED);
+  user-select: none;
+}
+
+/* A marked line: a band AND an inline-start bar. Under forced colors the band
+   is repainted away and the bar (a border, drawn in a system colour) remains.
+   Only marked lines carry the border, since forced colors would draw even a
+   transparent one; the padding gives back its width so the text holds still. */
+.r-content-code-line[data-highlighted] {
+  background-color: var(--C-SURFACE-3);
+  border-inline-start: calc(var(--BORDER-WIDTH) * 2) solid var(--C-ACCENT);
+  padding-inline-start: calc(var(--R-SIZE-3) - var(--BORDER-WIDTH) * 2);
+}
+
+/* ── Markdown ──────────────────────────────────────────────────────────── */
+
+/* A task item: the box replaces the bullet. */
+.r-content-md-task {
+  list-style: none;
+}
+.r-content-md-task-box {
+  display: inline-grid;
+  place-items: center;
+  vertical-align: -0.15em;
+  inline-size: 1em;
+  block-size: 1em;
+  margin-inline: -1.25em 0.25em;
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-SM);
+  color: var(--C-TEXT-PRIMARY);
+}
+.r-content-md-task-box > svg {
+  inline-size: 0.8em;
+  block-size: 0.8em;
+}
+
+/* A refused image keeps its words: its alt text, marked as standing in. */
+.r-content-md-image-alt {
+  color: var(--C-TEXT-SECONDARY);
+  font-style: italic;
+}
+
+/* A CodeBlock or a Table is a <div>, which the prose flow rules do not space;
+   it takes the same flow as the blocks around it. */
+.r-content-md * + .r-content-md-block {
+  margin-block-start: var(--PROSE-FLOW);
+}

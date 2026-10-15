@@ -1,68 +1,32 @@
 /**
- * The showcase's View settings: the four axes a reader can flip, minus the
- * container (that one is per-widget). Each maps to one attribute on <html>,
- * exactly as an app would set it:
- *
- *   theme   -> data-theme    (absent = the default theme, `:root`)
- *   density -> data-density  (absent = comfortable, the :root default)
- *   input   -> data-input    (absent = auto, i.e. `@media (pointer: coarse)`)
+ * The showcase's View settings, as a consumer app configures the library's
+ * preferences API: its own storage key and its own theme list. Theme, density
+ * and input are applied to <html> by `useTheme` / `useDensity` /
+ * `useInputMode` (through the switchers) and restored before first paint by
+ * `themeScript`, which the Vite config inlines into index.html.
  *
  * The example theme names are listed here because the showcase is a consumer
  * app that chose to import those theme files. The library itself never names them.
+ *
+ * No React in this module, and its imports carry extensions: vite.config.ts imports it.
  */
+import type { ThemeConfig } from "../../src/util/preferences.ts";
 
+/** The browser checks write `{ theme, density, input }` under this key to set the View. */
 export const STORAGE_KEY = "r-ui-showcase:view";
 
-export const THEMES = ["default", "nightfall", "harbour"] as const;
-export const DENSITIES = ["comfortable", "compact"] as const;
-export const INPUTS = ["auto", "fine", "coarse"] as const;
+export const THEMES = [
+  { value: "default", label: "Default" },
+  { value: "nightfall", label: "Nightfall" },
+  { value: "harbour", label: "Harbour" },
+  { value: "atelier", label: "Atelier" },
+] as const;
 
-export type Theme = (typeof THEMES)[number];
-export type Density = (typeof DENSITIES)[number];
-export type Input = (typeof INPUTS)[number];
-
-export interface View {
-  theme: Theme;
-  density: Density;
-  input: Input;
-}
-
-export const DEFAULT_VIEW: View = { theme: "default", density: "comfortable", input: "auto" };
-
-const pick = <T extends string>(list: readonly T[], value: unknown, fallback: T): T =>
-  list.includes(value as T) ? (value as T) : fallback;
-
-/** The saved view, validated field by field; anything unreadable is the default. */
-export function readView(): View {
-  try {
-    const raw: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
-    const v = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-    return {
-      theme: pick(THEMES, v.theme, DEFAULT_VIEW.theme),
-      density: pick(DENSITIES, v.density, DEFAULT_VIEW.density),
-      input: pick(INPUTS, v.input, DEFAULT_VIEW.input),
-    };
-  } catch {
-    return DEFAULT_VIEW;
-  }
-}
-
-/** Write the view to <html> and persist it. Storage failures (private mode) are ignored. */
-export function applyView(view: View, root: HTMLElement = document.documentElement): void {
-  setOrRemove(root, "data-theme", view.theme === "default" ? null : view.theme);
-  setOrRemove(root, "data-density", view.density === "comfortable" ? null : view.density);
-  setOrRemove(root, "data-input", view.input === "auto" ? null : view.input);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(view));
-  } catch {
-    /* private browsing or storage disabled: the view still applies */
-  }
-}
-
-function setOrRemove(el: HTMLElement, name: string, value: string | null) {
-  if (value === null) el.removeAttribute(name);
-  else el.setAttribute(name, value);
-}
+/** What the hooks, the switchers and the pre-paint script all receive. */
+export const PREFERENCES = {
+  storageKey: STORAGE_KEY,
+  themes: THEMES.map((t) => t.value),
+} satisfies ThemeConfig;
 
 /** The tokens the readout shows, resolved at <html>. */
 export const READOUT_TOKENS = ["--CONTROL-H", "--ROW-H", "--HIT-MIN", "--R-SIZE-3", "--BodyText-1"] as const;

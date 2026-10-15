@@ -14,6 +14,7 @@ import {
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
+import { useLinkElement } from "../../util/router";
 import { cn } from "../../util/style";
 import { IconButton } from "../primitives";
 import { NavLink, type NavLinkProps } from "./NavLink";
@@ -129,9 +130,12 @@ export type AppShellBrandProps<C extends ElementType = "a"> = PolymorphicProps<
   }
 >;
 
-/** The product mark and name at the top of the sidebar; a link unless `as` says otherwise. */
+/**
+ * The product mark and name at the top of the sidebar: the router's link (an
+ * `<a>` without a `RouterProvider`) unless `as` says otherwise.
+ */
 function Brand<C extends ElementType = "a">({ as, mark, className, children, ...props }: AppShellBrandProps<C>) {
-  const Component: ElementType = as ?? "a";
+  const Component = useLinkElement(as, (props as { href?: unknown }).href);
   return (
     <Component className={cn("r-navigation-shell-brand", className)} {...props}>
       <span className="r-navigation-shell-brand-mark" aria-hidden>
@@ -173,9 +177,10 @@ function SidebarSection({ title, position = "start", className, children, ...pro
 export type AppShellNavItemProps<C extends ElementType = "a"> = NavLinkProps<C>;
 
 /**
- * One destination. Renders an `<a>`; pass `as={Link}` (and its props, e.g. `to`)
- * for a router link. In the rail its label is hidden visually but stays its
- * accessible name, and shows beside the icon on hover and keyboard focus.
+ * One destination: the `RouterProvider`'s link (an `<a>` without one), or `as`.
+ * `current` unset asks the router's `isCurrent(href)`. In the rail its label is
+ * hidden visually but stays its accessible name, and shows beside the icon on
+ * hover and keyboard focus.
  */
 function NavItem<C extends ElementType = "a">(props: AppShellNavItemProps<C>) {
   return <NavLink {...props} />;

@@ -7,9 +7,10 @@ No JavaScript ships from this package.
 ## Why
 
 - **Tokens are the only vocabulary.** `p-r3`, `text-body-1`, `bg-surface-0`, `h-control`. The Tailwind defaults this contract replaces (`text-sm`, `bg-blue-500`, `rounded`, `shadow-xl`, `font-bold`, `leading-tight`, `ease-in-out`) are removed from the build, so they generate nothing. Numeric spacing (`p-4`) still compiles for layout one-offs; components use the `r` scale.
-- **A theme is one file.** Flip `<html data-theme="…">` and colour, faces, shape, depth, motion and what "comfortable" and "compact" mean all change. Components never do.
+- **A theme is one file.** Flip `<html data-theme="…">` and colour, faces, figures, shape, line weight, depth, motion and what "comfortable" and "compact" mean all change. Components never do.
 - **Sizing follows the situation, not the screen.** Density can change per element, a coarse pointer raises the hit floor, components size to their container. The viewport only moves layout.
 - **Two type scales, split by role.** A flat UI scale for everything interactive, a fluid prose/display scale for long-form and marketing text. A button inside an article is still a UI button.
+- **Accessible in every theme.** Contrast floors are measured, hit targets follow the input axis, motion collapses under reduced motion, and forced colors (Windows High Contrast) map every role to a system colour.
 - **Checked, not hoped.** `bun run check` measures every contrast pair in every theme, enforces the theme rules, and compiles the package.
 
 ## Quick start
@@ -41,7 +42,7 @@ No JavaScript ships from this package.
 </html>
 ```
 
-The default theme is `:root` itself: light, warm neutrals, an ink primary, one restrained accent. For another theme, copy [`src/_theme-template.css`](src/_theme-template.css), import it after the package and set `data-theme` on `<html>`. Two worked examples (one dark, one light with a different personality) live under [`src/examples/themes/`](src/examples/themes/); nothing imports them.
+The default theme is `:root` itself: light, warm neutrals, an ink primary, one restrained accent. For another theme, copy [`src/_theme-template.css`](src/_theme-template.css), import it after the package and set `data-theme` on `<html>`. Three worked examples (one dark; two light, with different personalities, one of them naming web faces that the app loads) live under [`src/examples/themes/`](src/examples/themes/); nothing imports them.
 
 ## Read next
 

@@ -21,8 +21,18 @@
     sans-serif;
   --FONT-MONO: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", Menlo,
     Consolas, monospace;
-  /* --FONT-DISPLAY is an optional slot, deliberately NOT declared: readers write
-     var(--FONT-DISPLAY, var(--FONT-UI)) so the fallback resolves where it is used. */
+  /* The role chain: UI (body, controls, data) <- HEADING (in-app headings: h1-h6,
+     text-h*) <- DISPLAY (display and prose headings: text-display-*, .prose h1-h6).
+     --FONT-HEADING and --FONT-DISPLAY are optional slots, deliberately NOT declared:
+     readers write var(--FONT-DISPLAY, var(--FONT-HEADING, var(--FONT-UI))) so the
+     fallback resolves where it is used. The same goes for the per-role
+     --FONT-UI-SIZE-ADJUST / --FONT-HEADING-SIZE-ADJUST / --FONT-DISPLAY-SIZE-ADJUST
+     (font-size-adjust per face; unset reads as `none`, each falling back to the
+     role before it). */
+
+  /* ── Figures ────────────────────────────────────────────────────────────── */
+  --NUMERALS-DATA: tabular-nums; /* UI text, tables, KPIs: figures line up */
+  --NUMERALS-PROSE: proportional-nums; /* running prose and display headings */
 
   /* ── Weights ────────────────────────────────────────────────────────────── */
   --WEIGHT-NORMAL: 400;
@@ -80,8 +90,9 @@
   --default-mono-font-family: var(--FONT-MONO);
 
   --font-ui: var(--FONT-UI);
+  --font-heading: var(--FONT-HEADING, var(--FONT-UI));
+  --font-display: var(--FONT-DISPLAY, var(--FONT-HEADING, var(--FONT-UI)));
   --font-mono: var(--FONT-MONO);
-  --font-display: var(--FONT-DISPLAY, var(--FONT-UI));
 
   --font-weight-normal: var(--WEIGHT-NORMAL);
   --font-weight-medium: var(--WEIGHT-MEDIUM);
@@ -115,9 +126,101 @@
   --spacing-section-2: var(--SECTION-2);
   --spacing-section-3: var(--SECTION-3);
   --spacing-gutter: var(--GUTTER);
+}
+
+/* Layout widths as box sizes (`max-w-measure`, `max-w-page`, `w-column-md`,
+   `basis-column-*`) AND as container variants (`@column-md:`, `@max-column-sm:`).
+   A container query's condition is fixed when the CSS compiles and cannot read a
+   custom property, so these are literal, non-inline: each variant compiles to the
+   DEFAULT length of its token (check-compile holds the two equal). The box
+   utilities read `var(--container-*)`, which the `:root` block below points back at
+   the lever, so a theme that retunes --COLUMN-* or --PAGE-MAX moves every box;
+   the container variants keep the default lengths. */
+@theme {
+  --container-measure: 68ch;
+  --container-page: 72rem;
+  --container-column-lg: 22rem;
+  --container-column-md: 16rem;
+  --container-column-sm: 11rem;
+}
+
+:root {
   --container-measure: var(--MEASURE);
   --container-page: var(--PAGE-MAX);
   --container-column-lg: var(--COLUMN-LG);
   --container-column-md: var(--COLUMN-MD);
   --container-column-sm: var(--COLUMN-SM);
+}
+
+/* Faces on the type-role utilities. Tailwind's `--text-*` sub-keys cannot carry a
+   font family, so each heading-role size gets a companion `@utility` of the SAME
+   name: Tailwind emits both blocks under one class (variants included), and a
+   class merger still sees one `text-*` size. The companion sorts before the
+   single-purpose utilities (`font-*`, `normal-case`, `tabular-nums`), so those
+   still override it, exactly as `font-semibold` overrides the size's weight.
+   The `font-*` family utilities get the matching size-adjust the same way. */
+@utility text-h1 {
+  font-family: var(--FONT-HEADING, var(--FONT-UI));
+  font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
+  text-transform: var(--HEADING-CASE);
+}
+@utility text-h2 {
+  font-family: var(--FONT-HEADING, var(--FONT-UI));
+  font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
+  text-transform: var(--HEADING-CASE);
+}
+@utility text-h3 {
+  font-family: var(--FONT-HEADING, var(--FONT-UI));
+  font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
+  text-transform: var(--HEADING-CASE);
+}
+@utility text-h4 {
+  font-family: var(--FONT-HEADING, var(--FONT-UI));
+  font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
+  text-transform: var(--HEADING-CASE);
+}
+@utility text-h5 {
+  font-family: var(--FONT-HEADING, var(--FONT-UI));
+  font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
+  text-transform: var(--HEADING-CASE);
+}
+@utility text-h6 {
+  font-family: var(--FONT-HEADING, var(--FONT-UI));
+  font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
+  text-transform: var(--HEADING-CASE);
+}
+
+@utility text-display-1 {
+  font-family: var(--FONT-DISPLAY, var(--FONT-HEADING, var(--FONT-UI)));
+  font-size-adjust: var(--FONT-DISPLAY-SIZE-ADJUST, var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none)));
+  text-transform: var(--HEADING-CASE);
+  font-variant-numeric: var(--NUMERALS-PROSE);
+}
+@utility text-display-2 {
+  font-family: var(--FONT-DISPLAY, var(--FONT-HEADING, var(--FONT-UI)));
+  font-size-adjust: var(--FONT-DISPLAY-SIZE-ADJUST, var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none)));
+  text-transform: var(--HEADING-CASE);
+  font-variant-numeric: var(--NUMERALS-PROSE);
+}
+@utility text-display-3 {
+  font-family: var(--FONT-DISPLAY, var(--FONT-HEADING, var(--FONT-UI)));
+  font-size-adjust: var(--FONT-DISPLAY-SIZE-ADJUST, var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none)));
+  text-transform: var(--HEADING-CASE);
+  font-variant-numeric: var(--NUMERALS-PROSE);
+}
+@utility text-display-4 {
+  font-family: var(--FONT-DISPLAY, var(--FONT-HEADING, var(--FONT-UI)));
+  font-size-adjust: var(--FONT-DISPLAY-SIZE-ADJUST, var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none)));
+  text-transform: var(--HEADING-CASE);
+  font-variant-numeric: var(--NUMERALS-PROSE);
+}
+
+@utility font-ui {
+  font-size-adjust: var(--FONT-UI-SIZE-ADJUST, none);
+}
+@utility font-heading {
+  font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
+}
+@utility font-display {
+  font-size-adjust: var(--FONT-DISPLAY-SIZE-ADJUST, var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none)));
 }

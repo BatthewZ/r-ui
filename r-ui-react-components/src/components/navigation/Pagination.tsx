@@ -4,6 +4,7 @@ import { type ComponentPropsWithRef, useRef } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { formatNumber } from "../../util/format";
+import { useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "../primitives";
 
@@ -54,19 +55,34 @@ export type PaginationProps = {
   page?: number;
   /** Uncontrolled initial page. Default 1. */
   defaultPage?: number;
+  /** Called with the page chosen (in link mode too, as the link is followed). */
   onPageChange?: (page: number) => void;
   /** Total pages (at least 1). */
   pageCount: number;
   /** Pages shown either side of the current one. Default 1. */
   siblings?: number;
+  /**
+   * Link mode: every page, previous and next become real links to
+   * `getHref(page)`, rendered by the `RouterProvider`'s link (an `<a>` without
+   * one), so they can be opened in a new tab and work without JavaScript. Pass
+   * `page` from the URL. Without it the pages are buttons.
+   */
+  getHref?: (page: number) => string;
   labels?: Partial<PaginationLabels>;
   classNames?: SlotClassNames<"previous" | "next" | "list" | "page" | "status">;
 } & Omit<ComponentPropsWithRef<"nav">, "children">;
 
+/** A page number, and in link mode previous / next too: chrome-less, the quiet wash on hover. */
+const PAGE_CLASSES =
+  "r-navigation-pagination-page relative inline-flex h-control min-w-control items-center justify-center rounded-md px-r5 text-body-1 text-fg-secondary transition-colors hover:bg-fg-primary/8 hover:text-fg-primary active:bg-fg-primary/12 aria-[current=page]:font-semibold aria-[current=page]:text-fg-primary";
+
+/** A link-mode arrow at an end: no `href`, so nothing to follow, and visibly unavailable. */
+const ARROW_DISABLED = "aria-disabled:pointer-events-none aria-disabled:opacity-disabled";
+
 /**
- * Previous / next and numbered page buttons. In a narrow container (under 28rem
- * of its own width, whatever the viewport) the numbers give way to "Page 3 of 12".
- * Numbers are locale-formatted.
+ * Previous / next and numbered pages: buttons, or real links with `getHref`. In
+ * a narrow container (under 28rem of its own width, whatever the viewport) the
+ * numbers give way to "Page 3 of 12". Numbers are locale-formatted.
  */
 export function Pagination({
   page: pageProp,
@@ -74,6 +90,7 @@ export function Pagination({
   onPageChange,
   pageCount: pageCountProp,
   siblings = 1,
+  getHref,
   labels: labelsProp,
   className,
   classNames,
@@ -88,10 +105,11 @@ export function Pagination({
   });
   const page = Math.min(Math.max(1, rawPage), pageCount);
   const navRef = useRef<HTMLElement>(null);
+  const LinkElement = useLinkElement(undefined, getHref?.(page));
 
   const go = (next: number) => {
     setPage(next);
-    // Reaching an end disables the button that got us there; hand focus to its
+    // Reaching an end disables the control that got us there; hand focus to its
     // opposite so it does not fall back to <body>.
     const edge = next <= 1 ? "next" : next >= pageCount ? "previous" : null;
     if (edge && navRef.current?.contains(document.activeElement)) {
@@ -104,35 +122,73 @@ export function Pagination({
 
   const fmt = (n: number) => formatNumber(n);
 
+  const arrow = (direction: "previous" | "next") => {
+    const target = direction === "previous" ? page - 1 : page + 1;
+    const disabled = direction === "previous" ? page <= 1 : page >= pageCount;
+    const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
+    const icon = <Icon aria-hidden className="size-icon rtl:-scale-x-100" />;
+    const arrowClass = direction === "previous" ? classNames?.previous : classNames?.next;
+    if (!getHref) {
+      return (
+        <IconButton
+          variant="ghost"
+          label={labels[direction]}
+          icon={icon}
+          disabled={disabled}
+          data-pagination={direction}
+          className={cn("size-control", arrowClass)}
+          onClick={() => go(target)}
+        />
+      );
+    }
+    // An `<a>` with no href is not a link; at an end it keeps the role and says it is unavailable.
+    return disabled ? (
+      <a role="link" aria-disabled="true" aria-label={labels[direction]} data-pagination={direction} className={cn(PAGE_CLASSES, "px-0", ARROW_DISABLED, arrowClass)}>
+        {icon}
+      </a>
+    ) : (
+      <LinkElement
+        href={getHref(target)}
+        aria-label={labels[direction]}
+        title={labels[direction]}
+        data-pagination={direction}
+        className={cn(PAGE_CLASSES, "px-0", arrowClass)}
+        onClick={() => go(target)}
+      >
+        {icon}
+      </LinkElement>
+    );
+  };
+
   return (
     <nav ref={navRef} aria-label={labels.nav} className={cn("@container min-w-0", className)} {...props}>
       <div className="flex items-center gap-r6">
-        <IconButton
-          variant="ghost"
-          label={labels.previous}
-          icon={<ChevronLeft aria-hidden className="size-icon rtl:-scale-x-100" />}
-          disabled={page <= 1}
-          data-pagination="previous"
-          className={cn("size-control", classNames?.previous)}
-          onClick={() => go(page - 1)}
-        />
+        {arrow("previous")}
         <ul className={cn("hidden items-center gap-r6 @md:flex", classNames?.list)}>
           {pageSlots(page, pageCount, siblings).map((slot) =>
             typeof slot === "number" ? (
               <li key={slot}>
-                <button
-                  type="button"
-                  aria-label={labels.page(fmt(slot))}
-                  aria-current={slot === page ? "page" : undefined}
-                  className={cn(
-                    "r-navigation-pagination-page relative inline-flex h-control min-w-control items-center justify-center rounded-md px-r5 text-body-1 text-fg-secondary",
-                    "transition-colors hover:bg-fg-primary/8 hover:text-fg-primary active:bg-fg-primary/12 aria-[current=page]:font-semibold aria-[current=page]:text-fg-primary",
-                    classNames?.page,
-                  )}
-                  onClick={() => go(slot)}
-                >
-                  {fmt(slot)}
-                </button>
+                {getHref ? (
+                  <LinkElement
+                    href={getHref(slot)}
+                    aria-label={labels.page(fmt(slot))}
+                    aria-current={slot === page ? "page" : undefined}
+                    className={cn(PAGE_CLASSES, classNames?.page)}
+                    onClick={() => go(slot)}
+                  >
+                    {fmt(slot)}
+                  </LinkElement>
+                ) : (
+                  <button
+                    type="button"
+                    aria-label={labels.page(fmt(slot))}
+                    aria-current={slot === page ? "page" : undefined}
+                    className={cn(PAGE_CLASSES, classNames?.page)}
+                    onClick={() => go(slot)}
+                  >
+                    {fmt(slot)}
+                  </button>
+                )}
               </li>
             ) : (
               <li key={slot} aria-hidden className="inline-flex min-w-control justify-center text-fg-muted">
@@ -147,15 +203,7 @@ export function Pagination({
         >
           {labels.status(fmt(page), fmt(pageCount))}
         </span>
-        <IconButton
-          variant="ghost"
-          label={labels.next}
-          icon={<ChevronRight aria-hidden className="size-icon rtl:-scale-x-100" />}
-          disabled={page >= pageCount}
-          data-pagination="next"
-          className={cn("size-control", classNames?.next)}
-          onClick={() => go(page + 1)}
-        />
+        {arrow("next")}
       </div>
     </nav>
   );

@@ -112,4 +112,51 @@ describe("Pagination", () => {
     expect(screen.getByRole("button", { name: "Zurück" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Seite 2" })).toBeInTheDocument();
   });
+
+  describe("link mode (getHref)", () => {
+    const href = (p: number) => `/results?page=${p}`;
+
+    it("renders pages and arrows as real links to getHref(page), with no buttons left", () => {
+      render(<Pagination pageCount={12} page={6} getHref={href} />);
+      expect(screen.queryAllByRole("button")).toHaveLength(0);
+      expect(screen.getByRole("link", { name: "Page 7" })).toHaveAttribute("href", "/results?page=7");
+      expect(screen.getByRole("link", { name: "Page 6" })).toHaveAttribute("aria-current", "page");
+      expect(screen.getByRole("link", { name: "Previous page" })).toHaveAttribute("href", "/results?page=5");
+      expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("href", "/results?page=7");
+    });
+
+    it("at an end the arrow is an unavailable link with nothing to follow", () => {
+      render(<Pagination pageCount={3} page={1} getHref={href} />);
+      const previous = screen.getByRole("link", { name: "Previous page" });
+      expect(previous).toHaveAttribute("aria-disabled", "true");
+      expect(previous).not.toHaveAttribute("href");
+      expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("href", "/results?page=2");
+    });
+
+    it("reports the page being followed, exactly once per click", async () => {
+      const user = userEvent.setup();
+      const onPageChange = vi.fn();
+      render(<Pagination pageCount={5} page={2} onPageChange={onPageChange} getHref={href} />);
+      const link = screen.getByRole("link", { name: "Page 4" });
+      // jsdom does not navigate; the click still reaches the handler.
+      link.addEventListener("click", (e) => e.preventDefault());
+      await user.click(link);
+      expect(onPageChange).toHaveBeenCalledTimes(1);
+      expect(onPageChange).toHaveBeenCalledWith(4);
+    });
+
+    it("reaching an end hands focus to the opposite arrow, as with buttons", async () => {
+      const user = userEvent.setup();
+      function Owner() {
+        const [p, setP] = useState(2);
+        return <Pagination pageCount={3} page={p} onPageChange={setP} getHref={href} />;
+      }
+      render(<Owner />);
+      const next = screen.getByRole("link", { name: "Next page" });
+      next.addEventListener("click", (e) => e.preventDefault());
+      await user.click(next);
+      expect(screen.getByRole("link", { name: "Next page" })).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByRole("link", { name: "Previous page" })).toHaveFocus();
+    });
+  });
 });

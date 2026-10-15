@@ -38,6 +38,11 @@ export const DOMAIN_COLORS = [
   "TEXT-ON-STALE",
   "CHART-GRID",
   "CHART-AXIS",
+  "CODE-KEYWORD",
+  "CODE-STRING",
+  "CODE-NUMBER",
+  "CODE-FUNCTION",
+  "CODE-TYPE",
 ] as const;
 
 export type DomainColor = (typeof DOMAIN_COLORS)[number];

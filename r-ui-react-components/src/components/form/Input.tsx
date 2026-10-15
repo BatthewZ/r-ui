@@ -4,7 +4,7 @@ import { type ComponentPropsWithRef, type MouseEvent, type ReactNode, useRef } f
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 
-import { useFieldControl } from "./Field";
+import { useFieldControl, useFieldInputProps } from "./Field";
 
 export interface InputProps extends Omit<ComponentPropsWithRef<"input">, "type" | "size"> {
   /** Text-like types only. Numbers: `NumberInput`. Search: `SearchInput`. */
@@ -50,6 +50,8 @@ export function Input({
     "aria-describedby": describedByProp,
     "aria-invalid": ariaInvalidProp,
   });
+  // In a Field bound to a Form, the form owns the value (unless the caller passed one).
+  const nativeProps = useFieldInputProps(props);
 
   // A press on the frame's padding or on a decorative adornment focuses the
   // field, as if the whole box were the input. Interactive adornments keep theirs.
@@ -83,7 +85,7 @@ export function Input({
           "r-form-input min-w-0 flex-1 self-stretch bg-transparent text-body-1 text-fg-primary",
           classNames?.input,
         )}
-        {...props}
+        {...nativeProps}
       />
       {end != null && <span className={cn("r-form-adornment", classNames?.end)}>{end}</span>}
     </div>

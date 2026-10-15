@@ -24,7 +24,7 @@
     </style>
   </head>
   <body class="min-h-dvh bg-canvas">
-    <header class="top-0 z-10 border-b bg-surface-0 sm:sticky">
+    <header class="top-0 z-sticky border-b bg-surface-0 sm:sticky">
       <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-r1 gap-y-r4 px-gutter py-r4">
         <p class="flex items-baseline gap-r5">
           <span class="text-h4 font-semibold">r-ui-css</span>
@@ -137,6 +137,60 @@
           <div class="rounded-lg border bg-surface-0 p-r2">
             <h3>Prose / display <span class="text-body-2 font-normal text-fg-muted">fluid, density-independent</span></h3>
             <dl class="mt-r3 divide-y" id="prose-type"></dl>
+          </div>
+        </div>
+      </section>
+
+      <!-- Faces, figures and line weight -->
+      <section class="sp-section py-r1" aria-labelledby="h-faces">
+        <h2 id="h-faces">Faces, figures and lines</h2>
+        <p class="mt-r5 max-w-measure text-fg-secondary">
+          Three face roles in a chain: display falls back to heading, heading to UI. A theme that sets only the UI face
+          moves all three. Figures are tabular in data and proportional in prose; borders read one line weight.
+        </p>
+        <div class="sp-split mt-r2">
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>Faces by role</h3>
+            <dl class="mt-r3 divide-y" id="faces">
+              <div class="py-r4">
+                <dt class="font-mono text-body-3 text-fg-muted">UI · body, controls, data · <span data-face="body"></span></dt>
+                <dd class="mt-r6" id="face-ui">Quarterly revenue grew in every region.</dd>
+              </div>
+              <div class="py-r4">
+                <dt class="font-mono text-body-3 text-fg-muted">Heading · h1–h6, text-h* · <span data-face="heading"></span></dt>
+                <dd class="mt-r6"><span class="text-h2" id="face-heading">Quarterly revenue</span></dd>
+              </div>
+              <div class="py-r4">
+                <dt class="font-mono text-body-3 text-fg-muted">Display · text-display-*, prose headings · <span data-face="display"></span></dt>
+                <dd class="mt-r6"><span class="text-display-3" id="face-display">Quarterly revenue</span></dd>
+              </div>
+            </dl>
+          </div>
+          <div class="rounded-lg border bg-surface-0 p-r2">
+            <h3>Figures</h3>
+            <div class="mt-r3 grid grid-cols-2 gap-r3">
+              <div>
+                <p class="font-mono text-body-3 text-fg-muted">Data · <span data-numerals="data"></span></p>
+                <table class="mt-r5 w-full" id="figures-data">
+                  <tbody>
+                    <tr class="border-b"><td class="py-r6 text-end">1,111.10</td></tr>
+                    <tr class="border-b"><td class="py-r6 text-end">8,000.08</td></tr>
+                    <tr><td class="py-r6 text-end">0.00</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div data-prose>
+                <p class="font-mono text-body-3 text-fg-muted">Prose · <span data-numerals="prose"></span></p>
+                <p class="mt-r5" id="figures-prose">1,111.10<br />8,000.08<br />0.00</p>
+              </div>
+            </div>
+            <h3 class="mt-r1">Line weight <span class="text-body-2 font-normal text-fg-muted" id="border-readout"></span></h3>
+            <div class="mt-r3 flex flex-wrap items-center gap-r4">
+              <span class="flex h-control items-center rounded-md border px-r3" id="border-sample">border</span>
+              <button class="h-control rounded-md border border-border-strong bg-surface-0 px-r3 font-medium" id="border-control">Control</button>
+              <input type="checkbox" checked aria-label="Native checkbox follows the accent" class="size-icon" />
+              <input type="range" aria-label="Native range follows the accent" class="w-[8em]" />
+            </div>
           </div>
         </div>
       </section>
@@ -407,6 +461,10 @@
         const density = root.dataset.density ?? "comfortable";
         for (const b of document.querySelectorAll("#density [role=radio]")) b.setAttribute("aria-checked", String(b.dataset.value === density));
         $("#readout").textContent = `CONTROL-H ${px(css("--CONTROL-H"))} · ROW-H ${px(css("--ROW-H"))} · HIT-MIN ${css("--HIT-MIN")}`;
+        const faces = faceReport();
+        for (const el of document.querySelectorAll("[data-face]")) el.textContent = faces[el.dataset.face];
+        for (const el of document.querySelectorAll("[data-numerals]")) el.textContent = css(`--NUMERALS-${el.dataset.numerals.toUpperCase()}`);
+        $("#border-readout").textContent = `--BORDER-WIDTH ${css("--BORDER-WIDTH")} · drawn ${getComputedStyle($("#border-sample")).borderTopWidth}`;
         for (const el of document.querySelectorAll("[data-size]")) {
           const dt = el.closest("div").querySelector("dt");
           const cs = getComputedStyle(dt);
@@ -416,8 +474,15 @@
           el.textContent = px(el.previousElementSibling.getBoundingClientRect().width);
         }
       }
+      // The face each role actually resolves to: the first family in the computed stack.
+      function faceReport() {
+        const first = (el) => getComputedStyle(el).fontFamily.split(",")[0].trim().replace(/^["']|["']$/g, "");
+        return { body: first($("#face-ui")), heading: first($("#face-heading")), display: first($("#face-display")) };
+      }
+
       refresh();
       addEventListener("resize", refresh);
+      document.fonts?.addEventListener?.("loadingdone", refresh);
 
       window.measure = () => {
         const rowH = (sel) => $(sel).querySelector("tbody tr").getBoundingClientRect().height;
@@ -438,6 +503,25 @@
           proseButtonLineHeight: getComputedStyle(button).lineHeight,
           proseInlineButtonPx: inline.getBoundingClientRect().height,
           proseParagraphLineHeight: getComputedStyle($("#prose p:not(.text-prose-1)")).lineHeight,
+          faces: {
+            ...faceReport(),
+            h2Element: getComputedStyle($("#h-faces")).fontFamily,
+            proseHeading: getComputedStyle($("#prose h2")).fontFamily,
+            bodyStack: getComputedStyle(document.body).fontFamily,
+          },
+          numerals: {
+            data: getComputedStyle($("#figures-data td")).fontVariantNumeric,
+            prose: getComputedStyle($("#figures-prose")).fontVariantNumeric,
+          },
+          border: {
+            token: css("--BORDER-WIDTH"),
+            sample: getComputedStyle($("#border-sample")).borderTopWidth,
+            control: getComputedStyle($("#border-control")).borderTopWidth,
+            controlPx: $("#border-control").getBoundingClientRect().height,
+            tableRow: getComputedStyle($("#card-page tbody tr")).borderBottomWidth,
+          },
+          caretColor: getComputedStyle($("#card-page input")).caretColor,
+          accentColor: getComputedStyle(document.documentElement).accentColor,
           scrollWidth: document.documentElement.scrollWidth,
           clientWidth: document.documentElement.clientWidth,
         };

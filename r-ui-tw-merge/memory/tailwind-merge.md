@@ -20,3 +20,7 @@ tailwind-merge's `ConfigExtension` keeps group keys (`theme`, `classGroups`, con
 ## Parsing the CSS
 
 Read the CSS package's entry from its `"."` export and follow relative `@import`s; that is the set of names a consumer actually gets. Skip wildcard resets (`--color-*: initial`), `--default-*` and sub-properties (`--text-h1--line-height`). Resolve the namespace by longest prefix against a list that includes the namespaces this package does not mirror, or `--text-shadow-sm` is misread as the text name `shadow-sm`. Anything unclassifiable is a failure, never a skip.
+
+## A same-name `@utility` is not a new name
+
+r-ui-css adds declarations to some theme utilities with an `@utility` of the same class (a face on `text-h1`, forced-colors handling on `bg-accent`). Tailwind emits both blocks under one class, so tailwind-merge must keep treating it as the theme name: a separate class group would stop `text-h1 text-h2` collapsing. The parser recognises a companion only by the exact class a theme name generates (`text-h1`, `bg-ink`, `z-sticky`), never by prefix, so `text-h1-face` is still a new name to mirror.

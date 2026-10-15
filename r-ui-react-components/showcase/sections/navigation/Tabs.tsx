@@ -34,7 +34,7 @@ function Example({
   const ICON = { overview: FileText, logs: ScrollText, traces: Waypoints, config: FileText } as const;
   return (
     <Tabs defaultValue="overview" variant={variant} activation={activation}>
-      <Tabs.List aria-label="Service details">
+      <Tabs.List data-sc-scrolls aria-label="Service details">
         {PANELS.map(({ value, label }) => {
           const Icon = ICON[value as keyof typeof ICON];
           return (
@@ -57,7 +57,7 @@ function Controlled() {
   const [range, setRange] = useState("24h");
   return (
     <Tabs value={range} onValueChange={setRange} variant="enclosed">
-      <Tabs.List aria-label="Time range">
+      <Tabs.List data-sc-scrolls aria-label="Time range">
         {["1h", "24h", "7d", "30d"].map((r) => (
           <Tabs.Tab key={r} value={r}>
             {r}

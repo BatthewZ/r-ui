@@ -189,7 +189,7 @@ function TableHead({ className, ref, ...rest }: TableSectionProps) {
       <thead
         ref={ref}
         data-sticky={stickyHeader || undefined}
-        className={cn(stickyHeader && "sticky top-0 z-1", className)}
+        className={cn(stickyHeader && "sticky top-0 z-raised", className)}
         {...rest}
       />
     </SectionContext.Provider>

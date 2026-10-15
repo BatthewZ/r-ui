@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
+import { useIsCurrent, useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 
 export type BreadcrumbsProps = {
@@ -111,24 +112,29 @@ function BreadcrumbsRoot({
 export type BreadcrumbsItemProps<C extends ElementType = "a"> = PolymorphicProps<
   C,
   {
-    /** The page this trail ends on: `aria-current="page"`, not styled as a link. */
+    /**
+     * The page this trail ends on: `aria-current="page"`, not styled as a link.
+     * Unset, the `RouterProvider`'s `isCurrent(href)` decides.
+     */
     current?: boolean;
     children?: ReactNode;
   }
 >;
 
 /**
- * One crumb: a link (`<a>`, or `as={RouterLink}`), or plain text when it has no
- * `href` and no `as`.
+ * One crumb: a link (the router's link, an `<a>`, or `as`), or plain text when
+ * it has no `href` and no `as`.
  */
 function BreadcrumbsItem<C extends ElementType = "a">({
   as,
-  current = false,
+  current: currentProp,
   className,
   ...props
 }: BreadcrumbsItemProps<C>) {
-  const isLink = as !== undefined || (props as { href?: string }).href !== undefined;
-  const Component: ElementType = as ?? (isLink ? "a" : "span");
+  const href = (props as { href?: unknown }).href;
+  const isLink = as !== undefined || href !== undefined;
+  const Component = useLinkElement(as, href, "span");
+  const current = useIsCurrent(currentProp, href);
   return (
     <Component
       aria-current={current ? "page" : undefined}
@@ -138,7 +144,7 @@ function BreadcrumbsItem<C extends ElementType = "a">({
         current
           ? "font-medium text-fg-primary"
           : isLink
-            ? "hit-area rounded-sm text-fg-secondary hover:text-fg-primary hover:underline"
+            ? "hit-area rounded-sm text-fg-secondary hover:text-fg-primary hover:underline forced-colors:text-fg-accent"
             : "text-fg-secondary",
         className,
       )}

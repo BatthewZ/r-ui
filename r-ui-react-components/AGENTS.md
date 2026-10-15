@@ -13,11 +13,13 @@ src/
   styles.css               the CSS aggregator. Never edited per component.
   tokens.css               this package's DOMAIN tokens (series, trend, chart, KPI…)
   floating.css             the top-layer reset for floating panels (shared internal)
-  hooks/                   shared hooks (useFloating, useRovingFocus, useVirtualRows…)
+  hooks/                   shared hooks (useFloating, useRovingFocus, useVirtualRows, useRowHeight…)
   util/                    cn, SlotClassNames, mergeProps/mergeRefs, format*, domainColor, safeUrl,
-                           tone (the shared tone vocabulary; internal, not in util/index)
+                           tone (the shared tone vocabulary) and error-line (the error message
+                           look); both internal, not in util/index
   components/
-    primitives/ form/ overlays/ data/ navigation/ layout/
+    primitives/ form/ overlays/ data/ navigation/ layout/ preferences/ motion/ disclosure/
+    charts/ content/ dates/
       index.ts             the group's barrel: one `export` line per component
       styles.css           the group's CSS (plain rules, tokens only)
       <Name>.tsx           a component (compound parts in the same file or <Name>/)
@@ -36,17 +38,29 @@ scripts/                   the gates (`verify:*`) and their own tests
 | Group | Components |
 |---|---|
 | primitives | `Button`, `IconButton`, `Badge`, `StatusLabel`, `Card`, `Alert`, `Spinner`, `Skeleton`, `Kbd`, `Divider`, `Avatar`, `Link` |
-| form | `Field`, `Input`, `Textarea`, `Select`, `SearchInput`, `Checkbox`, `RadioGroup` (+ `Radio`), `Switch`, `SegmentedControl`, `NumberInput` |
+| form | `Field`, `Input`, `Textarea`, `Select`, `SearchInput`, `Checkbox`, `RadioGroup` (+ `Radio`), `Switch`, `SegmentedControl`, `NumberInput`, `Combobox`, `MultiSelect`, `TagInput`; form state: `useForm` + `Form`, `useFieldArray`, `useFormState`, `useFormValue`, `ErrorSummary`, `FormActions`; for custom controls: `useFieldValue`, `useFieldInputProps`, `useFieldMessage` |
 | overlays | `Tooltip`, `Popover`, `DropdownMenu`, `Dialog`, `Drawer`, `ToastProvider` + `useToast` |
 | data | `Table`, `DataTable`, `VirtualizedTable`, `StatCard`, `Sparkline`, `Meter`, `DescriptionList`, `EmptyState` |
-| navigation | `AppShell`, `Tabs`, `Breadcrumbs`, `Pagination`, `NavList` |
+| navigation | `AppShell`, `Tabs`, `Breadcrumbs`, `Pagination`, `NavList`, `RouterProvider` |
 | layout | `Stack`, `Inline`, `Grid`, `Container`, `Section`, `Prose` |
+| preferences | `ThemeSwitcher`, `DensitySwitcher`, `InputSwitcher`, `PreferencesMenu`, `ThemeScript` |
+| motion | `ScrollReveal`, `Stagger`, `startViewTransition` / `useViewTransition` |
+| disclosure | `Collapsible`, `Accordion` |
+| charts | `LineChart`, `BarChart`, `Heatmap` |
+| content | `CopyButton`, `CodeBlock`, `Markdown` |
+| dates | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker` |
 
 Groups build on each other in one direction: `primitives` depends on nothing else here;
 `form`, `overlays`, `data` and `navigation` may use `primitives` (and `data` uses `form`'s
-`Checkbox`). Import through the group's barrel (`../primitives`). Use what exists before
-writing a local copy: a tone's glyph and mark come from `util/tone`, a loading bar is
-`Skeleton`, an icon-only control is `IconButton`.
+`Checkbox`); `preferences` builds on `form` and `overlays`; `motion` and `disclosure` use
+only the shared hooks and utilities; `charts` uses `primitives` and `data` (`Table`, the
+series slots); `content` uses `primitives` and `data` (`Table` for Markdown tables); `dates`
+uses `primitives`, `form` and `overlays`. Floating panels outside `overlays` (the selection
+listbox, the chart tooltip) take the exit-animation helpers from `overlays/internal`, the one
+deep import allowed. Otherwise import through the group's barrel (`../primitives`). Use what
+exists before writing a local copy: a tone's glyph and mark come from `util/tone`, an error
+message's look from `util/error-line`, a loading bar is `Skeleton`, an icon-only control is
+`IconButton`, a row-height probe is `useRowHeight`.
 
 ## Adding a component (touch only your group)
 
@@ -59,7 +73,9 @@ writing a local copy: a tone's glyph and mark come from `util/tone`, a loading b
    export default function NameSection() { /* every state, side by side */ }
    ```
    Import the component from `../../../src` (or the group path). The Overview page, its TOC
-   and the anchor `#/overview/<group>-<file>` appear automatically.
+   and the anchor `#/overview/<group>-<file>` appear automatically (each section is its own
+   lazy chunk). A demo element that is designed to scroll sideways (a wide table, a code
+   block's lines) carries `data-sc-scrolls`, or `overview-matrix` reports it as a spill.
 5. `bun run check`.
 
 You never edit `src/index.ts`, `src/styles.css`, `src/tokens.css`, another group's files,
@@ -114,12 +130,15 @@ Components speak the contract's tokens and this package's domain tokens. Nothing
 | UI text | `text-body-1..3`, `text-h1..h6` | `text-sm`, `text-xs` |
 | colour | `bg-surface-0`, `text-fg-secondary`, `border-border-strong`, `bg-primary`, `text-fg-on-primary`, `bg-status-error-bg` | `bg-blue-500`, `text-white`, `#hex`, `oklch(…)` |
 | radius / shadow | `rounded-sm/md/lg/xl/full`, `shadow-sm/md/lg` | bare `rounded`, bare `shadow` |
+| lines | bare `border` / `border-b` / `divide-y`; in CSS `var(--BORDER-WIDTH) solid …` | `border-2`, `border: 1px solid …` |
+| stacking | `z-raised` (sticky table head), `z-sticky` (sticky header), `z-docked` (bottom nav, fixed bars), `z-bypass` (skip link); in CSS `var(--LAYER-*)`; floating panels use the top layer | `z-10`, `z-index: 2` |
 | data | `bg-series-1..8`, `bg-seq-1..7`, `text-trend-good/bad/flat`, `stroke-chart-grid` | a status colour for "series 4" |
 
 Allowed raw values: `0`, `px` (the 1px hairline), `full`, `auto`, fractions (`w-1/2`),
 keywords (`min-h-dvh`), and `var(--TOKEN)` arbitrary values (`h-(--CONTROL-H)`). A raw
 px/rem/hex/rgb/oklch literal in a class string, an inline style or component CSS fails
-`verify:no-raw-tailwind` (it also scans the showcase). Strings are read with the
+`verify:no-raw-tailwind` (it also scans the showcase), and so does a numeric z-index or a
+component stylesheet line drawn at a fixed `1px` instead of the theme's `--BORDER-WIDTH`. Strings are read with the
 TypeScript scanner, so a hoisted constant is caught too; comments never are. If no
 token fits, that is a contract question (for `@batthewz/r-ui-css`, or a domain token in
 `src/tokens.css`), never an excuse.
@@ -137,12 +156,22 @@ three-criteria test). Current set:
   `SERIES-1..8`, `SEQ-1..7` (1 = greatest magnitude), `TREND-GOOD`, `TREND-BAD`,
   `STATUS-SERIOUS` / `TEXT-SERIOUS` / `STATUS-SERIOUS-BG` / `TEXT-ON-SERIOUS`,
   `STATUS-STALE` / `TEXT-STALE` / `STATUS-STALE-BG` / `TEXT-ON-STALE`, `CHART-GRID`,
-  `CHART-AXIS`.
+  `CHART-AXIS`, `CODE-KEYWORD` / `CODE-STRING` / `CODE-NUMBER` / `CODE-FUNCTION` / `CODE-TYPE`.
   Utilities: `*-series-N`, `*-seq-N`, `*-trend-good|bad|flat`, `*-status-serious(-bg)`,
   `*-fg-serious`, `*-fg-on-serious`, `*-status-stale(-bg)`, `*-fg-stale`, `*-fg-on-stale`,
-  `*-chart-grid|axis`. `TEXT-ON-*` is the ink on the mark used as a fill (a solid
+  `*-chart-grid|axis`, `text-code-keyword|string|number|function|type`, plus
+  `text-code-comment|property|addition|deletion` (aliases of the contract's muted, secondary,
+  success and error text roles). `TEXT-ON-*` is the ink on the mark used as a fill (a solid
   Badge); `verify:domain-contrast` holds it to 4.5:1 on its mark in every theme.
   `trend-flat` aliases the contract's `--C-TEXT-SECONDARY`.
+- forced colors (Windows High Contrast) follow the contract's four rules. Status, trend
+  and chart chrome map both halves of each pair to a system colour; the series and
+  sequential palettes keep their colours (the colour is the information, and a series is
+  also labelled), and their `bg-` fills opt out of repainting through same-name `@utility`
+  companions, as `bg-status-serious` / `-stale` do; their blend follows the forced
+  palette's scheme, because the contract sets `--SCHEME-DARK` from it there. The code
+  colours become CanvasText (weight and slant carry keyword and comment). A new pair needs
+  one or the other (`verify:domain-pairs`).
 - sizes (density-dependent): `--CHART-H` (`h-chart`), `--BAR-THICK` (`h-bar`/`w-bar`),
   `--HEAT-CELL` (`size-heat-cell`), `--KPI-MIN`, `--KPI-MAX`, and `--KPI-VALUE`
   (`text-kpi`, container-sized with `cqi`).
@@ -228,6 +257,25 @@ Adding a domain token: declare it in `src/tokens.css` (pair, or per-density name
   for each, and `stress-matrix.js` fails on any spill.
 - **UI inside prose stays UI**: a button in a prose region still uses `h-control` and UI
   text, never prose leading.
+- **Internal links go through the router config.** A part that renders an internal link
+  resolves its element with `useLinkElement` and its current state with `useIsCurrent`
+  (`src/util/router.tsx`), so one `RouterProvider` reaches it; an explicit `as` / `current`
+  still wins. Never hard-code `<a>` for an internal `href`.
+- **A form control binds through `Field`.** Inside `<Field name="…">` in a `Form`, the
+  control reads and writes the form's value: a value-based control takes `useFieldValue`
+  (the `useControllableState` contract plus the form, and the native `name`), a native text
+  control spreads `useFieldInputProps(props)`, and a control that renders its own message
+  (a picker's "not a date") registers it with `useFieldMessage` and names it in its own
+  `aria-describedby` too. A caller-controlled `value` is left alone. Every control also
+  takes id, description, error, `aria-invalid`, `required` and `disabled` from `useFieldControl`.
+- **Dates are calendar dates, not instants.** A date value is a `Date` at local midnight,
+  read only through local getters; the wire format (`name` submission, `toISODate`) is
+  `YYYY-MM-DD` built from those getters, never `toISOString()` (it moves a local midnight to
+  the previous day west of Greenwich). A preset may still return instants; its id travels
+  with the value.
+- **A reset outline is zeroed, not just `none`.** The contract forces `outline-style: solid`
+  on `:focus-visible` under forced colours, which revives `outline: none` as a second ring;
+  an inner part whose frame draws the ring writes `outline: 0 none`.
 - **A landmark can be demoted.** A part that renders a landmark a host page may already own
   takes `as` (`AppShell.Main as="div"` inside a page with its own `<main>`).
 - **Accessibility is design**: names for icon-only controls, keyboard paths
@@ -241,13 +289,14 @@ Adding a domain token: declare it in `src/tokens.css` (pair, or per-density name
 | Script | Asserts |
 |---|---|
 | `verify:no-css-imports` | no `.ts`/`.tsx` under `src/` imports CSS |
-| `verify:no-raw-tailwind` | no Tailwind defaults / raw literals in `src/components/**` or `showcase/**` (fixture test proves it goes red) |
-| `verify:utilities-exist` | every class written in a class context under `src/` and `showcase/` generates CSS in the real Tailwind build. The CSS package removes Tailwind's colour, text-size, radius, shadow, weight, leading, tracking and easing scales, so `font-bold`, `leading-tight` or `bg-gray-100` compile to nothing; a plain class (`sc-shell`) must exist in the compiled CSS, and `bg-${tone}` fragments are reported. A name ending in `class(es)`/`className(s)` makes a string a class list; an array or object under such a name counts as one only where some file uses it as classes (`ERROR_CLASSES` may list kinds of error), and is still checked for dead utilities otherwise (fixture test proves both directions) |
-| `verify:domain-pairs` | every domain colour has LIGHT and DARK, is exposed only through the blend, and no source reads one half |
+| `verify:no-raw-tailwind` | no Tailwind defaults / raw literals in `src/components/**` or `showcase/**`, no numeric z-index (the contract's layer scale instead), no fixed `1px` structural line in a stylesheet (`--BORDER-WIDTH` instead) (fixture test proves it goes red) |
+| `verify:utilities-exist` | every class written in a class context under `src/` and `showcase/` generates CSS in the real Tailwind build. The CSS package removes Tailwind's colour, text-size, radius, shadow, weight, leading, tracking and easing scales, so `font-bold`, `leading-tight` or `bg-gray-100` compile to nothing; a plain class (`sc-page`) must exist in the compiled CSS, and `bg-${tone}` fragments are reported. A name ending in `class(es)`/`className(s)` makes a string a class list; an array or object under such a name counts as one only where some file uses it as classes (`ERROR_CLASSES` may list kinds of error), and is still checked for dead utilities otherwise (fixture test proves both directions) |
+| `verify:domain-pairs` | every domain colour has LIGHT and DARK, is exposed only through the blend, and no source reads one half; under forced colors every pair maps to a system colour except the series and sequential palettes, and every meaning-bearing fill (`bg-series-*`, `bg-seq-*`, a status mark with an on-ink) opts out of repainting |
 | `verify:series-palette` | series 1–8 stay distinct in both schemes: lightness band, chroma floor, adjacent ΔE ≥ 15 normal / ≥ 6 protan+deutan, first three all-pairs; plus any theme that overrides a pair |
-| `verify:domain-contrast` | domain text ≥ 4.5:1 and domain status marks ≥ 3:1 on canvas + surfaces 0–3, in every theme the CSS package ships (discovered, never named) |
+| `verify:domain-contrast` | domain text (trend, serious/stale text and on-inks, code colours) ≥ 4.5:1 and domain status marks ≥ 3:1 on canvas + surfaces 0–3, in every theme the CSS package ships (discovered, never named) |
 | `verify:token-mirror` | every `@theme` name in `src/tokens.css` is mirrored in `cn`, both directions |
 | `verify:class-prefix` | every class and keyframes name defined in `src/**/*.css` carries its owner's prefix (fixture test proves it goes red) |
+| `verify:no-html-injection` | no `dangerouslySetInnerHTML`, `innerHTML` / `outerHTML` assignment, `insertAdjacentHTML`, `document.write` or `createContextualFragment` in `src/` or `showcase/` (fixture test proves it goes red) |
 | `typecheck`, `lint`, `test` | tsc strict (+ `noUncheckedIndexedAccess`), eslint (narrow, no suppressions), vitest (jsdom) |
 
 The showcase is the Playwright target: `bun run showcase:dev`, then drive it. The View
@@ -262,7 +311,12 @@ What jsdom cannot see (layout, hit testing, the top layer, CSS) is settled in a 
 browser by `scripts/browser/*.js`. `bun run browser:check` starts the showcase on a free
 port, opens one `playwright-cli` session, runs every script with `run-code` (a script
 throws to fail and returns a summary to pass), then closes the session and stops the
-server. `bun run browser:check <name>` runs the scripts whose file name contains `<name>`.
+server. `bun run browser:check <name>` runs the scripts whose file name contains `<name>`;
+`node scripts/browser-check.mjs --print <name>` prints the code to `run-code` by hand. Every
+script runs with `scripts/lib/browser-prelude.js` in scope: `waitForShowcase(page)` waits
+until `<html data-showcase-ready>` names the page in the hash (the shell sets it once the
+page and every chunk it suspends on have committed; pages and Overview sections are lazy
+chunks). Call it after every load or page change instead of a long timeout of your own.
 It needs a browser (`playwright-cli install-browser`) and is not part of `check`.
 
 | Script | Asserts |
@@ -270,17 +324,29 @@ It needs a browser (`playwright-cli install-browser`) and is not part of `check`
 | `data-virtualized-rows.js` | 10,000 rows: a row is exactly `--ROW-H`, scroll height = rows × row height + head, the last row mounts at the end, and a live input switch and a stylesheet that retunes `--ROW-H-COMPACT` (no attribute moves) both re-measure |
 | `hit-areas.js` | at coarse input a lone IconButton answers outside its box, a dense toolbar never hands a press on one button to its neighbour, a checkbox's own box takes the press, stacked labelled checkboxes are a floor apart; at fine input nothing grows |
 | `floating-hide.js` | an open Popover hides while its trigger is scrolled out of view and comes back anchored |
-| `overview-matrix.js` | the whole Overview in 3 themes × 2 densities × fine/coarse × 1280/375: no console or page error, no tripped section boundary, no horizontal scroll in the page or in any demo |
-| `dashboard-layout.js` | the Dashboard on every axis at 1440/375 without errors or sideways scroll; full sidebar / rail / bottom nav at 1440 / 900 / 375; KPI tiles in one row at 1440; rows exactly the page's and the compact card's `--ROW-H`; empty search and a toast work |
+| `overview-matrix.js` | the whole Overview in 4 themes × 2 densities × fine/coarse × 1280/375: no console or page error, no tripped section boundary, no horizontal scroll in the page, and no scroll container inside a demo (the frame or any inner one) whose content is wider than it; a scroller designed to scroll is marked `data-sc-scrolls` in the demo (on it or a wrapper), which excuses scrollers inside it only |
+| `dashboard-layout.js` | the Dashboard on every axis at 1440/375 without errors or sideways scroll; full sidebar / rail / bottom nav at 1440 / 900 / 375, measured inside the Dashboard's own frame; the frame covers the showcase's sidebar at 1440 and leaves the showcase's bottom nav clear at 375; KPI tiles in one row at 1440; rows exactly the page's and the compact card's `--ROW-H`; empty search and a toast work |
 | `marketing-page.js` | UI inside prose stays at `--CONTROL-H` and UI type on every axis; display type grows monotonically with no step at 640; no sideways scroll at 375, pricing table included |
-| `stress-matrix.js` | the Stress page in 3 themes × 2 densities × fine/coarse × 1280/375: no error, no tripped panel, no sideways scroll, and no element whose child box or text line reaches past its own edges; every `KnownBug` repro listed in `KNOWN_BUGS` still reproduces (empty today) |
+| `theme-fonts.js` | a theme that names web faces gets them (atelier: Inter and Fraunces LOADED in `document.fonts`, body and heading resolve to them); the default theme downloads neither |
+| `motion-overlay-exit.js` | Popover and Dialog stay painted, inert and fading for some frame after they close, focus is home at once, both are gone within 1s; the popover fades in too; under reduced motion the close is instant |
+| `motion-scroll-reveal.js` | a ScrollReveal card below the fold starts hidden, fades in when scrolled into view and stays revealed; under reduced motion it is shown from the start |
+| `disclosure-accordion.js` | Accordion rows are exactly `--ROW-H` (comfortable, compact, coarse); arrows / Home / End / Enter on real keys, disabled skipped; the panel's height animates open and closed and is instant under reduced motion |
+| `stress-matrix.js` | the Stress page in 4 themes × 2 densities × fine/coarse × 1280/375: no error, no tripped panel, no sideways scroll, and no element whose child box or text line reaches past its own edges; every `KnownBug` repro listed in `KNOWN_BUGS` still reproduces (empty today) |
 | `stress-density.js` | density re-derives at every nested boundary, both ways; menu, popover, tooltip and select opened in a clipping compact card are compact, in the top layer, unclipped and hit-testable |
 | `stress-virtualized.js` | a 10,000-row table whose own density flips mid-scroll shows exactly the rows its scroll position predicts, both ways |
 | `stress-contrast.js` | every visible text element on the Stress page, as painted (tints and washes composited), reads at 4.5:1 or better in the dark example theme, menus and toasts open |
+| `forced-colors-states.js` | under emulated forced colours (default and nightfall at 1280, the rail at 900, the bottom nav at 375): every audited "on" state differs from "off" in a property that survives forcing (checked, switch, selected segment and tab, current markers, pressed Button and IconButton, selected row, invalid edges, disabled, accordion, meter, skeleton, avatar, menu highlight); a focused control shows exactly one solid ring, never one invisible on its own fill; `--SCHEME-DARK` follows the forced palette (light and dark), not the theme; the rail and bottom-nav fills keep their text |
+| `charts-interaction.js` | charts at both densities × fine/coarse × 1280/375 in two themes: plot height is `--CHART-H`, axis labels ≥ 10px, inside the chart and never overlapping; hover snaps the crosshair and the top-layer tooltip matches the table; Home/ArrowRight/End move it and the status announces the row; a touch tap inspects; every chart has its named table, "Show as table" swaps it in, hostile data renders notes and a table |
+| `content-code.js` | the Dashboard requests no lowlight module; the Overview requests lowlight's core and exactly the grammars its blocks name plus what they embed; tokens render; Copy puts the exact source on the clipboard and announces; tokens ≥ 4.5:1 as painted in the dark theme; at 375 nothing spills outside a scroller and long lines scroll then wrap; under forced colours tokens collapse to the block's ink, keeping weight, slant and the marked-line bar |
+| `content-markdown.js` | hostile Markdown: no script-capable `href`/`src`, raw HTML as visible text, no tracking request; prose paragraphs on the prose scale while the CodeBlock keeps UI text and table rows `--ROW-H`; at 375 nothing spills past the section outside a scroller |
+| `selection-inputs.js` | Combobox, MultiSelect and TagInput with real keys in a compact clipping card: filtering, `aria-activedescendant`, choose, Escape; the list in place, in the top layer, past the clip and hit-testable, options the card's `--ROW-H`; chips added and removed by keys; a refused tag; at 375 and coarse, chip rows a whole number of `--CONTROL-H`, every target ≥ 44px and a chip's remove button answering its hit area |
+| `dates-pickers.js` | a day cell is `--CONTROL-H`; keyboard across a month boundary; a range by keyboard; locale typed entry and a refusal; the range popup from a compact clipping card is in place, in the top layer, the card's density, past the clip and hit-testable; at 375 one month and inside the viewport; at coarse every cell ≥ 44px |
+| `form-state-submit.js` | the empty submit focuses the first invalid field in DOM order, described, with an error summary in page order; a summary link focuses its field clear of the sticky row; a fix clears its error; the async check's pending state and answer; a server error by path; the sticky row on its scroller's bottom edge; at 375 / compact / coarse the controls are `--CONTROL-H`, nothing scrolls sideways and the actions stack |
 
 A new script is an `async (page) => { … }` expression that starts from `page.url()`, sets
-the View through `localStorage["r-ui-showcase:view"]`, validates its harness against one
-value it can predict from source, and cleans up the stored View.
+the View through `localStorage["r-ui-showcase:view"]`, reloads and calls
+`waitForShowcase(page)`, validates its harness against one value it can predict from source,
+and cleans up the stored View.
 
 ## Testing
 

@@ -20,7 +20,9 @@ import {
   useInteractions,
 } from "../../hooks/use-floating";
 import { mergeProps } from "../../util/merge-props";
+import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
+import { topLayerExit, useExitPresence } from "./internal";
 
 export interface TooltipProps {
   /**
@@ -80,12 +82,15 @@ export function Tooltip({
   const shown = open && !disabled;
   const id = useId();
   const arrowRef = useRef<HTMLSpanElement>(null);
+  const bubbleRef = useRef<HTMLSpanElement>(null);
+  const present = useExitPresence(shown, bubbleRef, topLayerExit);
 
   const { refs, floatingStyles, context, placement: resolved, middlewareData } = useFloating({
     placement,
     offsetPx: arrow ? 10 : 6,
     arrowRef,
-    open: shown,
+    // Positioned and promoted for as long as it is on screen, exit included.
+    open: present,
     onOpenChange: setOpen,
   });
 
@@ -130,15 +135,16 @@ export function Tooltip({
   return (
     <>
       {trigger}
-      {shown && (
+      {present && (
         <span
-          ref={refs.setFloating}
+          ref={mergeRefs(bubbleRef, refs.setFloating)}
           {...getFloatingProps()}
           id={id}
           role="tooltip"
+          inert={!shown}
           style={floatingStyles}
           className={cn(
-            "block max-w-[calc(var(--MEASURE)/2)] rounded-sm bg-fg-primary px-r5 py-r6 text-body-2 text-fg-inverse shadow-sm animate-fade-in",
+            "r-overlays-surface block max-w-[calc(var(--MEASURE)/2)] rounded-sm bg-fg-primary px-r5 py-r6 text-body-2 text-fg-inverse shadow-sm",
             className
           )}
         >

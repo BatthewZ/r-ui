@@ -1,0 +1,8 @@
+/* "motion" group stylesheet. Imported by src/styles.css inside
+   `@layer components`.
+
+   Deliberately empty of rules: ScrollReveal and Stagger use the contract's own
+   classes (`.scroll-reveal-hidden`, `.stagger-item`, the `animate-*`
+   entrances), whose durations, distances and stagger step are motion tokens
+   that collapse under reduced motion. A rule added here must read those tokens
+   too, never a duration of its own. */

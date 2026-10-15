@@ -17,7 +17,7 @@ import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Button, type ButtonProps, IconButton } from "../primitives";
-import { Slot, usePresence, useRegister } from "./internal";
+import { Slot, useExitPresence, usePresence, useRegister } from "./internal";
 
 interface ModalContextValue {
   open: boolean;
@@ -114,8 +114,11 @@ export type ModalContentProps = Omit<ComponentPropsWithRef<"dialog">, "open" | "
  * Rendered where it is written, so it keeps the density and direction of its
  * subtree. While open, the page behind does not scroll (the group's styles.css).
  *
- * Children mount only while open, so a closed dialog runs no effects and every
- * open starts fresh.
+ * It and its scrim transition in and out in CSS (the group's styles.css); on
+ * close, focus returns at once while the panel finishes leaving.
+ *
+ * Children mount only while open (and through the exit), so a closed dialog
+ * runs no effects and every open starts fresh.
  */
 function ModalContent({
   role = "dialog",
@@ -140,16 +143,14 @@ function ModalContent({
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      // Engines without `showModal` get a non-modal dialog rather than nothing.
-      if (typeof dialog.showModal === "function") dialog.showModal();
-      else dialog.setAttribute("open", "");
-    } else if (!open && dialog.open) {
-      if (typeof dialog.close === "function") dialog.close();
-      else dialog.removeAttribute("open");
-    }
+    if (!open || !dialog || dialog.open) return;
+    // Engines without `showModal` get a non-modal dialog rather than nothing.
+    if (typeof dialog.showModal === "function") dialog.showModal();
+    else dialog.setAttribute("open", "");
   }, [open]);
+
+  // Closing starts the CSS exit; the content stays mounted until it has run.
+  const present = useExitPresence(open, dialogRef, { leave: closeDialog });
 
   const dismiss = useLightDismiss({
     ref: dialogRef,
@@ -175,12 +176,14 @@ function ModalContent({
       // The element can close itself (`<form method="dialog">`, `.close()`).
       onClose={composeEventHandlers(onClose, () => setOpen(false), { checkDefaultPrevented: false })}
       {...dismiss}
+      // Leaving: on screen for its exit, but no longer interactive.
+      inert={!open && present}
       className={cn(
-        "r-overlays-modal flex-col gap-r3 border border-border bg-surface-0 p-r1 text-body-1 text-fg-primary shadow-lg open:flex backdrop:bg-scrim backdrop:animate-fade-in",
+        "r-overlays-modal flex-col gap-r3 border border-border bg-surface-0 p-r1 text-body-1 text-fg-primary shadow-lg open:flex backdrop:bg-scrim",
         className
       )}
     >
-      {open && (
+      {present && (
         <CloseShownContext.Provider value={close}>
           {children}
           {close && (
@@ -196,6 +199,13 @@ function ModalContent({
       )}
     </dialog>
   );
+}
+
+function closeDialog(element: HTMLElement) {
+  const dialog = element as HTMLDialogElement;
+  if (!dialog.open) return;
+  if (typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
 }
 
 /** Title + description group at the top of the panel. Optional; `Title` alone works too. */
@@ -271,7 +281,7 @@ export type DialogContentProps = ModalContentProps;
 
 /** A centred modal panel. */
 function DialogContent({ className, ...props }: DialogContentProps) {
-  return <ModalContent className={cn("r-overlays-dialog m-auto rounded-lg animate-scale-in", className)} {...props} />;
+  return <ModalContent className={cn("r-overlays-dialog m-auto rounded-lg", className)} {...props} />;
 }
 
 // A root of its own: `Object.assign` on the shared `ModalRoot` would hand

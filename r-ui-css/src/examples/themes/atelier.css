@@ -1,0 +1,75 @@
+/* Worked example: a LIGHT, editorial theme that proves the face split. A serif for
+   headings and display (Fraunces), a sans for everything else (Inter), on warm
+   paper neutrals with a forest-green primary and a terracotta accent. Sharp
+   corners, slightly heavier lines and quiet shadows make it border-led rather than
+   shadow-led. Sample code, outside semver, imported by nothing. Activate with
+   <html data-theme="atelier">.
+
+   The theme only NAMES its faces. Loading them is the app's job (an @import or
+   @font-face in its CSS entry; see docs/theme-contract.md, "Fonts"). Until they
+   load, or if the app never loads them, each stack falls back to a system face of
+   the same kind. */
+
+:root[data-theme="atelier"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+
+  /* Neutrals: warm paper, brown-black ink. */
+  --C-CANVAS: oklch(0.962 0.012 85);
+  --C-SURFACE-0: oklch(0.992 0.006 85);
+  --C-SURFACE-1: oklch(0.977 0.009 85);
+  --C-SURFACE-2: oklch(0.938 0.014 82);
+  --C-SURFACE-3: oklch(0.905 0.017 80);
+  --C-TEXT-PRIMARY: oklch(0.23 0.018 55);
+  --C-TEXT-SECONDARY: oklch(0.42 0.022 55);
+  --C-TEXT-MUTED: oklch(0.5 0.022 60);
+  --C-TEXT-INVERSE: oklch(0.977 0.009 85);
+  --C-BORDER: oklch(0.3 0.03 55 / 0.12);
+  --C-BORDER-STRONG: oklch(0.58 0.025 60);
+  --C-SCRIM: oklch(0.23 0.018 55 / 0.42);
+
+  /* Primary: a deep forest-green fill. */
+  --C-PRIMARY: oklch(0.38 0.06 160);
+  --C-PRIMARY-HOVER: oklch(0.33 0.055 160);
+  --C-PRIMARY-ACTIVE: oklch(0.29 0.05 160);
+  --C-TEXT-ON-PRIMARY: oklch(0.985 0.008 85);
+
+  /* Accent: terracotta, independent of primary. */
+  --C-ACCENT: oklch(0.52 0.13 40);
+  --C-ACCENT-HOVER: oklch(0.47 0.12 40);
+  --C-TEXT-ON-ACCENT: oklch(0.99 0.006 85);
+  --C-TEXT-ACCENT: oklch(0.48 0.12 40);
+  --C-SELECTION: oklch(0.915 0.04 60);
+  --C-TEXT-ON-SELECTION: oklch(0.23 0.018 55);
+
+  /* Focus: the accent's family, a touch deeper. */
+  --C-FOCUS: oklch(0.5 0.14 35);
+
+  /* Typography: the split. Headings (and, through the chain, display) take the
+     serif; body, controls and data stay on the sans. --FONT-DISPLAY is not set:
+     it falls back to --FONT-HEADING. */
+  --FONT-UI: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  --FONT-HEADING: "Fraunces Variable", "Fraunces", Georgia, "Times New Roman", serif;
+  --HEADING-WEIGHT: 560;
+  --HEADING-TRACKING: -0.004em;
+  --DISPLAY-WEIGHT: 480;
+  --DISPLAY-1-tracking: -0.018em;
+  --DISPLAY-2-tracking: -0.012em;
+  --DISPLAY-3-tracking: -0.008em;
+  --DISPLAY-4-tracking: -0.004em;
+  /* Data figures line up and zeros are slashed, so 0 and O never mix in a table. */
+  --NUMERALS-DATA: tabular-nums slashed-zero;
+
+  /* Shape: nearly square. */
+  --RADIUS-SM: 0.125rem;
+  --RADIUS-MD: 0.1875rem;
+  --RADIUS-LG: 0.25rem;
+  --RADIUS-XL: 0.375rem;
+
+  /* Depth: border-led. Heavier but softer lines, quieter shadows. */
+  --BORDER-WIDTH: 2px;
+  --SHADOW-SM: 0 1px 2px oklch(0.25 0.02 55 / 0.06);
+  --SHADOW-MD: 0 1px 2px oklch(0.25 0.02 55 / 0.05), 0 4px 12px -4px oklch(0.25 0.02 55 / 0.1);
+  --SHADOW-LG: 0 2px 4px oklch(0.25 0.02 55 / 0.05), 0 12px 32px -12px oklch(0.25 0.02 55 / 0.18);
+}

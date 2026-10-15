@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode, Ref } from "react";
 
 import { cn, type SlotClassNames } from "../../util/style";
-import { BUTTON_BASE, BUTTON_VARIANT, type ButtonVariant } from "./button-styles";
+import { BUTTON_BASE, BUTTON_PRESSED, BUTTON_VARIANT, type ButtonVariant } from "./button-styles";
 import { Spinner } from "./Spinner";
 
 export type ButtonProps = {
@@ -27,7 +27,8 @@ export type ButtonProps = {
  * on coarse pointers); text is UI scale wherever it sits, prose included.
  *
  * States: rest, hover, active, focus-visible (the base ring), disabled
- * (`disabled`, or `aria-disabled` to stay focusable), loading.
+ * (`disabled`, or `aria-disabled` to stay focusable), loading, and pressed
+ * (`aria-pressed` makes it a toggle and paints the selection pair, as IconButton).
  */
 export function Button({
   variant = "primary",
@@ -63,6 +64,7 @@ export function Button({
         BUTTON_BASE,
         "h-control max-w-full gap-r5 rounded-md px-r3 text-body-1 font-medium",
         BUTTON_VARIANT[variant],
+        BUTTON_PRESSED,
         className,
       )}
       {...props}

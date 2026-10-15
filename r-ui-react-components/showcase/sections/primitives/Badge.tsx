@@ -27,7 +27,7 @@ export default function BadgeSection() {
   return (
     <Stack>
       <Row label="Tone × variant">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" data-sc-scrolls>
           <table className="border-separate border-spacing-0 text-body-2">
             <thead>
               <tr className="text-start text-body-3 text-fg-muted">

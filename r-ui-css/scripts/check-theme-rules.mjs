@@ -6,9 +6,14 @@
 //  2. Every theme sets `color-scheme` (light|dark) and a matching `--SCHEME-DARK` (0|1).
 //  3. Themes never set a selected density name (`--R-SIZE-3`) or an axis-derived token
 //     (`--CONTROL-H`, `--ROW-H`, `--HIT-MIN`, `--ICON`); only per-density NAMED values.
+//     Nor a structure token: `--LAYER-*` (stacking order is not a brand lever) or a
+//     `--container-*` alias (it points a box utility at its lever; set the lever).
 //  4. The template declares every themeable :root token, with the default's value.
 //  5. No example theme's name appears anywhere in the package outside its own file.
 //  6. No @media (viewport) block in the package declares a custom property.
+//  7. Under `@media (forced-colors: active)` the package maps every `--C-*` colour role
+//     to a system colour (or a mix of one), so a new role cannot skip forced colors,
+//     and sets --SCHEME-DARK from the forced palette (0, or 1 when it is dark).
 // Usage: node scripts/check-theme-rules.mjs [--pkg <dir>] [extra-theme.css ...]
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -17,17 +22,27 @@ import { loadSheet } from "./lib/css.mjs";
 import { THEME_SELECTOR, loadDefaults, pkgPaths, readTheme, themeFiles } from "./lib/tokens.mjs";
 
 const AXIS_DERIVED = ["--CONTROL-H", "--ROW-H", "--HIT-MIN", "--ICON", "--MOTION-INLINE-SIGN"];
+const STRUCTURE = /^--(LAYER-|container-)/;
 const VIEWPORT_MEDIA = /\b(min-|max-)?(width|height|aspect-ratio|orientation)\b/;
+const SYSTEM_COLOR = /\b(Canvas|CanvasText|LinkText|VisitedText|ActiveText|ButtonFace|ButtonText|ButtonBorder|Field|FieldText|Highlight|HighlightText|SelectedItem|SelectedItemText|Mark|MarkText|GrayText|AccentColor|AccentColorText)\b/;
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist"]);
 
-/** Names a theme may never set: every X with an X-COMFORTABLE, plus axis-derived tokens. */
+/** Names a theme may never set: every X with an X-COMFORTABLE, axis-derived and structure tokens. */
 export function forbiddenNames(defaults) {
   const out = new Set(AXIS_DERIVED);
   for (const name of defaults.keys()) {
     const m = /^(--.+)-COMFORTABLE$/.exec(name);
     if (m) out.add(m[1]);
+    if (STRUCTURE.test(name)) out.add(name);
   }
   return out;
+}
+
+function forbiddenHint(prop) {
+  if (AXIS_DERIVED.includes(prop)) return "it belongs to an axis";
+  if (prop.startsWith("--container-")) return "it aliases a lever; set the lever (--COLUMN-*, --PAGE-MAX, --MEASURE)";
+  if (STRUCTURE.test(prop)) return "stacking is structure, not a brand lever";
+  return `set ${prop}-COMFORTABLE / ${prop}-COMPACT instead`;
 }
 
 export function checkThemeFile(file, forbidden, { requireStemName = true } = {}) {
@@ -54,10 +69,7 @@ export function checkThemeFile(file, forbidden, { requireStemName = true } = {})
     errors.push(`--SCHEME-DARK is ${dark} but color-scheme is ${scheme}`);
   }
   for (const prop of t.decls.keys()) {
-    if (forbidden.has(prop)) {
-      const hint = AXIS_DERIVED.includes(prop) ? "it belongs to an axis" : `set ${prop}-COMFORTABLE / ${prop}-COMPACT instead`;
-      errors.push(`sets ${prop}: ${hint}`);
-    }
+    if (forbidden.has(prop)) errors.push(`sets ${prop}: ${forbiddenHint(prop)}`);
   }
   return { name: t.names[0] ?? t.stem, errors };
 }
@@ -126,6 +138,35 @@ export function checkPackage(pkgDir, extra = []) {
     visit(loadSheet(f), relative(root, f));
   }
   results.push({ label: "viewport never redefines a token", errors: vpErrors });
+
+  // Forced colors: every colour role on :root has a system-colour mapping.
+  const forced = new Map();
+  const forcedScheme = new Map();
+  const collect = (nodes, inForced, dark) => {
+    for (const n of nodes) {
+      const media = n.type === "at" && n.name === "media";
+      const here = inForced || (media && /forced-colors:\s*active/.test(n.prelude));
+      const darkHere = dark || (media && /prefers-color-scheme:\s*dark/.test(n.prelude));
+      if (here && n.type === "rule" && n.selector.trim() === ":root") {
+        for (const d of n.decls) {
+          if (d.prop === "--SCHEME-DARK") forcedScheme.set(darkHere ? "dark" : "light", d.value.replace(/\s*!important$/, ""));
+          else forced.set(d.prop, d.value);
+        }
+      }
+      if (n.children) collect(n.children, here, darkHere);
+    }
+  };
+  collect(loadSheet(pkgPaths(pkgDir).entry), false, false);
+  const fcErrors = [];
+  if (forcedScheme.get("light") !== "0" || forcedScheme.get("dark") !== "1") {
+    fcErrors.push(`--SCHEME-DARK must follow the forced palette (0, and 1 under prefers-color-scheme: dark); found ${JSON.stringify(Object.fromEntries(forcedScheme))}`);
+  }
+  for (const prop of defaults.keys()) {
+    if (!prop.startsWith("--C-")) continue;
+    if (!forced.has(prop)) fcErrors.push(`${prop} has no forced-colors mapping`);
+    else if (!SYSTEM_COLOR.test(forced.get(prop))) fcErrors.push(`${prop} maps to "${forced.get(prop)}", not a system colour`);
+  }
+  results.push({ label: "forced colors map every colour role", errors: fcErrors });
 
   return results;
 }

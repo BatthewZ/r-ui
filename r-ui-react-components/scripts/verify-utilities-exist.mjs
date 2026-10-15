@@ -13,7 +13,7 @@
 //   showcase/**  against `showcase/showcase.css`.
 //
 // A token Tailwind parses as a utility but cannot generate is dead. A token it
-// does not recognise at all (a plain class such as `sc-shell`) must be a class
+// does not recognise at all (a plain class such as `sc-page`) must be a class
 // selector in that entry's compiled CSS, or a `group`/`peer` marker; that is
 // only checked where the string is written in a class context directly (see
 // `scripts/lib/class-tokens.mjs`), because a constant reached by following an

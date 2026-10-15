@@ -41,7 +41,7 @@ bg-status-{error|success|warning|info}-bg   subtle status background
 text-fg-on-{error|success|warning|info}     text on the mark used as a fill
 ```
 
-Every colour works with every colour utility (`bg-`, `text-`, `border-`, `outline-`, `ring-`, `fill-`, `stroke-`, `divide-`, `decoration-`, opacity modifiers like `bg-accent/10`). The Tailwind palette is removed. A bare `border` draws `--C-BORDER`.
+Every colour works with every colour utility (`bg-`, `text-`, `border-`, `outline-`, `ring-`, `fill-`, `stroke-`, `divide-`, `decoration-`, opacity modifiers like `bg-accent/10`). The Tailwind palette is removed. A bare `border` draws `--C-BORDER` at `--BORDER-WIDTH`.
 
 What is guaranteed (and measured by `bun run check`):
 
@@ -54,18 +54,22 @@ What is guaranteed (and measured by `bun run check`):
 ### UI type (density-driven, flat across viewports)
 
 ```
-text-h1 … text-h6          size + tight leading + heading weight/tracking
+text-h1 … text-h6          size + tight leading + heading face, weight, tracking, case
 text-body-1  text-body-2  text-body-3
 font-normal  font-medium  font-semibold
-font-ui  font-mono  font-display
+font-ui  font-heading  font-display  font-mono
 ```
 
-`h1`–`h6` elements get the UI scale by default. In an app, headings separate by weight and space more than size.
+`h1`–`h6` elements get the UI scale and the heading face by default. In an app, headings separate by weight and space more than size.
+
+**Faces are a chain of roles**: `--FONT-UI` (body, controls, data) ← `--FONT-HEADING` (in-app headings: `h1`–`h6`, `text-h*`) ← `--FONT-DISPLAY` (`text-display-*`, prose headings). Each optional role falls back to the one before it, so a theme that sets only the UI face moves all three. The `text-h*` and `text-display-*` utilities carry their role's face; a `font-*` utility on the same element still wins (`text-h2 font-mono` is a mono heading), as do `normal-case` / `uppercase` and the numeric utilities. Known limit: the line-height modifier form (`text-h1/(--X)`) sets only size and line height, not the face, weight, tracking or case; write `text-h1 leading-(--X)` instead.
+
+**Figures**: data figures (`--NUMERALS-DATA`, tabular by default) on body text and every UI region; prose figures (`--NUMERALS-PROSE`, proportional) in prose regions and on `text-display-*`. A theme can change either, e.g. `tabular-nums slashed-zero`.
 
 ### Prose / display type (fluid, density-independent)
 
 ```
-text-display-1 … text-display-4    hero, page title, section, subsection
+text-display-1 … text-display-4    hero, page title, section, subsection (display face, prose figures)
 text-prose-1  text-prose-2  text-prose-3    lead, running prose, caption
 max-w-measure                      reading line length
 ```
@@ -89,6 +93,8 @@ w-column-sm/md/lg  min-w-column-*  basis-column-*   auto-fit column floors
 
 `r`, `control`, `row` and `icon` follow density; `section-*` and `gutter` are fluid and density-independent; `page` and `column-*` are fixed lengths, independent of density and viewport.
 
+The same names are container variants: `@column-md:flex`, `@max-column-sm:hidden`, `@max-page:…` (on an element inside a `@container`), alongside Tailwind's own container steps (`@sm:`, `@max-3xs:`). A container query cannot read a custom property, so each variant compiles to the token's DEFAULT length: a theme that retunes `--COLUMN-MD` moves the `column-md` boxes, not the `@column-md:` breakpoint.
+
 `hit-area` is how a visually small control (checkbox, switch, icon button, a breadcrumb link) meets `--HIT-MIN` without growing: an invisible `::before`, centred, at least the floor on each axis and flush on an axis already past it. It makes the element `position: relative` and a stacking context, and keeps the box behind the element's own content, so a native input drawn inside still takes the press. Overlapping hit areas resolve by paint order, so a hit area that directly follows another does not grow toward it on the inline axis: in a row of small targets every visible box keeps its own presses and the earlier one's growth fills the gap. Small targets that are not DOM siblings, or that stack vertically, need `--HIT-MIN` between their centres. Controls sized `h-control` / `h-row` already meet the floor and need no `hit-area`.
 
 An auto-fit grid reads a column floor: `grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--COLUMN-MD)), 1fr))`.
@@ -97,12 +103,35 @@ An auto-fit grid reads a column floor: `grid-template-columns: repeat(auto-fit, 
 
 ```
 rounded-sm  rounded-md  rounded-lg  rounded-xl  rounded-full
+border  border-b  divide-y …         structural lines, all at --BORDER-WIDTH (1px, or 2px for a bold brand)
 shadow-sm  shadow-md  shadow-lg      floating layers only: tooltip, menu/popover/toast, dialog/sheet
 opacity-disabled
 focus-ring  focus-ring-inset         the package focus indicator, e.g. focus-visible:focus-ring
 ```
 
-Every `:focus-visible` element already gets the ring from the base layer. If a component resets outlines (`outline-none`), it must restore them with `focus-visible:focus-ring`.
+Write a structural line as a bare `border` / `border-b` / `divide-y`, never `border-2` or `border-[1.5px]`: the bare forms follow the theme's line weight. Boxes are border-box, so `h-control` and `h-row` keep their height at any weight.
+
+Every `:focus-visible` element already gets the ring from the base layer. If a component resets outlines (`outline-none`), it must restore them with `focus-visible:focus-ring`. Native checkboxes, radios, ranges, progress bars and date/colour pickers take `--C-ACCENT` (`accent-color`), and so does the text caret.
+
+### Stacking
+
+```
+z-raised    above its siblings in one scroller: a sticky table header or first column
+z-sticky    sticky page chrome over scrolled content: app header, toolbars
+z-docked    bars fixed to a viewport edge, over sticky chrome: bottom nav, action bar
+z-bypass    keyboard bypass shown on focus, over everything in flow: skip links
+```
+
+In-flow stacking only, in this order. Dialogs, popovers, menus and toasts use the top layer (`<dialog>`, `popover`) and need no z-index at all. Numeric `z-*` is for one-offs inside a component, never for page chrome.
+
+### Forced colors (Windows High Contrast)
+
+The package handles the contract: every colour role becomes a system colour (selection and accent are `Highlight`/`HighlightText`, the primary fill an inverted button, borders and status marks `CanvasText`), `::selection` follows, and focus is always an outline. Every `bg-` utility for a fill that carries text or meaning (`bg-primary*`, `bg-accent*`, `bg-selection`, `bg-status-*`, `bg-fg-primary`) opts its element out of the browser's repainting, so the fill and its text survive, and remaps the neutral and status text roles and the border roles inside it to the fill's text colour, and `--C-FOCUS` for its descendants. `--SCHEME-DARK` follows the forced palette, not the theme. Components follow four rules:
+
+1. **Draw state with a token utility, and the rest is automatic.** `aria-selected:bg-selection`, `bg-accent` for a checked box or the "you are here" bar, `border-accent` for an active tab: each stays visible. A translucent wash (`bg-accent/10`, a hover on `bg-surface-2`) disappears, so it must never be the only cue for a state.
+2. **Every control edge is a border or an outline, never a fill or a shadow alone.** The browser drops `box-shadow` and paints backgrounds as Canvas, but it draws borders, even transparent ones, in a system colour. A control whose edge is only a fill gets `border border-transparent`.
+3. **Focus is an outline.** Use the base ring or `focus-ring`; a ring drawn with `box-shadow` (`ring-*`) vanishes, and the package forces `outline-style: solid` on `:focus-visible` to catch it. That also revives `outline: none`: a part whose frame draws its ring resets with `outline: 0 none` (zero width), or it shows a second ring.
+4. **`forced-colors:forced-color-adjust-none` only where the colour IS the information** (a swatch, a data series) and the element carries its own label. Everything inside it must read tokens, which are system colours here.
 
 ### Motion
 
@@ -129,13 +158,15 @@ Each animation also exists as a plain class (`.fade-up`). Helpers: `.stagger-ite
 | Accent | `--C-ACCENT`, `--C-ACCENT-HOVER`, `--C-TEXT-ON-ACCENT`, `--C-TEXT-ACCENT`, `--C-SELECTION`, `--C-TEXT-ON-SELECTION`, `--LINK-DECORATION` |
 | Focus | `--C-FOCUS`, `--FOCUS-WIDTH`, `--FOCUS-OFFSET` |
 | Status | `--C-STATUS-{S}`, `--C-TEXT-{S}`, `--C-STATUS-{S}-BG`, `--C-TEXT-ON-{S}` for S = ERROR, SUCCESS, WARNING, INFO |
-| Faces, weights | `--FONT-UI`, `--FONT-MONO`, `--FONT-DISPLAY` (optional, undeclared), `--WEIGHT-NORMAL/MEDIUM/SEMIBOLD`, `--HEADING-WEIGHT`, `--HEADING-TRACKING`, `--HEADING-CASE`, `--DISPLAY-WEIGHT` |
+| Faces, weights | `--FONT-UI`, `--FONT-MONO`, `--FONT-HEADING` and `--FONT-DISPLAY` (optional, undeclared), `--FONT-UI-SIZE-ADJUST` / `--FONT-HEADING-SIZE-ADJUST` / `--FONT-DISPLAY-SIZE-ADJUST` (optional, undeclared), `--WEIGHT-NORMAL/MEDIUM/SEMIBOLD`, `--HEADING-WEIGHT`, `--HEADING-TRACKING`, `--HEADING-CASE`, `--DISPLAY-WEIGHT` |
+| Figures | `--NUMERALS-DATA` (tabular-nums), `--NUMERALS-PROSE` (proportional-nums): `font-variant-numeric` values |
 | UI scale (density) | `--R-SIZE-1..6`, `--H1..H6` + `--Hn-line-height`, `--BodyText-1..3` + `-line-height`, `--ICON` |
 | Axis-derived | `--HIT-MIN`, `--CONTROL-H`, `--ROW-H` (both registered `<length>`: getComputedStyle returns px) |
 | Per-density named values | `<selected name>-COMFORTABLE` / `-COMPACT` for every density token, e.g. `--R-SIZE-3-COMPACT`, `--H1-line-height-COMFORTABLE`, `--CONTROL-H-COMPACT` |
 | Prose / display | `--DISPLAY-1..4` + `-line-height` + `-tracking`, `--ProseText-1..3` + `-line-height`, `--PROSE-FLOW`, `--MEASURE`, `--SECTION-1..3`, `--GUTTER` |
 | Layout widths | `--PAGE-MAX`, `--COLUMN-SM/MD/LG` (fixed, density-independent) |
-| Shape, depth | `--RADIUS-SM/MD/LG/XL/FULL`, `--SHADOW-SM/MD/LG`, `--OPACITY-DISABLED` |
+| Shape, depth | `--RADIUS-SM/MD/LG/XL/FULL`, `--BORDER-WIDTH`, `--SHADOW-SM/MD/LG`, `--OPACITY-DISABLED` |
+| Stacking (structure, not themeable) | `--LAYER-RAISED` 1, `--LAYER-STICKY` 10, `--LAYER-DOCKED` 20, `--LAYER-BYPASS` 30 |
 | Motion | `--DURATION-FAST/NORMAL/SLOW`, `--EASE-STANDARD/ENTER/EXIT`, `--MOTION-DISTANCE-SM/MD/LG`, `--MOTION-SCALE-FROM`, `--MOTION-STAGGER`, `--MOTION-PAGE-IN/OUT`, `--MOTION-INLINE-SIGN` (set from `dir`) |
 
 ## Axes, in one paragraph each
@@ -152,8 +183,8 @@ See [docs/axes.md](docs/axes.md) for the detail.
 | Path | What |
 | --- | --- |
 | `src/index.css` | Public entry |
-| `src/tokens/` | The contract: `reset` (clears replaced Tailwind scales), `color`, `type`, `density`, `input`, `shape`, `motion` |
-| `src/base.css` | Body text, canvas, hairline default, selection, focus ring, heading defaults |
+| `src/tokens/` | The contract: `reset` (clears replaced Tailwind scales), `color`, `forced-colors`, `type`, `density`, `input`, `shape`, `layer`, `motion` |
+| `src/base.css` | Body text and figures, canvas, faces, hairline default, accent and caret, selection, focus ring (an outline in forced colors), heading defaults |
 | `src/prose.css` | Prose regions |
 | `src/animations/` | Keyframes, classes and `animate-*` utilities |
 | `src/_theme-template.css` | Every themeable token, grouped by brand lever, one-line role each |
@@ -168,6 +199,8 @@ See [docs/axes.md](docs/axes.md) for the detail.
 - No theme selector other than `:root[data-theme="…"]`; no subtree themes.
 - No setting a selected density name (`--R-SIZE-3`, `--H1`, `--ICON`) or `--CONTROL-H` / `--ROW-H` / `--HIT-MIN` in a theme. Set the `-COMFORTABLE` / `-COMPACT` names.
 - No `@media (width …)` that redefines a token.
+- No font loading in a theme (`@import`, `@font-face`): a theme names families; the app loads them.
+- No `--LAYER-*` in a theme, and no numeric `z-*` for page chrome: use `z-sticky`, `z-docked`, `z-bypass`.
 - No font size on `:root` (it moves `rem`).
 - No example theme name in a selector, type, default, config list, fixture or doc outside its own file. `bun run check` fails on it.
 - No fill token as ink on a surface; no surface step as the only boundary.

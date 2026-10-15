@@ -97,6 +97,17 @@ describe("the mirror check can fail", () => {
     assert.equal(problems.length, 4, problems.join("\n"));
   });
 
+  test("an @utility extends a theme utility only when it shares that utility's exact class", () => {
+    const declarations = [
+      { prop: "--text-h1", value: "1rem", file: "x.css" },
+      { prop: "--color-ink", value: "black", file: "x.css" },
+    ];
+    const { names } = cssNames({ declarations, utilities: ["text-h1", "text-h1-face", "font-h1", "bg-ink", "bg-inkwell"] });
+    assert.deepEqual([...names.get(UTILITY)].sort(), ["bg-inkwell", "font-h1", "text-h1-face"]);
+    assert.deepEqual([...names.get("text")], ["h1"]);
+    assert.deepEqual([...names.get("color")], ["ink"]);
+  });
+
   describe("a token added to a new file in a copy of r-ui-css", () => {
     const dir = mkdtempSync(join(tmpdir(), "r-ui-tw-merge-mirror-"));
     after(() => rmSync(dir, { recursive: true, force: true }));

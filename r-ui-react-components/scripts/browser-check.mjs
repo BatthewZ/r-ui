@@ -7,8 +7,11 @@
 // server on a free port, opens one playwright-cli session, runs each script with
 // `run-code`, then closes the session and stops the server, pass or fail.
 //
-// Not part of `check`: it needs a browser (`playwright-cli install-browser`).
+// Every script runs with `scripts/lib/browser-prelude.js` in scope (the shared
+// `waitForShowcase`). Not part of `check`: it needs a browser
+// (`playwright-cli install-browser`).
 // Usage: bun run browser:check [name-filter]
+//        node scripts/browser-check.mjs --print <name>   (the code to `run-code` by hand)
 
 import { execFileSync, spawn } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -20,13 +23,30 @@ import { fileURLToPath } from "node:url";
 import { globSync } from "glob";
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
-const filter = process.argv[2];
+const print = process.argv[2] === "--print";
+const filter = process.argv[print ? 3 : 2];
 const scripts = globSync("scripts/browser/*.js", { cwd: PKG, absolute: true })
   .sort()
   .filter((f) => !filter || basename(f).includes(filter));
 if (scripts.length === 0) {
   console.error(`browser:check — no scripts in scripts/browser/${filter ? ` matching "${filter}"` : ""}`);
   process.exit(1);
+}
+
+const prelude = readFileSync(join(PKG, "scripts/lib/browser-prelude.js"), "utf8");
+/** The script's `async (page) => …` expression, called inside a scope that holds the prelude. */
+const wrap = (file) => {
+  const script = readFileSync(file, "utf8").trim().replace(/;$/, "");
+  return `async (page) => {\n${prelude}\nreturn (${script}\n)(page);\n}`;
+};
+
+if (print) {
+  if (scripts.length !== 1) {
+    console.error(`browser:check --print — "${filter}" matches ${scripts.length} scripts; name exactly one`);
+    process.exit(1);
+  }
+  process.stdout.write(wrap(scripts[0]));
+  process.exit(0);
 }
 
 const freePort = () =>
@@ -83,7 +103,7 @@ try {
     const started = Date.now();
     let out;
     try {
-      out = cli("run-code", readFileSync(file, "utf8"));
+      out = cli("run-code", wrap(file));
     } catch (e) {
       out = `${e.stdout ?? ""}${e.stderr ?? ""}` || String(e);
     }

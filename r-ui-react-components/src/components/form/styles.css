@@ -13,7 +13,7 @@
    Border is --C-BORDER-STRONG: a field's edge is how it is identified, so it
    needs the 3:1 a hairline does not give (WCAG 1.4.11). */
 .r-form-frame {
-  border: 1px solid var(--C-BORDER-STRONG);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
   border-radius: var(--RADIUS-MD);
   background-color: var(--C-SURFACE-0);
   color: var(--C-TEXT-PRIMARY);
@@ -50,8 +50,11 @@
   outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
   outline-offset: var(--FOCUS-OFFSET);
 }
+/* Zero width, not just `none`: forced colors force `outline-style: solid` on
+   every :focus-visible, which would revive a `none` as a second ring inside the
+   frame's. */
 .r-form-input:focus-visible {
-  outline: none;
+  outline: 0 none;
 }
 
 .r-form-adornment {
@@ -114,7 +117,7 @@
   display: flex;
   align-self: stretch;
   margin-inline-end: calc(var(--R-SIZE-3) * -1);
-  border-inline-start: 1px solid var(--C-BORDER);
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 .r-form-stepper {
   display: grid;
@@ -127,11 +130,11 @@
     background-color var(--DURATION-FAST) var(--EASE-STANDARD);
 }
 .r-form-stepper + .r-form-stepper {
-  border-inline-start: 1px solid var(--C-BORDER);
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 .r-form-stepper:last-child {
-  border-start-end-radius: calc(var(--RADIUS-MD) - 1px);
-  border-end-end-radius: calc(var(--RADIUS-MD) - 1px);
+  border-start-end-radius: calc(var(--RADIUS-MD) - var(--BORDER-WIDTH));
+  border-end-end-radius: calc(var(--RADIUS-MD) - var(--BORDER-WIDTH));
 }
 .r-form-stepper:hover:not(:disabled) {
   color: var(--C-TEXT-PRIMARY);
@@ -194,7 +197,7 @@
   margin: 0;
   inline-size: var(--ICON);
   block-size: var(--ICON);
-  border: 1px solid var(--C-BORDER-STRONG);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
   background-color: var(--C-SURFACE-0);
   cursor: inherit;
   transition-property: background-color, border-color;
@@ -311,7 +314,7 @@
   max-inline-size: 100%;
   block-size: var(--CONTROL-H);
   padding: var(--R-SIZE-6);
-  border: 1px solid var(--C-BORDER);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
   border-radius: var(--RADIUS-MD);
   background-color: var(--C-SURFACE-2);
 }
@@ -329,7 +332,7 @@
   justify-content: center;
   gap: var(--R-SIZE-5);
   padding-inline: var(--R-SIZE-3);
-  border: 1px solid transparent;
+  border: var(--BORDER-WIDTH) solid transparent;
   border-radius: var(--RADIUS-SM);
   font-size: var(--BodyText-1);
   line-height: var(--BodyText-1-line-height);
@@ -369,8 +372,28 @@
 }
 
 /* ── Forced colours: author fills are replaced, so the marks that were fills
-   are re-drawn in system colours, and the switch track gets an edge. */
+   are re-drawn in system colours, and the switch track gets an edge. An off
+   track is Canvas (its rest and hover fills are line roles, which map to
+   CanvasText and would hide the thumb). Invalid, a red edge or a shadow ring
+   elsewhere, is a doubled edge. The selected segment is a Highlight fill
+   (`data-selected:bg-selection` in the component), so its ring turns
+   HighlightText and sits inside a band of the fill. */
 @media (forced-colors: active) {
+  .r-form-switch-track:not(:checked),
+  .r-form-check:not([data-disabled], [data-readonly]):hover .r-form-switch-track:not(:checked) {
+    background-color: Canvas;
+  }
+  .r-form-frame[data-invalid],
+  .r-form-segmented[data-invalid],
+  .r-form-check-input[aria-invalid="true"]:not(:checked, :indeterminate),
+  [role="radiogroup"][aria-invalid="true"] .r-form-radio-input:not(:checked),
+  .r-form-switch-track[aria-invalid="true"]:not(:checked) {
+    border-width: calc(var(--BORDER-WIDTH) * 2);
+  }
+  .r-form-segment[data-selected]:has(:focus-visible) {
+    outline-color: HighlightText;
+    outline-offset: calc(var(--FOCUS-WIDTH) * -2);
+  }
   .r-form-check-input:is(:checked, :indeterminate),
   .r-form-radio-input:checked,
   .r-form-switch-track:checked {
@@ -388,7 +411,7 @@
     background-color: HighlightText;
   }
   .r-form-switch-track {
-    border: 1px solid CanvasText;
+    border: var(--BORDER-WIDTH) solid CanvasText;
   }
   .r-form-switch-thumb {
     forced-color-adjust: none;
@@ -396,5 +419,142 @@
   }
   .r-form-segment[data-selected] {
     border-color: Highlight;
+  }
+}
+
+/* ── Selection inputs: Combobox, MultiSelect, TagInput (selection-*.tsx) ──
+   A chip frame wraps: every line is one --CONTROL-H, so the field grows by
+   whole control heights and stays on the vertical rhythm. A chip is the control
+   height less the frame's padding and border on both sides, and rows sit that
+   same distance apart. That pitch is also what keeps a coarse remove button's
+   hit area (the floor, centred) from reaching the row below. */
+.r-form-chip-frame {
+  --r-form-chip-h: calc(var(--CONTROL-H) - 2 * (var(--R-SIZE-6) + var(--BORDER-WIDTH)));
+  gap: var(--R-SIZE-4);
+  padding: var(--R-SIZE-6);
+  padding-inline-end: var(--R-SIZE-4);
+}
+.r-form-chip-row {
+  display: flex;
+  flex: 1 1 0%;
+  flex-wrap: wrap;
+  align-items: center;
+  min-inline-size: 0;
+  column-gap: var(--R-SIZE-6);
+  row-gap: calc(2 * (var(--R-SIZE-6) + var(--BORDER-WIDTH)));
+}
+.r-form-chip-adornment {
+  block-size: var(--r-form-chip-h);
+}
+.r-form-chip-adornment:first-child {
+  padding-inline-start: calc(var(--R-SIZE-3) - var(--R-SIZE-6));
+}
+/* The draft asks for a square control height and takes whatever the last chip
+   row leaves; it drops to a line of its own only when less than that is left.
+   Its text starts where an Input's would. */
+.r-form-chip-input {
+  flex: 1 1 var(--CONTROL-H);
+  min-inline-size: var(--CONTROL-H);
+  block-size: var(--r-form-chip-h);
+  padding-inline-start: calc(var(--R-SIZE-3) - var(--R-SIZE-6));
+}
+.r-form-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--R-SIZE-6);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  block-size: var(--r-form-chip-h);
+  padding-inline-start: var(--R-SIZE-5);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  border-radius: var(--RADIUS-SM);
+  /* Ink at low alpha, not a surface rung: a rung is recessed in every theme and
+     reads as a hole in a dark theme's raised field. */
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 6%, transparent);
+  color: var(--C-TEXT-PRIMARY);
+  font-size: var(--BodyText-2);
+  line-height: var(--BodyText-2-line-height);
+}
+.r-form-chip:not(:has(.r-form-chip-remove)) {
+  padding-inline-end: var(--R-SIZE-5);
+}
+/* Square, the chip's full height: at every density and input it is the
+   chip's own target, and `hit-area` lifts it to the floor on coarse input. */
+.r-form-chip-remove {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  block-size: 100%;
+  aspect-ratio: 1;
+  border-start-end-radius: calc(var(--RADIUS-SM) - var(--BORDER-WIDTH));
+  border-end-end-radius: calc(var(--RADIUS-SM) - var(--BORDER-WIDTH));
+  color: var(--C-TEXT-SECONDARY);
+  cursor: pointer;
+  transition: color var(--DURATION-FAST) var(--EASE-STANDARD),
+    background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-form-chip-remove svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+.r-form-chip-remove:hover:not(:disabled) {
+  color: var(--C-TEXT-PRIMARY);
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+/* Inset: chip rows are a few pixels apart and an outset ring would sit on the next. */
+.r-form-chip-remove:focus-visible {
+  outline-offset: calc(var(--FOCUS-WIDTH) * -1);
+}
+
+/* The keyboard's option (aria-activedescendant: DOM focus stays in the input)
+   draws the focus ring inside the row, as a focused menu item does. In CSS, not
+   a utility, so the forced-colors rule below can move it. */
+.r-form-option[data-active="keyboard"] {
+  outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+  outline-offset: calc(var(--FOCUS-WIDTH) * -1);
+}
+
+/* A MultiSelect option's check box: the Checkbox's look, drawn from aria-selected. */
+.r-form-option-box {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-SM);
+  background-color: var(--C-SURFACE-0);
+  color: var(--C-TEXT-ON-ACCENT);
+}
+.r-form-option[aria-selected="true"] .r-form-option-box {
+  border-color: var(--C-ACCENT);
+  background-color: var(--C-ACCENT);
+}
+.r-form-option-mark {
+  inline-size: 100%;
+  block-size: 100%;
+  padding: 1px;
+}
+
+/* Forced colors: the cursor and the chosen options are Highlight fills
+   (`forced-colors:…:bg-selection` in the component), so what sits on them turns
+   HighlightText: the keyboard's ring, one ring-width further in so a band of
+   fill shows around it; a chosen option's check box (inverted) and check. */
+@media (forced-colors: active) {
+  .r-form-option[data-active="keyboard"] {
+    outline-color: HighlightText;
+    outline-offset: calc(var(--FOCUS-WIDTH) * -2);
+  }
+  .r-form-option[aria-selected="true"] .r-form-option-box {
+    forced-color-adjust: none;
+    border-color: HighlightText;
+    background-color: HighlightText;
+    color: Highlight;
+  }
+  .r-form-option[data-active] .r-form-option-box {
+    border-color: HighlightText;
+  }
+  .r-form-option-check {
+    color: inherit;
   }
 }

@@ -20,7 +20,7 @@ export type SkeletonProps = {
   label?: string;
 } & Omit<ComponentPropsWithRef<"span">, "children">;
 
-const PULSE = "block w-full animate-pulse bg-fg-primary/10 motion-reduce:animate-none";
+const PULSE = "r-primitives-skeleton block w-full animate-pulse bg-fg-primary/10 motion-reduce:animate-none";
 const LINE = `${PULSE} r-primitives-skeleton-text rounded-sm`;
 
 /** The root per shape: a column of lines for text, the bar itself otherwise. */
@@ -42,7 +42,8 @@ function Lines({ count }: { count: number }) {
  * alpha: a surface rung would read as a hole on a dark theme's raised card,
  * while ink-at-alpha reads as "something will be here" on any surface. The pulse stops under reduced motion (`motion-reduce`):
  * it is decoration, and a loop cannot ride the duration tokens, which collapse
- * to 0.01ms there and would turn it into a strobe.
+ * to 0.01ms there and would turn it into a strobe. Under forced colors, where a
+ * wash paints nothing, it is a dashed GrayText outline instead.
  */
 export function Skeleton({ shape = "text", lines = 1, label, className, ...props }: SkeletonProps) {
   const announces = Boolean(label);

@@ -1,0 +1,143 @@
+/* charts group: what utilities cannot say about SVG paint.
+
+   Colour is never declared here. Chrome (grid, axis, tick text) reads the
+   domain and contract tokens through utilities on the elements; a series group
+   carries `text-series-N` and every mark below paints with `currentColor`, so
+   no rule names a series colour and a theme's retuned pair reaches every mark.
+
+   Line weights follow the theme's line lever (`--BORDER-WIDTH`): gridlines and
+   axes at it, data lines one pixel heavier (twice would make a bold theme's
+   lines shout).
+
+   Under forced colours a series keeps its colour (the colour is the data, and
+   the legend and table name it, and every series has its own shape), so its
+   group opts out of repainting; the chrome around it takes system colours from
+   the tokens it reads. */
+
+.r-charts-plot {
+  outline-offset: var(--FOCUS-OFFSET);
+  touch-action: pan-y;
+}
+
+/* Reads `--BAR-THICK` and `--RADIUS-SM` in px for the planner; never painted. */
+.r-charts-probe {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.r-charts-svg {
+  overflow: visible;
+}
+
+.r-charts-grid line,
+.r-charts-axis line {
+  stroke-width: var(--BORDER-WIDTH);
+  shape-rendering: crispEdges;
+}
+
+.r-charts-tick text,
+.r-charts-value text {
+  font-variant-numeric: var(--NUMERALS-DATA);
+}
+
+.r-charts-series {
+  fill: none;
+  stroke: currentcolor;
+}
+
+.r-charts-line {
+  fill: none;
+  stroke-width: calc(var(--BORDER-WIDTH) + 1px);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.r-charts-area {
+  fill: currentcolor;
+  fill-opacity: 0.1;
+  stroke: none;
+}
+
+/* A closed marker: filled, with a ring in the surface colour so it reads where
+   it crosses a line. */
+.r-charts-mark {
+  fill: currentcolor;
+  stroke: var(--C-SURFACE-0);
+  stroke-width: calc(var(--BORDER-WIDTH) * 1.5);
+  paint-order: stroke;
+}
+
+/* Plus and cross enclose no area: stroked in the series colour. */
+.r-charts-mark-open {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: calc(var(--BORDER-WIDTH) + 1px);
+  stroke-linecap: round;
+}
+
+.r-charts-bar {
+  fill: currentcolor;
+  stroke: none;
+}
+
+.r-charts-crosshair {
+  stroke: var(--C-TEXT-MUTED);
+  stroke-width: var(--BORDER-WIDTH);
+  shape-rendering: crispEdges;
+}
+
+/* The band under the cursor: the one quiet wash. */
+.r-charts-band {
+  fill: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+
+/* Legend and tooltip keys. */
+.r-charts-key {
+  overflow: visible;
+}
+.r-charts-key .r-charts-mark {
+  stroke: none;
+}
+.r-charts-key-line {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* Heatmap: one label column, then the cells sharing the rest. */
+.r-charts-heat {
+  grid-template-columns:
+    calc(var(--r-charts-heat-label) * 1px)
+    repeat(var(--r-charts-heat-cols), minmax(0, 1fr));
+}
+/* The cell under the cursor: an outline, which no utility on the cell sets. */
+.r-charts-heat-cell[data-active] {
+  outline: calc(var(--BORDER-WIDTH) * 2) solid var(--C-TEXT-PRIMARY);
+  outline-offset: calc(var(--BORDER-WIDTH) * -1);
+}
+.r-charts-heat-missing {
+  border: var(--BORDER-WIDTH) dashed var(--C-BORDER-STRONG);
+}
+.r-charts-heat-col {
+  translate: -50% 0;
+}
+
+@media (forced-colors: active) {
+  .r-charts-series,
+  .r-charts-key {
+    forced-color-adjust: none;
+  }
+  .r-charts-mark {
+    stroke: Canvas;
+  }
+  .r-charts-band {
+    fill: none;
+    stroke: Highlight;
+    stroke-width: var(--BORDER-WIDTH);
+  }
+}

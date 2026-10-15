@@ -7,7 +7,7 @@ export function Good() {
       <span className="h-(--CONTROL-H) w-[var(--ROW-H)] bg-series-1 text-trend-good h-chart text-kpi">
         a
       </span>
-      <span className="bg-surface-0/50 rounded-full z-10 opacity-50 translate-x-full">b</span>
+      <span className="bg-surface-0/50 rounded-full z-raised z-0 md:z-sticky opacity-50 translate-x-full">b</span>
       <span style={{ transform: `translate(${size}px, 0)`, borderWidth: "1px" }}>c</span>
       <a href="#overview">d</a>
     </div>

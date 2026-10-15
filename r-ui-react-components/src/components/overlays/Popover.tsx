@@ -14,7 +14,6 @@ import {
   FloatingFocusManager,
   floatingArrowProps,
   type Placement,
-  useClick,
   useDismiss,
   useFloating,
   useInteractions,
@@ -23,13 +22,16 @@ import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Button, type ButtonProps } from "../primitives";
-import { onEscape, Slot } from "./internal";
+import { onEscape, Slot, topLayerExit, useExitPresence } from "./internal";
 
 type Floating = ReturnType<typeof useFloating>;
 type Interactions = ReturnType<typeof useInteractions>;
 
 interface PopoverContextValue {
   open: boolean;
+  /** Open, or still running its exit transition. */
+  present: boolean;
+  panelRef: React.RefObject<HTMLDivElement | null>;
   setOpen: (open: boolean) => void;
   contentId: string;
   floating: Floating;
@@ -59,18 +61,23 @@ function PopoverRoot({ open: openProp, defaultOpen = false, onOpenChange, placem
   const [open, setOpen] = useControllableState({ value: openProp, defaultValue: defaultOpen, onChange: onOpenChange });
   const contentId = useId();
   const arrowRef = useRef<HTMLDivElement>(null);
-  const floating = useFloating({ placement, offsetPx: 8, arrowRef, open, onOpenChange: setOpen });
+  const panelRef = useRef<HTMLDivElement>(null);
+  const present = useExitPresence(open, panelRef, topLayerExit);
+  // Positioned and promoted for as long as it is on screen, exit included.
+  const floating = useFloating({ placement, offsetPx: 8, arrowRef, open: present, onOpenChange: setOpen });
 
+  // No `useClick`: it toggles from floating-ui's `open`, which stays true through
+  // the exit, so a press on the trigger mid-exit would close instead of reopen.
+  // The trigger toggles from our own state instead.
   const { getReferenceProps, getFloatingProps } = useInteractions([
-    useClick(floating.context),
     // Light dismiss from the pointer. Escape is handled on the elements
     // (`onEscape`) so a nested surface closes first and alone.
     useDismiss(floating.context, { escapeKey: false }),
   ]);
 
   const value = useMemo(
-    () => ({ open, setOpen, contentId, floating, arrowRef, getReferenceProps, getFloatingProps }),
-    [open, setOpen, contentId, floating, getReferenceProps, getFloatingProps]
+    () => ({ open, present, panelRef, setOpen, contentId, floating, arrowRef, getReferenceProps, getFloatingProps }),
+    [open, present, setOpen, contentId, floating, getReferenceProps, getFloatingProps]
   );
   return <PopoverContext.Provider value={value}>{children}</PopoverContext.Provider>;
 }
@@ -80,11 +87,12 @@ export type PopoverTriggerProps = ButtonProps & {
   asChild?: boolean;
 };
 
-function PopoverTrigger({ asChild = false, children, ...props }: PopoverTriggerProps) {
+function PopoverTrigger({ asChild = false, children, onClick, ...props }: PopoverTriggerProps) {
   const { open, setOpen, contentId, floating, getReferenceProps } = usePopover("Trigger");
   const triggerProps = getReferenceProps({
     ...props,
     ref: mergeRefs(props.ref, floating.refs.setReference),
+    onClick: composeEventHandlers(onClick, () => setOpen(!open)),
     "aria-haspopup": "dialog",
     "aria-expanded": open,
     "aria-controls": open ? contentId : undefined,
@@ -129,21 +137,25 @@ function PopoverContent({
   onKeyDown,
   ...props
 }: PopoverContentProps) {
-  const { open, setOpen, contentId, floating, arrowRef, getFloatingProps } = usePopover("Content");
-  if (!open) return null;
+  const { open, present, panelRef, setOpen, contentId, floating, arrowRef, getFloatingProps } = usePopover("Content");
+  if (!present) return null;
   return (
-    <FloatingFocusManager context={floating.context} modal={false} initialFocus={initialFocus}>
+    // Disabled once closed: that is what hands focus back, at once rather than
+    // after the exit transition.
+    <FloatingFocusManager context={floating.context} modal={false} initialFocus={initialFocus} disabled={!open}>
       <div
         {...getFloatingProps({
           ...props,
           onKeyDown: composeEventHandlers(onKeyDown, onEscape(() => setOpen(false))),
         })}
-        ref={mergeRefs(ref, floating.refs.setFloating)}
+        ref={mergeRefs(ref, panelRef, floating.refs.setFloating)}
         id={contentId}
         role="dialog"
+        // Leaving: on screen for its exit, but no longer interactive.
+        inert={!open}
         style={{ ...floating.floatingStyles, ...style }}
         className={cn(
-          "max-w-[min(var(--MEASURE),calc(100vw-var(--R-SIZE-2)*2))] rounded-md border border-border bg-surface-0 p-r3 text-body-1 text-fg-primary shadow-md animate-fade-in outline-none focus-visible:focus-ring",
+          "r-overlays-surface max-w-[min(var(--MEASURE),calc(100vw-var(--R-SIZE-2)*2))] rounded-md border border-border bg-surface-0 p-r3 text-body-1 text-fg-primary shadow-md outline-none focus-visible:focus-ring",
           className
         )}
       >

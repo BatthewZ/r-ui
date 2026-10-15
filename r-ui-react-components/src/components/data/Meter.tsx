@@ -94,7 +94,7 @@ export function Meter({
       aria-valuetext={spoken}
       data-tone={tone}
       className={cn(
-        "h-r5 overflow-hidden rounded-full bg-fg-primary/10",
+        "r-data-meter-track h-r5 overflow-hidden rounded-full bg-fg-primary/10",
         variant === "inline" ? "w-[calc(var(--CONTROL-H)*1.5)] shrink-0" : "w-full",
         classNames?.track,
       )}

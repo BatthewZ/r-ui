@@ -4,7 +4,7 @@
 // against a running showcase (`bun run showcase:dev -- --port <port>`):
 //
 //   playwright-cli -s=<session> open http://localhost:<port>/
-//   playwright-cli -s=<session> run-code "$(cat scripts/browser/data-virtualized-rows.js)"
+//   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print data-virtualized-rows)"
 //
 // It throws (the run fails) on any mismatch and returns the measurements.
 //
@@ -27,6 +27,7 @@ async (page) => {
     localStorage.setItem("r-ui-showcase:view", JSON.stringify({ theme: "default", density: "compact", input: "coarse" })),
   );
   await page.reload();
+  await waitForShowcase(page);
   const table = page.locator('[data-testid="virtual-requests"]');
   await table.waitFor();
   await page.waitForTimeout(300);

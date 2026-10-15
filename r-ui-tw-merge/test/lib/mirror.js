@@ -19,6 +19,28 @@ const THEME_NAMESPACES = [
 const CLASS_GROUP_NAMESPACES = {
   opacity: "opacity",
   "transition-duration": "duration",
+  "z-index": "z",
+};
+
+/**
+ * The class a theme name generates, for the namespaces where that is one fixed
+ * prefix (for colours, the fill: `bg-`). An `@utility` with the same class name
+ * EXTENDS that utility (Tailwind emits both blocks under one class; r-ui-css uses
+ * it to put a face on `text-h1` and forced-colors handling on `bg-accent`), so it
+ * is the theme name, not a second name to mirror.
+ */
+const THEME_CLASS_PREFIX = {
+  color: "bg",
+  text: "text",
+  font: "font",
+  "font-weight": "font",
+  radius: "rounded",
+  shadow: "shadow",
+  ease: "ease",
+  animate: "animate",
+  opacity: "opacity",
+  "transition-duration": "duration",
+  "z-index": "z",
 };
 
 /** `@utility` classes: every class a `classGroups` entry names outside the namespaces above. */
@@ -64,9 +86,13 @@ export function cssNames({ declarations, utilities }) {
     else if (UNMIRRORED_TAILWIND.includes(ns)) problems.push(`${prop} in ${file}: namespace \`${ns}\` has no mirror`);
     else add(names, ns, prop.slice(ns.length + 3));
   }
+  const themeClasses = new Set();
+  for (const [ns, prefix] of Object.entries(THEME_CLASS_PREFIX)) {
+    for (const name of names.get(ns) ?? []) themeClasses.add(`${prefix}-${name}`);
+  }
   for (const name of utilities) {
     if (name.endsWith("-*")) problems.push(`@utility ${name}: functional utilities have no mirror`);
-    else add(names, UTILITY, name);
+    else if (!themeClasses.has(name)) add(names, UTILITY, name);
   }
   return { names, problems };
 }

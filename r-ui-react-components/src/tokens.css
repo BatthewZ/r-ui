@@ -134,6 +134,149 @@
   --KPI-MAX-COMPACT: 1.75rem;
 }
 
+/* ── Forced colors (Windows High Contrast), the contract's rules applied to the
+   domain. Status, trend and chart chrome become system colours, both halves, so
+   the blend resolves to one whatever the scheme (`!important` outranks a theme
+   that retunes a pair). Series and sequential steps are NOT mapped: there the
+   colour is the information, and every series also differs by label (and, in a
+   chart, by shape). Their `bg-` fills opt out of repainting below, as the
+   meaning-bearing fills do; SVG strokes and fills are never forced. Their blend
+   still reads `--SCHEME-DARK`, which the contract sets from the FORCED palette
+   here, so a dark theme on a light high-contrast Canvas takes the light steps. */
+@media (forced-colors: active) {
+  :root {
+    --C-TREND-GOOD-LIGHT: CanvasText !important;
+    --C-TREND-GOOD-DARK: CanvasText !important;
+    --C-TREND-BAD-LIGHT: CanvasText !important;
+    --C-TREND-BAD-DARK: CanvasText !important;
+    --C-STATUS-SERIOUS-LIGHT: CanvasText !important;
+    --C-STATUS-SERIOUS-DARK: CanvasText !important;
+    --C-TEXT-SERIOUS-LIGHT: CanvasText !important;
+    --C-TEXT-SERIOUS-DARK: CanvasText !important;
+    --C-STATUS-SERIOUS-BG-LIGHT: Canvas !important;
+    --C-STATUS-SERIOUS-BG-DARK: Canvas !important;
+    --C-TEXT-ON-SERIOUS-LIGHT: Canvas !important;
+    --C-TEXT-ON-SERIOUS-DARK: Canvas !important;
+    --C-STATUS-STALE-LIGHT: CanvasText !important;
+    --C-STATUS-STALE-DARK: CanvasText !important;
+    --C-TEXT-STALE-LIGHT: CanvasText !important;
+    --C-TEXT-STALE-DARK: CanvasText !important;
+    --C-STATUS-STALE-BG-LIGHT: Canvas !important;
+    --C-STATUS-STALE-BG-DARK: Canvas !important;
+    --C-TEXT-ON-STALE-LIGHT: Canvas !important;
+    --C-TEXT-ON-STALE-DARK: Canvas !important;
+    --C-CHART-GRID-LIGHT: GrayText !important;
+    --C-CHART-GRID-DARK: GrayText !important;
+    --C-CHART-AXIS-LIGHT: CanvasText !important;
+    --C-CHART-AXIS-DARK: CanvasText !important;
+  }
+}
+
+/* Fills that carry meaning keep it under forced colors. A domain status mark
+   used as a fill (a solid Badge) behaves like the contract's `bg-status-*`:
+   CanvasText fill, Canvas ink, neutral roles remapped inside it. A data fill
+   (a meter bar, a heat cell, a legend swatch) keeps its own colour. Companion
+   `@utility` blocks of the same name, so every variant carries them. */
+@utility bg-status-serious {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: Canvas;
+    --C-TEXT-PRIMARY: Canvas;
+    --C-TEXT-SECONDARY: Canvas;
+    --C-TEXT-MUTED: Canvas;
+    --C-TEXT-ACCENT: Canvas;
+    --C-BORDER: Canvas;
+    --C-BORDER-STRONG: Canvas;
+  }
+}
+@utility bg-status-stale {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+    color: Canvas;
+    --C-TEXT-PRIMARY: Canvas;
+    --C-TEXT-SECONDARY: Canvas;
+    --C-TEXT-MUTED: Canvas;
+    --C-TEXT-ACCENT: Canvas;
+    --C-BORDER: Canvas;
+    --C-BORDER-STRONG: Canvas;
+  }
+}
+@utility bg-series-1 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-series-2 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-series-3 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-series-4 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-series-5 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-series-6 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-series-7 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-series-8 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-seq-1 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-seq-2 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-seq-3 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-seq-4 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-seq-5 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-seq-6 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+@utility bg-seq-7 {
+  @media (forced-colors: active) {
+    forced-color-adjust: none;
+  }
+}
+
 /* Density SELECTS. Themes never write these names. */
 :root,
 [data-density="comfortable"] {
@@ -203,4 +346,68 @@
   --spacing-heat-cell: var(--HEAT-CELL);
   --text-kpi: var(--KPI-VALUE);
   --text-kpi--line-height: 1.1;
+}
+
+/* ══ Code syntax roles (content group: CodeBlock) ══════════════════════════
+   One colour per MEANING of a highlighted run, never per grammar scope: the
+   CodeBlock maps highlight.js scopes onto these roles, and a scope it does not
+   map renders in the block's body ink (quiet, not broken).
+
+   Five roles are hues of their own, LIGHT/DARK pairs like every domain colour.
+   The rest mean something the contract already names, so they ALIAS it and
+   follow every theme with no pair to tune: a comment is muted text, a property
+   or parameter is secondary text, a diff's added/removed line is the success /
+   error TEXT colour. Body ink (plain code, punctuation, operators) is the
+   contract's primary text.
+
+   `verify:domain-contrast` holds every role to 4.5:1 on the canvas and every
+   surface 0..3 in every theme (the block itself paints `bg-surface-1`, a
+   highlighted line `bg-surface-3`). Hue is never the only cue: keywords also
+   carry weight and comments slant, so a theme whose hues collide still reads.
+
+   Forced colors, decided: the code COLLAPSES to CanvasText; no opt-out. Every
+   pair maps to CanvasText below and the aliases follow their contract roles,
+   which are system colours there. Opting the block out would keep seven hues
+   the user's high-contrast palette never chose, on a Canvas they may not be
+   legible against. What survives is what never depended on hue: keyword weight,
+   comment slant, the diff's own +/- text, and a marked line's inline-start bar
+   (a border, drawn in a system colour). Checked by `content-code.js`. */
+:root {
+  --C-CODE-KEYWORD-LIGHT: oklch(0.480 0.160 300);
+  --C-CODE-KEYWORD-DARK: oklch(0.780 0.120 305);
+  --C-CODE-STRING-LIGHT: oklch(0.470 0.120 150);
+  --C-CODE-STRING-DARK: oklch(0.800 0.130 145);
+  --C-CODE-NUMBER-LIGHT: oklch(0.490 0.130 55);
+  --C-CODE-NUMBER-DARK: oklch(0.800 0.110 65);
+  --C-CODE-FUNCTION-LIGHT: oklch(0.480 0.140 255);
+  --C-CODE-FUNCTION-DARK: oklch(0.780 0.110 250);
+  --C-CODE-TYPE-LIGHT: oklch(0.470 0.090 195);
+  --C-CODE-TYPE-DARK: oklch(0.800 0.090 190);
+}
+
+@media (forced-colors: active) {
+  :root {
+    --C-CODE-KEYWORD-LIGHT: CanvasText !important;
+    --C-CODE-KEYWORD-DARK: CanvasText !important;
+    --C-CODE-STRING-LIGHT: CanvasText !important;
+    --C-CODE-STRING-DARK: CanvasText !important;
+    --C-CODE-NUMBER-LIGHT: CanvasText !important;
+    --C-CODE-NUMBER-DARK: CanvasText !important;
+    --C-CODE-FUNCTION-LIGHT: CanvasText !important;
+    --C-CODE-FUNCTION-DARK: CanvasText !important;
+    --C-CODE-TYPE-LIGHT: CanvasText !important;
+    --C-CODE-TYPE-DARK: CanvasText !important;
+  }
+}
+
+@theme inline {
+  --color-code-keyword: color-mix(in oklch, var(--C-CODE-KEYWORD-LIGHT), var(--C-CODE-KEYWORD-DARK) calc(var(--SCHEME-DARK) * 100%));
+  --color-code-string: color-mix(in oklch, var(--C-CODE-STRING-LIGHT), var(--C-CODE-STRING-DARK) calc(var(--SCHEME-DARK) * 100%));
+  --color-code-number: color-mix(in oklch, var(--C-CODE-NUMBER-LIGHT), var(--C-CODE-NUMBER-DARK) calc(var(--SCHEME-DARK) * 100%));
+  --color-code-function: color-mix(in oklch, var(--C-CODE-FUNCTION-LIGHT), var(--C-CODE-FUNCTION-DARK) calc(var(--SCHEME-DARK) * 100%));
+  --color-code-type: color-mix(in oklch, var(--C-CODE-TYPE-LIGHT), var(--C-CODE-TYPE-DARK) calc(var(--SCHEME-DARK) * 100%));
+  --color-code-comment: var(--C-TEXT-MUTED);
+  --color-code-property: var(--C-TEXT-SECONDARY);
+  --color-code-addition: var(--C-TEXT-SUCCESS);
+  --color-code-deletion: var(--C-TEXT-ERROR);
 }

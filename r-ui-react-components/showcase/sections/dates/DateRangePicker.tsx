@@ -1,0 +1,84 @@
+import { RefreshCw } from "lucide-react";
+import { useState } from "react";
+
+import { DateRangePicker, type DateRangePreset, type DateRangeValue, toISODate } from "../../../src/components/dates";
+import { Field } from "../../../src/components/form";
+import { Card, IconButton } from "../../../src/components/primitives";
+import { day, Grid, Row, Stack } from "./parts/demo";
+
+export const meta = {
+  title: "DateRangePicker",
+  group: "dates",
+  order: 30,
+  description:
+    "The dashboard time range: a toolbar control at h-control showing the range compactly, quick ranges beside typed start/end fields and a RangeCalendar. A preset applies at once; a custom range on Apply.",
+};
+
+const shown = (v: DateRangeValue | null) =>
+  v ? `${toISODate(v.start)} → ${toISODate(v.end)}${v.preset ? ` (${v.preset})` : ""}` : "—";
+
+/** The dashboard case: a compact card that clips, with the time range in its header. */
+function ToolbarCard() {
+  const [range, setRange] = useState<DateRangeValue | null>({ start: day(10, 9), end: day(10, 15), preset: "last-7-days" });
+  return (
+    <Card data-density="compact" data-sc="range-toolbar-card" className="max-w-column-lg overflow-hidden">
+      <Card.Header>
+        <Card.Title>Checkout latency</Card.Title>
+        <Card.Actions className="flex items-center gap-r6">
+          <DateRangePicker aria-label="Time range" value={range} onValueChange={setRange} locale="en-US" />
+          <IconButton label="Refresh" icon={<RefreshCw />} variant="secondary" />
+        </Card.Actions>
+      </Card.Header>
+      <Card.Body>
+        <output className="text-body-2 text-fg-secondary" data-sc="range-value">
+          {shown(range)}
+        </output>
+      </Card.Body>
+    </Card>
+  );
+}
+
+const SHIFTS: DateRangePreset[] = [
+  { id: "today", label: "Today", range: (now) => ({ start: new Date(now.getFullYear(), now.getMonth(), now.getDate()), end: new Date(now.getFullYear(), now.getMonth(), now.getDate()) }) },
+  { id: "q4", label: "Q4 2026", range: () => ({ start: day(10, 1), end: day(12, 31) }) },
+];
+
+export default function DateRangePickerSection() {
+  const [custom, setCustom] = useState<DateRangeValue | null>({ start: day(10, 1), end: day(10, 7) });
+  return (
+    <Stack>
+      <Row label="Dashboard toolbar in a compact card that clips">
+        <ToolbarCard />
+      </Row>
+
+      <Row label="In a Field · custom range · native submit as an ISO interval">
+        <Grid>
+          <Field data-sc="range-field">
+            <Field.Label>Report period</Field.Label>
+            <DateRangePicker name="period" value={custom} onValueChange={setCustom} locale="en-GB" className="justify-self-start" />
+            <Field.Description>{shown(custom)}</Field.Description>
+          </Field>
+          <Field>
+            <Field.Label>Zeitraum</Field.Label>
+            <DateRangePicker
+              locale="de-DE"
+              defaultValue={{ start: day(10, 1), end: day(10, 7) }}
+              labels={{ dialog: "Zeitraum wählen", presets: "Schnellauswahl", start: "Beginn", end: "Ende", apply: "Übernehmen", cancel: "Abbrechen", formatLetters: { day: "TT", month: "MM", year: "JJJJ" } }}
+              presets={[]}
+              className="justify-self-start"
+            />
+          </Field>
+        </Grid>
+      </Row>
+
+      <Row label="Own presets · one month · bounded · empty · invalid · disabled">
+        <div className="flex flex-wrap items-start gap-r4">
+          <DateRangePicker aria-label="Shift" presets={SHIFTS} months={1} min={day(1, 1)} max={day(12, 31)} locale="en-US" />
+          <DateRangePicker aria-label="Window" locale="en-US" />
+          <DateRangePicker aria-label="Invalid range" invalid defaultValue={{ start: day(10, 1), end: day(10, 7) }} locale="en-US" />
+          <DateRangePicker aria-label="Locked" disabled defaultValue={{ start: day(10, 1), end: day(10, 7), preset: "last-7-days" }} locale="en-US" />
+        </div>
+      </Row>
+    </Stack>
+  );
+}

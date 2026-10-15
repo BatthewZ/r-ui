@@ -8,11 +8,10 @@ import {
   useId,
 } from "react";
 
-import { useControllableState } from "../../hooks/use-controllable-state";
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn, type SlotClassNames } from "../../util/style";
 
-import { useFieldControl } from "./Field";
+import { useFieldControl, useFieldValue } from "./Field";
 
 interface RadioGroupContextValue {
   name: string;
@@ -73,18 +72,20 @@ export function RadioGroup({
     "aria-describedby": describedByProp,
     "aria-invalid": ariaInvalidProp,
   });
-  const [current, setValue] = useControllableState<string | undefined>({
+  // In a Field bound to a Form, the form owns the value (unless the caller passed one).
+  const [current, setValue, fieldName] = useFieldValue<string | undefined>({
     value,
     defaultValue,
     onChange: (next) => {
       if (next !== undefined) onValueChange?.(next);
     },
+    fromForm: (raw) => (raw === undefined || raw === null ? undefined : String(raw)),
   });
 
   return (
     <RadioGroupContext
       value={{
-        name: name ?? generatedName,
+        name: name ?? fieldName ?? generatedName,
         value: current,
         setValue,
         disabled: field.disabled === true,

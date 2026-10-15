@@ -25,6 +25,7 @@ async (page) => {
     localStorage.setItem("r-ui-showcase:view", JSON.stringify({ theme: "default", density: "comfortable", input: "fine" })),
   );
   await page.reload();
+  await waitForShowcase(page);
   const table = page.locator('[data-testid="stress-virtual"]');
   await table.waitFor();
   await table.scrollIntoViewIfNeeded();

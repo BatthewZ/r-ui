@@ -33,6 +33,7 @@ async (page) => {
       localStorage.setItem("r-ui-showcase:view", JSON.stringify({ theme: "nightfall", density: "compact", input: "coarse" })),
     );
     await page.reload();
+    await waitForShowcase(page);
     await page.locator("[data-stress-panel]").first().waitFor();
     await page.waitForTimeout(300);
     await page.getByRole("button", { name: /^Raise \d+ toasts/ }).click();

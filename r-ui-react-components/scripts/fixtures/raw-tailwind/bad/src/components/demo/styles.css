@@ -11,3 +11,8 @@
 @media (width > 640px) {
   .demo { display: grid; }
 }
+.demo-chrome {
+  z-index: 5;
+  border-block-end: 1px solid var(--C-BORDER);
+  border-top-width: 1px;
+}

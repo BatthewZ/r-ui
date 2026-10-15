@@ -1,0 +1,139 @@
+/* "dates" group stylesheet. Imported by src/styles.css inside `@layer components`,
+   so a caller's utility (`className`) always beats these rules. Plain rules,
+   tokens only.
+
+   A day cell is `--CONTROL-H` square: density sizes it, and the input axis raises
+   it to the hit floor, so cells that stack in rows never hand a press to their
+   neighbour and need no `hit-area`. A month is seven of them. */
+
+/* `min-inline-size: 0`: as a grid or flex item the calendar takes its track's
+   width, never forces it to all its months side by side (the months' min-content,
+   which is what an `auto` track would otherwise grow to). */
+.r-dates-calendar {
+  min-inline-size: 0;
+}
+
+/* Months side by side while the calendar's width holds them. `auto-fill` lays
+   out as many month tracks as fit (capped at `months` by the max width), the
+   component reads the used track count and renders that many months. No
+   breakpoint: the width a month needs moves with density and input. */
+.r-dates-months {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, calc(var(--CONTROL-H) * 7));
+  justify-content: center;
+  gap: var(--R-SIZE-2);
+  max-inline-size: calc(
+    var(--CONTROL-H) * 7 * var(--r-dates-months, 1) + var(--R-SIZE-2) * (var(--r-dates-months, 1) - 1)
+  );
+}
+
+.r-dates-month {
+  min-inline-size: 0;
+}
+
+/* Previous month at the start of the first caption, next at the end of the
+   last, the month name centred between. */
+.r-dates-caption {
+  display: grid;
+  grid-template-columns: var(--CONTROL-H) minmax(0, 1fr) var(--CONTROL-H);
+  align-items: center;
+  block-size: var(--CONTROL-H);
+  margin-block-end: var(--R-SIZE-5);
+}
+
+.r-dates-grid {
+  inline-size: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.r-dates-grid th {
+  padding-block: 0 var(--R-SIZE-5);
+  padding-inline: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.r-dates-cell {
+  position: relative;
+  padding: 0;
+  block-size: var(--CONTROL-H);
+}
+
+/* The range band, behind the day: whole cells between the endpoints, half of
+   each endpoint's cell (logical sides, so it joins the right way in RTL). Its
+   colour is the `before:bg-selection` utility, which keeps it in forced colors. */
+.r-dates-cell[data-band]::before {
+  content: "";
+  position: absolute;
+  inset-block: var(--R-SIZE-6);
+  inset-inline: 0;
+}
+.r-dates-cell[data-band="start"]::before {
+  inset-inline-start: 50%;
+}
+.r-dates-cell[data-band="end"]::before {
+  inset-inline-end: 50%;
+}
+
+/* The day. No edge of its own, in forced colors too: a grid of boxed days is
+   noise, and position names the cell. Focus is the outline. */
+.r-dates-day {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: var(--CONTROL-H);
+  border-radius: var(--RADIUS-MD);
+  cursor: pointer;
+  font-variant-numeric: var(--NUMERALS-DATA);
+  transition: color var(--DURATION-FAST) var(--EASE-STANDARD),
+    background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-dates-day[aria-disabled] {
+  cursor: not-allowed;
+}
+
+/* Today: a dot under the number, in the day's own ink (a shape, not only a
+   colour). Drawn as a border so forced colors keeps it. */
+.r-dates-day[data-today]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: calc(var(--R-SIZE-6) + var(--BORDER-WIDTH));
+  margin-inline: auto;
+  inline-size: 0;
+  block-size: 0;
+  border: calc(var(--R-SIZE-6) * 0.75) solid currentColor;
+  border-radius: var(--RADIUS-FULL);
+}
+
+/* The range popup: wide enough for the preset column and `months` months,
+   capped at the viewport. A definite width, so its content can be a size
+   container (presets beside the calendar or above it). */
+.r-dates-range-panel {
+  inline-size: min(
+    calc(
+      (var(--COLUMN-SM) + var(--R-SIZE-3)) * var(--r-dates-presets, 1) + var(--CONTROL-H) * 7 *
+        var(--r-dates-months, 1) + var(--R-SIZE-2) * (var(--r-dates-months, 1) - 1) + var(--R-SIZE-3) * 2 +
+        var(--BORDER-WIDTH) * 2
+    ),
+    calc(100vw - var(--R-SIZE-2) * 2)
+  );
+}
+
+/* Forced colors. Endpoints and the selected day are `bg-accent` (Highlight with
+   HighlightText, kept by the utility's opt-out), the band `before:bg-selection`
+   (a Highlight fill, not a tint) with its days in HighlightText, today a dot drawn
+   as a border, an invalid trigger a doubled edge (in the component). What the
+   utilities cannot say: */
+@media (forced-colors: active) {
+  /* Focus on a Highlight fill: the ring turns HighlightText and sits inside a
+     band of the fill, or it would vanish into it. */
+  .r-dates-day[data-selected]:focus-visible,
+  .r-dates-cell[data-band] .r-dates-day:focus-visible {
+    outline-color: HighlightText;
+    outline-offset: calc(var(--FOCUS-WIDTH) * -2);
+  }
+}

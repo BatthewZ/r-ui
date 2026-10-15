@@ -1,12 +1,17 @@
+"use client";
 import type { ElementType, ReactNode } from "react";
 
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
+import { useIsCurrent, useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 
 export interface NavLinkOwnProps {
   /** Decorative icon (give it `aria-hidden`); the label is the accessible name. */
   icon?: ReactNode;
-  /** This item is the current page: sets `aria-current="page"` and draws the accent marker. */
+  /**
+   * This item is the current page: sets `aria-current="page"` and draws the
+   * accent marker. Unset, the `RouterProvider`'s `isCurrent(href)` decides.
+   */
   current?: boolean;
   /** A count or short status after the label, read as part of the item's name. */
   badge?: ReactNode;
@@ -19,21 +24,24 @@ export type NavLinkProps<C extends ElementType = "a"> = PolymorphicProps<C, NavL
 
 /**
  * The link row shared by `AppShell.NavItem` and `NavList.Item`: a list item
- * holding an `<a>` (or `as={RouterLink}`), with the accent "you are here" marker.
+ * holding the router's link (`RouterProvider`), an `<a>`, or `as`, with the
+ * accent "you are here" marker.
  * Where it sits decides its form: a sidebar row, an icon-rail button, or a
  * bottom-nav tab (see the navigation stylesheet).
  */
 export function NavLink<C extends ElementType = "a">({
   as,
   icon,
-  current = false,
+  current: currentProp,
   badge,
   className,
   classNames,
   children,
   ...props
 }: NavLinkProps<C>) {
-  const Component: ElementType = as ?? "a";
+  const href = (props as { href?: unknown }).href;
+  const Component = useLinkElement(as, href);
+  const current = useIsCurrent(currentProp, href);
   return (
     <li className={classNames?.item}>
       <Component

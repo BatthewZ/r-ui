@@ -1,12 +1,14 @@
 "use client";
 
 import { ExternalLink } from "lucide-react";
-import { type AnchorHTMLAttributes, type ReactNode, type Ref, useId } from "react";
+import { type ElementType, type ReactNode, useId } from "react";
 
+import type { PolymorphicProps } from "../../util/layout-polymorphic";
+import { useLinkElement } from "../../util/router";
 import { safeUrl } from "../../util/url";
 import { cn, type SlotClassNames } from "../../util/style";
 
-export type LinkProps = {
+export interface LinkOwnProps {
   /**
    * `accent` (default): accent text-safe ink. `inherit`: the surrounding ink,
    * for links in muted footers or table cells where accent would shout; the
@@ -25,8 +27,18 @@ export type LinkProps = {
    */
   newTabLabel?: string;
   classNames?: SlotClassNames<"icon">;
-  ref?: Ref<HTMLAnchorElement>;
-} & AnchorHTMLAttributes<HTMLAnchorElement>;
+  href?: string;
+  target?: string;
+  rel?: string;
+  "aria-describedby"?: string;
+  children?: ReactNode;
+}
+
+/**
+ * An `<a>` by default. An internal `href` renders the `RouterProvider`'s link;
+ * `as` renders anything else (its own props, such as `to`, pass through).
+ */
+export type LinkProps<C extends ElementType = "a"> = PolymorphicProps<C, LinkOwnProps>;
 
 const INK = { accent: "text-fg-accent", inherit: "text-inherit" } as const;
 
@@ -38,9 +50,12 @@ const INK = { accent: "text-fg-accent", inherit: "text-inherit" } as const;
  * table cell alike.
  *
  * `href` passes through `safeUrl`: a refused scheme (`javascript:` …) renders
- * the children as plain text, not a dead or dangerous link.
+ * the children as plain text, not a dead or dangerous link. Only an internal
+ * `href` (no scheme, not `//host`) goes to the router's link, and never one that
+ * opens a new tab.
  */
-export function Link({
+export function Link<C extends ElementType = "a">({
+  as,
   variant = "accent",
   external,
   newTabLabel = "(opens in a new tab)",
@@ -52,11 +67,13 @@ export function Link({
   children,
   "aria-describedby": describedBy,
   ...props
-}: LinkProps) {
+}: LinkProps<C>) {
   const hintId = useId();
   const safeHref = href === undefined ? undefined : safeUrl(href);
   const newTab = target === "_blank";
   const showExternal = external ?? newTab;
+  const Routed = useLinkElement(as, safeHref);
+  const Component: ElementType = as ?? (newTab || external ? "a" : Routed);
 
   if (safeHref === "") return <span className={className}>{children}</span>;
 
@@ -73,8 +90,8 @@ export function Link({
 
   return (
     <>
-      <a
-        href={safeHref}
+      <Component
+        {...(safeHref !== undefined && { href: safeHref })}
         aria-describedby={[describedBy, hint && hintId].filter(Boolean).join(" ") || undefined}
         target={target}
         rel={relValue}
@@ -87,7 +104,7 @@ export function Link({
       >
         {children}
         {glyph}
-      </a>
+      </Component>
       {hint && (
         // `hidden` still serves aria-describedby, and takes no box in the caller's layout.
         <span id={hintId} hidden>

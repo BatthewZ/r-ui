@@ -18,6 +18,7 @@ async (page) => {
   await page.goto(`${base}#/overview/overlays-popover`);
   await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
   await page.reload();
+  await waitForShowcase(page);
   const section = page.locator("#overlays-popover");
   const trigger = section.getByRole("button", { name: "With arrow" });
   await trigger.waitFor();

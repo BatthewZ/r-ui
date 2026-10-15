@@ -29,6 +29,7 @@ async (page) => {
       input,
     });
     await page.reload();
+    await waitForShowcase(page);
     await page.locator("#primitives-iconbutton").waitFor();
     await page.waitForTimeout(200);
   };
@@ -91,6 +92,7 @@ async (page) => {
 
   // Checkbox: the native input stays on top of its own hit box.
   await page.goto(`${base}#/overview/form-checkbox`);
+  await waitForShowcase(page);
   await page.locator("#form-checkbox").waitFor();
   await page.waitForTimeout(200);
   const box = page.locator('#form-checkbox input[aria-label="Select row 3"]');

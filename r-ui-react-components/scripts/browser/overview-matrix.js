@@ -1,6 +1,6 @@
 // Browser check: the whole Overview page renders cleanly on every axis.
 //
-// For default / nightfall / harbour × comfortable / compact × fine / coarse at
+// For default / nightfall / harbour / atelier × comfortable / compact × fine / coarse at
 // 1280 and 375 wide, it reloads the Overview with that View and asserts:
 //   1. the harness reads what the source predicts: --HIT-MIN is 24px on fine and
 //      44px on coarse, and --CONTROL-H is max(the theme's named value for the
@@ -9,14 +9,19 @@
 //      (`[data-section-error]`), so one broken demo cannot hide behind the rest;
 //   3. no console error and no uncaught page error during the load;
 //   4. no horizontal page scroll (documentElement.scrollWidth <= clientWidth), and
-//      no demo box scrolls sideways either (`.sc-demo` is `overflow-x: auto`, so a
-//      component that cannot shrink to its container hides behind a scrollbar there).
+//      nothing inside a demo scrolls or clips sideways: neither the demo frame
+//      (`.sc-demo` is `overflow-x: auto`) nor any scroll container within it, since
+//      a spill lands in the NEAREST scroller and an inner one hides it from the
+//      frame. Exempt: text controls (their value scrolls by nature), truncated
+//      text (`text-overflow: ellipsis`), and a scroller that is designed to scroll
+//      (a code block's lines, a wide table, an overflowing tab strip) where the
+//      demo marks it, or an ancestor inside the demo, with `data-sc-scrolls`.
 //
 // Run it through `bun run browser:check`, or by hand against a running showcase:
 //   playwright-cli -s=<session> open http://localhost:<port>/
-//   playwright-cli -s=<session> run-code "$(cat scripts/browser/overview-matrix.js)"
+//   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print overview-matrix)"
 async (page) => {
-  const THEMES = ["default", "nightfall", "harbour"];
+  const THEMES = ["default", "nightfall", "harbour", "atelier"];
   const DENSITIES = ["comfortable", "compact"];
   const INPUTS = { fine: 24, coarse: 44 };
   const WIDTHS = [1280, 375];
@@ -48,6 +53,7 @@ async (page) => {
               input,
             });
             await page.reload();
+            await waitForShowcase(page);
             await page.locator(".sc-section").first().waitFor();
             await page.waitForTimeout(250);
 
@@ -67,12 +73,17 @@ async (page) => {
                 demos: [...document.querySelectorAll(".sc-section .sc-demo")].filter((d) => d.childElementCount > 0).length,
                 tripped: [...document.querySelectorAll("[data-section-error]")].map((e) => e.getAttribute("data-section-error")),
                 invalid: document.querySelectorAll(".sc-invalid:not([data-section-error])").length,
-                overflowing: [...document.querySelectorAll(".sc-section")]
-                  .filter((sec) => {
-                    const demo = sec.querySelector(".sc-demo");
-                    return demo && demo.scrollWidth > demo.clientWidth + 1;
-                  })
-                  .map((sec) => sec.id),
+                overflowing: [...document.querySelectorAll(".sc-section .sc-demo")].flatMap((demo) => {
+                  const spills = [demo, ...demo.querySelectorAll("*")].filter((el) => {
+                    if (el.scrollWidth <= el.clientWidth + 1 || el.clientWidth <= 1) return false;
+                    if (el.matches("input, textarea, select") || el.closest("[data-sc-scrolls]")) return false;
+                    const cs = getComputedStyle(el);
+                    return cs.overflowX !== "visible" && cs.textOverflow !== "ellipsis";
+                  });
+                  const describe = (el) =>
+                    el === demo ? "the demo frame" : `<${el.tagName.toLowerCase()}${el.className && typeof el.className === "string" ? ` class="${el.className.slice(0, 40)}…"` : ""}>`;
+                  return spills.map((el) => `${demo.closest(".sc-section").id} (${describe(el)} ${el.scrollWidth}/${el.clientWidth}px)`);
+                }),
                 scrollWidth: html.scrollWidth,
                 clientWidth: html.clientWidth,
               };

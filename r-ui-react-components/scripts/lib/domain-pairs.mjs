@@ -12,6 +12,13 @@
 //   4. Every pair is exposed by some `@theme` blend (an orphan pair has no
 //      utility and nothing can read it correctly).
 //   5. No other declaration in the file carries a raw colour literal.
+//   6. Forced colors: every pair maps BOTH halves to a system colour inside
+//      `@media (forced-colors: active) { :root { … } }`, except the data
+//      palettes (series, sequential), where the colour is the information and
+//      which must stay unmapped.
+//   7. A fill that carries meaning survives forced colors: the `bg-` utility of
+//      every data step, and of every mark that has a `TEXT-ON-` ink, has a
+//      same-name `@utility` that sets `forced-color-adjust: none` there.
 // And, for component sources, a `var(--X-LIGHT)` / `var(--X-DARK)` read
 // outside the canonical blend ignores the scheme and is a failure.
 
@@ -22,13 +29,19 @@ const BLEND =
   /^color-mix\(\s*in oklch,\s*var\(--([A-Z0-9-]+)-LIGHT\),\s*var\(--\1-DARK\)\s+calc\(\s*var\(--SCHEME-DARK\)\s*\*\s*100%\s*\)\s*\)$/;
 const ALIAS = /^var\(\s*(--[A-Za-z0-9-]+)\s*\)$/;
 const RAW_COLOUR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(\s*[\d.]/;
+const DATA = /^C-(?:SERIES|SEQ)-\d+$/;
+const SYSTEM_COLOUR =
+  /^(?:Canvas|CanvasText|LinkText|VisitedText|ActiveText|ButtonFace|ButtonText|ButtonBorder|Field|FieldText|Highlight|HighlightText|SelectedItem|SelectedItemText|Mark|MarkText|GrayText|AccentColor|AccentColorText)(?:\s*!important)?$/;
+const inUtility = (b) => b.parents.some((p) => p.startsWith("@utility"));
+const inForced = (b) => [b.prelude, ...b.parents].some((p) => /^@media\b.*forced-colors:\s*active/.test(p));
 
 /** Problems in the domain token file. Returns `{ problems, pairs }`. */
 export function checkTokens(css, file = "src/tokens.css") {
   const problems = [];
   const blocks = readBlocks(css);
+  // Names this file declares as tokens (a companion utility's role remap is not one).
   const declared = new Map();
-  for (const b of blocks) for (const d of b.decls) declared.set(d.name, d);
+  for (const b of blocks.filter((x) => !inUtility(x))) for (const d of b.decls) declared.set(d.name, d);
 
   const halves = new Map(); // base -> { LIGHT, DARK }
   for (const b of blocks.filter((x) => x.prelude === ":root" && x.parents.length === 0)) {
@@ -49,6 +62,7 @@ export function checkTokens(css, file = "src/tokens.css") {
   }
 
   const exposed = new Set();
+  const utilities = new Map(); // base -> colour utility names (`series-1`)
   const themeBlocks = blocks.filter((b) => b.prelude.startsWith("@theme"));
   for (const b of themeBlocks) {
     for (const d of b.decls) {
@@ -60,6 +74,7 @@ export function checkTokens(css, file = "src/tokens.css") {
           problems.push(`${file}:${d.line}  ${d.name} blends --${blend[1]}-LIGHT/-DARK, which is not a declared pair.`);
         }
         exposed.add(blend[1]);
+        utilities.set(blend[1], [...(utilities.get(blend[1]) ?? []), d.name.slice("--color-".length)]);
         continue;
       }
       const alias = ALIAS.exec(d.value);
@@ -74,6 +89,37 @@ export function checkTokens(css, file = "src/tokens.css") {
   for (const [base, h] of halves) {
     if (h.LIGHT && h.DARK && !exposed.has(base)) {
       problems.push(`${file}:${h.LIGHT.line}  pair --${base}-LIGHT/-DARK is not exposed by any @theme blend.`);
+    }
+  }
+
+  const forced = new Map();
+  for (const b of blocks.filter((x) => x.prelude === ":root" && inForced(x) && !inUtility(x))) {
+    for (const d of b.decls) forced.set(d.name, d);
+  }
+  const optedOut = new Set(
+    blocks
+      .filter((b) => inUtility(b) && inForced(b) && /forced-color-adjust:\s*none/.test(b.body))
+      .map((b) => b.parents.find((p) => p.startsWith("@utility")).slice("@utility".length).trim()),
+  );
+  for (const [base, h] of halves) {
+    if (!h.LIGHT || !h.DARK) continue;
+    for (const half of ["LIGHT", "DARK"]) {
+      const name = `--${base}-${half}`;
+      const map = forced.get(name);
+      if (DATA.test(base)) {
+        if (map) problems.push(`${file}:${map.line}  ${name} is a data colour: forced colors must keep it, not map it.`);
+      } else if (!map) {
+        problems.push(`${file}:${h[half].line}  ${name} has no forced-colors mapping (a system colour under @media (forced-colors: active)).`);
+      } else if (!SYSTEM_COLOUR.test(map.value)) {
+        problems.push(`${file}:${map.line}  ${name} maps to \`${map.value}\` under forced colors, not a system colour.`);
+      }
+    }
+    const fill = DATA.test(base) || (base.startsWith("C-STATUS-") && halves.has(base.replace(/^C-STATUS-/, "C-TEXT-ON-")));
+    if (!fill) continue;
+    for (const u of utilities.get(base) ?? []) {
+      if (!optedOut.has(`bg-${u}`)) {
+        problems.push(`${file}:${h.LIGHT.line}  \`bg-${u}\` carries meaning but has no forced-colors opt-out (\`@utility bg-${u}\` with forced-color-adjust: none).`);
+      }
     }
   }
 

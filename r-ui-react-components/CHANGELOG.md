@@ -5,6 +5,25 @@ tokens or the public surface are versioned events and are recorded here.
 
 ## Unreleased
 
+### Breaking
+
+Since the round-one surface (recorded below under "Added"):
+
+- `useDocumentTitle(title, { base, separator })` (or a `DocumentTitleProvider`) replaces the
+  hard-coded "AI Site Starter" base; with no base the title is exactly `title`.
+- `useTheme` stores one JSON object (theme, density, input) under
+  `localStorage["r-ui:preferences"]` or your `storageKey`, and saves the default theme too.
+  The `STORAGE_KEY` export is gone (use `PREFERENCES_STORAGE_KEY` or pass `storageKey`), and
+  so is the `/hooks/use-theme` subpath (now `/hooks/use-preferences`).
+- `StatCard`: `labels` (`good`, `bad`, `neutral`, `stale`) replaces `sentimentLabels`, and
+  the sentiment word ("better" / "worse") is now visible beside the delta, not only spoken
+  (`labels={{ good: "", bad: "" }}` drops it).
+- `lowlight` and `highlight.js` are regular dependencies (the optional `lowlight` peer is
+  gone): an app without them failed its build at the dynamic import. Nothing to install.
+- Requires `@batthewz/r-ui-css` with literal container sizes (`@max-column-md:` and friends
+  compile), the status-text and descendant-focus remaps in its forced-colors fill
+  companions, and `--SCHEME-DARK` following the forced palette.
+
 ### Added
 
 #### Package
@@ -119,16 +138,173 @@ tokens or the public surface are versioned events and are recorded here.
 - `Section`: fluid `padding` `section-1..3`, `variant` plain / band.
 - `Prose`: r-ui-css prose region capped at `--MEASURE`; controls inside keep the UI scale.
 
+#### Round 2: preferences, router and title
+
+- `useTheme` saves one JSON object (theme, density, input) and reads it back on mount;
+  `useDensity`, `useInputMode` (with `resolved` fine/coarse), and the pure `themeScript()` /
+  `readStoredPreferences` / `applyPreferences` / `storePreferences`.
+- New group `preferences`: `ThemeSwitcher` (the consumer's themes; segmented or select),
+  `DensitySwitcher`, `InputSwitcher`, `PreferencesMenu` (one "View" menu of radio groups),
+  `ThemeScript` (pre-paint `<script>` for the head; try/catch around storage; `nonce`).
+- `DocumentTitleProvider` for `useDocumentTitle`'s base and separator.
+- `RouterProvider` (`link`, `isCurrent`): read by `Link`, `NavList.Item`, `AppShell.NavItem`,
+  `AppShell.Brand`, `Breadcrumbs.Item` and `Pagination`; explicit `as` / `current` win;
+  external and new-tab links stay plain `<a>`. `Link` takes `as`. `Pagination` takes
+  `getHref(page)`: real links (unavailable arrows keep `role="link"` + `aria-disabled`).
+- `StatCard`: a stale tile says "Stale:" before its age to assistive tech.
+- `useActiveSection` re-observes only when the ids change, not for an equal array literal.
+- `Field`: the layout grid's single column may shrink, so a segmented control in a narrow
+  field no longer spills.
+
+#### Round 2: motion, disclosure and overlay exits
+
+- Overlays animate out as well as in: `Dialog`, `Drawer` (and their scrim), `Popover`,
+  `DropdownMenu` and `Tooltip` transition out in CSS (`transition-behavior: allow-discrete`,
+  motion tokens, so reduced motion closes at once); the panel stays mounted, inert, until its
+  exit finishes, and focus returns at once. Floating panels fade. Engines without
+  `allow-discrete` close instantly. `Popover.Trigger` toggles from the popover's own state,
+  so a press during the exit reopens it. A leaving toast unmounts when its exit ends.
+- Group `motion`: `ScrollReveal`, `Stagger` (capped at `STAGGER_MAX_INDEX`; `trigger="scroll" |
+  "mount"`), `startViewTransition` / `useViewTransition` (with a direct-update fallback).
+- Group `disclosure`: `Collapsible` (APG disclosure) and `Accordion` (single or `multiple`,
+  `collapsible`, `headingLevel`, arrow/Home/End keys); panels animate their height and are
+  inert when closed; rows are at least `--ROW-H`.
+
+#### Round 2: charts
+
+- Group `charts`. `LineChart`: hand-rolled SVG (no dependency) over a category, number or
+  time axis (calendar-aligned ticks chosen by measured label width), nice value ticks,
+  gridlines, `area`, pinned `min`/`max`, Intl values (`unit`, `format`, `locale`); legend
+  pairs colour with a shape; crosshair + one tooltip for every series on hover,
+  arrows/Home/End with a polite announcement, tap on touch; table always built (hidden beside
+  the drawing, shown on "Show as table" or when nothing can be drawn); never throws on
+  hostile input; 8 series drawn (`slot` pins an entity's colour), 24 tabulated, 1,000 points.
+- `BarChart`: the same axis, legend, table and readout as columns or horizontal bars, grouped
+  or `stacked`, `--BAR-THICK` thick with a rounded data end, time band axis labelled on
+  calendar boundaries.
+- `Heatmap`: rows × columns on the sequential ramp (seven bins), `--HEAT-CELL` rows, dashed
+  missing cells, legend scale, labels thinned to the width, 2-D arrow keys; 64 × 168 cells.
+- The chart tooltip is the contract's inverse bubble with Tooltip's padding and motion.
+
+#### Round 2: content
+
+- Group `content`. `CopyButton`: Clipboard API with a selection-copy fallback written beside
+  the button (works inside a modal dialog); icon-only or `showLabel`; polite status
+  announcement (re-announced on repeat), `onCopy` / `onCopyError`, translatable `labels`.
+- `CodeBlock`: header (filename, language, wrap toggle, copy), `lineNumbers` (never copied),
+  `highlightLines`, `wrap` / `defaultWrap` / `onWrapChange`; scrolls inside its focusable
+  `<pre>` and never widens its container; a UI island inside prose. Syntax colour from
+  lowlight's core plus one `highlight.js` grammar per language, each its own chunk fetched on
+  first use (with the curated grammars it embeds): a TypeScript block costs about 19 kB gzip
+  (core 8.6 kB + grammars), where every grammar used to ship as one 51.5 kB chunk. 14 curated
+  languages and their aliases; plain text until loaded, past a size budget, for an unknown
+  language or a failed load; rendered from lowlight's tree with no HTML injection.
+- `Markdown`: its own tree parser (no dependency), closed GFM subset incl. task items; prose
+  scale, fences as `CodeBlock`, tables as `Table`; raw HTML as text, links through `safeUrl`,
+  images only from `imageAllowlist`; `headingOffset`, `components`, `labels`; nesting past 8
+  levels kept as text.
+- Domain tokens `--C-CODE-KEYWORD/STRING/NUMBER/FUNCTION/TYPE` (pairs) and
+  `code-comment/property/addition/deletion` (aliases of contract text roles), utilities
+  `text-code-*`; 4.5:1 on canvas and surfaces 0–3 in every theme; CanvasText under forced
+  colors (weight and slant carry the meaning).
+
+#### Round 2: form (selection inputs and form state)
+
+- `Combobox`: editable combobox with a listbox popup (APG, `aria-activedescendant`): filters
+  ignoring case and diacritics (or a `filter`, or `false` for async with
+  `onInputChange(text, reason)`, `loading`, `loadError`), groups, descriptions, icons,
+  disabled options, bold match, `allowCustomValue`, windowed past `virtualizeThreshold`;
+  Escape closes then clears; `name` via a hidden input.
+- `MultiSelect`: removable chips inside a wrapping field (each line one `--CONTROL-H`),
+  Backspace removes the last chip, `selectAll`, `max`, "n selected" when the field is under
+  `--COLUMN-MD`; one hidden input per value.
+- `TagInput`: tags from Enter, a delimiter or a paste; duplicates and `validate` refusals keep
+  the text and show a message; `max`, optional `suggestions`; one hidden input per tag.
+- `useForm` + `Form`: Standard Schema validation (types shipped, no validator dependency),
+  nested paths, touched/dirty/submitting/validating, `validateOn` then `revalidateOn`,
+  per-field async `validate` on `Field` with an `AbortSignal`, server errors by path
+  (`setErrors`), `reset`; a native `<form noValidate>`; a failed submit focuses the first
+  invalid field in DOM order. `useFieldArray` (stable keys; errors and touched follow their
+  row), `useFormState`, `useFormValue`.
+- `Field name="…"` binds the control inside to the surrounding `Form`; several descriptions
+  and errors may mount at once. Controls bind through `useFieldValue` /
+  `useFieldInputProps`; `useFieldMessage` registers a control's own message.
+- `ErrorSummary`: after a failed submit, an error alert linking each error to its field.
+- `FormActions` (+ `FormActions.Submit`, busy while its Form submits): stacked full-width in a
+  narrow container; `sticky` holds the row on its scroller's bottom edge.
+- `Field.Error`, a TagInput refusal and a date picker's refusal share one error line, which
+  breaks an unbroken word instead of widening the field.
+- `Textarea` `autosize` re-fits on a width change in the next frame, keyed to its border box,
+  so its own height and scrollbar no longer feed a "ResizeObserver loop".
+
+#### Round 2: dates
+
+- Group `dates`. `Calendar`: APG date grid (arrows, Home/End, PageUp/PageDown, Shift for
+  years, RTL), Intl names, digits and week start, min/max, `isDateUnavailable`, today marker;
+  as many months side by side as its own width holds, cells `--CONTROL-H` square.
+- `RangeCalendar`: two-press range with a live preview and a band that is a shape.
+- `DatePicker`: a Field control typing dates in the user's locale (pattern shown, ISO and
+  month names read), refusals in the Field error's look, calendar popup in place, `name`
+  submits `YYYY-MM-DD`.
+- `DateRangePicker`: toolbar time range at `h-control`, presets
+  (`DEFAULT_DATE_RANGE_PRESETS`), typed start/end and a RangeCalendar applied on Apply,
+  `name` submits an ISO interval; `DateRangeValue.preset` lets a dashboard re-resolve
+  "last 24 hours".
+
+#### Round 2: primitives
+
+- `Button` takes `aria-pressed`: a toggle in the selection pair, exactly as a pressed
+  `IconButton` (one shared class list).
+
+#### Round 2: forced colors
+
+- Every existing component's states survive Windows High Contrast. The selected segment and
+  enclosed tab, and the menu item under the pointer, become Highlight fills (a selected
+  tab's or segment's focus ring turns HighlightText inside the fill); the selected table row
+  keeps a Highlight marker; an off Switch track is Canvas; invalid field frames, check boxes,
+  switches and segmented controls get a doubled edge; Skeleton is a dashed GrayText outline,
+  Avatar and a meter track get an edge; breadcrumb links are LinkText; nav count pills get
+  an edge, and the rail, bottom-nav and skip-link fills keep their text.
+- A focused field shows one ring: the inner input's reset outline is zero width, so the
+  forced `outline-style: solid` no longer draws a second ring inside the frame.
+- Domain colours: status serious/stale, trend and chart chrome map to system colours; series
+  and sequential steps keep theirs (their fills opt out of repainting) and, with the
+  contract's `--SCHEME-DARK` now following the forced palette, take the light or dark values
+  that suit the forced Canvas whatever the theme.
+
+#### Round 2: integration
+
+- In-flow stacking reads the contract's layer scale (`z-sticky` header, `z-docked` sidebar
+  and bottom nav, `z-bypass` skip link, `z-raised` sticky table head). Component stylesheets
+  draw their structural lines at `--BORDER-WIDTH`.
+- Gates: `verify:no-raw-tailwind` fails on a numeric z-index and a fixed `1px` line;
+  `verify:domain-pairs` on a domain pair with no forced-colors mapping and a meaning-bearing
+  fill without its opt-out; `verify:no-html-injection` on `dangerouslySetInnerHTML`,
+  `innerHTML`/`outerHTML` assignment, `insertAdjacentHTML`, `document.write` or
+  `createContextualFragment` in `src/` or `showcase/`.
+- Browser checks (every script runs with a shared `waitForShowcase` that waits for the page's
+  `data-showcase-ready`; `--print <name>` gives the code to run by hand): `theme-fonts`,
+  `motion-overlay-exit`, `motion-scroll-reveal`, `disclosure-accordion`, `forced-colors-states`
+  (one ring per focused control; the forced scheme), `charts-interaction`, `content-code`
+  (grammars fetched per language), `content-markdown`, `selection-inputs`, `dates-pickers`,
+  `form-state-submit`. `overview-matrix` now fails on a spill inside ANY scroll container in a
+  demo, not only the demo frame (a designed scroller opts out with `data-sc-scrolls`).
+- Showcase: the shell is the library `AppShell`, the View panel a `Popover` of the library
+  switchers, `themeScript()` inlined into `index.html` by the Vite config (whose imports carry
+  extensions, for Vite's native config loader); each page and each Overview section is its
+  own chunk (the entry went from 770 kB to 268 kB); groups ordered tokens, primitives, form,
+  dates, disclosure, overlays, data, charts, content, navigation, layout, motion,
+  preferences; the Inter and Fraunces faces and the `atelier` example theme.
+
 ### Known gaps
 
 Not built yet, and known to be missing:
 
-- No disclosure / accordion component.
-- No line, bar or heatmap chart (only `Sparkline` and `Meter`; the heat-cell size token waits
-  for a heatmap).
 - No display-text measure token: long display headings are capped by the caller.
 - No fluid spacing step below `section-3` for tight marketing rhythm.
 - `Section variant="band"` assumes edge-to-edge layout; inside a shell that pads its content,
   the page has to cancel that padding itself.
+- On a phone the toast stack sits over a bottom nav (`AppShell.BottomNav`) until it is
+  dismissed or times out.
 - Toasts are not interactive while a modal dialog is open (the dialog makes everything
   outside it inert).

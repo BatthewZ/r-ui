@@ -26,6 +26,24 @@
     forced-color-adjust: none;
     background: Highlight;
   }
+  /* A count pill is a fill: give it an edge. The tab list's baseline is a shadow:
+     make it a border. */
+  .r-navigation-link-badge {
+    border: var(--BORDER-WIDTH) solid CanvasText;
+  }
+  .r-navigation-tabs-underline {
+    border-block-end: var(--BORDER-WIDTH) solid CanvasText;
+  }
+  /* Ink and primary fills written as plain declarations (not the contract's
+     `bg-` utilities, which opt out on their own) keep their system colour, but
+     the browser would plate their text in Canvas: opt them out too. */
+  .r-navigation-shell-skip,
+  .r-navigation-shell-brand-mark,
+  .r-navigation-shell-sidebar .r-navigation-link-label,
+  .r-navigation-shell-sidebar .r-navigation-link-badge,
+  .r-navigation-shell-bottomnav .r-navigation-link-badge {
+    forced-color-adjust: none;
+  }
 }
 
 /* ── Nav link: AppShell.NavItem and NavList.Item ───────────────────────── */
@@ -92,7 +110,7 @@
 
 /* ── Tabs ──────────────────────────────────────────────────────────────── */
 .r-navigation-tabs-underline {
-  box-shadow: inset 0 -1px 0 var(--C-BORDER);
+  box-shadow: inset 0 calc(var(--BORDER-WIDTH) * -1) 0 var(--C-BORDER);
   scrollbar-width: thin;
 }
 .r-navigation-tabs-enclosed {
@@ -137,7 +155,7 @@
   position: absolute;
   inset-inline-start: var(--R-SIZE-3);
   inset-block-start: var(--R-SIZE-3);
-  z-index: 10;
+  z-index: var(--LAYER-BYPASS);
   padding: var(--R-SIZE-4) var(--R-SIZE-3);
   border-radius: var(--RADIUS-MD);
   background: var(--C-PRIMARY);
@@ -158,14 +176,14 @@
   grid-area: header;
   position: sticky;
   inset-block-start: 0;
-  z-index: 1;
+  z-index: var(--LAYER-STICKY);
   display: flex;
   align-items: center;
   gap: var(--R-SIZE-3);
   min-inline-size: 0;
   padding: var(--R-SIZE-3) var(--R-SIZE-1);
   background: var(--C-CANVAS);
-  border-block-end: 1px solid var(--C-BORDER);
+  border-block-end: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 
 .r-navigation-shell-main {
@@ -176,16 +194,19 @@
 /* Focused only programmatically, by the skip link: a ring around the whole
    page would say nothing. Its contents keep their own rings. */
 .r-navigation-shell-main:focus {
-  outline: none;
+  /* Zero width: forced colors would revive a bare `none` as a solid ring. */
+  outline: 0 none;
 }
 
 /* ── Sidebar, in its base form: the icon rail ──────────────────────────── */
 .r-navigation-shell-sidebar {
   grid-area: side;
   position: relative;
-  z-index: 2;
+  /* Docked to the inline edge, over the sticky header: a rail label's bubble
+     overlaps the header's column. */
+  z-index: var(--LAYER-DOCKED);
   background: var(--C-SURFACE-0);
-  border-inline-end: 1px solid var(--C-BORDER);
+  border-inline-end: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 .r-navigation-shell-sidebar-inner {
   --r-marker-inset: calc(var(--R-SIZE-3) * -1);
@@ -259,7 +280,7 @@
 }
 .r-navigation-shell-sidebar .r-navigation-shell-section + .r-navigation-shell-section:not([data-position="end"]) {
   padding-block-start: var(--R-SIZE-2);
-  border-block-start: 1px solid var(--C-BORDER);
+  border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 .r-navigation-shell-sidebar .r-navigation-shell-brand-name {
   position: absolute;
@@ -396,10 +417,10 @@
   grid-area: bottom;
   position: sticky;
   inset-block-end: 0;
-  z-index: 2;
+  z-index: var(--LAYER-DOCKED);
   padding-block-end: env(safe-area-inset-bottom);
   background: var(--C-SURFACE-0);
-  border-block-start: 1px solid var(--C-BORDER);
+  border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 .r-navigation-shell-bottomnav-list {
   display: grid;

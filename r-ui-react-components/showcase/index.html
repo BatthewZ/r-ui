@@ -6,18 +6,6 @@
     <title>r-ui showcase</title>
     <link rel="icon" href="data:," />
     <meta name="description" content="Every r-ui component on every axis: theme, density, input and container." />
-    <script>
-      /* Apply the saved View settings before first paint, so there is no flash.
-         Mirrors applyView() in shell/view.ts (same key, same attributes); that
-         module validates and re-applies on load, so a stale value here is harmless. */
-      try {
-        const v = JSON.parse(localStorage.getItem("r-ui-showcase:view") || "{}");
-        const h = document.documentElement;
-        if (typeof v.theme === "string" && v.theme !== "default") h.dataset.theme = v.theme;
-        if (v.density === "compact") h.dataset.density = "compact";
-        if (v.input === "fine" || v.input === "coarse") h.dataset.input = v.input;
-      } catch {}
-    </script>
   </head>
   <body>
     <div id="root"></div>

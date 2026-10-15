@@ -22,7 +22,7 @@ export interface StatCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "tit
   value: ReactNode;
   /** A unit set beside the value, smaller and quieter ("ms", "%"). */
   unit?: ReactNode;
-  /** The signed change. Its sign picks the arrow; `sentiment` picks the colour. */
+  /** The signed change. Its sign picks the arrow; `sentiment` picks the colour and the word. */
   delta?: number | null;
   /** Formats `delta`. Default: `formatDelta` (signed, zero unsigned). */
   formatDelta?: (delta: number) => string;
@@ -33,8 +33,8 @@ export interface StatCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "tit
   sentiment?: Sentiment;
   /** Context for the delta: "vs prior 7d". */
   deltaLabel?: ReactNode;
-  /** The spoken judgement after the delta. `""` silences it. */
-  sentimentLabels?: Partial<Record<Sentiment, string>>;
+  /** The tile's words, per instance (translate them, or say "faster" for latency). */
+  labels?: Partial<StatCardLabels>;
   /** A `Sparkline` (or any small chart). Sits beside the value in a wide tile, under it in a narrow one. */
   sparkline?: ReactNode;
   /** A status for the metric (a `StatusLabel`), under the delta. */
@@ -50,7 +50,18 @@ export interface StatCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "tit
   ref?: Ref<HTMLDivElement>;
 }
 
-const DEFAULT_SENTIMENT_LABELS: Record<Sentiment, string> = { good: "better", bad: "worse", neutral: "" };
+export interface StatCardLabels {
+  /** Shown after a `good` delta, so the judgement does not rest on colour. Default "better"; `""` drops it. */
+  good: string;
+  /** Shown after a `bad` delta. Default "worse"; `""` drops it. */
+  bad: string;
+  /** Shown after a `neutral` delta. Default `""` (nothing). */
+  neutral: string;
+  /** Spoken before the `stale` age, which the clock alone cannot say. Default "Stale". */
+  stale: string;
+}
+
+const DEFAULT_LABELS: StatCardLabels = { good: "better", bad: "worse", neutral: "", stale: "Stale" };
 
 /**
  * A KPI tile: label, value, change, and optionally a sparkline, a status and
@@ -69,7 +80,7 @@ export function StatCard({
   formatDelta: format = (d) => formatDelta(d, { maximumFractionDigits: 1 }),
   sentiment = "neutral",
   deltaLabel,
-  sentimentLabels,
+  labels: labelsProp,
   sparkline,
   status,
   stale,
@@ -82,7 +93,8 @@ export function StatCard({
   const labelId = useId();
   const hasDelta = isPresent(delta);
   const Arrow = !hasDelta || delta === 0 ? Minus : delta > 0 ? ArrowUp : ArrowDown;
-  const spokenSentiment = { ...DEFAULT_SENTIMENT_LABELS, ...sentimentLabels }[sentiment];
+  const labels = { ...DEFAULT_LABELS, ...labelsProp };
+  const sentimentWord = labels[sentiment];
   const missingValue = value === null || value === undefined || value === "";
 
   return (
@@ -142,7 +154,8 @@ export function StatCard({
               <span className="inline-flex min-w-0 max-w-full items-center gap-r6">
                 <Arrow aria-hidden className="size-icon shrink-0" />
                 <span className="min-w-0 [overflow-wrap:anywhere]">{format(delta)}</span>
-                {spokenSentiment && <span className="sr-only">, {spokenSentiment}</span>}
+                {/* Visible, not only spoken: good or bad must not rest on the hue alone. */}
+                {sentimentWord && <span className="font-normal">{sentimentWord}</span>}
               </span>
             )}
             {deltaLabel && <span className="font-normal text-fg-muted">{deltaLabel}</span>}
@@ -156,7 +169,10 @@ export function StatCard({
           {stale && (
             <span className="inline-flex min-w-0 items-center gap-r6 text-fg-stale">
               <StatusIcon tone="stale" />
-              <span className="truncate">{stale}</span>
+              <span className="truncate">
+                {labels.stale && <span className="sr-only">{labels.stale}: </span>}
+                {stale}
+              </span>
             </span>
           )}
         </div>

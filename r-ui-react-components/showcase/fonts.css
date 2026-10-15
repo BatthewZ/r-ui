@@ -1,0 +1,9 @@
+/* Web faces for the example themes that name them. A theme file only NAMES
+   families (`--FONT-UI: "Inter Variable", …`); loading a face is the app's job, so
+   it lives here, in the app's CSS, and every theme falls back to a system face of
+   the same kind until (or unless) these arrive.
+
+   Fraunces loads with its optical-size axis: headings run from label size to
+   hero size, and the face redraws itself for each (font-optical-sizing: auto). */
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/fraunces/opsz.css";

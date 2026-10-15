@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+Additive to the 0.1.0 contract, with two behaviour changes marked **Changed**.
+
+- **Face roles.** New optional `--FONT-HEADING` (in-app headings: `h1`–`h6`, `text-h*`) between `--FONT-UI` and `--FONT-DISPLAY`; `--FONT-DISPLAY` now falls back to it. New utility `font-heading`. Optional per-face `--FONT-UI-SIZE-ADJUST`, `--FONT-HEADING-SIZE-ADJUST`, `--FONT-DISPLAY-SIZE-ADJUST` (undeclared; `none` when unset).
+- **Changed:** `text-h1`…`text-h6` carry the heading face and `--HEADING-CASE`; `text-display-1`…`4` carry the display face, `--HEADING-CASE` and prose figures. A `font-*`, case or numeric utility on the same element still overrides them.
+- **Figures.** `--NUMERALS-DATA` (default `tabular-nums`) and `--NUMERALS-PROSE` (default `proportional-nums`) replace the fixed values in the base and prose rules.
+- **Line weight.** `--BORDER-WIDTH` (default `1px`; 1px or 2px): every bare `border`, `border-*` side and `divide-*` reads it, as do prose rules and code blocks.
+- **Stacking.** `--LAYER-RAISED` (1), `--LAYER-STICKY` (10), `--LAYER-DOCKED` (20), `--LAYER-BYPASS` (30) with `z-raised`, `z-sticky`, `z-docked`, `z-bypass`. Structure, not a lever: themes may not set them.
+- **Forced colors.** Every colour role maps to a system colour under `forced-colors: active`; the meaning-bearing fill utilities (`bg-primary*`, `bg-accent*`, `bg-selection`, `bg-status-*`, `bg-fg-primary`) opt their element out of repainting and remap the neutral ink inside it; `:focus-visible` always keeps a solid outline.
+- **Changed:** the base sets `accent-color` and `caret-color` to `--C-ACCENT`, so native checkboxes, radios, ranges and the text caret follow the theme.
+- **Examples.** A third worked example: light, editorial, naming web faces (a serif for headings and display, a sans for the rest) that the app loads, with a 2px border-led depth.
+- **Container variants.** `--container-measure`, `--container-page` and `--container-column-*` are literal lengths equal to the defaults of `--MEASURE`, `--PAGE-MAX` and `--COLUMN-*`, so `@column-md:`, `@max-column-sm:`, `@max-page:` and the rest compile (a container query cannot read a custom property, so they compiled to nothing before). The box utilities (`max-w-page`, `w-column-md`, `basis-column-*`) still read the lever through a `:root` alias, so a theme that retunes it moves every box; the variants keep the default lengths. Themes may not set the aliases.
+- **Forced colors.** Inside a meaning-bearing fill the status text roles take the fill's text colour too, and so does `--C-FOCUS` for the fill's descendants (an error label or a focused control in a selected row reads; the filled element's own outer ring keeps Highlight). `--SCHEME-DARK` follows the forced palette (`prefers-color-scheme` there), not the theme, so anything still blended by it suits the forced Canvas.
+- **Checks.** Compile: every `@utility` is discovered from source, each `@theme` name must sit in a known namespace, heading and display sizes must read their face, bare borders the line weight, and meaning-bearing fills must opt out under forced colors (and remap the status text roles, and `--C-FOCUS` for their descendants); each container variant compiles to its lever's default and keeps its alias. Theme rules: no `--LAYER-*` or `--container-*` in a theme, no font loading in a theme, every `--C-*` role needs a forced-colors mapping, and `--SCHEME-DARK` must follow the forced palette.
+
 ## 0.1.0 (unreleased)
 
 First release.

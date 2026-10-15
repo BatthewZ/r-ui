@@ -83,6 +83,40 @@ describe("Textarea", () => {
     expect(textarea.style.overflowY).toBe("auto");
   });
 
+  it("re-fits on a width change in the next frame, never inside the observer, and ignores its own height", () => {
+    stubScrollHeight(20);
+    let notify: ResizeObserverCallback = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: ResizeObserverCallback) {
+          notify = callback;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => frames.push(callback));
+    render(<Textarea aria-label="Wrap" autosize defaultValue="one" />);
+    const textarea = screen.getByRole("textbox");
+    const entry = (inlineSize: number) => [{ borderBoxSize: [{ inlineSize, blockSize: 20 }] }] as unknown as ResizeObserverEntry[];
+
+    // A notification at the same inline size (the fit's own height, its scrollbar): nothing.
+    notify(entry(0), {} as ResizeObserver);
+    expect(frames).toHaveLength(0);
+
+    textarea.style.height = "999px";
+    notify(entry(320), {} as ResizeObserver);
+    // Not resized inside the delivery...
+    expect(textarea.style.height).toBe("999px");
+    expect(frames).toHaveLength(1);
+    // ...but in the next frame.
+    frames[0]?.(0);
+    expect(textarea.style.height).toBe("20px");
+    vi.unstubAllGlobals();
+  });
+
   it("calls a caller's onChange exactly once per edit", async () => {
     const onChange = vi.fn();
     render(<Textarea aria-label="X" autosize onChange={onChange} />);

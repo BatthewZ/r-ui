@@ -10,7 +10,7 @@ export const meta = {
   group: "overlays",
   order: 40,
   description:
-    "Native <dialog> with showModal: the browser traps focus, inerts the page and draws the scrim; the page behind stops scrolling. alertdialog drops the corner close and light dismiss.",
+    "Native <dialog> with showModal: the browser traps focus, inerts the page and draws the scrim; the page behind stops scrolling. alertdialog drops the corner close and light dismiss. It and its scrim transition out on close (instant under reduced motion) while focus is already back.",
 };
 
 const LONG = Array.from({ length: 14 }, (_, i) => `Check ${i + 1}: latency probe from region ${["eu-west", "us-east", "ap-south"][i % 3]} returned within budget.`);

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { use, useEffect } from "react";
 
-import { sections } from "../registry";
+import { loadSections } from "../registry";
 import type { PageProps } from "../shell/App";
 import { href } from "../shell/router";
 import { SectionBoundary } from "../shell/SectionBoundary";
@@ -13,7 +13,7 @@ const groupTitle = (group: string) => group.charAt(0).toUpperCase() + group.slic
  * section is added.
  */
 export function Overview({ anchor }: PageProps) {
-  const { groups, invalid } = sections;
+  const { groups, invalid } = use(loadSections());
 
   useEffect(() => {
     if (anchor) document.getElementById(anchor)?.scrollIntoView({ block: "start" });

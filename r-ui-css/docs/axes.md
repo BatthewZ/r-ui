@@ -67,7 +67,8 @@ Two type and spacing scales, chosen by **role**, never by viewport.
 | Utilities | `p-r3`, `text-h2`, `text-body-1`, `h-control`, `h-row`, `size-icon` | `text-display-1`, `text-prose-2`, `py-section-1`, `px-gutter`, `max-w-measure` |
 | Driven by | Density (and input, for heights) | Container width: one continuous `clamp()` from 360 to 1280px, in `cqi` |
 | Leading | Tight, fixed per size | Reading leading, unitless so it tracks the size |
-| Figures | Tabular (the body default) | Proportional |
+| Faces | UI face; in-app headings take the heading face | Display face for headings, UI face for text |
+| Figures | Data figures, `--NUMERALS-DATA` (tabular; the body default) | Prose figures, `--NUMERALS-PROSE` (proportional) |
 
 ### Marking a prose region
 
@@ -87,7 +88,7 @@ Inside a prose region, `p`, lists, headings, `blockquote`, `figcaption`, `code`,
 
 ```html
 <section class="px-gutter py-section-1">
-  <h1 class="font-display text-display-1">Hero</h1>
+  <h1 class="text-display-1">Hero</h1>                     <!-- the size carries the display face -->
   <p class="mt-section-3 max-w-measure text-prose-1 text-fg-secondary">Lead copy.</p>
   <button class="mt-r1 h-control …">Get started</button>   <!-- UI tokens, always -->
 </section>

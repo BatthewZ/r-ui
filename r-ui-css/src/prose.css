@@ -19,7 +19,7 @@
     blockquote {
       font-size: var(--ProseText-2);
       line-height: var(--ProseText-2-line-height);
-      font-variant-numeric: proportional-nums;
+      font-variant-numeric: var(--NUMERALS-PROSE);
     }
 
     figcaption {
@@ -35,11 +35,12 @@
     h4,
     h5,
     h6 {
-      font-family: var(--FONT-DISPLAY, var(--FONT-UI));
+      font-family: var(--FONT-DISPLAY, var(--FONT-HEADING, var(--FONT-UI)));
+      font-size-adjust: var(--FONT-DISPLAY-SIZE-ADJUST, var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none)));
       font-weight: var(--DISPLAY-WEIGHT);
       text-transform: var(--HEADING-CASE);
       text-wrap: balance;
-      font-variant-numeric: proportional-nums;
+      font-variant-numeric: var(--NUMERALS-PROSE);
     }
     h1 {
       font-size: var(--DISPLAY-1);
@@ -115,7 +116,7 @@
     }
 
     blockquote {
-      border-inline-start: 2px solid var(--C-BORDER-STRONG);
+      border-inline-start: calc(var(--BORDER-WIDTH) * 2) solid var(--C-BORDER-STRONG);
       padding-inline-start: 1em;
       color: var(--C-TEXT-SECONDARY);
     }
@@ -132,14 +133,14 @@
       line-height: 1.6;
       padding: 1em 1.25em;
       overflow-x: auto;
-      border: 1px solid var(--C-BORDER);
+      border: var(--BORDER-WIDTH) solid var(--C-BORDER);
       border-radius: var(--RADIUS-MD);
       background-color: var(--C-SURFACE-1);
-      font-variant-numeric: tabular-nums;
+      font-variant-numeric: var(--NUMERALS-DATA);
     }
 
     hr {
-      border-block-start: 1px solid var(--C-BORDER);
+      border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
       margin-block: var(--SECTION-3);
     }
 
@@ -151,7 +152,7 @@
     :is(button, input, select, textarea) {
       font-size: var(--BodyText-1);
       line-height: var(--BodyText-1-line-height);
-      font-variant-numeric: tabular-nums;
+      font-variant-numeric: var(--NUMERALS-DATA);
     }
   }
 
@@ -159,6 +160,6 @@
   :where(.prose, [data-prose]) :where(.not-prose, [data-not-prose]) {
     font-size: var(--BodyText-1);
     line-height: var(--BodyText-1-line-height);
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: var(--NUMERALS-DATA);
   }
 }

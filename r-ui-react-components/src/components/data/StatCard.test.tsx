@@ -23,13 +23,14 @@ describe("StatCard", () => {
     expect(delta()).toHaveAttribute("data-sentiment", "good");
     expect(delta()).toHaveClass("text-trend-good");
     expect(delta()).toHaveTextContent("-0.8");
-    expect(screen.getByText(", better")).toHaveClass("sr-only");
+    // A visible word, not only the hue: good and bad differ without colour.
+    expect(screen.getByText("better")).not.toHaveClass("sr-only");
 
     rerender(<StatCard label="p95" value="212" delta={38} sentiment="bad" />);
     expect(delta()).toHaveClass("text-trend-bad");
     expect(delta()).not.toHaveClass("text-trend-good");
     expect(delta()).toHaveTextContent("+38");
-    expect(screen.getByText(", worse")).toBeInTheDocument();
+    expect(screen.getByText("worse")).not.toHaveClass("sr-only");
   });
 
   it("draws an unjudged change flat and says nothing extra", () => {
@@ -39,7 +40,7 @@ describe("StatCard", () => {
     expect(screen.getByText("vs prior 24h")).toBeInTheDocument();
   });
 
-  it("formats the delta with the caller's formatter and lets sentiment words be replaced", () => {
+  it("formats the delta with the caller's formatter and takes its words per instance", () => {
     render(
       <StatCard
         label="Uptime"
@@ -47,11 +48,36 @@ describe("StatCard", () => {
         delta={1.25}
         formatDelta={(d) => `${d.toFixed(2)} pts`}
         sentiment="good"
-        sentimentLabels={{ good: "improving" }}
+        labels={{ good: "improving" }}
       />,
     );
     expect(delta()).toHaveTextContent("1.25 pts");
-    expect(screen.getByText(", improving")).toBeInTheDocument();
+    expect(screen.getByText("improving")).toBeInTheDocument();
+  });
+
+  it("keeps the default words for every label an instance does not replace", () => {
+    render(
+      <>
+        <StatCard label="A" value="1" delta={-2} sentiment="bad" stale="5 min old" labels={{ good: "plus" }} />
+        <StatCard label="B" value="1" delta={2} sentiment="good" labels={{ bad: "moins", stale: "Périmé" }} />
+      </>,
+    );
+    const [a, b] = screen.getAllByRole("group");
+    expect(a).toHaveTextContent("worse");
+    expect(a).toHaveTextContent("Stale: 5 min old");
+    expect(b).toHaveTextContent("better");
+    expect(b).not.toHaveTextContent("plus");
+  });
+
+  it("says the stale state in words before the age, translatable and silenceable", () => {
+    const { rerender } = render(<StatCard label="Queue" value="1" stale="12 min old" labels={{ stale: "Périmé" }} />);
+    const word = screen.getByText("Périmé:", { exact: false });
+    expect(word).toHaveClass("sr-only");
+    expect(screen.getByRole("group")).toHaveTextContent("Périmé: 12 min old");
+
+    rerender(<StatCard label="Queue" value="1" stale="12 min old" labels={{ stale: "" }} />);
+    expect(screen.getByRole("group")).not.toHaveTextContent(":");
+    expect(screen.getByText("12 min old")).toBeInTheDocument();
   });
 
   it("renders a missing value as an em dash and hides its unit", () => {

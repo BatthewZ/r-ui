@@ -1,11 +1,10 @@
 "use client";
 import { type ChangeEvent, type ComponentPropsWithRef, type ReactNode } from "react";
 
-import { useControllableState } from "../../hooks/use-controllable-state";
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn, type SlotClassNames } from "../../util/style";
 
-import { useFieldControl } from "./Field";
+import { useFieldControl, useFieldValue } from "./Field";
 
 export interface SwitchProps
   extends Omit<ComponentPropsWithRef<"input">, "type" | "checked" | "defaultChecked" | "children" | "size" | "role"> {
@@ -51,10 +50,12 @@ export function Switch({
     "aria-describedby": describedByProp,
     "aria-invalid": ariaInvalidProp,
   });
-  const [isChecked, setChecked] = useControllableState({
+  // In a Field bound to a Form, the form owns `checked` (unless the caller passed it).
+  const [isChecked, setChecked, fieldName] = useFieldValue({
     value: checked,
     defaultValue: defaultChecked,
     onChange: onCheckedChange,
+    fromForm: (value) => value === true,
   });
 
   return (
@@ -68,6 +69,7 @@ export function Switch({
           type="checkbox"
           role="switch"
           id={field.id}
+          name={fieldName}
           required={field.required}
           disabled={field.disabled}
           aria-readonly={field.readOnly || undefined}

@@ -8,12 +8,11 @@ import {
   useRef,
 } from "react";
 
-import { useControllableState } from "../../hooks/use-controllable-state";
 import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 
-import { useFieldControl } from "./Field";
+import { useFieldControl, useFieldValue } from "./Field";
 
 export interface CheckboxProps
   extends Omit<ComponentPropsWithRef<"input">, "type" | "checked" | "defaultChecked" | "children" | "size"> {
@@ -69,10 +68,12 @@ export function Checkbox({
     "aria-describedby": describedByProp,
     "aria-invalid": ariaInvalidProp,
   });
-  const [isChecked, setChecked] = useControllableState({
+  // In a Field bound to a Form, the form owns `checked` (unless the caller passed it).
+  const [isChecked, setChecked, fieldName] = useFieldValue({
     value: checked,
     defaultValue: defaultChecked,
     onChange: onCheckedChange,
+    fromForm: (value) => value === true,
   });
 
   // `indeterminate` is a DOM property with no attribute, and a click clears it,
@@ -92,6 +93,7 @@ export function Checkbox({
           ref={mergeRefs(ref, inputRef)}
           type="checkbox"
           id={field.id}
+          name={fieldName}
           required={field.required}
           disabled={field.disabled}
           aria-readonly={field.readOnly || undefined}

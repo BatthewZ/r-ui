@@ -5,7 +5,7 @@ import type { ComponentPropsWithRef, KeyboardEvent, MouseEvent } from "react";
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn, type SlotClassNames } from "../../util/style";
 
-import { useFieldControl } from "./Field";
+import { useFieldControl, useFieldInputProps } from "./Field";
 
 export interface SelectProps extends Omit<ComponentPropsWithRef<"select">, "size" | "multiple"> {
   invalid?: boolean;
@@ -57,6 +57,8 @@ export function Select({
     "aria-invalid": ariaInvalidProp,
   });
   const readOnly = field.readOnly === true;
+  // In a Field bound to a Form, the form owns the value (unless the caller passed one).
+  const { defaultValue: initialValue, ...nativeProps } = useFieldInputProps({ ...props, defaultValue });
 
   return (
     <div className={cn("relative flex w-full min-w-0", className)}>
@@ -82,9 +84,9 @@ export function Select({
         // Without a value, a browser selects the first ENABLED option, skipping
         // the placeholder; start on it explicitly.
         defaultValue={
-          defaultValue === undefined && props.value === undefined && placeholder !== undefined ? "" : defaultValue
+          initialValue === undefined && nativeProps.value === undefined && placeholder !== undefined ? "" : initialValue
         }
-        {...props}
+        {...nativeProps}
       >
         {placeholder !== undefined && (
           <option value="" disabled hidden>

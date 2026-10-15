@@ -1,11 +1,12 @@
-import { CircleCheck, Grid3x3, LoaderCircle, Undo2 } from "lucide-react";
+import { CircleCheck, LoaderCircle, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { Heatmap } from "../../../src/components/charts";
 import { type DataTableColumn, DataTable, Meter } from "../../../src/components/data";
 import { Inline, Stack } from "../../../src/components/layout";
-import { Badge, Card, Link, StatusLabel, type Tone } from "../../../src/components/primitives";
+import { Card, Link, StatusLabel, type Tone } from "../../../src/components/primitives";
 import { formatCompact, formatPercent, formatUnit } from "../../../src/util/format";
-import { type DashboardData, type Deploy, type DeployStatus, DEPLOYS, type Endpoint, INCIDENTS, SLOS, STATUS } from "./data";
+import { type DashboardData, type Deploy, type DeployStatus, DEPLOYS, type Endpoint, INCIDENTS, SLOS, STATUS, WEEKDAYS } from "./data";
 import { ago } from "./format";
 
 /** Where the board places a card: a scroll target id and its grid classes. */
@@ -207,30 +208,24 @@ export function EndpointsCard({ data, ...placement }: { data: DashboardData } & 
   );
 }
 
-/** The mockup's weekday x hour heatmap. No heatmap ships in this release, and a hand-drawn one would be off-contract. */
-export function HeatmapPlaceholder(placement: Placement) {
+const HOURS = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, "0")}:00`);
+
+/** 5xx errors by weekday × hour: when the server errors cluster, on the sequential ramp. */
+export function HeatmapCard({ data, ...placement }: { data: DashboardData } & Placement) {
   return (
-    <Card {...placement}>
+    <Card {...placement} data-dashboard-heatmap="">
       <Card.Header>
         <Card.Title as="h2">5xx errors by hour</Card.Title>
         <Card.Description>Last 7 days, local time</Card.Description>
-        <Card.Actions>
-          <Badge variant="outline">Not in this release</Badge>
-        </Card.Actions>
       </Card.Header>
       <Card.Body>
-        <Stack
-          align="center"
-          justify="center"
-          gap="r4"
-          className="min-h-chart rounded-md border border-dashed p-r2 text-center text-body-2 text-fg-secondary"
-        >
-          <Grid3x3 aria-hidden className="size-icon text-fg-muted" />
-          <p className="max-w-measure">
-            A weekday × hour heatmap needs a chart this library does not ship yet. The same 5xx counts are in
-            Traffic → Error responses.
-          </p>
-        </Stack>
+        <Heatmap
+          label="5xx errors by weekday and hour, last 7 days"
+          rows={WEEKDAYS}
+          columns={HOURS}
+          values={data.heat}
+          valueLabel="5xx errors"
+        />
       </Card.Body>
     </Card>
   );

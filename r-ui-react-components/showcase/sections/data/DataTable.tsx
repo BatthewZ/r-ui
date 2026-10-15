@@ -103,6 +103,7 @@ export default function DataTableSection() {
           ))}
         </SegmentedControl>
         <DataTable
+          data-sc-scrolls
           aria-label="Services"
           columns={COLUMNS}
           rows={mode === "empty" ? [] : SERVICES}
@@ -141,6 +142,7 @@ export default function DataTableSection() {
       <Demo title="Uncontrolled, rules chrome, striped, in a narrow column">
         <div className="max-w-measure">
           <DataTable
+            data-sc-scrolls
             aria-label="Services (narrow)"
             variant="rules"
             striped

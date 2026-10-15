@@ -15,6 +15,7 @@ import {
 import { cn, type SlotClassNames } from "../../util/style";
 import { MARK_TEXT, ToneGlyph } from "../../util/tone";
 import { Button, IconButton } from "../primitives";
+import { afterExit } from "./internal";
 
 export type ToastTone = "neutral" | "success" | "error" | "warning" | "info";
 
@@ -243,18 +244,11 @@ function ToastItem({ entry, paused, dismissLabel, toneLabel, classNames, onDismi
     };
   }, [entry, paused, onDismiss]);
 
-  // Leaving: play the exit, then unmount. Nothing to wait for when no animation
-  // runs (reduced motion collapses it to ~0; an engine without CSS has none).
+  // Leaving: play the exit, then unmount (at once when nothing animates).
   useEffect(() => {
     const el = ref.current;
     if (!leaving || !el) return;
-    const seconds = Number.parseFloat(getComputedStyle(el).animationDuration);
-    if (!(seconds > 0.001)) {
-      onRemove(id);
-      return;
-    }
-    const timer = setTimeout(() => onRemove(id), seconds * 1000 + 50);
-    return () => clearTimeout(timer);
+    return afterExit(el, () => onRemove(id));
   }, [leaving, id, onRemove]);
 
   // Neutral carries no glyph: a plain notice needs no state mark.

@@ -7,36 +7,39 @@ import { type CSSProperties, type ReactNode, useLayoutEffect, useState } from "r
  * VIEWPORT and fills `--r-navigation-shell-viewport` (default 100dvh). Nested
  * inside the showcase's own sidebar and padding, it would answer the viewport
  * while living in a fraction of it, and show two navigations at once. So the
- * Dashboard takes the whole window below the showcase's top bar (which keeps
- * the brand link home and the View panel): a fixed layer that is its own
- * scroller, with the shell's viewport hook set to that layer's height. The
- * showcase's nav and padding sit underneath, unused; the shell's sidebar links
- * back to the other showcase pages.
+ * Dashboard takes the window between the showcase's top bar (the home link and
+ * the View panel) and its bottom nav (phones only; elsewhere it is not shown and
+ * measures 0): a fixed layer that is its own scroller, with the shell's viewport
+ * hook set to that layer's height. The showcase's sidebar sits underneath; the
+ * Dashboard's own sidebar links back to the other showcase pages, and on phones
+ * the showcase's bottom nav stays in reach below the Dashboard's.
  */
 export function DashboardFrame({ children }: { children: ReactNode }) {
-  const top = useTopBarHeight();
+  const top = useHeight(".sc-topbar");
+  const bottom = useHeight("[data-showcase-bottomnav]");
   const style = {
     insetBlockStart: top,
-    "--r-navigation-shell-viewport": `calc(100dvh - ${top}px)`,
+    insetBlockEnd: bottom,
+    "--r-navigation-shell-viewport": `calc(100dvh - ${top + bottom}px)`,
   } as CSSProperties;
   return (
-    <div data-dashboard-frame="" className="fixed inset-x-0 bottom-0 z-4 overflow-y-auto bg-canvas" style={style}>
+    <div data-dashboard-frame="" className="fixed inset-x-0 z-docked overflow-y-auto bg-canvas" style={style}>
       {children}
     </div>
   );
 }
 
-/** The showcase top bar's live height (it re-derives with density and input). */
-function useTopBarHeight(): number {
+/** A showcase bar's live height (it re-derives with density and input; 0 while hidden). */
+function useHeight(selector: string): number {
   const [height, setHeight] = useState(0);
   useLayoutEffect(() => {
-    const bar = document.querySelector<HTMLElement>(".sc-topbar");
+    const bar = document.querySelector<HTMLElement>(selector);
     if (!bar) return;
     const measure = () => setHeight(bar.getBoundingClientRect().height);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(bar);
     return () => observer.disconnect();
-  }, []);
+  }, [selector]);
   return height;
 }

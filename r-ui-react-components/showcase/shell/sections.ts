@@ -37,7 +37,21 @@ export interface InvalidSection {
 }
 
 /** Known groups in reading order; any other group follows, alphabetically. */
-export const GROUP_ORDER = ["tokens", "primitives", "form", "overlays", "data", "navigation", "layout"];
+export const GROUP_ORDER = [
+  "tokens",
+  "primitives",
+  "form",
+  "dates",
+  "disclosure",
+  "overlays",
+  "data",
+  "charts",
+  "content",
+  "navigation",
+  "layout",
+  "motion",
+  "preferences",
+];
 
 const slug = (s: string) =>
   s
@@ -46,7 +60,8 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, "");
 
 function validate(path: string, mod: unknown): Section | InvalidSection {
-  const m = mod as { meta?: Partial<SectionMeta>; default?: unknown };
+  const m = mod as { meta?: Partial<SectionMeta>; default?: unknown; loadError?: string };
+  if (m?.loadError) return { path, reason: `failed to load: ${m.loadError}` };
   const meta = m?.meta;
   if (!meta || typeof meta !== "object") return { path, reason: "no `meta` export" };
   if (typeof meta.title !== "string" || !meta.title) return { path, reason: "`meta.title` must be a string" };

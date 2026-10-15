@@ -8,11 +8,10 @@ import {
   useId,
 } from "react";
 
-import { useControllableState } from "../../hooks/use-controllable-state";
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn } from "../../util/style";
 
-import { useFieldControl } from "./Field";
+import { useFieldControl, useFieldValue } from "./Field";
 
 interface SegmentedContextValue {
   name: string;
@@ -67,18 +66,20 @@ function SegmentedControlRoot({
     "aria-describedby": describedByProp,
     "aria-invalid": ariaInvalidProp,
   });
-  const [current, setValue] = useControllableState<string | undefined>({
+  // In a Field bound to a Form, the form owns the value (unless the caller passed one).
+  const [current, setValue, fieldName] = useFieldValue<string | undefined>({
     value,
     defaultValue,
     onChange: (next) => {
       if (next !== undefined) onValueChange?.(next);
     },
+    fromForm: (raw) => (raw === undefined || raw === null ? undefined : String(raw)),
   });
 
   return (
     <SegmentedContext
       value={{
-        name: name ?? generatedName,
+        name: name ?? fieldName ?? generatedName,
         value: current,
         setValue,
         disabled: field.disabled === true,
@@ -132,7 +133,7 @@ function SegmentedControlItem({
 
   return (
     <label
-      className={cn("r-form-segment", className)}
+      className={cn("r-form-segment forced-colors:data-selected:bg-selection", className)}
       data-selected={selected ? "" : undefined}
       data-disabled={disabled ? "" : undefined}
     >

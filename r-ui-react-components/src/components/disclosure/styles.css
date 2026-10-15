@@ -1,0 +1,33 @@
+/* "disclosure" group stylesheet (Collapsible, Accordion). Imported by
+   src/styles.css inside `@layer components`, so a caller's utility
+   (`className`) always beats these rules. Plain rules, tokens only. */
+
+/* The panel's height animates between nothing and its content without
+   measuring it: the outer box is a one-row grid whose track transitions from
+   `0fr` to `1fr`, and the clip inside (`min-block-size: 0`) shows only as much
+   as the track allows. Supported wherever grid tracks interpolate; elsewhere
+   the panel opens and closes at once. The duration is a motion token, so
+   reduced motion collapses it.
+
+   The clip extends by the focus ring's reach (`overflow-clip-margin`), so a
+   control flush with the panel's edge keeps its whole ring. Collapsed, the
+   content is also `visibility: hidden`: it flips at the END of a close (and at
+   the start of an open), so it is painted for the whole transition but nothing
+   bleeds through the clip margin once shut. */
+.r-disclosure-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--DURATION-NORMAL) var(--EASE-STANDARD);
+}
+.r-disclosure-panel[data-state="open"] {
+  grid-template-rows: 1fr;
+}
+.r-disclosure-clip {
+  min-block-size: 0;
+  overflow: clip;
+  overflow-clip-margin: calc(var(--FOCUS-WIDTH) + var(--FOCUS-OFFSET));
+  transition: visibility var(--DURATION-NORMAL);
+}
+.r-disclosure-panel[data-state="closed"] > .r-disclosure-clip {
+  visibility: hidden;
+}

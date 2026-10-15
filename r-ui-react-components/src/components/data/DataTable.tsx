@@ -21,7 +21,7 @@ import {
 } from "./data-table-model";
 import { EmptyState } from "./EmptyState";
 import { Table, type TableProps } from "./Table";
-import { useRowHeight } from "./use-row-height";
+import { useRowHeight } from "../../hooks/use-row-height";
 
 export interface DataTableProps<Row>
   extends SortParams,

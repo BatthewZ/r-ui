@@ -4,7 +4,7 @@ import { type ChangeEvent, type ComponentPropsWithRef, useCallback, useLayoutEff
 import { mergeRefs } from "../../util/merge-refs";
 import { cn } from "../../util/style";
 
-import { useFieldControl } from "./Field";
+import { useFieldControl, useFieldInputProps } from "./Field";
 
 export interface TextareaProps extends ComponentPropsWithRef<"textarea"> {
   invalid?: boolean;
@@ -74,17 +74,28 @@ export function Textarea({
   useLayoutEffect(fit);
 
   // Re-fit when the width changes (wrapping moves), e.g. a container resize.
+  // Keyed to the BORDER box's inline size, which neither the height a fit sets nor
+  // the scrollbar it toggles at `maxRows` can move (`clientWidth` loses the
+  // scrollbar's width, so a fit used to re-trigger itself). The fit runs in the
+  // next frame, outside the observer's delivery: resizing an observed element
+  // inside it is what the browser reports as a "ResizeObserver loop".
   useLayoutEffect(() => {
     const el = innerRef.current;
     if (!autosize || !el || typeof ResizeObserver === "undefined") return;
-    let width = el.clientWidth;
-    const observer = new ResizeObserver(() => {
-      if (el.clientWidth === width) return;
-      width = el.clientWidth;
-      fit();
+    let width = el.offsetWidth;
+    let frame = 0;
+    const observer = new ResizeObserver(([entry]) => {
+      const next = entry?.borderBoxSize?.[0]?.inlineSize ?? el.offsetWidth;
+      if (next === width) return;
+      width = next;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(fit);
     });
-    observer.observe(el);
-    return () => observer.disconnect();
+    observer.observe(el, { box: "border-box" });
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
   }, [autosize, fit]);
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -92,6 +103,8 @@ export function Textarea({
     // Uncontrolled typing re-renders nothing, so fit here too.
     fit();
   };
+  // In a Field bound to a Form, the form owns the value (unless the caller passed one).
+  const nativeProps = useFieldInputProps({ ...props, onChange: handleChange });
 
   return (
     <textarea
@@ -105,13 +118,12 @@ export function Textarea({
       data-invalid={field.invalid ? "" : undefined}
       data-disabled={field.disabled ? "" : undefined}
       data-readonly={field.readOnly ? "" : undefined}
-      onChange={handleChange}
       className={cn(
         "r-form-frame block min-h-control w-full min-w-0 px-r3 py-r4 text-body-1 text-fg-primary",
         autosize ? "resize-none" : "resize-y data-disabled:resize-none",
         className,
       )}
-      {...props}
+      {...nativeProps}
     />
   );
 }

@@ -11,6 +11,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "ES2023.Intl", "DOM", "DOM.Iterable"],
     "types": ["@types/react", "@types/react-dom", "@types/node", "vite/client"]

@@ -21,6 +21,7 @@ const PROBES = {
   animate: (n) => `animate-${n}`,
   opacity: (n) => `opacity-${n}`,
   "transition-duration": (n) => `duration-${n}`,
+  "z-index": (n) => `z-${n}`,
   [UTILITY]: (n) => n,
 };
 
@@ -68,6 +69,10 @@ describe("conflicting pairs collapse to the last", () => {
     ["max-w-page", "max-w-measure"],
     ["min-w-column-sm", "min-w-column-lg"],
     ["font-ui", "font-mono"],
+    ["font-heading", "font-display"],
+    ["text-display-1", "text-h1"],
+    ["z-raised", "z-bypass"],
+    ["z-sticky", "z-10"],
     ["font-normal", "font-semibold"],
     ["shadow-sm", "shadow-lg"],
     ["ease-enter", "ease-exit"],
@@ -95,6 +100,14 @@ describe("non-conflicting pairs survive", () => {
     ["border-border", "border-2"],
     ["text-h1", "font-medium"],
     ["font-display", "font-semibold"],
+    // The type-role sizes carry a face; the family, case and figure utilities
+    // override it in CSS, so tailwind-merge must keep both.
+    ["text-h1", "font-mono"],
+    ["text-h2", "font-ui"],
+    ["text-display-1", "font-heading"],
+    ["text-h6", "uppercase"],
+    ["text-display-2", "tabular-nums"],
+    ["z-sticky", "sticky"],
     ["h-control", "w-r6"],
     ["duration-fast", "ease-standard"],
     ["animate-fade-up", "duration-slow"],
@@ -121,6 +134,10 @@ describe("controls: plain tailwind-merge gets these wrong", () => {
   test("it reads text-h1 as a colour and drops it", () => {
     assert.equal(plainTwMerge("text-h1 text-fg-muted"), "text-fg-muted");
     assert.equal(cn("text-h1 text-fg-muted"), "text-h1 text-fg-muted");
+  });
+  test("it does not know layer names", () => {
+    assert.equal(plainTwMerge("z-10 z-sticky"), "z-10 z-sticky");
+    assert.equal(cn("z-10 z-sticky"), "z-sticky");
   });
   test("it does not know ease, duration, opacity or animation names", () => {
     assert.equal(plainTwMerge("ease-in ease-standard"), "ease-in ease-standard");

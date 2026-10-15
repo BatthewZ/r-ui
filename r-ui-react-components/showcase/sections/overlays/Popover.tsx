@@ -10,7 +10,7 @@ export const meta = {
   group: "overlays",
   order: 20,
   description:
-    "A non-modal dialog anchored to its trigger. Focus moves in and returns; a press outside, Tab out or Escape closes it. Rendered in place, promoted to the top layer.",
+    "A non-modal dialog anchored to its trigger. Focus moves in and returns; a press outside, Tab out or Escape closes it. Rendered in place, promoted to the top layer; it fades out on close (in CSS, instant under reduced motion).",
 };
 
 function FilterForm() {

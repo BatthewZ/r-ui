@@ -1,6 +1,8 @@
 import { Eye, GitMerge, type LucideIcon, PenLine, Send, ShieldCheck, Users } from "lucide-react";
 
-import { Card, Container, Grid, Section } from "../../../src";
+import type { ComponentProps } from "react";
+
+import { Card, Container, Grid, Section, Stagger } from "../../../src";
 import { type Feature, FEATURES, PRODUCT } from "./content";
 import { SectionHeading } from "./SectionHeading";
 
@@ -13,6 +15,15 @@ const ICONS: Record<Feature["icon"], LucideIcon> = {
   read: Eye,
 };
 
+/**
+ * The cards rise one after another the first time the grid scrolls into view
+ * (and not at all when it is already on screen, or under reduced motion). The
+ * grid element itself is the Stagger, so its `<li>`s stay direct children.
+ */
+function StaggerList(props: ComponentProps<"ul">) {
+  return <Stagger as="ul" {...props} />;
+}
+
 export function Features() {
   return (
     <Section id="features" aria-labelledby="mkt-features-title">
@@ -23,7 +34,7 @@ export function Features() {
           title="From merged to explained, before the release meeting ends."
           lead={`${PRODUCT} sits between your repository and your customers. It does the first ninety percent of the writing, so the last ten gets your full attention.`}
         />
-        <Grid as="ul" minColumn="lg" gap="r2" className="mt-section-3">
+        <Grid as={StaggerList} minColumn="lg" gap="r2" className="mt-section-3">
           {FEATURES.map(({ icon, title, body }) => {
             const Icon = ICONS[icon];
             return (

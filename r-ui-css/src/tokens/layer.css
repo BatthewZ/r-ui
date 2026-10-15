@@ -1,0 +1,18 @@
+/* In-flow stacking: what sticks or docks over scrolling content, in one order.
+   Overlays (dialogs, popovers, menus, toasts) use the top layer and need none of
+   these. Structure, not brand: themes never set them (the theme-rule check
+   enforces it). Tailwind's numeric `z-*` stays for one-offs inside a component. */
+
+:root {
+  --LAYER-RAISED: 1; /* above its siblings in the same scroller: sticky table header or first column */
+  --LAYER-STICKY: 10; /* sticky page chrome over scrolled content: app header, toolbars */
+  --LAYER-DOCKED: 20; /* bars fixed to a viewport edge, over sticky chrome: bottom nav, action bar */
+  --LAYER-BYPASS: 30; /* keyboard bypass shown on focus, over everything in flow: skip links */
+}
+
+@theme inline {
+  --z-index-raised: var(--LAYER-RAISED);
+  --z-index-sticky: var(--LAYER-STICKY);
+  --z-index-docked: var(--LAYER-DOCKED);
+  --z-index-bypass: var(--LAYER-BYPASS);
+}

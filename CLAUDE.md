@@ -50,4 +50,4 @@ The theme checks live in r-ui-css and run under its `check` script. Read a check
 
 ## Where a fact goes
 
-Per package: `AGENTS.md` for rules that ship · `README.md` for consumers · `CHANGELOG.md` for contract changes · `memory/` for lessons. Family-wide decisions go in `ETHOS.md`; family-wide working rules go here. A fact that fits none of those does not need a file. This repo has no plan, brief or handover documents lying around and should not grow any.
+Per package: `AGENTS.md` for rules that ship · `README.md` for consumers · `CHANGELOG.md` for contract changes · `memory/` for lessons. Family-wide decisions go in `ETHOS.md`; family-wide working rules go here; family-wide lessons go in the root `memory/` (start with `memory/parallel-builds.md` before running a multi-agent build). A fact that fits none of those does not need a file. This repo has no plan, brief or handover documents lying around and should not grow any.

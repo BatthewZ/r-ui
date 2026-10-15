@@ -12,8 +12,11 @@
    - No @media blocks: the viewport never redefines a token, and reduced motion /
      coarse pointer / more contrast are handled by the package for every theme.
    - Colour pairs must pass the contrast contract (docs/theme-contract.md).
-   - Load font faces at the top of your app's CSS entry, not here: an @import after
-     other rules is dropped silently. */
+   - Name font families here; never load them. Faces load in your app's CSS entry
+     (docs/theme-contract.md, "Fonts"): an @import in a theme is not allowed and
+     would be dropped anyway, after other rules.
+   - Not here, because they are not levers: stacking (--LAYER-*) is structure, and
+     forced colors, reduced motion and more contrast are applied by the package. */
 
 :root[data-theme="my-theme"] {
   /* ═══ Scheme ═══════════════════════════════════════════════════════════════ */
@@ -78,16 +81,22 @@
 
   /* ═══ Lever: typography ═══════════════════════════════════════════════════ */
   --FONT-UI: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial,
-    sans-serif; /* every UI string */
+    sans-serif; /* body, controls, data: every UI string */
   --FONT-MONO: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", Menlo,
     Consolas, monospace; /* code, ids, aligned figures */
-  /* --FONT-DISPLAY: "Your Display Face", var(--FONT-UI); optional: prose/display headings */
+  /* --FONT-HEADING: "Your Heading Face", Georgia, serif; optional: in-app headings (h1-h6, text-h*); unset = --FONT-UI */
+  /* --FONT-DISPLAY: "Your Display Face", Georgia, serif; optional: display and prose headings; unset = --FONT-HEADING */
+  /* --FONT-UI-SIZE-ADJUST: 0.52; optional: font-size-adjust for the UI face; unset = none */
+  /* --FONT-HEADING-SIZE-ADJUST: 0.5; optional: ...for the heading face; unset = the UI face's */
+  /* --FONT-DISPLAY-SIZE-ADJUST: 0.5; optional: ...for the display face; unset = the heading face's */
+  --NUMERALS-DATA: tabular-nums; /* figures in UI text, tables, KPIs (font-variant-numeric) */
+  --NUMERALS-PROSE: proportional-nums; /* figures in running prose and display headings */
   --WEIGHT-NORMAL: 400; /* running text */
   --WEIGHT-MEDIUM: 500; /* labels, buttons, emphasis in UI */
   --WEIGHT-SEMIBOLD: 600; /* strong emphasis */
-  --HEADING-WEIGHT: 600; /* UI headings h1-h6 */
-  --HEADING-TRACKING: -0.006em; /* UI headings h1-h4 letter-spacing */
-  --HEADING-CASE: none; /* heading text-transform: none | uppercase */
+  --HEADING-WEIGHT: 600; /* in-app headings: h1-h6, text-h* */
+  --HEADING-TRACKING: -0.006em; /* in-app headings h1-h4 letter-spacing */
+  --HEADING-CASE: none; /* every heading's text-transform, in-app and display: none | uppercase */
   --DISPLAY-WEIGHT: 600; /* display/prose headings */
   --DISPLAY-1-tracking: -0.024em; /* hero heading letter-spacing */
   --DISPLAY-2-tracking: -0.018em; /* page-title heading letter-spacing */
@@ -131,6 +140,7 @@
   --SHADOW-SM: 0 1px 2px oklch(0.2 0.01 85 / 0.08), 0 2px 6px oklch(0.2 0.01 85 / 0.06); /* tooltip, dragged item */
   --SHADOW-MD: 0 1px 2px oklch(0.2 0.01 85 / 0.06), 0 6px 18px -4px oklch(0.2 0.01 85 / 0.14); /* menu, popover, toast */
   --SHADOW-LG: 0 2px 6px oklch(0.2 0.01 85 / 0.06), 0 18px 48px -12px oklch(0.2 0.01 85 / 0.24); /* dialog, sheet */
+  --BORDER-WIDTH: 1px; /* every structural border and divider: 1px hairline or 2px bold (whole px) */
   --OPACITY-DISABLED: 0.45; /* disabled controls */
 
   /* ═══ Lever: motion personality ═══════════════════════════════════════════

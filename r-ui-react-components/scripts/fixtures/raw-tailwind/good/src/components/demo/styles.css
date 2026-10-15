@@ -1,6 +1,8 @@
 .demo {
   padding: var(--R-SIZE-3);
-  border: 1px solid var(--C-BORDER-DEFAULT);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER-DEFAULT);
+  outline: 1px solid transparent;
+  z-index: var(--LAYER-STICKY);
   inline-size: calc(100% - var(--R-SIZE-2));
   color: color-mix(in oklch, var(--C-TEXT-PRIMARY), transparent 20%);
 }

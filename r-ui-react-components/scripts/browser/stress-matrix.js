@@ -1,7 +1,7 @@
 // Browser check: the Stress page holds on every axis, and its known library
 // bugs still reproduce.
 //
-// For default / nightfall / harbour × comfortable / compact × fine / coarse at
+// For default / nightfall / harbour / atelier × comfortable / compact × fine / coarse at
 // 1280 and 375 wide, it reloads the Stress page with that View and asserts:
 //   1. harness: --HIT-MIN is 24px on fine and 44px on coarse, and every panel
 //      the source declares (6) rendered with no tripped error boundary;
@@ -18,9 +18,9 @@
 //      out of KnownBug so 3 guards it from then on.
 //
 // Run it through `bun run browser:check stress`, or by hand against a showcase:
-//   playwright-cli -s=<session> run-code "$(cat scripts/browser/stress-matrix.js)"
+//   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print stress-matrix)"
 async (page) => {
-  const THEMES = ["default", "nightfall", "harbour"];
+  const THEMES = ["default", "nightfall", "harbour", "atelier"];
   const DENSITIES = ["comfortable", "compact"];
   const INPUTS = { fine: 24, coarse: 44 };
   const WIDTHS = [1280, 375];
@@ -51,6 +51,7 @@ async (page) => {
             await page.goto(`${base}#/stress`);
             await page.evaluate((view) => localStorage.setItem("r-ui-showcase:view", JSON.stringify(view)), { theme, density, input });
             await page.reload();
+            await waitForShowcase(page);
             await page.locator("[data-stress-panel]").first().waitFor();
             await page.waitForTimeout(300);
 

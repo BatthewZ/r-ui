@@ -43,37 +43,135 @@
   inline-size: 100%;
   max-inline-size: 100%;
   max-block-size: calc(100% - 2 * var(--R-SIZE-1));
-  animation: r-overlays-slide-in-bottom var(--DURATION-SLOW) var(--EASE-ENTER);
 }
 
-/* Full travel is the sheet's own height; reduced motion collapses the duration. */
-@keyframes r-overlays-slide-in-bottom {
-  from {
+/* Enter and exit, in CSS.
+
+   Every surface animates in AND out. The closed state is a real style the
+   panel transitions to; the open state's first frame comes from
+   `@starting-style` (modal surfaces) or an entrance animation (floating ones,
+   below).
+   What keeps it on screen while it leaves is `transition-behavior:
+   allow-discrete` on `display` (the closed popover / dialog is `display: none`)
+   and `overlay` (it stays in the top layer until the end). Script only keeps
+   the node mounted until `getAnimations()` reports the exit finished, and has
+   already handed focus back. Durations are the motion tokens, so reduced
+   motion collapses every one to ~0 and the close is immediate.
+
+   Fallbacks, each an instant close: no `allow-discrete` (the element is
+   `display: none` before anything can run), no `@starting-style` (the open is
+   instant too), no `overlay` (the exit plays outside the top layer). */
+
+/* Floating panels (popover, menu, tooltip), promoted with `popover`: a fade,
+   and no movement, so the panel's geometry is final from its first frame (a
+   press during the entrance lands where it will stay; a measurement is not off
+   by a scale). A panel that was never promoted (no popover support) has no
+   `[popover]` and no transition.
+
+   The ENTRANCE is the contract's `fade-in` keyframes rather than
+   `@starting-style`: the panel is laid out in place (floating-ui measures it)
+   before it is promoted, so by the time it opens it already has a style and a
+   starting style never applies (measured: no entrance at all). An animation
+   starts whenever its name first applies, here on `:popover-open`. */
+.r-overlays-surface[popover] {
+  transition-property: opacity, display, overlay;
+  transition-behavior: allow-discrete;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-EXIT);
+  opacity: 0;
+}
+.r-overlays-surface:popover-open {
+  opacity: 1;
+  animation: fade-in var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+
+/* Modal surfaces and their scrim. Arrival takes the longer token, leaving the
+   shorter: a panel the reader dismissed should get out of the way. */
+.r-overlays-modal,
+.r-overlays-modal::backdrop {
+  transition-property: opacity, scale, translate, display, overlay;
+  transition-behavior: allow-discrete;
+  transition-duration: var(--DURATION-FAST);
+  transition-timing-function: var(--EASE-EXIT);
+}
+.r-overlays-modal[open],
+.r-overlays-modal[open]::backdrop {
+  transition-duration: var(--DURATION-NORMAL);
+  transition-timing-function: var(--EASE-ENTER);
+}
+.r-overlays-modal::backdrop {
+  opacity: 0;
+}
+.r-overlays-modal[open]::backdrop {
+  opacity: 1;
+}
+@starting-style {
+  .r-overlays-modal[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+.r-overlays-dialog:not([open]) {
+  opacity: 0;
+  scale: var(--MOTION-SCALE-FROM);
+}
+@starting-style {
+  .r-overlays-dialog[open] {
+    opacity: 0;
+    scale: var(--MOTION-SCALE-FROM);
+  }
+}
+
+/* Drawers travel their full size, so they take a step longer each way. The
+   inline end follows `dir` through --MOTION-INLINE-SIGN. */
+.r-overlays-drawer-end,
+.r-overlays-drawer-end::backdrop,
+.r-overlays-drawer-bottom,
+.r-overlays-drawer-bottom::backdrop {
+  transition-duration: var(--DURATION-NORMAL);
+}
+.r-overlays-drawer-end[open],
+.r-overlays-drawer-end[open]::backdrop,
+.r-overlays-drawer-bottom[open],
+.r-overlays-drawer-bottom[open]::backdrop {
+  transition-duration: var(--DURATION-SLOW);
+}
+.r-overlays-drawer-end:not([open]) {
+  translate: calc(100% * var(--MOTION-INLINE-SIGN, 1)) 0;
+}
+.r-overlays-drawer-bottom:not([open]) {
+  translate: 0 100%;
+}
+@starting-style {
+  .r-overlays-drawer-end[open] {
+    translate: calc(100% * var(--MOTION-INLINE-SIGN, 1)) 0;
+  }
+  .r-overlays-drawer-bottom[open] {
     translate: 0 100%;
   }
 }
 
 /* Popover arrow: a rotated square in the panel's own fill; the border is drawn
-   on the two edges that face out, so it continues the panel's hairline. The
+   on the two edges that face out, so it continues the panel's line. The
    sides are physical because floating-ui reports physical sides. */
 .r-overlays-arrow {
   border: 0 solid var(--C-BORDER);
 }
 .r-overlays-arrow[data-side="top"] {
-  border-top-width: 1px;
-  border-left-width: 1px;
+  border-top-width: var(--BORDER-WIDTH);
+  border-left-width: var(--BORDER-WIDTH);
 }
 .r-overlays-arrow[data-side="bottom"] {
-  border-bottom-width: 1px;
-  border-right-width: 1px;
+  border-bottom-width: var(--BORDER-WIDTH);
+  border-right-width: var(--BORDER-WIDTH);
 }
 .r-overlays-arrow[data-side="left"] {
-  border-bottom-width: 1px;
-  border-left-width: 1px;
+  border-bottom-width: var(--BORDER-WIDTH);
+  border-left-width: var(--BORDER-WIDTH);
 }
 .r-overlays-arrow[data-side="right"] {
-  border-top-width: 1px;
-  border-right-width: 1px;
+  border-top-width: var(--BORDER-WIDTH);
+  border-right-width: var(--BORDER-WIDTH);
 }
 
 /* Toast stack, pinned to a viewport corner. It may carry `popover`, whose user

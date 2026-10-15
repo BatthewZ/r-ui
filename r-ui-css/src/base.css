@@ -7,19 +7,25 @@
     background-color: var(--C-CANVAS);
     color: var(--C-TEXT-PRIMARY);
     font-family: var(--FONT-UI);
+    font-size-adjust: var(--FONT-UI-SIZE-ADJUST, none);
+    /* Native checkboxes, radios, ranges, progress and date/colour pickers take the
+       accent; the caret is an accent mark too (>= 3:1 on every surface, light or
+       dark). The browser picks the check mark's own colour against the accent. */
+    accent-color: var(--C-ACCENT);
+    caret-color: var(--C-ACCENT);
     scrollbar-color: var(--C-BORDER-STRONG) transparent;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* UI text by default, with tabular figures: an app is mostly labels, tables and
-     numbers. Prose regions switch to proportional figures. Never set on :root:
-     that would move `rem` itself. */
+  /* UI text by default, with data figures (tabular unless the theme says
+     otherwise): an app is mostly labels, tables and numbers. Prose regions switch
+     to prose figures. Never set on :root: that would move `rem` itself. */
   body {
     font-size: var(--BodyText-1);
     line-height: var(--BodyText-1-line-height);
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: var(--NUMERALS-DATA);
   }
 
   /* A density boundary re-reads the body size in its own density, so a compact card
@@ -40,13 +46,16 @@
     --tw-ring-offset-color: var(--C-SURFACE-0);
   }
 
-  /* In-app headings use the UI scale; a prose region switches them to display. */
+  /* In-app headings use the UI scale and the heading face; a prose region switches
+     them to the display scale and face. */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6 {
+    font-family: var(--FONT-HEADING, var(--FONT-UI));
+    font-size-adjust: var(--FONT-HEADING-SIZE-ADJUST, var(--FONT-UI-SIZE-ADJUST, none));
     font-weight: var(--HEADING-WEIGHT);
     text-transform: var(--HEADING-CASE);
     text-wrap: balance;
@@ -97,5 +106,18 @@
   :focus-visible {
     outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
     outline-offset: var(--FOCUS-OFFSET);
+  }
+}
+
+/* Forced colors: the colour roles become system colours (tokens/color.css) and
+   the browser drops box-shadows, so focus must be an outline. An important
+   declaration in the base layer outranks every later layer's, so a component
+   that reset its outline (or drew focus as a ring) still shows one here. Width,
+   offset and colour stay the component's own. */
+@layer base {
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline-style: solid !important;
+    }
   }
 }

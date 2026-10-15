@@ -9,6 +9,7 @@ export function Bad() {
       <span className="rounded shadow rounded-t">c</span>
       <span className="p-[12px] bg-[#fff] w-[3rem] text-[oklch(0.5_0.1_200)]">d</span>
       <span className={hoisted} style={{ width: "12px", color: "#ff0000" }}>e</span>
+      <span className="sticky z-10">f</span>
     </div>
   );
 }

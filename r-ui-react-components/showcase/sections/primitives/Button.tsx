@@ -9,13 +9,14 @@ export const meta = {
   group: "primitives",
   order: 10,
   description:
-    "Four variants at h-control; loading keeps the width; aria-disabled stays focusable. Flip density and input: the height follows --CONTROL-H.",
+    "Four variants at h-control; loading keeps the width; aria-disabled stays focusable; aria-pressed makes a toggle. Flip density and input: the height follows --CONTROL-H.",
 };
 
 const VARIANTS = ["primary", "secondary", "ghost", "danger"] as const;
 
 export default function ButtonSection() {
   const [busy, setBusy] = useState(false);
+  const [toggles, setToggles] = useState({ live: true, pinned: false });
   const save = () => {
     setBusy(true);
     window.setTimeout(() => setBusy(false), 1600);
@@ -71,6 +72,26 @@ export default function ButtonSection() {
           <Button loading={busy} onClick={save} iconStart={<Download />}>
             Download report
           </Button>
+        </div>
+      </Row>
+
+      <Row label="Toggle (aria-pressed): the selection pair, as a pressed IconButton (click)">
+        <div className="flex flex-wrap items-center gap-r4">
+          {(
+            [
+              ["live", "Live updates"],
+              ["pinned", "Pin to top"],
+            ] as const
+          ).map(([key, text]) => (
+            <Button
+              key={key}
+              variant="secondary"
+              aria-pressed={toggles[key]}
+              onClick={() => setToggles((t) => ({ ...t, [key]: !t[key] }))}
+            >
+              {text}
+            </Button>
+          ))}
         </div>
       </Row>
 

@@ -67,7 +67,7 @@ function seriesDecls(blocks) {
   return out;
 }
 
-const tokenBlocks = readBlocks(readFileSync(TOKENS, "utf8")).filter((b) => b.prelude === ":root");
+const tokenBlocks = readBlocks(readFileSync(TOKENS, "utf8")).filter((b) => b.prelude === ":root" && b.parents.length === 0);
 const base = seriesDecls(tokenBlocks);
 
 for (let i = 1; i <= SLOTS; i += 1) {

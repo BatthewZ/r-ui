@@ -33,6 +33,7 @@ async (page) => {
       input,
     });
     await page.reload();
+    await waitForShowcase(page);
     await page.locator('[data-testid="stress-comfortable-in-compact"]').waitFor();
     await page.waitForTimeout(300);
   };

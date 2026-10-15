@@ -18,13 +18,16 @@ import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Button, type ButtonProps } from "../primitives";
-import { Slot } from "./internal";
+import { Slot, topLayerExit, useExitPresence } from "./internal";
 
 /** Where focus lands when the menu opens: keyboard opens on an item, a pointer on the menu. */
 type FocusIntent = "first" | "last" | "menu";
 
 interface MenuContextValue {
   open: boolean;
+  /** Open, or still running its exit transition. */
+  present: boolean;
+  panelRef: React.RefObject<HTMLDivElement | null>;
   openWith: (intent: FocusIntent) => void;
   /** Close and hand focus back to the trigger (every close except Tab-out and light dismiss). */
   close: (restoreFocus?: boolean) => void;
@@ -65,13 +68,18 @@ function DropdownMenuRoot({
   const contentId = useId();
   const triggerRef = useRef<HTMLElement | null>(null);
   const intent = useRef<FocusIntent>("first");
-  const floating = useFloating({ placement, offsetPx: 4, open, onOpenChange: setOpen });
+  const panelRef = useRef<HTMLDivElement>(null);
+  const present = useExitPresence(open, panelRef, topLayerExit);
+  // Positioned and promoted for as long as it is on screen, exit included.
+  const floating = useFloating({ placement, offsetPx: 4, open: present, onOpenChange: setOpen });
   // Pointer light dismiss only; every key is handled by the menu itself.
   const { getFloatingProps } = useInteractions([useDismiss(floating.context, { escapeKey: false })]);
 
   const value = useMemo<MenuContextValue>(
     () => ({
       open,
+      present,
+      panelRef,
       openWith: (next) => {
         intent.current = next;
         setOpen(true);
@@ -87,7 +95,7 @@ function DropdownMenuRoot({
       floating,
       getFloatingProps,
     }),
-    [open, setOpen, triggerId, contentId, floating, getFloatingProps]
+    [open, present, setOpen, triggerId, contentId, floating, getFloatingProps]
   );
   return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
 }
@@ -141,7 +149,7 @@ export type DropdownMenuContentProps = ComponentPropsWithRef<"div">;
  * an `overflow: hidden` ancestor does not clip it.
  */
 function DropdownMenuContent({ className, children, style, ref, onKeyDown, ...props }: DropdownMenuContentProps) {
-  const { open, close, intent, triggerId, contentId, floating, getFloatingProps } = useMenu("Content");
+  const { open, present, panelRef, close, intent, triggerId, contentId, floating, getFloatingProps } = useMenu("Content");
   const menuRef = useRef<HTMLDivElement>(null);
   const typeahead = useRef({ text: "", at: 0 });
 
@@ -155,7 +163,7 @@ function DropdownMenuContent({ className, children, style, ref, onKeyDown, ...pr
     (target ?? menu).focus({ preventScroll: true });
   }, [open, intent]);
 
-  if (!open) return null;
+  if (!present) return null;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const menu = menuRef.current;
@@ -214,15 +222,17 @@ function DropdownMenuContent({ className, children, style, ref, onKeyDown, ...pr
   return (
     <div
       {...getFloatingProps({ ...props, onKeyDown: composeEventHandlers(onKeyDown, handleKeyDown) })}
-      ref={mergeRefs(ref, menuRef, floating.refs.setFloating)}
+      ref={mergeRefs(ref, menuRef, panelRef, floating.refs.setFloating)}
       id={contentId}
       role="menu"
+      // Leaving: on screen for its exit, but no longer interactive.
+      inert={!open}
       aria-labelledby={triggerId}
       aria-orientation="vertical"
       tabIndex={-1}
       style={{ ...floating.floatingStyles, ...style }}
       className={cn(
-        "flex min-w-[calc(var(--ROW-H)*5)] max-w-[min(var(--MEASURE),calc(100vw-var(--R-SIZE-2)*2))] max-h-[calc(var(--ROW-H)*12)] flex-col overflow-y-auto rounded-md border border-border bg-surface-0 p-r6 text-body-1 text-fg-primary shadow-md outline-none animate-fade-in",
+        "r-overlays-surface flex min-w-[calc(var(--ROW-H)*5)] max-w-[min(var(--MEASURE),calc(100vw-var(--R-SIZE-2)*2))] max-h-[calc(var(--ROW-H)*12)] flex-col overflow-y-auto rounded-md border border-border bg-surface-0 p-r6 text-body-1 text-fg-primary shadow-md outline-none",
         className
       )}
     >
@@ -242,7 +252,7 @@ interface ItemBaseProps extends Omit<ComponentPropsWithRef<"div">, "onSelect"> {
 // The highlight is ink at low alpha, not a surface rung: rungs are recessed in
 // every theme, so on a dark theme's raised panel a rung reads as a hole.
 const itemClasses =
-  "relative flex min-h-row w-full cursor-default select-none items-center gap-r4 rounded-sm px-r4 text-start outline-none focus:bg-fg-primary/8 focus-visible:focus-ring-inset aria-disabled:opacity-disabled";
+  "relative flex min-h-row w-full cursor-default select-none items-center gap-r4 rounded-sm px-r4 text-start outline-none focus:bg-fg-primary/8 focus-visible:focus-ring-inset forced-colors:focus:bg-selection aria-disabled:opacity-disabled";
 
 /**
  * The behaviour every item kind shares: activation by click, Enter or Space,

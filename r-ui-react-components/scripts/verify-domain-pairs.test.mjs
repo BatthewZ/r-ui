@@ -46,6 +46,28 @@ describe("verify:domain-pairs", () => {
     expect(problems).toEqual([]);
   });
 
+  it("goes red when a pair loses its forced-colors mapping or maps to a brand colour", () => {
+    const dropped = real.replace(/^\s*--C-TREND-BAD-DARK: CanvasText !important;$/m, "");
+    expect(dropped).not.toBe(real);
+    expect(checkTokens(dropped).problems.some((p) => p.includes("--C-TREND-BAD-DARK has no forced-colors mapping"))).toBe(true);
+    const branded = real.replace("--C-CHART-GRID-LIGHT: GrayText !important;", "--C-CHART-GRID-LIGHT: oklch(0.9 0 0) !important;");
+    expect(branded).not.toBe(real);
+    expect(checkTokens(branded).problems.some((p) => p.includes("--C-CHART-GRID-LIGHT maps to"))).toBe(true);
+  });
+
+  it("goes red when a data colour is mapped, or a meaningful fill loses its opt-out", () => {
+    const mapped = real.replace(
+      "--C-CHART-AXIS-DARK: CanvasText !important;",
+      "--C-CHART-AXIS-DARK: CanvasText !important;\n    --C-SERIES-2-LIGHT: CanvasText !important;",
+    );
+    expect(checkTokens(mapped).problems.some((p) => p.includes("--C-SERIES-2-LIGHT is a data colour"))).toBe(true);
+    for (const utility of ["bg-seq-4", "bg-status-stale"]) {
+      const stripped = real.replace(`@utility ${utility} {`, `@utility ${utility}-renamed {`);
+      expect(stripped).not.toBe(real);
+      expect(checkTokens(stripped).problems.some((p) => p.includes(`\`${utility}\` carries meaning`))).toBe(true);
+    }
+  });
+
   it("flags a component reading one half alone, but not the canonical blend", () => {
     expect(checkHalfReads(`.x { stroke: var(--C-SERIES-1-DARK); }`, "x.css")).toHaveLength(1);
     expect(checkHalfReads(`.x { stroke: ${blend("C-SERIES-1")}; }`, "x.css")).toEqual([]);

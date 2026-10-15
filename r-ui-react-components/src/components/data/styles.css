@@ -18,3 +18,27 @@
 [data-table-row][data-selected] > :first-child:dir(rtl) {
   box-shadow: inset calc(var(--R-SIZE-6) * -1) 0 0 var(--C-ACCENT);
 }
+
+/* Forced colors drop the wash and the shadow, so the marker becomes a Highlight
+   bar of its own (a pseudo-element opted out of repainting, so nothing else in
+   the cell is), and a meter's track, an ink wash, gets an edge so the fill
+   still reads as a share of something: an outline, because a border would eat
+   into a track only --R-SIZE-5 tall. */
+@media (forced-colors: active) {
+  [data-table-row][data-selected] > :first-child {
+    position: relative;
+  }
+  [data-table-row][data-selected] > :first-child::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: var(--R-SIZE-6);
+    background-color: Highlight;
+    forced-color-adjust: none;
+    pointer-events: none;
+  }
+  .r-data-meter-track {
+    outline: var(--BORDER-WIDTH) solid CanvasText;
+  }
+}

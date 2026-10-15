@@ -34,6 +34,7 @@ async (page) => {
     await page.goto(`${base}#/marketing`);
     await page.evaluate((v) => localStorage.setItem("r-ui-showcase:view", JSON.stringify(v)), view);
     await page.reload();
+    await waitForShowcase(page);
     await page.locator('[data-mkt="prose-button"]').waitFor();
     await page.waitForTimeout(200);
   };
@@ -139,7 +140,7 @@ async (page) => {
     }
 
     // ── 4: nothing scrolls sideways at 375 ───────────────────────────────────
-    for (const theme of ["default", "nightfall", "harbour"]) {
+    for (const theme of ["default", "nightfall", "harbour", "atelier"]) {
       for (const [density, input] of [
         ["comfortable", "fine"],
         ["compact", "fine"],

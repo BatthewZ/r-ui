@@ -15,6 +15,12 @@
   --SHADOW-MD: 0 1px 2px oklch(0.2 0.01 85 / 0.06), 0 6px 18px -4px oklch(0.2 0.01 85 / 0.14);
   --SHADOW-LG: 0 2px 6px oklch(0.2 0.01 85 / 0.06), 0 18px 48px -12px oklch(0.2 0.01 85 / 0.24);
 
+  /* Structural line weight: every bare `border`, `border-*` side and `divide-*`
+     reads it. 1px is a hairline; a bolder, border-led brand uses 2px. Whole pixels:
+     browsers floor a fractional border width (1.5px draws 1px). Boxes are
+     border-box, so a control's height does not change with it. */
+  --BORDER-WIDTH: 1px;
+
   /* Focus ring geometry. Colour is --C-FOCUS. Visibility is protected; the look is brand. */
   --FOCUS-WIDTH: 2px;
   --FOCUS-OFFSET: 2px;
@@ -35,6 +41,8 @@
   --shadow-lg: var(--SHADOW-LG);
 
   --opacity-disabled: var(--OPACITY-DISABLED);
+
+  --default-border-width: var(--BORDER-WIDTH);
 }
 
 /* `focus-ring` paints the package's focus indicator on demand (pair it with a

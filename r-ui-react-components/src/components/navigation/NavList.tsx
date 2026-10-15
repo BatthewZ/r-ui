@@ -1,3 +1,4 @@
+"use client";
 import { type ComponentPropsWithRef, type ElementType, type ReactNode, useId } from "react";
 
 import { cn } from "../../util/style";
@@ -42,7 +43,7 @@ function NavListSection({ title, className, children, ...props }: NavListSection
 
 export type NavListItemProps<C extends ElementType = "a"> = NavLinkProps<C>;
 
-/** One link: an `<a>`, or `as={RouterLink}`. `current` marks the page you are on. */
+/** One link: the router's link, an `<a>`, or `as`. `current` (or the router's `isCurrent`) marks the page you are on. */
 function NavListItem<C extends ElementType = "a">(props: NavListItemProps<C>) {
   return <NavLink {...props} />;
 }

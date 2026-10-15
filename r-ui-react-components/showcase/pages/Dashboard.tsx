@@ -30,7 +30,7 @@ import { ago } from "./dashboard/format";
 import { DashboardFrame } from "./dashboard/Frame";
 import { KpiRow } from "./dashboard/KpiRow";
 import { type ServiceFilter, ServicesCard } from "./dashboard/ServicesCard";
-import { BudgetCard, DeploysCard, EndpointsCard, HeatmapPlaceholder, IncidentsCard } from "./dashboard/SideCards";
+import { BudgetCard, DeploysCard, EndpointsCard, HeatmapCard, IncidentsCard } from "./dashboard/SideCards";
 import { TrafficCard } from "./dashboard/TrafficCard";
 
 type NavId = "overview" | "services" | "incidents" | "deploys" | "slos" | "logs" | "traces" | "settings";
@@ -74,9 +74,9 @@ const SCROLL_MARGIN = "scroll-mt-[calc(var(--CONTROL-H)+var(--R-SIZE-3)*3)]";
 /**
  * The mockup's operations dashboard, rebuilt from library components only:
  * an AppShell (full sidebar / rail / bottom nav by viewport), filters that
- * regenerate seeded data, KPI tiles, traffic small multiples, incidents, a
- * services table that drops columns by its own width, meters, a compact card,
- * and toasts from the header's actions. See `dashboard/Frame.tsx` for why it
+ * regenerate seeded data, KPI tiles, traffic as a line chart and stacked error
+ * columns, incidents, a services table that drops columns by its own width,
+ * meters, a compact card, a 5xx heatmap, and toasts from the header's actions. See `dashboard/Frame.tsx` for why it
  * takes the whole window.
  */
 export function Dashboard() {
@@ -262,7 +262,7 @@ export function Dashboard() {
 
             <Grid columns={{ base: 1, "@4xl": 3 }} className="items-start">
               <EndpointsCard data={data} className="@4xl:col-span-2" />
-              <HeatmapPlaceholder />
+              <HeatmapCard data={data} />
             </Grid>
           </Stack>
         </AppShell.Main>

@@ -9,3 +9,6 @@ Durable lessons for anyone changing this package. Principles only: no tasks, no 
 | [contrast.md](./contrast.md) | Measuring and tuning colour pairs: the maths, gamut, the accent and warning traps, dark themes, partial themes. |
 | [examples.md](./examples.md) | Why example themes have no privileges and how the package keeps it that way mechanically. |
 | [contract-questions.md](./contract-questions.md) | Tokens and utilities proposed for the contract, the three-criteria verdict on each, and why the rejected ones stay out. |
+| [type-roles.md](./type-roles.md) | Putting a face on `text-*` sizes with same-name `@utility` companions, the sort order that lets explicit utilities win, optional roles at the read, where fonts load. |
+| [forced-colors.md](./forced-colors.md) | What Chromium repaints, keeps and backplates under forced colors, and why meaning-bearing fills opt out and remap their ink. |
+| [lines-and-layers.md](./lines-and-layers.md) | `--BORDER-WIDTH` through `--default-border-width`, whole-pixel borders, and the stacking scale as structure. |

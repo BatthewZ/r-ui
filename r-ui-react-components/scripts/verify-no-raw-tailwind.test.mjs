@@ -27,6 +27,7 @@ describe("verify:no-raw-tailwind", () => {
       "raw length 12px in `p-[12px]`", "raw hex colour in `bg-[#fff]`", "raw length 3rem in `w-[3rem]`",
       "raw colour function in `text-[oklch(0.5_0.1_200)]`", "raw length 12px in `12px`",
       "raw hex colour in `#ff0000`",
+      "numeric stacking `z-10`",
     ]) {
       expect(out).toContain(token);
     }
@@ -43,9 +44,13 @@ describe("verify:no-raw-tailwind", () => {
     expect(out).toMatch(/styles\.css:9 {2}default text size `text-sm`/);
     expect(out).toMatch(/styles\.css:11 {2}raw length 640px/);
     expect(out).not.toMatch(/styles\.css:1 /);
+    // In-flow stacking reads the layer scale; structural lines read --BORDER-WIDTH.
+    expect(out).toMatch(/styles\.css:15 {2}numeric stacking in `z-index: 5;`/);
+    expect(out).toMatch(/styles\.css:16 {2}fixed line weight in `border-block-end: 1px solid/);
+    expect(out).toMatch(/styles\.css:17 {2}fixed line weight in `border-top-width: 1px;`/);
   });
 
-  it("passes the good fixture: tokens, 0, px, full, fractions, keywords, var() values", () => {
+  it("passes the good fixture: tokens, 0, px, full, fractions, keywords, var() values, the layer scale", () => {
     const result = run(join(HERE, "fixtures/raw-tailwind/good"));
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);

@@ -63,3 +63,16 @@
 .r-primitives-link {
   text-decoration-line: var(--LINK-DECORATION);
 }
+
+/* Forced colors: the browser paints fills as Canvas and drops box-shadows, so a
+   skeleton (an ink wash) would vanish and an avatar lose its edge. A dashed
+   GrayText outline reads as "content will be here"; the avatar's hairline
+   becomes a border. */
+@media (forced-colors: active) {
+  .r-primitives-skeleton {
+    border: var(--BORDER-WIDTH) dashed GrayText;
+  }
+  .r-primitives-avatar::after {
+    border: var(--BORDER-WIDTH) solid CanvasText;
+  }
+}

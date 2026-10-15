@@ -56,6 +56,21 @@ describe("Button", () => {
     expect(wide).not.toHaveClass("px-r3");
   });
 
+  it("works as a toggle through aria-pressed, painted like a pressed IconButton", () => {
+    render(
+      <>
+        <Button variant="secondary" aria-pressed>
+          Wrap
+        </Button>
+        <Button variant="secondary" aria-pressed={false}>
+          Pin
+        </Button>
+      </>,
+    );
+    expect(screen.getByRole("button", { name: "Wrap", pressed: true })).toHaveClass("aria-pressed:bg-selection", "aria-pressed:text-fg-on-selection");
+    expect(screen.getByRole("button", { name: "Pin", pressed: false })).toBeInTheDocument();
+  });
+
   it("renders icons as decoration that does not change the accessible name", () => {
     render(
       <Button iconStart={<svg data-testid="start" />} iconEnd={<svg data-testid="end" />}>

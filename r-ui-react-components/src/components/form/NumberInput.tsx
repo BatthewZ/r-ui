@@ -2,12 +2,11 @@
 import { Minus, Plus } from "lucide-react";
 import { type ChangeEvent, type FocusEvent, type KeyboardEvent, type MouseEvent, useState } from "react";
 
-import { useControllableState } from "../../hooks/use-controllable-state";
 import { formatNumber, type FormatNumberOptions } from "../../util/format";
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn } from "../../util/style";
 
-import { useField } from "./Field";
+import { useField, useFieldValue } from "./Field";
 import { Input, type InputProps } from "./Input";
 import { parseLocaleNumber } from "./number-locale";
 
@@ -74,10 +73,12 @@ export function NumberInput({
   ...props
 }: NumberInputProps) {
   const field = useField();
-  const [current, setValue] = useControllableState<number | null>({
+  // In a Field bound to a Form, the form owns the number (unless the caller passed one).
+  const [current, setValue] = useFieldValue<number | null>({
     value,
     defaultValue,
     onChange: onValueChange,
+    fromForm: (raw) => (typeof raw === "number" && Number.isFinite(raw) ? raw : null),
   });
   // The text being edited, or `null` when the field shows the committed value.
   const [draft, setDraft] = useState<string | null>(null);

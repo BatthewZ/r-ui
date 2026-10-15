@@ -26,9 +26,12 @@ function deepFreeze(value) {
  * Tailwind namespace. A test parses r-ui-css and fails on any difference, in
  * either direction.
  *
- * Namespaces tailwind-merge has a theme key for go under `theme`. `--opacity-*`
- * and `--transition-duration-*` have none, so they extend the `opacity` and
- * `duration` class groups. `@utility` classes get their own class groups.
+ * Namespaces tailwind-merge has a theme key for go under `theme`. `--opacity-*`,
+ * `--transition-duration-*` and `--z-index-*` have none, so they extend the
+ * `opacity`, `duration` and `z` class groups. `@utility` classes get their own
+ * class groups, except one that shares its class with a theme utility (the face
+ * on `text-h1`, forced-colors handling on `bg-accent`): that is still the one
+ * theme name.
  */
 export const tailwindMergeExtension = deepFreeze({
   theme: {
@@ -73,7 +76,7 @@ export const tailwindMergeExtension = deepFreeze({
       "status-info",
       "status-info-bg",
     ],
-    font: ["ui", "mono", "display"],
+    font: ["ui", "heading", "display", "mono"],
     "font-weight": ["normal", "medium", "semibold"],
     text: [
       "h1", "h2", "h3", "h4", "h5", "h6",
@@ -109,6 +112,7 @@ export const tailwindMergeExtension = deepFreeze({
   classGroups: {
     opacity: [{ opacity: ["disabled"] }],
     duration: [{ duration: ["fast", "normal", "slow"] }],
+    z: [{ z: ["raised", "sticky", "docked", "bypass"] }],
     // Both set the whole outline, so the last one wins.
     "focus-ring": ["focus-ring", "focus-ring-inset"],
     "hit-area": ["hit-area"],

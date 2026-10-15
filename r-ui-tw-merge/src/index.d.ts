@@ -33,6 +33,7 @@ export declare const tailwindMergeExtension: {
   readonly classGroups: {
     readonly opacity: readonly [{ readonly opacity: readonly string[] }];
     readonly duration: readonly [{ readonly duration: readonly string[] }];
+    readonly z: readonly [{ readonly z: readonly string[] }];
     readonly "focus-ring": readonly string[];
     readonly "hit-area": readonly string[];
   };
