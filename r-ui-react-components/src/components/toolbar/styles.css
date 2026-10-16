@@ -1,0 +1,62 @@
+/* ── Toolbar and ToggleGroup ────────────────────────────────────────────────── */
+
+.r-toolbar-root {
+  position: relative;
+  align-items: center;
+}
+
+/* Touch spacing. An icon control is ICON + 2 × R-SIZE-4 square; on a coarse
+   pointer its hit area overhangs it by (HIT-MIN − that) / 2 on every side. A gap
+   of the whole difference keeps two neighbours' hit areas apart, wherever they
+   sit in the DOM (units, groups and separators break the contract's sibling
+   rule). On a fine pointer the difference is negative and the row's own gap
+   remains. Larger controls (h-control) overhang nothing. */
+.r-toolbar-spaced {
+  gap: max(var(--R-SIZE-6), var(--HIT-MIN) - var(--ICON) - 2 * var(--R-SIZE-4));
+}
+
+/* One child of the toolbar: a unit of layout and of overflow. It never shrinks,
+   so its width is what it needs. */
+.r-toolbar-unit {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+.r-toolbar-unit[data-kind="separator"] {
+  align-self: stretch;
+}
+/* Moved into the "More" menu (or "More" itself, with nothing to hold): out of
+   the flow and unseen, but still laid out at its natural width so the toolbar
+   can measure whether it fits again. `inert` takes it out of focus and the
+   accessibility tree. Anchored at the inline end, so a unit wider than the bar
+   overhangs its start, where no scroller can reach (a hidden box still counts
+   toward scrollable overflow; one overhanging the end made the bar scroll),
+   and clipped, so its controls' coarse hit areas do not overhang the end. */
+.r-toolbar-unit[data-overflowed] {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  contain: paint;
+  inline-size: max-content;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Invalid (a ToggleGroup as a form control): an edge around the group, outside
+   its toggles so it never reads as one of their states. */
+.r-toolbar-toggle-group[data-invalid] {
+  border-radius: var(--RADIUS-MD);
+  outline: var(--BORDER-WIDTH) solid var(--C-STATUS-ERROR);
+  outline-offset: var(--R-SIZE-6);
+}
+.r-toolbar-toggle-group[data-disabled] {
+  cursor: not-allowed;
+}
+
+/* Forced colours: the red edge becomes a system colour, so invalid is doubled
+   (the Field's message is the other cue). */
+@media (forced-colors: active) {
+  .r-toolbar-toggle-group[data-invalid] {
+    outline-width: calc(var(--BORDER-WIDTH) * 2);
+  }
+}

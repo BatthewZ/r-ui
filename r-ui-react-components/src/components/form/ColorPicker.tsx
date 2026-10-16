@@ -35,7 +35,7 @@ import {
 } from "./color-core";
 import { ColorArea, ColorSlider, type ContrastLabels, ContrastReadout, type SwatchOption, SwatchGroup } from "./color-controls";
 import { useFieldControl, useFieldMessage, useFieldValue } from "./Field";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 /** A swatch: a colour (hex or `oklch()`), named for people who cannot see it. */
 export interface ColorSwatch {
@@ -87,6 +87,12 @@ export const DEFAULT_COLOR_PICKER_LABELS: ColorPickerLabels = {
   pass: "passes",
   fail: "fails",
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    ColorPicker: ColorPickerLabels;
+  }
+}
 
 export interface ColorPickerProps
   extends Omit<ComponentPropsWithRef<"button">, "value" | "defaultValue" | "onChange" | "children" | "type"> {
@@ -223,7 +229,7 @@ export function ColorPicker({
   "aria-invalid": ariaInvalidProp,
   ...props
 }: ColorPickerProps) {
-  const labels = mergeLabels(DEFAULT_COLOR_PICKER_LABELS, labelsProp);
+  const labels = useLabels("ColorPicker", DEFAULT_COLOR_PICKER_LABELS, labelsProp);
   const [current, setCurrent, fieldName] = useFieldValue<string>({
     value,
     defaultValue,

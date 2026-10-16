@@ -1,6 +1,6 @@
 "use client";
 import { useDensity } from "../../hooks/use-preferences";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { DENSITIES, type Density, type PreferencesConfig } from "../../util/preferences";
 import { Choice, type ChoiceOption, type SwitcherHTMLProps, type SwitcherVariant } from "./Choice";
 import { DEFAULT_PREFERENCES_MENU_LABELS, type DensitySwitcherLabels } from "./preferences-labels";
@@ -30,7 +30,7 @@ export function DensitySwitcher({
   ...passThrough
 }: DensitySwitcherProps) {
   const { density, setDensity } = useDensity({ storageKey });
-  const labels = mergeLabels(DEFAULT_PREFERENCES_MENU_LABELS, labelsProp);
+  const labels = useLabels("PreferencesMenu", DEFAULT_PREFERENCES_MENU_LABELS, labelsProp);
   return (
     <Choice
       variant={variant}

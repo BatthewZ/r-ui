@@ -19,7 +19,7 @@ import { isRtl } from "../../util/direction";
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "../primitives";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 /** The most slides side by side, reached only when the CAROUSEL is wide enough for each to keep a readable width. */
 export type CarouselPerView = 1 | 2 | 3 | 4;
@@ -52,6 +52,10 @@ export interface CarouselLabels {
   slides: string;
   /** The dots' tablist name. */
   dots: string;
+  /** What a screen reader calls the whole (`aria-roledescription`). */
+  carousel: string;
+  /** What a screen reader calls one slide (`aria-roledescription`). */
+  slideRole: string;
 }
 
 export const DEFAULT_CAROUSEL_LABELS: CarouselLabels = {
@@ -63,7 +67,15 @@ export const DEFAULT_CAROUSEL_LABELS: CarouselLabels = {
   status: (first, last, total) => (first === last ? `Slide ${first} of ${total}` : `Slides ${first}–${last} of ${total}`),
   slides: "Slides",
   dots: "Choose a slide",
+  carousel: "carousel",
+  slideRole: "slide",
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Carousel: CarouselLabels;
+  }
+}
 
 export type CarouselProps = {
   /** The carousel's accessible name (it is a region). Required: "Customer stories", "From the journal". */
@@ -151,7 +163,7 @@ function CarouselRoot({
   onBlur,
   ...props
 }: CarouselProps) {
-  const labels = mergeLabels(DEFAULT_CAROUSEL_LABELS, labelsProp);
+  const labels = useLabels("Carousel", DEFAULT_CAROUSEL_LABELS, labelsProp);
   const baseId = useId();
   const trackRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
@@ -307,7 +319,7 @@ function CarouselRoot({
 
   return (
     <section
-      aria-roledescription="carousel"
+      aria-roledescription={labels.carousel}
       aria-label={label}
       data-playing={rotates ? String(running) : undefined}
       className={cn("@container flex min-w-0 flex-col gap-r3", className)}
@@ -348,7 +360,7 @@ function CarouselRoot({
               key={slide.key ?? i}
               id={slideId(i)}
               role={dots ? "tabpanel" : "group"}
-              aria-roledescription="slide"
+              aria-roledescription={labels.slideRole}
               aria-label={slideName(i + 1, total)}
               aria-labelledby={dots ? tabId(i) : undefined}
               {...slideProps}

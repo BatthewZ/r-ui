@@ -13,6 +13,10 @@
 // still a design dependency) in shipped modules: `*.test.*` and `*.examples.*`
 // are not modules of the library and may reach anywhere. The root barrel
 // (`src/index.ts`) is a node too, so reaching a group through it is an edge.
+// A string that names another group's class (`"r-form-frame"` written in
+// dates) is an edge as well: borrowing a look by its class name is the same
+// dependency as importing it, just invisible to the import graph. Comments
+// never count.
 //
 // Usage: node scripts/verify-group-deps.mjs [--root <dir>]
 
@@ -49,6 +53,23 @@ const files = globSync("src/{index.ts,{components,hooks,util}/**/*.{ts,tsx}}", {
   ignore: ["**/*.test.*", "**/*.examples.*", "**/*.d.ts"],
 }).sort();
 
+const groups = new Set(files.map(nodeOf).filter((n) => n && !["hooks", "util", "index"].includes(n)));
+const GROUP_CLASS = /(?:^|[^\w-])r-([a-z]+)-[\w-]/g;
+
+/** Positions of every `r-<group>-…` class in the file's string literals (comments skipped). */
+function classRefs(text, file) {
+  const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false, file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const refs = [];
+  const visit = (node) => {
+    if (ts.isStringLiteralLike(node) || ts.isTemplateLiteralToken(node)) {
+      for (const m of node.text.matchAll(GROUP_CLASS)) if (groups.has(m[1])) refs.push({ to: m[1], pos: node.getStart(sf) });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return refs;
+}
+
 /** from → to → the first `file:line` that made the edge. */
 const edges = new Map();
 const nodes = new Set();
@@ -57,14 +78,16 @@ for (const file of files) {
   if (!from) continue;
   nodes.add(from);
   const text = readFileSync(file, "utf8");
-  for (const { fileName, pos } of ts.preProcessFile(text, true, true).importedFiles) {
-    if (!fileName.startsWith(".")) continue;
-    const to = nodeOf(resolve(dirname(file), fileName));
-    if (!to || to === from) continue;
+  const addEdge = (to, pos) => {
+    if (!to || to === from) return;
     if (!edges.has(from)) edges.set(from, new Map());
     const out = edges.get(from);
     if (!out.has(to)) out.set(to, `${relative(ROOT, file)}:${lineAt(text, pos)}`);
+  };
+  for (const { fileName, pos } of ts.preProcessFile(text, true, true).importedFiles) {
+    if (fileName.startsWith(".")) addEdge(nodeOf(resolve(dirname(file), fileName)), pos);
   }
+  for (const { to, pos } of classRefs(text, file)) addEdge(to, pos);
 }
 
 // Tarjan's strongly connected components: any with two or more nodes is a cycle.
@@ -115,8 +138,8 @@ if (cycles.length > 0) {
   });
   console.error(
     `verify:group-deps — ${cycles.length} import cycle(s) between groups:\n${lines.join("\n")}\n\n` +
-      "Groups import in one direction. Move a component that needs both sides into a group\n" +
-      "above them, or move the shared piece down into util.",
+      "Groups import (and borrow classes) in one direction. Move a component that needs both\n" +
+      "sides into a group above them, or move the shared piece down into util.",
   );
   process.exit(1);
 }

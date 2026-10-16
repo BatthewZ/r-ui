@@ -4,7 +4,7 @@ import { TextWrap } from "lucide-react";
 import { type CSSProperties, type HTMLAttributes, type ReactNode, type Ref, useId, useMemo } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "../primitives";
 import { type CodeRole, type CodeRun, highlighter, normaliseCode, toLines, useHighlightStatus } from "./code-highlight";
@@ -20,6 +20,12 @@ export const DEFAULT_CODE_BLOCK_LABELS: Readonly<CodeBlockLabels> = {
   copy: "Copy code",
   wrap: "Wrap lines",
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    CodeBlock: CodeBlockLabels;
+  }
+}
 
 export interface CodeBlockProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** The source, rendered verbatim (CRLF normalised, one trailing newline dropped). */
@@ -113,7 +119,7 @@ export function CodeBlock({
   ...props
 }: CodeBlockProps) {
   const titleId = useId();
-  const words = mergeLabels(DEFAULT_CODE_BLOCK_LABELS, labels);
+  const words = useLabels("CodeBlock", DEFAULT_CODE_BLOCK_LABELS, labels);
   const [wrap, setWrap] = useControllableState({ value: wrapProp, defaultValue: defaultWrap, onChange: onWrapChange });
   const lang = language?.trim() || undefined;
   const text = useMemo(() => normaliseCode(code), [code]);

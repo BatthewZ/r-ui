@@ -65,13 +65,13 @@ const SectionContext = createContext<"head" | "body">("body");
    `/table` names the container the root declares, so a column drops by the
    width of ITS table even inside another container. `w-0` as well: a fixed
    layout keeps a hidden header's width reserved, so a dropped column with a
-   width would leave a hole. */
+   width would leave a hole; `min-w-0` because a set width is also a minimum. */
 const PRIORITY_CLASS: Record<ColumnPriority, string> = {
   1: "",
-  2: "@max-sm/table:hidden @max-sm/table:w-0",
-  3: "@max-lg/table:hidden @max-lg/table:w-0",
-  4: "@max-2xl/table:hidden @max-2xl/table:w-0",
-  5: "@max-3xl/table:hidden @max-3xl/table:w-0",
+  2: "@max-sm/table:hidden @max-sm/table:w-0 @max-sm/table:min-w-0",
+  3: "@max-lg/table:hidden @max-lg/table:w-0 @max-lg/table:min-w-0",
+  4: "@max-2xl/table:hidden @max-2xl/table:w-0 @max-2xl/table:min-w-0",
+  5: "@max-3xl/table:hidden @max-3xl/table:w-0 @max-3xl/table:min-w-0",
 };
 
 /* ------------------------------------------------------------------ */
@@ -91,6 +91,8 @@ export interface TableProps extends HTMLAttributes<HTMLDivElement> {
   stickyHeader?: boolean;
   /** Props for the `<table>` element itself (`aria-rowcount`, `aria-busy`…). */
   tableProps?: TableHTMLAttributes<HTMLTableElement>;
+  /** Content after the `<table>`, inside the scroll area: a bar that sticks to its bottom edge. */
+  footer?: ReactNode;
   classNames?: SlotClassNames<"table">;
   ref?: Ref<HTMLDivElement>;
 }
@@ -107,6 +109,7 @@ function TableRoot({
   striped = false,
   stickyHeader = false,
   tableProps,
+  footer,
   classNames,
   className,
   children,
@@ -146,6 +149,7 @@ function TableRoot({
         >
           {children}
         </table>
+        {footer}
       </div>
     </TableContext.Provider>
   );
@@ -221,13 +225,16 @@ export interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
 function TableRow({ selected, index, className, ref, ...rest }: TableRowProps) {
   const { striped } = useContext(TableContext);
   const inBody = useContext(SectionContext) === "body";
-  const band = inBody && striped && (index === undefined ? "even:bg-surface-1" : index % 2 === 1 && "bg-surface-1");
+  const banded = inBody && striped && index !== undefined && index % 2 === 1;
+  const band = inBody && striped && (index === undefined ? "even:bg-surface-1" : banded && "bg-surface-1");
   return (
     <tr
       ref={ref}
       data-table-row=""
       aria-selected={selected}
       data-selected={selected || undefined}
+      // Named for a stylesheet that repaints the band (a sticky cell's opaque fill).
+      data-band={banded ? "" : undefined}
       className={cn(
         // Height lives on the ROW (cells carry no block padding), so a row is
         // exactly --ROW-H: what a virtual window's arithmetic relies on.
@@ -302,6 +309,8 @@ export interface TableHeaderCellProps extends ThHTMLAttributes<HTMLTableCellElem
   sort?: SortDirection | null;
   /** Makes the header a sort button. The caller owns the order. */
   onSort?: () => void;
+  /** Rendered after the content, outside the sort button: a resize handle. */
+  after?: ReactNode;
   classNames?: SlotClassNames<"button" | "icon">;
   ref?: Ref<HTMLTableCellElement>;
 }
@@ -313,6 +322,7 @@ function TableHeaderCell({
   wrap = false,
   sort = null,
   onSort,
+  after,
   scope = "col",
   classNames,
   className,
@@ -369,6 +379,7 @@ function TableHeaderCell({
       ) : (
         children
       )}
+      {after}
     </th>
   );
 }

@@ -28,7 +28,7 @@ import {
   SelectionListbox,
   useSelectionPopup,
 } from "./selection-popup";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 /** Why the text in the field changed. Async callers fetch on `"input"` only. */
 export type ComboboxInputChangeReason = "input" | "select" | "reset" | "clear";
@@ -53,6 +53,12 @@ export const DEFAULT_COMBOBOX_LABELS: ComboboxLabels = {
   toggle: "Show options",
   clear: "Clear",
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Combobox: ComboboxLabels;
+  }
+}
 
 export interface ComboboxProps
   extends Omit<ComponentPropsWithRef<"input">, "value" | "defaultValue" | "type" | "size" | "children" | "name"> {
@@ -132,7 +138,7 @@ export function Combobox({
   form,
   ...props
 }: ComboboxProps) {
-  const labels = mergeLabels(DEFAULT_COMBOBOX_LABELS, labelsProp);
+  const labels = useLabels("Combobox", DEFAULT_COMBOBOX_LABELS, labelsProp);
   const field = useFieldControl({
     id: idProp,
     invalid: invalidProp,

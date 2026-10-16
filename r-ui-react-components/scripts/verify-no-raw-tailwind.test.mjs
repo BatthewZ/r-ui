@@ -70,6 +70,8 @@ describe("verify:no-raw-tailwind", { timeout: 30_000 }, () => {
       ["src/hooks/use-margin.ts", 2, "raw length -80px in `-80px`"],
       // A `.ts` file is read as TypeScript: a generic arrow does not hide the strings after it.
       ["src/components/demo/generic.ts", 3, "spacing default `p-4`"],
+      // A bare word is a class where a class context reaches it (the hoisted constant), and a word elsewhere.
+      ["src/components/demo/words.tsx", 3, "bare `shadow`"],
       // The showcase is held to the same vocabulary.
       ["showcase/Bad.tsx", 2, "spacing default `p-4`"], ["showcase/Bad.tsx", 2, "raw length 3rem in `w-[3rem]`"],
       ["showcase/Bad.tsx", 2, 'fixed line weight in `boxShadow: "0 0 0 1px var(--C-BORDER)"`'],
@@ -82,15 +84,16 @@ describe("verify:no-raw-tailwind", { timeout: 30_000 }, () => {
     // Comments are never class lists.
     expect(out).not.toMatch(/demo\/Bad\.tsx:2 /);
     expect(out).not.toMatch(/styles\.css:1 /);
+    expect(out).not.toMatch(/demo\/words\.tsx:2 /);
   });
 
-  it("passes the good fixture: tokens, 0, px, full, fractions, keywords, var() values, unit lengths, the layer scale, showcase example data, the token file and the allowance", () => {
+  it("passes the good fixture: tokens, 0, px, full, fractions, keywords, var() values, unit lengths, the layer scale, words in data, showcase example data, the token file and the allowance", () => {
     const result = run(join(HERE, "fixtures/raw-tailwind/good"));
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    // Good.tsx, both stylesheets, the hook and the showcase page: the token file and the example data are out of
-    // scope, and the overlays stylesheet holds the one allowance, exactly.
-    expect(result.stdout).toMatch(/OK \(5 file\(s\)/);
+    // Good.tsx, the word list, both stylesheets, the hook and the showcase page: the token file and the example
+    // data are out of scope, and the overlays stylesheet holds the one allowance, exactly.
+    expect(result.stdout).toMatch(/OK \(6 file\(s\)/);
   });
 
   it("allows a named default only when a @theme block declares that exact name", () => {

@@ -22,12 +22,14 @@
 //   5. nothing is clipped: no element that clips (overflow other than visible)
 //      holds more than its box shows, except a one-line truncation outside a
 //      table (it says so with an ellipsis), a form field's own value, a
-//      screen-reader-only box, and a table the showcase marks as wider than any
+//      screen-reader-only box, a clip around no text and no control (a drawing),
+//      and a table the showcase marks as wider than any
 //      page by design (`data-sc-scrolls`; counted in the result); the Dashboard's
 //      fixed scroll frame prints in the flow;
 //   6. every Accordion / Collapsible panel, closed ones included, has height and
 //      visible content (at least one closed panel is measured across the run);
-//      only the selected tab of a tab row prints; a VirtualizedTable prints no
+//      only the selected tab of a tab row prints; a windowed TreeView prints its mounted rows
+//      in flow with a partial-rows note; a VirtualizedTable prints no
 //      spacer rows and a note under its rows;
 //   7. `page.pdf()` renders each page to a PDF of more than one page.
 async (page) => {
@@ -38,6 +40,7 @@ async (page) => {
   const { errors, stop: stopErrors } = collectErrors(page);
   let closedPanels = 0;
   let virtualTables = 0;
+  let windowedTrees = 0;
   const dark = await darkTheme(page);
   // 3: what must not print.
   const GONE = [
@@ -119,6 +122,7 @@ async (page) => {
         panels: { total: 0, closed: 0, bad: [] },
         tabs: [],
         virtual: [],
+        trees: [],
         frame: null,
       };
 
@@ -164,6 +168,8 @@ async (page) => {
         if (!overX && !overY) continue;
         // A field's value scrolls inside the field by design.
         if (el.matches("input, textarea, select")) continue;
+        // A clip around no text and no control is a drawing (a partial star, a progress track).
+        if (!el.textContent.trim() && !el.querySelector("button, a, input, select, textarea, [tabindex]")) continue;
         // A one-line truncation is designed and says so with an ellipsis.
         if (!overY && s.textOverflow === "ellipsis" && !el.closest("td, th")) continue;
         // A demo the showcase marks as wider than a phone by design (the hostile
@@ -200,6 +206,16 @@ async (page) => {
         const spacers = [...t.querySelectorAll("tbody > tr[aria-hidden]:not([data-table-row])")].filter(boxed).length;
         const note = getComputedStyle(rootEl, "::after").content;
         out.virtual.push({ spacers, note: note === "none" ? "" : note, rows: t.querySelectorAll("tbody > tr[data-table-row]").length });
+      }
+      // A windowed tree (its rows inside a sizer): the rows it has print in flow, one under
+      // the next with nothing between, and a note says it holds more.
+      for (const tree of document.querySelectorAll('[role="tree"]:has(> [role="none"])')) {
+        if (!boxed(tree)) continue;
+        const rows = [...tree.querySelectorAll('[role="treeitem"]')].filter(boxed).map((r) => r.getBoundingClientRect());
+        const gaps = rows.slice(1).filter((r, i) => Math.abs(r.top - rows[i].bottom) > 1).length;
+        const sizer = tree.querySelector(':scope > [role="none"]').getBoundingClientRect();
+        const note = getComputedStyle(tree, "::after").content;
+        out.trees.push({ rows: rows.length, gaps, extra: Math.round(sizer.height - rows.reduce((sum, r) => sum + r.height, 0)), note: note === "none" ? "" : note });
       }
       return out;
     }, { gone: GONE, HEADER, TAB_ROWS });
@@ -246,8 +262,13 @@ async (page) => {
       if (v.spacers > 0) fail.push(`${label}: a VirtualizedTable prints ${v.spacers} spacer row(s)`);
       if (!v.note) fail.push(`${label}: a VirtualizedTable prints no partial-rows note`);
     }
+    for (const t of m.trees) {
+      if (t.rows === 0 || t.gaps > 0 || Math.abs(t.extra) > 1) fail.push(`${label}: a windowed tree prints ${t.rows} row(s) with ${t.gaps} gap(s) and ${t.extra}px of empty sizer`);
+      if (!t.note) fail.push(`${label}: a windowed tree prints no partial-rows note`);
+    }
     closedPanels += m.panels.closed;
     virtualTables += m.virtual.length;
+    windowedTrees += m.trees.length;
 
     // 7. A real PDF, more than one page long.
     const pdf = await page.pdf({ format: "A4" });
@@ -258,6 +279,7 @@ async (page) => {
   }
   if (closedPanels === 0) fail.push("no closed Accordion / Collapsible panel was measured: the disclosure assertion proved nothing");
   if (virtualTables === 0) fail.push("no VirtualizedTable was measured: the partial-rows assertion proved nothing");
+  if (windowedTrees === 0) fail.push("no windowed TreeView was measured: its print assertion proved nothing");
   for (const [sel, n] of Object.entries(onScreen)) {
     if (n === 0) fail.push(`harness: \`${sel}\` matches nothing on screen on any page, so its print assertion proved nothing`);
   }

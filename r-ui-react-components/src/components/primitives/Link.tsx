@@ -7,7 +7,7 @@ import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useLinkElement } from "../../util/router";
 import { safeUrl } from "../../util/url";
 import { cn, type SlotClassNames } from "../../util/style";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 export interface LinkLabels {
   /**
@@ -19,6 +19,12 @@ export interface LinkLabels {
 }
 
 export const DEFAULT_LINK_LABELS: LinkLabels = { newTab: "(opens in a new tab)" };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Link: LinkLabels;
+  }
+}
 
 export interface LinkOwnProps {
   /**
@@ -76,6 +82,7 @@ export function Link<C extends ElementType = "a">({
   ...props
 }: LinkProps<C>) {
   const hintId = useId();
+  const newTabLabel = useLabels("Link", DEFAULT_LINK_LABELS, labels).newTab;
   const safeHref = href === undefined ? undefined : safeUrl(href);
   const newTab = target === "_blank";
   const showExternal = external ?? newTab;
@@ -93,7 +100,6 @@ export function Link<C extends ElementType = "a">({
     <ExternalLink aria-hidden className={cn("ms-r6 inline size-icon align-text-bottom", classNames?.icon)} />
   );
 
-  const newTabLabel = mergeLabels(DEFAULT_LINK_LABELS, labels).newTab;
   const hint = newTab && newTabLabel ? newTabLabel : "";
 
   return (

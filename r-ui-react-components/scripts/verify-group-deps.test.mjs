@@ -33,10 +33,19 @@ describe("verify:group-deps", { timeout: 30_000 }, () => {
     expect(out).toMatch(/index → a {2}\(src\/index\.ts:1\)/);
   });
 
-  it("passes one-way imports; a test file and a comment add no edge", () => {
+  it("goes red on a class borrowed by name against the import direction", () => {
+    const result = run(join(HERE, "fixtures/group-deps/classes"));
+    expect(result.status).toBe(1);
+    const out = result.stderr;
+    expect(out).toMatch(/— 1 import cycle\(s\) between groups/);
+    expect(out).toMatch(/a ⇄ b/);
+    expect(out).toMatch(/b → a {2}\(src\/components\/b\/B\.tsx:2\)/);
+  });
+
+  it("passes one-way imports and class borrowing; a test file and a comment add no edge", () => {
     const result = run(join(HERE, "fixtures/group-deps/good"));
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toMatch(/OK \(4 groups, 3 cross-group edge\(s\), no cycle\)/);
+    expect(result.stdout).toMatch(/OK \(4 groups, 4 cross-group edge\(s\), no cycle\)/);
   });
 });

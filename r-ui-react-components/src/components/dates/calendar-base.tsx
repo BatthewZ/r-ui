@@ -35,7 +35,7 @@ import {
   weekdayNames,
   weekStartFor,
 } from "./date-core";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 
 /** Every string a calendar speaks that `Intl` does not supply. */
 export interface CalendarLabels {
@@ -60,6 +60,12 @@ export const DEFAULT_CALENDAR_LABELS: CalendarLabels = {
   inRange: "in range",
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Calendar: CalendarLabels;
+  }
+}
+
 /** What the selection model says about one day. */
 export interface DayState {
   selected?: boolean;
@@ -74,7 +80,7 @@ export type CalendarSlot = "months" | "month" | "caption" | "grid" | "weekday" |
 /** Props shared by `Calendar` and `RangeCalendar`. */
 export interface CalendarCommonProps
   extends Omit<ComponentPropsWithRef<"div">, "defaultValue" | "onChange" | "children"> {
-  /** BCP 47 tag for month and weekday names, day names and week start. Defaults to the runtime's. */
+  /** BCP 47 tag for month and weekday names, day names and week start. Defaults to the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
   /** First column, 0 = Sunday. Defaults to the locale's (from `Intl.Locale` week info). */
   weekStartsOn?: Weekday;
@@ -167,8 +173,8 @@ export function CalendarBase({
 }: CalendarBaseProps) {
   const field = useField();
   const disabled = disabledProp ?? field?.disabled ?? false;
-  const labels = mergeLabels(DEFAULT_CALENDAR_LABELS, labelsProp);
-  const locale = resolveLocale(localeProp);
+  const labels = useLabels("Calendar", DEFAULT_CALENDAR_LABELS, labelsProp);
+  const locale = resolveLocale(useLocale(localeProp));
   const weekStart = weekStartsOn ?? weekStartFor(locale);
   const maxMonths = Math.max(1, Math.floor(months));
   const today = startOfDay(new Date());

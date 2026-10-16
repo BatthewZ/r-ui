@@ -13,11 +13,25 @@ export {
   type TableSectionProps,
   type TableVariant,
 } from "./Table";
-export { type DataTableColumn, type RowKey, type SortState } from "./data-table-model";
+export {
+  type DataTableColumn,
+  type DataTableColumnFilter,
+  type DataTableFilterControl,
+  type DataTableFilterOption,
+  type DataTableFilters,
+  type RowKey,
+  type SortState,
+} from "./data-table-model";
 export { DataTable, type DataTableLabels, type DataTableProps, DEFAULT_DATA_TABLE_LABELS } from "./DataTable";
 export { VirtualizedTable, type VirtualizedTableProps } from "./VirtualizedTable";
 export { DEFAULT_STAT_CARD_LABELS, type Sentiment, StatCard, type StatCardLabels, type StatCardProps } from "./StatCard";
-export { type SeriesSlot, Sparkline, type SparklineProps } from "./Sparkline";
+export {
+  DEFAULT_SPARKLINE_LABELS,
+  type SeriesSlot,
+  Sparkline,
+  type SparklineLabels,
+  type SparklineProps,
+} from "./Sparkline";
 export { DEFAULT_METER_LABELS, Meter, type MeterLabels, type MeterProps, type MeterThreshold, type MeterTone, meterTone } from "./Meter";
 export { DescriptionList, type DescriptionListItemProps, type DescriptionListProps } from "./DescriptionList";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";

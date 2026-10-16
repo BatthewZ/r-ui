@@ -40,20 +40,26 @@ export interface InvalidSection {
 export const GROUP_ORDER = [
   "tokens",
   "primitives",
+  "feedback",
   "form",
   "dates",
   "disclosure",
   "overlays",
+  "toolbar",
   "commands",
   "data",
+  "filters",
+  "boards",
   "charts",
   "content",
   "navigation",
+  "guards",
   "steps",
   "layout",
   "marketing",
   "motion",
   "preferences",
+  "locale",
 ];
 
 const slug = (s: string) =>

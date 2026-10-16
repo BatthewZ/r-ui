@@ -49,3 +49,12 @@ export {
   type ContextMenuRadioItemProps,
   type ContextMenuTriggerProps,
 } from "./ContextMenu";
+export {
+  DEFAULT_HOVER_CARD_LABELS,
+  HoverCard,
+  type HoverCardContentProps,
+  type HoverCardLabels,
+  type HoverCardProps,
+  type HoverCardToggleProps,
+  type HoverCardTriggerProps,
+} from "./HoverCard";

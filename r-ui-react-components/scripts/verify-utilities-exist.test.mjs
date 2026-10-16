@@ -36,6 +36,8 @@ describe("verify:utilities-exist", { timeout: 30_000 }, () => {
       // Class-named tables used as classes: in this file, and from another file.
       /Tables\.tsx:3 {2}`no-such-row` is neither a utility nor a class/,
       /Tables\.tsx:4 {2}`no-such-tone` is neither a utility nor a class/,
+      // Imported under an alias: matched by the name the module exports.
+      /Tables\.tsx:6 {2}`no-such-size` is neither a utility nor a class/,
       // A class-named table nobody uses as classes is still checked for utilities.
       /Tables\.tsx:5 {2}`font-black` generates no CSS/,
       // A `.ts` file is read as TypeScript: a generic arrow does not hide what follows it.
@@ -50,13 +52,13 @@ describe("verify:utilities-exist", { timeout: 30_000 }, () => {
     expect(out).not.toMatch(/Bad\.tsx:2 /);
     // The values tested in front of those branches are not classes.
     expect(out).not.toMatch(/`(wide|narrow)`/);
-    expect(out).toMatch(/— 17 dead class\(es\)/);
+    expect(out).toMatch(/— 18 dead class\(es\)/);
   });
 
-  it("passes the good fixture: tokens, variants, markers, package classes, followed constants, defaults behind comparisons, a class-named table of labels", () => {
+  it("passes the good fixture: tokens, variants, markers, package classes, followed constants, defaults behind comparisons, a class-named table of labels, a same-named local class list elsewhere", () => {
     const result = run(join(HERE, "fixtures/utilities-exist/good"));
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toMatch(/OK \(\d+ class token\(s\) in 4 file\(s\)\)/);
+    expect(result.stdout).toMatch(/OK \(\d+ class token\(s\) in 5 file\(s\)\)/);
   });
 });

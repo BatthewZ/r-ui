@@ -3,15 +3,30 @@ import { type ComponentPropsWithRef, type MouseEvent, type ReactNode } from "rea
 
 import { Alert, Link } from "../primitives";
 import { mergeRefs } from "../../util/merge-refs";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { cn } from "../../util/style";
 
 import { useStoreSnapshot } from "../../hooks/use-store-snapshot";
 import { useFormStore } from "./form-state-context";
 import { compareDocumentOrder, type FormErrorEntry } from "./form-state-store";
 
+export interface ErrorSummaryLabels {
+  /** The headline when no `title` is given. */
+  title: string;
+}
+
+export const DEFAULT_ERROR_SUMMARY_LABELS: ErrorSummaryLabels = { title: "Fix these to continue" };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    ErrorSummary: ErrorSummaryLabels;
+  }
+}
+
 export interface ErrorSummaryProps extends Omit<ComponentPropsWithRef<"div">, "title" | "children"> {
-  /** The headline, in the caller's language. */
+  /** This summary's own headline (rich content); wins over `labels.title`. */
   title?: ReactNode;
+  labels?: LabelsProp<ErrorSummaryLabels>;
 }
 
 const NONE: FormErrorEntry[] = [];
@@ -33,7 +48,8 @@ function byDomOrder(entries: FormErrorEntry[]): Array<FormErrorEntry & { element
  * their fields are fixed, and the summary leaves with the last one.
  * Render it inside `Form`, above the fields.
  */
-export function ErrorSummary({ title = "Fix these to continue", className, ref, ...props }: ErrorSummaryProps) {
+export function ErrorSummary({ title, labels, className, ref, ...props }: ErrorSummaryProps) {
+  const headline = useLabels("ErrorSummary", DEFAULT_ERROR_SUMMARY_LABELS, labels).title;
   const store = useFormStore();
   const failed = useStoreSnapshot(store, (form) => form.getFormSnapshot().submitFailed) ?? false;
   const entries = useStoreSnapshot(store, (form) => form.getErrorEntries()) ?? NONE;
@@ -48,7 +64,7 @@ export function ErrorSummary({ title = "Fix these to continue", className, ref, 
   };
 
   return (
-    <Alert ref={mergeRefs(ref, store.registerSummary)} tabIndex={-1} tone="error" title={title} className={cn("scroll-m-r2", className)} {...props}>
+    <Alert ref={mergeRefs(ref, store.registerSummary)} tabIndex={-1} tone="error" title={title ?? headline} className={cn("scroll-m-r2", className)} {...props}>
       <ul className="grid gap-r6">
         {byDomOrder(entries).map(({ path, message, field, element }) => {
           const label = field?.getLabel();

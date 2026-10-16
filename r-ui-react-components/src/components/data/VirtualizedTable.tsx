@@ -4,7 +4,26 @@ import type { CSSProperties } from "react";
 import { cn } from "../../util/style";
 import { type DataTableProps, DataTableView } from "./DataTable";
 
-export interface VirtualizedTableProps<Row> extends DataTableProps<Row> {
+/**
+ * What a virtual window cannot hold: a detail row breaks the one-`--ROW-H`
+ * arithmetic the window is built on, and pages are what the window replaces.
+ */
+type WindowedOut =
+  | "renderDetail"
+  | "expandedKeys"
+  | "defaultExpandedKeys"
+  | "onExpandedKeysChange"
+  | "pageSize"
+  | "defaultPageSize"
+  | "onPageSizeChange"
+  | "pageSizeOptions"
+  | "page"
+  | "defaultPage"
+  | "onPageChange"
+  | "manualPagination"
+  | "rowCount";
+
+export interface VirtualizedTableProps<Row> extends Omit<DataTableProps<Row>, WindowedOut> {
   /**
    * How many rows the viewport shows; its height is that many `--ROW-H` plus
    * the head, so it follows density and input. A height in `className` wins.
@@ -26,8 +45,13 @@ export interface VirtualizedTableProps<Row> extends DataTableProps<Row> {
  * the window arithmetic is exact. Columns size by their `width`; the rest
  * share what is left.
  *
- * Select-all spans the whole dataset, not the mounted window. The table
- * carries `aria-rowcount` and each row its `aria-rowindex`.
+ * Select-all spans every row that passes the filters, not the mounted window.
+ * The table carries `aria-rowcount` and each row its `aria-rowindex` (a filter
+ * row is the head's second row). Column filters, the columns menu, resizable
+ * and sticky columns and the bulk bar work as in `DataTable`; a filter row
+ * takes a row of the viewport's height. Expandable rows and pages do not
+ * exist here: a detail row would break the fixed row height the window's
+ * arithmetic needs, and the window is the alternative to pages.
  */
 export function VirtualizedTable<Row>({
   visibleRows = 12,

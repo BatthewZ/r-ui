@@ -1,6 +1,6 @@
 "use client";
 import { Minus, Plus } from "lucide-react";
-import { type ChangeEvent, type FocusEvent, type KeyboardEvent, useState } from "react";
+import { type ChangeEvent, type FocusEvent, type KeyboardEvent } from "react";
 
 import { formatNumber, type FormatNumberOptions } from "../../util/format";
 import { composeEventHandlers } from "../../util/merge-props";
@@ -8,8 +8,9 @@ import { cn } from "../../util/style";
 
 import { useField, useFieldValue } from "./Field";
 import { Input, type InputProps, keepFocus } from "./Input";
+import { clampNumber, MAX_DIGITS, roundTo, useNumberDraft } from "./number-draft";
 import { parseLocaleNumber } from "./number-locale";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 
 export interface NumberInputProps
   extends Omit<InputProps, "type" | "value" | "defaultValue" | "inputMode" | "role" | "min" | "max" | "step"> {
@@ -24,7 +25,7 @@ export interface NumberInputProps
   step?: number;
   /** Fraction digits a committed value is rounded to. Unrounded when omitted. */
   precision?: number;
-  /** BCP 47 locale for display and for reading typed text. Runtime default when omitted. */
+  /** BCP 47 locale for display and for reading typed text. Omitted: the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
   /** Display options, e.g. `{ minimumFractionDigits: 2 }`. Grouping is on by default. */
   formatOptions?: Pick<FormatNumberOptions, "minimumFractionDigits" | "maximumFractionDigits" | "useGrouping">;
@@ -42,20 +43,16 @@ export const DEFAULT_NUMBER_INPUT_LABELS: NumberInputLabels = {
   decrement: "Decrease",
 };
 
-const MAX_DIGITS = 20;
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    NumberInput: NumberInputLabels;
+  }
+}
 
 function decimalsOf(n: number): number {
   const [, fraction = ""] = String(n).split(".");
   return Math.min(fraction.length, MAX_DIGITS);
 }
-
-function clamp(n: number, min: number | undefined, max: number | undefined) {
-  if (min !== undefined && n < min) return min;
-  if (max !== undefined && n > max) return max;
-  return n;
-}
-
-const roundTo = (n: number, digits: number) => Number(n.toFixed(Math.min(digits, MAX_DIGITS)));
 
 /**
  * A number field with steppers. ARIA `spinbutton`: ArrowUp/Down step,
@@ -71,7 +68,7 @@ export function NumberInput({
   max,
   step = 1,
   precision,
-  locale,
+  locale: localeProp,
   formatOptions,
   labels: labelsProp,
   end,
@@ -82,7 +79,8 @@ export function NumberInput({
   onBlur,
   ...props
 }: NumberInputProps) {
-  const labels = mergeLabels(DEFAULT_NUMBER_INPUT_LABELS, labelsProp);
+  const labels = useLabels("NumberInput", DEFAULT_NUMBER_INPUT_LABELS, labelsProp);
+  const locale = useLocale(localeProp);
   const field = useField();
   // In a Field bound to a Form, the form owns the number (unless the caller passed one).
   const [current, setValue] = useFieldValue<number | null>({
@@ -91,8 +89,6 @@ export function NumberInput({
     onChange: onValueChange,
     fromForm: (raw) => (typeof raw === "number" && Number.isFinite(raw) ? raw : null),
   });
-  // The text being edited, or `null` when the field shows the committed value.
-  const [draft, setDraft] = useState<string | null>(null);
   const locked =
     (props.disabled ?? field?.disabled) === true || (props.readOnly ?? field?.readOnly) === true;
 
@@ -106,19 +102,17 @@ export function NumberInput({
 
   const settle = (n: number) => {
     const rounded = precision === undefined ? n : roundTo(n, precision);
-    return clamp(rounded, min, max);
+    return clampNumber(rounded, min, max);
   };
 
-  /** Commits an edited draft. Returns whether the field may show the committed value again. */
-  const commit = (text: string): boolean => {
-    // Unedited: the display may hold fewer digits than the value (`formatOptions`), so re-reading it would change it.
-    if (text === format(current)) return true;
-    const parsed = parseLocaleNumber(text, locale);
-    // Unreadable text: keep the last good value; leaving the field shows it again.
-    if (Number.isNaN(parsed)) return false;
-    setValue(parsed === null ? null : settle(parsed));
-    return true;
-  };
+  const { draft, setDraft, text, commitDraft, ...edit } = useNumberDraft({
+    current,
+    setValue,
+    format,
+    parse: (typed) => parseLocaleNumber(typed, locale),
+    settle,
+    locked,
+  });
 
   const stepBy = (steps: number) => {
     if (locked) return;
@@ -146,10 +140,7 @@ export function NumberInput({
       PageDown: () => stepBy(-10),
       Home: () => jumpTo(min),
       End: () => jumpTo(max),
-      Enter: () => {
-        // The field then shows what was committed (rounded, clamped), not what was typed.
-        if (draft !== null && !locked && commit(draft)) setDraft(null);
-      },
+      Enter: commitDraft,
     };
     const action = actions[event.key];
     if (!action) return;
@@ -173,15 +164,10 @@ export function NumberInput({
       aria-valuetext={current === null ? undefined : format(current)}
       aria-valuemin={min}
       aria-valuemax={max}
-      value={draft ?? format(current)}
-      onFocus={composeEventHandlers(onFocus, (event: FocusEvent<HTMLInputElement>) => {
-        if (!locked) setDraft(event.target.value);
-      })}
-      onChange={composeEventHandlers(onChange, (event: ChangeEvent<HTMLInputElement>) => setDraft(event.target.value))}
-      onBlur={composeEventHandlers(onBlur, () => {
-        if (draft !== null && !locked) commit(draft);
-        setDraft(null);
-      })}
+      value={text}
+      onFocus={composeEventHandlers(onFocus, (event: FocusEvent<HTMLInputElement>) => edit.onFocus(event.target.value))}
+      onChange={composeEventHandlers(onChange, (event: ChangeEvent<HTMLInputElement>) => edit.onChange(event.target.value))}
+      onBlur={composeEventHandlers(onBlur, edit.onBlur)}
       onKeyDown={handleKeyDown}
       classNames={{ ...classNames, input: cn("tabular-nums", classNames?.input), end: cn("self-stretch", classNames?.end) }}
       end={

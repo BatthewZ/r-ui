@@ -4,7 +4,7 @@ import { Check, CircleAlert, Copy, type LucideIcon } from "lucide-react";
 import { type MouseEvent, type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 
 import { mergeRefs } from "../../util/merge-refs";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Button, IconButton, type IconButtonProps } from "../primitives";
 
@@ -23,6 +23,12 @@ export interface CopyButtonLabels {
 }
 
 export const DEFAULT_COPY_BUTTON_LABELS: Readonly<CopyButtonLabels> = { copy: "Copy", copied: "Copied", failed: "Copy failed" };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    CopyButton: CopyButtonLabels;
+  }
+}
 
 export type CopyButtonProps = {
   /** The text that goes on the clipboard. */
@@ -121,7 +127,7 @@ export function CopyButton({
   ref,
   ...props
 }: CopyButtonProps) {
-  const text = mergeLabels(DEFAULT_COPY_BUTTON_LABELS, labels);
+  const text = useLabels("CopyButton", DEFAULT_COPY_BUTTON_LABELS, labels);
   const [state, setState] = useState<CopyState>("idle");
   // Flips each time, so a second identical announcement is still a change.
   const [nonce, setNonce] = useState(false);

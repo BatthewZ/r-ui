@@ -3,7 +3,7 @@ import { type HTMLAttributes, type ReactNode, type Ref, useId } from "react";
 
 import { formatNumber, isPresent, MISSING } from "../../util/format";
 import { cn, type SlotClassNames } from "../../util/style";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 import { type Tone, TONE_LABELS } from "../../util/tone";
 import { STATUS_FILL, StatusIcon } from "./data-tone";
 
@@ -21,6 +21,12 @@ export interface MeterLabels {
 }
 
 export const DEFAULT_METER_LABELS: MeterLabels = { tones: TONE_LABELS };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Meter: MeterLabels;
+  }
+}
 
 export interface MeterProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   value: number | null | undefined;
@@ -64,7 +70,8 @@ export function meterTone(value: number, thresholds: readonly MeterThreshold[], 
  * A value within a known range (CPU, error budget, quota), with
  * thresholds that map to status tones. A tone shows as the fill colour AND a
  * distinct icon beside the value, and is spoken in `aria-valuetext`, so it is
- * never colour alone. `role="meter"` (not progressbar: nothing is loading).
+ * never colour alone. `role="meter"`: it moves both ways and is never done.
+ * Work toward done (an upload, a migration) is a `ProgressBar` instead.
  */
 export function Meter({
   value,
@@ -88,8 +95,9 @@ export function Meter({
   // Only the fill clamps: the text says the real share, so 140 of 100 reads "140%", not "100%".
   const ratio = Math.min(1, Math.max(0, share));
   const tone = present ? meterTone(value, thresholds, worse) : "neutral";
-  const text = valueText ?? (present ? formatNumber(share, { style: "percent", maximumFractionDigits: 0 }) : MISSING);
-  const word = mergeLabels(DEFAULT_METER_LABELS, labelsProp).tones[tone];
+  const locale = useLocale();
+  const text = valueText ?? (present ? formatNumber(share, { locale, style: "percent", maximumFractionDigits: 0 }) : MISSING);
+  const word = useLabels("Meter", DEFAULT_METER_LABELS, labelsProp).tones[tone];
   const spoken = word ? `${text}, ${word}` : text;
   const showIcon = tone !== "neutral";
 

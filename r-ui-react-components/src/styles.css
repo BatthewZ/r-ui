@@ -38,6 +38,10 @@
 @import "./components/marketing/styles.css" layer(components);
 @import "./components/steps/styles.css" layer(components);
 @import "./components/commands/styles.css" layer(components);
+@import "./components/feedback/styles.css" layer(components);
+@import "./components/toolbar/styles.css" layer(components);
+@import "./components/filters/styles.css" layer(components);
+@import "./components/boards/styles.css" layer(components);
 @import "./print.css" layer(components);
 
 /* Register this package's sources so the utilities the components use are

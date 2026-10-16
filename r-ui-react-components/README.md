@@ -16,21 +16,26 @@ colours, KPI sizing).
 
 | Group | Components |
 |---|---|
-| primitives | `Button`, `IconButton`, `Badge`, `StatusLabel`, `Card`, `Alert`, `Spinner`, `Skeleton`, `Kbd`, `Divider`, `Avatar`, `Link` |
-| form | `Field`, `Input`, `Textarea`, `Select`, `SearchInput`, `Checkbox`, `RadioGroup` (+ `Radio`), `Switch`, `SegmentedControl`, `NumberInput`, `Combobox`, `MultiSelect`, `TagInput`, `FileUpload`, `OTPInput`, `ColorPicker`; form state: `useForm` + `Form`, `useFieldArray`, `ErrorSummary`, `FormActions` |
-| overlays | `Tooltip`, `Popover`, `DropdownMenu`, `ContextMenu`, `Dialog`, `Drawer`, `ToastProvider` + `useToast` |
+| primitives | `Button`, `IconButton`, `Badge`, `StatusLabel`, `Chip`, `Card`, `Alert`, `Spinner`, `Skeleton`, `Kbd`, `Divider`, `Avatar`, `AvatarGroup`, `Link` |
+| form | `Field`, `Input`, `Textarea`, `Select`, `SearchInput`, `Checkbox`, `RadioGroup` (+ `Radio`), `Switch`, `SegmentedControl`, `NumberInput`, `CurrencyInput`, `PasswordInput` (strength meter), `MaskedInput`, `Combobox`, `MultiSelect`, `TagInput`, `FileUpload`, `AvatarUpload` (crop and upload), `OTPInput`, `ColorPicker`, `Slider`, `RangeSlider`, `Rating`; form state: `useForm` + `Form`, `useFieldArray`, `ErrorSummary`, `FormActions` |
+| overlays | `Tooltip`, `Popover`, `HoverCard`, `DropdownMenu`, `ContextMenu`, `Dialog`, `Drawer`, `ToastProvider` + `useToast` |
 | commands | `CommandPalette` + `useCommandPaletteShortcut` |
-| data | `Table`, `DataTable`, `VirtualizedTable`, `StatCard`, `Sparkline`, `Meter`, `DescriptionList`, `EmptyState`, `Timeline`, `ActivityFeed` |
-| navigation | `AppShell`, `Tabs`, `Breadcrumbs`, `Pagination`, `NavList`, `RouterProvider` |
-| layout | `Stack`, `Inline`, `Grid`, `Container`, `Section`, `Prose` |
+| data | `Table`, `DataTable` (detail rows, columns menu, resizing, filters, pages, pinned columns, bulk actions), `VirtualizedTable`, `StatCard`, `Sparkline`, `Meter`, `DescriptionList`, `EmptyState`, `Timeline`, `ActivityFeed` |
+| navigation | `AppShell`, `Tabs`, `Breadcrumbs`, `Pagination`, `NavList`, `TreeView` (lazy, tri-state, windowed), `RouterProvider` |
+| layout | `Stack`, `Inline`, `Grid`, `Container`, `Section`, `Prose`, `ScrollPanel`, `Splitter` |
 | preferences | `ThemeSwitcher`, `DensitySwitcher`, `InputSwitcher`, `PreferencesMenu`, `ThemeScript` |
 | motion | `ScrollReveal`, `Stagger`, `startViewTransition` / `useViewTransition` |
 | disclosure | `Collapsible`, `Accordion` |
 | charts | `LineChart`, `BarChart`, `Heatmap` (hand-rolled SVG, a table behind every chart) |
 | content | `CopyButton`, `CodeBlock`, `Markdown` |
-| dates | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker` |
+| dates | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker` (dates, or dates and times with `withTime`), `TimeField`, `TimePicker` |
 | steps | `Stepper`, `Wizard` |
 | marketing | `Hero`, `MediaCard`, `Carousel` |
+| feedback | `ProgressBar`, `ProgressRing`, `Banner`, `ErrorBoundary` (+ `ErrorFallback`) |
+| toolbar | `Toolbar` (+ `Item`, `Group`, `Separator`), `ToggleGroup` |
+| filters | `FilterBar` (+ `filtersToSearchParams` / `searchParamsToFilters`) |
+| guards | `RequireAuth` |
+| boards | `Kanban` (WIP limits; pointer, touch and keyboard moves) |
 
 Pages print as ink on paper in every theme: the shell's navigation, menus and controls drop
 out, tables repeat their heads, closed panels print open. Mark your own screen-only parts
@@ -146,6 +151,23 @@ Every control in the library binds through the `Field` it sits in; a failed subm
 the first invalid field. Dates are calendar dates (`Date` at local midnight) and submit as
 `YYYY-MM-DD`.
 
+A form in a box of capped height (a settings panel, a side sheet) scrolls its fields and
+keeps the actions below the scroller, so the scrollbar stops at them:
+
+```tsx
+<Form form={form}>
+  <ScrollPanel className="max-h-[calc(var(--CONTROL-H)*10)] rounded-md border bg-surface-0">
+    <ScrollPanel.Body>{/* fields */}</ScrollPanel.Body>
+    <ScrollPanel.Footer>
+      <FormActions><FormActions.Submit>Save</FormActions.Submit></FormActions>
+    </ScrollPanel.Footer>
+  </ScrollPanel>
+</Form>
+```
+
+A long form in the page's own scroll keeps its actions in view with
+`<FormActions sticky>` instead.
+
 ### Your router, set once
 
 ```tsx
@@ -171,6 +193,43 @@ export function Root() {
 `Link`, `NavList.Item`, `AppShell.NavItem` / `Brand`, `Breadcrumbs.Item` and `Pagination`
 (with `getHref`) then render your router's link and mark the current page; an explicit `as`
 or `current` still wins.
+
+### Locale and translations, set once
+
+Every component with words of its own reads them, and the locale it formats numbers, dates
+and relative times in, from the nearest `LocaleProvider`:
+
+```tsx
+import { type LocaleLabels, LocaleProvider } from "@batthewz/r-ui-react-components";
+
+// Module scope (or useMemo): a new object re-renders every labelled component.
+const GERMAN: LocaleLabels = {
+  Dialog: { close: "Schließen" },
+  Pagination: { previous: "Vorherige Seite", next: "Nächste Seite", page: (n) => `Seite ${n}` },
+  Alert: { tones: { error: "Fehler" } },
+};
+
+<LocaleProvider locale="de-DE" labels={GERMAN}>
+  <App />
+</LocaleProvider>;
+```
+
+- **Keys** are component names, the `X` of each exported `XLabels` / `DEFAULT_X_LABELS`
+  (`Dialog`, `Pagination`; the charts share `Chart`, the preference controls
+  `PreferencesMenu`). Each value is any subset of that component's labels, and a map such as
+  `tones` may be given in part. A wrong key or label name is a type error.
+- **Precedence:** the English defaults < each enclosing provider, outer to inner < the
+  component's own `labels` prop. A component's `locale` prop beats the provider's locale.
+- **Nesting:** an inner provider overrides only what it sets; the rest comes from the one
+  around it. `dir="rtl"` (or `"ltr"`) switches a subtree's direction through a
+  `display: contents` wrapper that also carries `lang`; the page's own direction belongs on
+  `<html dir>`.
+- **Your own components** read the same values: `useLocale()` returns the locale to format
+  with (`undefined` means the runtime's default), e.g. `formatNumber(n, { locale })`.
+- Label functions receive raw numbers, so a translation can choose its plural form and
+  format the number in its own locale (`Combobox: { results: (n) => … }`).
+- Put the provider outside `ToastProvider` (and anything else that renders components for
+  you), so those components sit inside it.
 
 ### Check your theme
 
@@ -209,7 +268,7 @@ has a browser check in `scripts/browser/`.
 
 Subpath imports: `@batthewz/r-ui-react-components/components/<group>` (primitives, form,
 overlays, commands, data, navigation, layout, preferences, motion, disclosure, charts, content,
-dates, steps, marketing), `/hooks/<name>` (for example `/hooks/use-floating`,
+dates, steps, marketing, feedback, toolbar), `/hooks/<name>` (for example `/hooks/use-floating`,
 `/hooks/use-preferences`) and `/theme-script` (the pre-paint script and preference helpers,
 no React).
 

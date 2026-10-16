@@ -1,9 +1,10 @@
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 
-import { type DateRange, DateRangePicker, type DateRangePreset, toISODate } from "../../../src/components/dates";
+import { type DateRange, DateRangePicker, type DateRangePreset, toISODate, toISODateTime } from "../../../src/components/dates";
 import { Field } from "../../../src/components/form";
 import { Card, IconButton } from "../../../src/components/primitives";
+import { LocaleProvider } from "../../../src/util/locale";
 import { day, Grid, Row, Stack } from "./parts/demo";
 
 export const meta = {
@@ -11,7 +12,7 @@ export const meta = {
   group: "dates",
   order: 30,
   description:
-    "The dashboard time range: a toolbar control at h-control showing the range compactly, quick ranges beside typed start/end fields and a RangeCalendar. A preset applies at once; a custom range on Apply.",
+    "The dashboard time range: a toolbar control at h-control showing the range compactly, quick ranges beside typed start/end fields and a RangeCalendar. A preset applies at once; a custom range on Apply. `withTime` adds a TimeField beside each end.",
 };
 
 const shown = (v: DateRange<Date> | null) =>
@@ -38,6 +39,26 @@ function ToolbarCard() {
   );
 }
 
+/** The dashboard's range with times of day: presets roll to now, a custom range keeps its times. */
+function TimedToolbarCard() {
+  const [range, setRange] = useState<DateRange<Date> | null>({ start: new Date(2026, 9, 15, 9, 0), end: new Date(2026, 9, 15, 17, 30) });
+  return (
+    <Card data-density="compact" data-sc="range-time-card" className="max-w-column-lg overflow-hidden">
+      <Card.Header>
+        <Card.Title>Error rate</Card.Title>
+        <Card.Actions>
+          <DateRangePicker aria-label="Time range" withTime value={range} onValueChange={setRange} locale="en-US" name="window" />
+        </Card.Actions>
+      </Card.Header>
+      <Card.Body>
+        <output className="text-body-2 text-fg-secondary [overflow-wrap:anywhere]" data-sc="range-time-value">
+          {range ? `${toISODateTime(range.start)} → ${toISODateTime(range.end)}${range.preset ? ` (${range.preset})` : ""}` : "—"}
+        </output>
+      </Card.Body>
+    </Card>
+  );
+}
+
 const SHIFTS: DateRangePreset[] = [
   { id: "today", label: "Today", range: (now) => ({ start: new Date(now.getFullYear(), now.getMonth(), now.getDate()), end: new Date(now.getFullYear(), now.getMonth(), now.getDate()) }) },
   { id: "q4", label: "Q4 2026", range: () => ({ start: day(10, 1), end: day(12, 31) }) },
@@ -49,6 +70,25 @@ export default function DateRangePickerSection() {
     <Stack>
       <Row label="Dashboard toolbar in a compact card that clips">
         <ToolbarCard />
+      </Row>
+
+      <Row label="With times of day (withTime): a working day 09:00 → 17:30, presets that end now, wall-clock times with their offset">
+        <TimedToolbarCard />
+      </Row>
+
+      <Row label="24-hour times from a LocaleProvider (en-GB), in a Field">
+        <LocaleProvider locale="en-GB">
+          <Field data-sc="range-time-24h">
+            <Field.Label>Incident window</Field.Label>
+            <DateRangePicker
+              withTime
+              timeStep={5}
+              defaultValue={{ start: new Date(2026, 9, 14, 22, 40), end: new Date(2026, 9, 15, 1, 5) }}
+              className="justify-self-start"
+            />
+            <Field.Description>Across midnight; minutes step by 5.</Field.Description>
+          </Field>
+        </LocaleProvider>
       </Row>
 
       <Row label="In a Field · custom range · native submit as an ISO interval">

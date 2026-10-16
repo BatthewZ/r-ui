@@ -76,6 +76,9 @@ describe("Timeline", () => {
     expect(within(renewed as HTMLElement).queryByText("Success")).toBeNull();
     expect(note?.querySelector("[data-timeline-mark] svg")).toBeNull();
     expect(note?.querySelector(".r-data-timeline-dot")).not.toBeNull();
+    // The stylesheet sizes the thread to the mark's drawn edge by its kind.
+    expect(errorMark).toHaveAttribute("data-timeline-mark", "disc");
+    expect(note?.querySelector("[data-timeline-mark]")).toHaveAttribute("data-timeline-mark", "dot");
     expect(note?.querySelector("[data-timeline-status]")).toBeNull();
   });
 

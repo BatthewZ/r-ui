@@ -118,6 +118,20 @@ Round 4 (verification fixes; the package's first version is now `0.1.0`):
 - Requires `@batthewz/r-ui-css` with `--LINK-UNDERLINE-OFFSET` (`Link`'s underline offset
   reads it).
 
+Round 5:
+
+- `CarouselLabels` gains `carousel` and `slideRole` (the `aria-roledescription`s, which were
+  hard-coded English): a complete `CarouselLabels` object you build yourself needs them
+  (the `labels` prop still takes any subset).
+- `DataTableLabels` gains `detailsColumn`, `details`, `columns`, `resizeColumn`,
+  `filterColumn`, `filterAll`, `clearFilters`, `noMatches`, `selectedCount`, `bulkActions`,
+  `clearSelection`, `rowsPerPage` and `pageRange`, and `DateRangePickerLabels` gains
+  `startTime` and `endTime`: the same applies (a complete object you build needs them).
+- The chip look is the new `Chip` (primitives): the selection inputs' and FilterBar's chips
+  render `.r-primitives-chip` / `.r-primitives-chip-remove`, and `.r-form-chip` /
+  `.r-form-chip-remove` (and FilterBar's `.r-filters-chip`) are gone. A stylesheet of yours
+  that targeted them renames; the `classNames.chip` slots are unchanged.
+
 ### Added
 
 #### Package
@@ -440,6 +454,154 @@ Round 4 (verification fixes; the package's first version is now `0.1.0`):
   `scripts/`. Browser checks share a prelude (theme list by property, error collector,
   per-script reset; its `resetShowcase` no longer uses `URL`, which run-code's scope lacks, so
   every check failed before this), and a new `navigation-focus` check.
+
+#### Round 5: locale provider, ScrollPanel
+
+Additive, except one type-level change (below, under Breaking).
+
+- `LocaleProvider` (`locale`, `labels`, `dir`) sets the locale and translations once for
+  everything beneath it. `labels` is keyed by component (`{ Dialog: { close: "Schließen" } }`,
+  type `LocaleLabels`; the key is the `X` of `XLabels`, so the charts share `Chart` and the
+  preference controls `PreferencesMenu`), and a wrong key or label name is a type error.
+  Precedence: defaults < providers (outer to inner, merged key by key) < a component's own
+  `labels`. Nested providers inherit what they do not set; `dir` renders a
+  `display: contents` wrapper with `dir` and `lang`. Every labelled component reads it
+  (`useLabels`, exported for your own components, with `LabelsProp` and `LabelsRegistry`).
+- `useLocale(locale?)`: the component's own `locale`, else the provider's, else the
+  runtime's. Every component that formats reads it: `Calendar`, `RangeCalendar`,
+  `DatePicker`, `DateRangePicker`, `Timeline`, `NumberInput`, the charts (each keeps its
+  `locale` prop, which wins), and `Pagination`, `StatCard`, `Sparkline`, `Meter`,
+  `FileUpload` (sizes, progress), `ColorPicker`'s contrast ratio and `DataTable` (numeric
+  cells and its text sort's collation), which formatted in the runtime's locale before.
+- New labels for strings that had none: `Sparkline` (`labels.noData`, `labels.summary`),
+  `ErrorSummary` (`labels.title`; a `title` still wins), `Carousel`
+  (`labels.carousel`, `labels.slideRole`: the `aria-roledescription`s).
+- `ScrollPanel` (layout): a bounded column whose `Body` alone scrolls and whose `Footer`
+  (an action row) sits below the scroller, so a boxed panel's scrollbar stops at its
+  actions. `FormActions sticky` stays for a long form in the page's own scroll; tables keep
+  their sticky head in their own scroller. The FormActions demo uses the panel.
+- `OTPInput` with `mask`: while focused, the first box no longer shows a second dot. A
+  filled box is a one-character selection of the real input, and the contract's
+  `::selection` inked that character over the boxes; the input's selection is now
+  transparent, its autofill paint hidden, and Edge's password reveal button removed.
+
+#### Round 5: sliders, feedback, times of day, DataTable features, toolbar
+
+Additive (the label sets that grew are under Breaking).
+
+- **Form.** `Slider` (one thumb; marks with labels, a value bubble while dragging or keyed,
+  vertical, `onValueCommit` once per gesture); `RangeSlider` (+ `RangeSliderValue`; two
+  thumbs that push, never cross, a press on a stacked pair picks the thumb by drag
+  direction); `Rating` (one slider tab stop in half or whole steps, "No rating" to clear,
+  hover preview; `readOnly` is an image named "4.5 out of 5", drawn at any fraction). All
+  three are Field-bound and RTL-aware. `ColorPicker`'s own sliders share their pointer and
+  key handling.
+- **Feedback (new group).** `ProgressBar` (continuous or segmented; indeterminate sweeps,
+  and under reduced motion stands still as stripes; the value is floored so unfinished work
+  never reads 100%); `ProgressRing` (icon, control and large sizes, a centre slot);
+  `Banner` (a named region, `role="alert"` when `urgent`; `top`, inline or `sticky`;
+  dismissal remembered under a `dismissKey` in guarded storage, other tabs following);
+  `ErrorBoundary` + `ErrorFallback` (`resetKeys`, `onError`, `onReset`, opt-in `details`;
+  a retry that fails again keeps focus on the new fallback's button). `ProgressBar` is work
+  toward done; `Meter` stays a measured value that moves both ways.
+- **Dates.** `TimeField` (spinbutton segments in the locale's order, digits and clock, typed,
+  arrowed and pasted; `name` submits wall-clock `HH:mm`; `min`/`max` (a window across
+  midnight too), `step`, `withSeconds`, `hourCycle`); `TimePicker` (a TimeField with a list
+  of times, centred on the value); `toISODateTime`. `DateRangePicker` gains `withTime`,
+  `timeStep` and `hourCycle` (the ends are local instants and the wire carries the UTC
+  offset) and a preset's `range(now, context)`. A skipped DST time moves forward by the
+  gap; a repeated one is the earlier instant. `DatePicker`'s calendar button does not print.
+- **DataTable.** Detail rows (`renderDetail`, `expandedKeys`); a columns menu
+  (`columnsMenu`, `visibleColumns`; required columns and the last one cannot hide);
+  resizable columns (`resizableColumns`, `columnWidths`; a separator by drag, arrows,
+  Home/End, a double click resets; `DEFAULT_COLUMN_MIN`/`MAX`); a sticky bulk-actions bar
+  (`bulkActions(keys)`); column filters (`column.filter` text, select or custom, `filters`,
+  `manualFiltering`, clear all, a no-matches state); pages (`pageSize`, `page`,
+  `pageSizeOptions`, `manualPagination`, `rowCount`); pinned columns (`stickyColumns`).
+  Types `DataTableColumnFilter`, `DataTableFilterOption`, `DataTableFilterControl`,
+  `DataTableFilters`. `Table` gains `footer`, `Table.HeaderCell` `after`, and rows
+  `data-band`. `VirtualizedTable` takes everything but detail rows and pages (by type).
+- **Toolbar (new group).** `Toolbar` (+ `Item`, `Group`, `Separator`; `role="toolbar"`,
+  a name required by type; one tab stop with arrows, Home and End, while a text input
+  keeps its caret and a select its keys; trailing units move into "More" by measured
+  width; on coarse input the gap grows so no two hit areas overlap); `ToggleGroup`
+  (`type="single"` is a radio group that cannot clear, `type="multiple"` pressed buttons;
+  Field-bound, one hidden input per value; its own arrows when standalone, and it wraps
+  when its row is too long). There is no standalone `Toggle`: a pressed `Button` is one.
+- `Pagination` gains a `row` slot (the row that holds the arrows and pages).
+- `Timeline`'s connector is continuous: mark · gap · line · gap · next mark, with the same
+  gap at every mark (icon or dot), in the stronger border colour, kept under forced
+  colours.
+- `Banner`'s text breaks a long word anywhere, so a content-sized track (an `auto` grid
+  column) cannot be widened by it.
+- Checks: `verify:group-deps` also counts a class borrowed by name (`"r-form-frame"` in
+  dates) as an edge; `verify:utilities-exist` matches a class-named table used in another
+  file by its import, not by spelling (a local `classes` no longer turned the BarChart
+  demo's error categories into classes). New browser checks: `sliders-interaction`,
+  `feedback-progress`, `feedback-banner-boundary`, `time-field`, `time-picker-range`,
+  `datatable-rows`, `datatable-columns`, `toolbar-keyboard`, `toolbar-layout`;
+  `timeline-layout` measures every thread; `forced-colors-states` audits the progress
+  track and ring. The showcase's section boundary is the library's `ErrorBoundary`.
+
+#### Round 5: filters, trees, guards, hover cards, panes, inputs, boards
+
+Additive (the chip classes that moved are under Breaking).
+
+- **Filters (new group).** `FilterBar`: typed filter definitions (`select`, `multi`,
+  `range`, `dateRange`, `toggle`, `search`, `custom`) over the existing controls; a value
+  keyed by id, the shape of `DataTable`'s `filters`; applied filters as removable chips,
+  Clear all, and a result count shown at once and spoken once it settles
+  (`RESULT_ANNOUNCE_DELAY_MS`); folds into "Filters (n)" and a drawer by its own width
+  (`collapse` `auto` / `always` / `never`, the drawer controllable). `filtersToSearchParams`
+  / `searchParamsToFilters` (pure). Labels `FilterBar`.
+- **Navigation.** `TreeView`: items as data (`TreeNode`) or `TreeView.Item`; selection none,
+  single or multiple (tri-state, a disabled child left alone); `expandedIds`; lazy
+  `loadChildren` with loading and retryable error rows; `onAction` and `renderActions` (only
+  the focused row's actions are in the Tab order, and never in the row's name); router
+  links; windowed past `virtualizeAbove` (200), printing the rows it has with a note.
+- **Guards (new group).** `RequireAuth`: renders `children` only for `status ===
+  "authenticated"` (any other value waits), `authorize`, default or custom loading,
+  signed-out and forbidden fallbacks, `onUnauthenticated` once per arrival, `signInHref`
+  through the `RouterProvider`.
+- **Overlays.** `HoverCard` (+ `Trigger`, `Toggle`, `Content`): opens on hover or keyboard
+  focus after `openDelay` (500ms), closes after `closeDelay` (300ms) with a bridge for the
+  pointer, rendered in place after its trigger so Tab walks into it, Escape from anywhere,
+  and a toggle button for touch.
+- **Layout.** `Splitter` (+ `Pane`): the APG window splitter, side by side or stacked;
+  `sizes` / `defaultSizes` / `onSizesChange` / `onSizesCommit`; pane `min` / `max` as shares
+  or token lengths; collapsible panes (Enter or a double click collapses and restores);
+  arrows, Home and End; nests. The separator is a `--R-SIZE-5` gutter whose hit area hangs
+  over the pane after it, never over the scrollbar of the pane before.
+- **Form.** `PasswordInput` (show/hide that keeps value, focus and selection, a "Show
+  password" toggle whose state is `aria-pressed`, an optional strength meter
+  (`estimatePasswordStrength` or your own), a Caps Lock warning); `MaskedInput` (`mask`,
+  `tokens`, `onValueChange(raw, formatted)`, `onComplete`; the caret stays put through
+  inserts, deletes and pastes); `CurrencyInput` (a textbox in the locale's money format,
+  `currency`, `minorUnits`, `min` / `max`, `allowNegative`, `currencyDisplay`);
+  `AvatarUpload` (pick, crop and zoom, upload with a progress ring, cancel and retry, the
+  `FileUpload` upload contract). `NumberInput` and `CurrencyInput` share one draft model (no
+  change to `NumberInput`'s behaviour).
+- **Primitives.** `AvatarGroup` (overlapping faces, a "+n" that names the rest,
+  `renderOverflow` for a control of your own); `Chip` (a value as a token: one line,
+  truncated with its title, an optional remove button that Backspace and Delete also press;
+  `labels.remove`), now the chip of `MultiSelect`, `TagInput` and `FilterBar`.
+- **Boards (new group).** `Kanban<T>`: columns with WIP limits, `value` +
+  `onValueChange(next, move)`, `renderCard`, collapsible columns, pointer, touch and keyboard
+  moves (the card stays put and a measured line shows where it lands; moves, limits and
+  drops are announced), edge scrolling, and a snapping one-column layout when narrow.
+- **Changed.** `DataTable`: a column's `width` (or a resized width) is exact, a minimum as
+  well, so widening a column in a table already at its own width grows the table instead
+  of squeezing a neighbour; a resizable column's automatic width keeps its `minWidth`; a
+  double click restores the column's own `width`. `Slider` / `RangeSlider`: the rail is
+  inset by half the hit floor or half a thumb, the larger, so an end thumb's coarse hit
+  area stays inside the slider (it scrolled a drawer sideways). `PasswordInput` restores
+  the selection after Chromium resets it on the type swap.
+- Checks: `verify:no-raw-tailwind` judges a bare word that is also a utility (`shadow`) as a
+  class only in a class context, so a word list keeps its words. New browser checks:
+  `filters-bar`, `filters-layout`, `tree-keyboard`, `tree-layout`, `tree-require-auth`,
+  `hovercard-splitter-card`, `hovercard-splitter-panes`, `form-inputs-text`,
+  `form-inputs-avatars`, `kanban-keyboard`, `kanban-pointer`, `kanban-layout`;
+  `datatable-columns` resizes a squeezed table, `print-pages` prints a windowed tree.
 
 ### Known gaps
 

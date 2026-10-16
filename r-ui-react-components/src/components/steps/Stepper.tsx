@@ -6,7 +6,7 @@ import { elementChildren } from "../../util/children";
 import { useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 import { safeUrl } from "../../util/url";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 export type StepperOrientation = "horizontal" | "vertical";
 /** Where a step sits relative to the current one. */
@@ -38,6 +38,12 @@ export const DEFAULT_STEPPER_LABELS: StepperLabels = {
   optional: "Optional",
   position: (step, total) => `Step ${step} of ${total}`,
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Stepper: StepperLabels;
+  }
+}
 
 /*
  * A container query cannot count, so the width the full row needs is stepped by
@@ -136,7 +142,7 @@ function StepperRoot({
 }: StepperProps) {
   const steps = elementChildren<StepperStepProps>(children);
   const total = steps.length;
-  const words= mergeLabels(DEFAULT_STEPPER_LABELS, labelsProp);
+  const words = useLabels("Stepper", DEFAULT_STEPPER_LABELS, labelsProp);
   const label = labelProp ?? words.progress;
   const collapse = orientation === "horizontal" ? COLLAPSE.find((c) => total <= c.upTo) : undefined;
   const interactive = onStepSelect !== undefined;

@@ -14,7 +14,7 @@ import {
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { ErrorLine } from "../../util/error-line";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { cn, type SlotClassNames } from "../../util/style";
 import { MatchText } from "../../util/text-match";
 import { Input } from "../form";
@@ -98,6 +98,12 @@ export const DEFAULT_COMMAND_PALETTE_LABELS: Readonly<CommandPaletteLabels> = {
   close: "Close",
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    CommandPalette: CommandPaletteLabels;
+  }
+}
+
 export interface CommandPaletteProps
   extends Omit<DialogContentProps, "children" | "role" | "showClose" | "labels" | "classNames"> {
   open?: boolean;
@@ -163,7 +169,7 @@ function CommandPaletteRoot({
     defaultValue: defaultRecent,
     onChange: (next) => onRecentChange?.([...next]),
   });
-  const labels = mergeLabels(DEFAULT_COMMAND_PALETTE_LABELS, labelsProp);
+  const labels = useLabels("CommandPalette", DEFAULT_COMMAND_PALETTE_LABELS, labelsProp);
   // Every command the palette has listed, so a recent id resolves after its page closed.
   const seen = useRef(new Map<string, PaletteEntry>());
   // Loaded command lists, by loader: a page opened twice loads once.

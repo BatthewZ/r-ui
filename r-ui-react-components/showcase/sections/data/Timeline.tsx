@@ -104,6 +104,16 @@ const ACTIVITY: ActivityItem[] = [
   { id: "f3", time: ago(5 * HOUR), actor: "Raf Duarte", verb: "rolled back", object: "checkout v5.3.1", tone: "error", statusLabel: "Rolled back", icon: <Undo2 /> },
 ];
 
+/** Every pairing of mark kinds in one list: icon → dot, dot → dot, dot → icon, icon → icon. */
+const THREADS: TimelineEvent[] = [
+  { id: "t1", time: ago(5), tone: "info", statusLabel: "Started", title: "Migration started", icon: <Rocket /> },
+  { id: "t2", time: ago(20), title: "Copied 1.2M rows to the new table" },
+  { id: "t3", time: ago(35), title: "Backfilled the index" },
+  { id: "t4", time: ago(50), tone: "warning", statusLabel: "Paused", title: "Paused for the nightly backup" },
+  { id: "t5", time: ago(65), tone: "success", statusLabel: "Verified", title: "Row counts match" },
+  { id: "t6", time: ago(80), title: "Switched reads to the new table" },
+];
+
 const RTL: TimelineEvent[] = [
   { id: "r1", time: ago(9), tone: "error", statusLabel: "تعطل", title: "ارتفاع أخطاء 5xx في خدمة الدفع", actor: "مريم", meta: "checkout · eu-west" },
   { id: "r2", time: ago(2 * HOUR), tone: "success", statusLabel: "تم الحل", title: "تمت إعادة تشغيل خادم البحث", actor: "يوسف" },
@@ -140,6 +150,9 @@ export default function TimelineSection() {
       </Demo>
       <Demo title="Paged: three at a time, then loaded on demand">
         <Paged />
+      </Demo>
+      <Demo title="Threads: every pairing of icon and dot marks">
+        <Timeline events={THREADS} now={NOW} groupByDay={false} label="Migration" data-sc="timeline-threads" />
       </Demo>
       <Demo title="Right to left">
         <div dir="rtl" lang="ar" data-sc="timeline-rtl">

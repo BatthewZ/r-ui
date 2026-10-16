@@ -20,7 +20,7 @@ import { type FieldValidatorResult, Form, FormActions, type FormApi } from "../f
 import { Button } from "../primitives";
 
 import { DEFAULT_STEPPER_LABELS, Stepper, type StepperLabels, type StepperOrientation, type StepStatus } from "./Stepper";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 /** Errors by path (as `setErrors` takes them); nothing, or only empty messages, lets the step pass. */
 export type WizardStepErrors = Record<string, FieldValidatorResult>;
@@ -78,6 +78,12 @@ export const DEFAULT_WIZARD_LABELS: WizardLabels = {
   finish: "Finish",
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Wizard: WizardLabels;
+  }
+}
+
 export type WizardHeadingLevel = 2 | 3 | 4 | 5 | 6;
 
 export interface WizardProps<TValues, TOutput> extends Omit<ComponentPropsWithRef<"div">, "children" | "onSubmit"> {
@@ -130,7 +136,7 @@ function WizardRoot<TValues, TOutput>({
 }: WizardProps<TValues, TOutput>) {
   const steps = elementChildren<WizardStepProps>(children);
   const total = steps.length;
-  const words= mergeLabels(DEFAULT_WIZARD_LABELS, labels);
+  const words = useLabels("Wizard", DEFAULT_WIZARD_LABELS, labels);
   const [current, setCurrent] = useControllableState({
     value: step,
     defaultValue: defaultStep,

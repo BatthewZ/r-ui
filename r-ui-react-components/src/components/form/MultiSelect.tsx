@@ -37,7 +37,7 @@ import {
   SelectionListbox,
   useSelectionPopup,
 } from "./selection-popup";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 /** Every string the control says, for localisation. */
 export interface MultiSelectLabels {
@@ -70,6 +70,12 @@ export const DEFAULT_MULTI_SELECT_LABELS: MultiSelectLabels = {
   max: (max) => `Up to ${max} can be selected.`,
   toggle: "Show options",
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    MultiSelect: MultiSelectLabels;
+  }
+}
 
 export interface MultiSelectProps
   extends Omit<ComponentPropsWithRef<"input">, "value" | "defaultValue" | "type" | "size" | "children" | "name"> {
@@ -149,7 +155,7 @@ export function MultiSelect({
   placeholder,
   ...props
 }: MultiSelectProps) {
-  const labels = mergeLabels(DEFAULT_MULTI_SELECT_LABELS, labelsProp);
+  const labels = useLabels("MultiSelect", DEFAULT_MULTI_SELECT_LABELS, labelsProp);
   const field = useFieldControl({
     id: idProp,
     invalid: invalidProp,
@@ -305,7 +311,7 @@ export function MultiSelect({
   useLayoutEffect(() => {
     if (!focusChips.current) return;
     focusChips.current = false;
-    const first = frameRef.current?.querySelector<HTMLButtonElement>(".r-form-chip-remove");
+    const first = frameRef.current?.querySelector<HTMLButtonElement>(".r-primitives-chip-remove");
     (first ?? inputRef.current)?.focus();
   }, [unfolded]);
 
@@ -361,7 +367,7 @@ export function MultiSelect({
               event.preventDefault();
               inputRef.current?.focus();
             }}
-            className="r-form-chip r-form-chip-summary hit-area hidden pe-r5 font-medium @max-column-md:inline-flex"
+            className="r-primitives-chip r-form-chip-summary hit-area hidden pe-r5 font-medium @max-column-md:inline-flex"
           >
             {labels.summary(values.length)}
           </button>

@@ -13,7 +13,8 @@
 //      (`.sc-demo` is `overflow-x: auto`) nor any scroll container within it, since
 //      a spill lands in the NEAREST scroller and an inner one hides it from the
 //      frame. Exempt: text controls (their value scrolls by nature), truncated
-//      text (`text-overflow: ellipsis`), and a scroller that is designed to scroll
+//      text (`text-overflow: ellipsis`), a clip around no text and no control (a
+//      drawing: a partial star, a progress sweep), and a scroller designed to scroll
 //      (a code block's lines, a wide table, an overflowing tab strip) where the
 //      demo marks it, or an ancestor inside the demo, with `data-sc-scrolls`.
 //
@@ -71,6 +72,9 @@ async (page) => {
                   const spills = [demo, ...demo.querySelectorAll("*")].filter((el) => {
                     if (el.scrollWidth <= el.clientWidth + 1 || el.clientWidth <= 1) return false;
                     if (el.matches("input, textarea, select") || el.closest("[data-sc-scrolls]")) return false;
+                    // A clip around no text and no control is a drawing (a partial star, a
+                    // progress track's sweep), not content cut off.
+                    if (!el.textContent.trim() && !el.querySelector("button, a, input, select, textarea, [tabindex]")) return false;
                     const cs = getComputedStyle(el);
                     return cs.overflowX !== "visible" && cs.textOverflow !== "ellipsis";
                   });

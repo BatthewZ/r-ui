@@ -16,7 +16,7 @@ import { Avatar, Button, Skeleton } from "../primitives";
 import { MISSING } from "../../util/format";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 import { MARK_TEXT, type Tone, TONE_LABELS, TONE_SUBTLE_BG, TONE_TEXT, ToneGlyph } from "../../util/tone";
 import { EmptyState } from "./EmptyState";
 import {
@@ -93,6 +93,12 @@ export const DEFAULT_TIMELINE_LABELS: TimelineLabels = {
   tones: TONE_LABELS,
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Timeline: TimelineLabels;
+  }
+}
+
 export type TimelineProps = {
   events: readonly TimelineEvent[];
   /** Default `newest-first`. Day groups follow the same order. */
@@ -108,7 +114,7 @@ export type TimelineProps = {
   timeFormat?: "relative" | "absolute";
   /** The reference instant for relative times and Today/Yesterday. Omitted: the clock, ticking per minute. */
   now?: Date | number;
-  /** BCP 47 locale for every date, time and relative word. Omitted: the runtime default. */
+  /** BCP 47 locale for every date, time and relative word. Omitted: the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
   /** Day headers as headings at this level. Default: plain text that names its day's list. */
   headingLevel?: 2 | 3 | 4 | 5 | 6;
@@ -178,7 +184,7 @@ export function Timeline({
   groupByDay = true,
   timeFormat = "relative",
   now: nowProp,
-  locale,
+  locale: localeProp,
   headingLevel,
   label,
   scrollable = false,
@@ -194,7 +200,8 @@ export function Timeline({
   ref,
   ...rest
 }: TimelineProps) {
-  const labels = mergeLabels(DEFAULT_TIMELINE_LABELS, labelsProp);
+  const labels = useLabels("Timeline", DEFAULT_TIMELINE_LABELS, labelsProp);
+  const locale = useLocale(localeProp);
   const now = useNow(nowProp, timeFormat === "relative" || groupByDay);
   const baseId = useId();
 
@@ -389,7 +396,7 @@ function TimelineItem({
             disc && cn("border border-transparent", TONE_SUBTLE_BG[tone], MARK_TEXT[tone]),
             classNames?.mark,
           )}
-          data-timeline-mark=""
+          data-timeline-mark={disc ? "disc" : "dot"}
         >
           {disc ? (event.icon ?? <ToneGlyph tone={tone} />) : <span className="r-data-timeline-dot" />}
         </span>

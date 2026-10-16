@@ -10,8 +10,11 @@ import { useFormStore } from "./form-state-context";
 export interface FormActionsProps extends ComponentPropsWithRef<"div"> {
   /**
    * Keeps the row at the bottom of its scroll container while the form runs
-   * past it (long forms), on `surface-0` with a top hairline, at the sticky
-   * layer. Give it another `bg-*` when the form sits on another surface.
+   * past it, on `surface-0` with a top hairline, at the sticky layer. For a
+   * long form in the page's own scroll. In a bounded box (a panel, a side
+   * sheet) put the row in a `ScrollPanel.Footer` instead, outside the
+   * scroller, so the box's scrollbar does not run beside it. Give it another
+   * `bg-*` when the form sits on another surface.
    */
   sticky?: boolean;
   classNames?: SlotClassNames<"row">;

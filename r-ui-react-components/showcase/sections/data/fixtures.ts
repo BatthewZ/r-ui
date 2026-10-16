@@ -99,3 +99,47 @@ export function series(seed: number, n: number, base: number, swing: number): nu
     return Math.round(v * 10) / 10;
   });
 }
+
+export const TEAMS = ["platform", "payments", "discovery", "identity", "growth", "content", "machine-learning-infrastructure"];
+export const REGIONS_ALL = ["us-east", "eu-west", "ap-south", "sa-east"];
+
+export interface FleetService extends Service {
+  region: string;
+  version: string;
+  instances: number;
+}
+
+const WORDS = ["api", "ledger", "search", "billing", "auth", "media", "notify", "webhooks", "catalog", "orders", "pricing", "fraud"];
+const SUFFIX = ["", "-worker", "-gateway", "-indexer", "-scheduler", "-cache"];
+const STATUSES: ServiceStatus[] = ["success", "success", "success", "warning", "serious", "error", "stale"];
+
+/**
+ * `count` services, the same on every load: the eight above first (long name
+ * and missing values included), then generated ones.
+ */
+export function makeServices(count: number): FleetService[] {
+  const r = rng(11);
+  return Array.from({ length: count }, (_, i) => {
+    const base = SERVICES[i];
+    const region = REGIONS_ALL[Math.floor(r() * REGIONS_ALL.length)] ?? "us-east";
+    const version = `v${1 + Math.floor(r() * 6)}.${Math.floor(r() * 20)}.${Math.floor(r() * 9)}`;
+    const instances = 1 + Math.floor(r() * 24);
+    if (base) return { ...base, region, version, instances };
+    const status = STATUSES[Math.floor(r() * STATUSES.length)] ?? "success";
+    const stale = status === "stale";
+    return {
+      id: `svc-${i}`,
+      name: `${WORDS[i % WORDS.length]}${SUFFIX[Math.floor(i / WORDS.length) % SUFFIX.length]}-${i}`,
+      owner: TEAMS[i % TEAMS.length] ?? "platform",
+      status,
+      rps: stale ? null : Math.round(r() ** 2 * 20000),
+      p95: stale ? null : Math.round(20 + r() ** 3 * 2000),
+      errorRate: stale ? null : Math.round(r() ** 4 * 800) / 10000,
+      cpu: stale ? null : Math.round(r() * 100),
+      deployedMinutesAgo: Math.round(r() * 20000),
+      region,
+      version,
+      instances,
+    };
+  });
+}

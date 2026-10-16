@@ -1,5 +1,5 @@
 "use client";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   type FocusEvent,
   type KeyboardEvent,
@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { cn } from "../../util/style";
+import { Chip } from "../primitives";
 
 import { focusInputFromFrame, keepFocus } from "./Input";
 import type { SelectionPopup } from "./selection-popup";
@@ -149,7 +150,7 @@ export interface SelectionChipsProps {
 }
 
 /**
- * The chosen values as a list of chips, each with a remove button in the tab
+ * The chosen values as a list of `Chip`s, each with a remove button in the tab
  * order. Backspace or Delete on a chip's button removes it; the arrows move
  * between chips and on into the text input. After a removal, focus goes to the
  * chip that took its place, else the one before, else the input.
@@ -186,16 +187,15 @@ export function SelectionChips({
     onRemove(index);
   };
 
-  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (event.key === "Backspace" || event.key === "Delete") {
-      event.preventDefault();
-      remove(index);
-      return;
-    }
+  // The arrows walk the chips' remove buttons and on into the input (Backspace and Delete are the Chip's).
+  const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-    const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
-    const forward = (event.key === "ArrowRight") !== rtl;
     const buttons = [...(listRef.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];
+    const index = buttons.findIndex((button) => button === event.target);
+    const current = buttons[index];
+    if (!current) return;
+    const rtl = getComputedStyle(current).direction === "rtl";
+    const forward = (event.key === "ArrowRight") !== rtl;
     const next = buttons[index + (forward ? 1 : -1)];
     event.preventDefault();
     if (next) next.focus();
@@ -204,25 +204,18 @@ export function SelectionChips({
 
   return (
     // `display: contents`: the chips wrap in the frame's own row beside the input.
-    <ul ref={listRef} id={id} aria-label={label} className={cn("contents", className)}>
+    <ul ref={listRef} id={id} aria-label={label} className={cn("contents", className)} onKeyDown={onKeyDown}>
       {chips.map((chip, index) => (
-        <li key={chip.key} className={cn("r-form-chip", chipClassName)}>
-          <span className="min-w-0 truncate" title={chip.label}>
-            {chip.label}
-          </span>
-          {!readOnly && (
-            <button
-              type="button"
-              aria-label={removeLabel(chip.label)}
-              disabled={disabled}
-              onClick={() => remove(index)}
-              onKeyDown={(event) => onKeyDown(event, index)}
-              className="r-form-chip-remove hit-area"
-            >
-              <X aria-hidden />
-            </button>
-          )}
-        </li>
+        <Chip
+          key={chip.key}
+          as="li"
+          className={chipClassName}
+          onRemove={readOnly ? undefined : () => remove(index)}
+          disabled={disabled}
+          labels={{ remove: removeLabel }}
+        >
+          {chip.label}
+        </Chip>
       ))}
     </ul>
   );
@@ -246,7 +239,7 @@ export function focusLastChip(event: KeyboardEvent<HTMLInputElement>, frame: HTM
   if (input.selectionStart !== 0 || input.selectionEnd !== 0) return false;
   const rtl = getComputedStyle(input).direction === "rtl";
   if (event.key !== (rtl ? "ArrowRight" : "ArrowLeft")) return false;
-  const removes = frame?.querySelectorAll<HTMLButtonElement>(".r-form-chip-remove");
+  const removes = frame?.querySelectorAll<HTMLButtonElement>(".r-primitives-chip-remove");
   const candidates = [removes?.[removes.length - 1], frame?.querySelector<HTMLButtonElement>(".r-form-chip-summary")];
   const target = candidates.find((button) => button && !button.disabled && isRendered(button));
   if (!target) return false;

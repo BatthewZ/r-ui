@@ -270,7 +270,7 @@ function fullYear(raw: string): number {
 }
 
 /** Digits in any script (Arabic-Indic, Devanagari…) as ASCII, so `\d` reads them. */
-function asciiDigits(text: string): string {
+export function asciiDigits(text: string): string {
   return text.replace(/\p{Nd}/gu, (ch) => {
     const code = ch.codePointAt(0) ?? 0;
     // Every Unicode decimal-digit block is ten consecutive code points from zero.

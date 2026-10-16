@@ -24,6 +24,12 @@ export const DEFAULT_PREFERENCES_MENU_LABELS: PreferencesMenuLabels = {
   inputs: { auto: "Auto", fine: "Pointer", coarse: "Touch" },
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    PreferencesMenu: PreferencesMenuLabels;
+  }
+}
+
 export type ThemeSwitcherLabels = Pick<PreferencesMenuLabels, "theme">;
 export type DensitySwitcherLabels = Pick<PreferencesMenuLabels, "density" | "densities">;
 export type InputSwitcherLabels = Pick<PreferencesMenuLabels, "input" | "inputs">;

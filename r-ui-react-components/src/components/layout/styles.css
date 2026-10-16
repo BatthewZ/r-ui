@@ -29,3 +29,86 @@
   box-sizing: content-box;
   margin-inline: auto;
 }
+
+/* ── Splitter ───────────────────────────────────────────────────────────────
+   Panes share the space by their sizes: each grows from a zero basis by its
+   share (an inline `flex-grow`), so the separators keep their own thickness and
+   the panes divide the rest. The root clips: a separator flush with an edge (the
+   pane beyond it collapsed) would otherwise reach out of the splitter with its
+   hit area and widen whatever scrolls around it. */
+.r-layout-splitter {
+  overflow: clip;
+}
+.r-layout-splitter-pane {
+  flex: 0 1 0%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: auto;
+}
+/* Skips rendering but keeps the content's state and scroll position. */
+.r-layout-splitter-pane[data-collapsed] {
+  content-visibility: hidden;
+}
+
+/* The separator: a gutter a density step thick, drawing a hairline at its centre
+   that firms to the accent on hover, focus and drag (DataTable's column handle
+   does the same). Its hit part grows the press target to the hit floor without
+   growing what is drawn. */
+.r-layout-splitter-separator {
+  position: relative;
+  flex: none;
+  touch-action: none;
+}
+/* The hit area (`hit-area` on a gutter-sized part) hangs over the pane after the
+   separator only. The pane before has its scrollbar against the separator (at its
+   inline end, or its block end when stacked), and a centred hit area would cover
+   part of a classic scrollbar. With the pane after collapsed (the separator on the
+   splitter's end edge) it hangs over the pane before instead. `hit-area` makes
+   the part `relative`, so its offset is a relative shift. */
+.r-layout-splitter-hit {
+  --r-layout-splitter-hang: max(0%, (var(--HIT-MIN) - 100%) / 2);
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.r-layout-splitter[data-orientation="horizontal"] > .r-layout-splitter-separator > .r-layout-splitter-hit {
+  inset-inline-start: var(--r-layout-splitter-hang);
+}
+.r-layout-splitter[data-orientation="horizontal"] > .r-layout-splitter-separator[data-hang="start"] > .r-layout-splitter-hit {
+  inset-inline-start: calc(var(--r-layout-splitter-hang) * -1);
+}
+.r-layout-splitter[data-orientation="vertical"] > .r-layout-splitter-separator > .r-layout-splitter-hit {
+  inset-block-start: var(--r-layout-splitter-hang);
+}
+.r-layout-splitter[data-orientation="vertical"] > .r-layout-splitter-separator[data-hang="start"] > .r-layout-splitter-hit {
+  inset-block-start: calc(var(--r-layout-splitter-hang) * -1);
+}
+.r-layout-splitter[data-orientation="horizontal"] > .r-layout-splitter-separator {
+  inline-size: var(--R-SIZE-5);
+  cursor: col-resize;
+}
+.r-layout-splitter[data-orientation="vertical"] > .r-layout-splitter-separator {
+  block-size: var(--R-SIZE-5);
+  cursor: row-resize;
+}
+.r-layout-splitter-separator::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  border: 0 solid var(--C-BORDER);
+  pointer-events: none;
+}
+.r-layout-splitter[data-orientation="horizontal"] > .r-layout-splitter-separator::after {
+  inline-size: var(--BORDER-WIDTH);
+  border-inline-start-width: var(--BORDER-WIDTH);
+}
+.r-layout-splitter[data-orientation="vertical"] > .r-layout-splitter-separator::after {
+  block-size: var(--BORDER-WIDTH);
+  border-block-start-width: var(--BORDER-WIDTH);
+}
+.r-layout-splitter-separator:hover::after,
+.r-layout-splitter-separator:focus-visible::after,
+.r-layout-splitter-separator[data-resizing]::after {
+  border-color: var(--C-ACCENT);
+}

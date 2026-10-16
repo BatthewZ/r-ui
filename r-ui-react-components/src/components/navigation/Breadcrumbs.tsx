@@ -13,7 +13,7 @@ import { elementChildren } from "../../util/children";
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useIsCurrent, useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 export interface BreadcrumbsLabels {
   /** The navigation landmark's name. */
@@ -26,6 +26,12 @@ export const DEFAULT_BREADCRUMBS_LABELS: BreadcrumbsLabels = {
   nav: "Breadcrumb",
   expand: (hidden) => `Show ${hidden} more`,
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Breadcrumbs: BreadcrumbsLabels;
+  }
+}
 
 export type BreadcrumbsProps = {
   /**
@@ -57,7 +63,7 @@ function BreadcrumbsRoot({
   children,
   ...props
 }: BreadcrumbsProps) {
-  const labels = mergeLabels(DEFAULT_BREADCRUMBS_LABELS, labelsProp);
+  const labels = useLabels("Breadcrumbs", DEFAULT_BREADCRUMBS_LABELS, labelsProp);
   const crumbs = elementChildren(children);
   const [expanded, setExpanded] = useState(false);
   const listRef = useRef<HTMLOListElement>(null);

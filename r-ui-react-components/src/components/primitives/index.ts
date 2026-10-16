@@ -1,4 +1,4 @@
-// Primitives: Button, IconButton, Badge, StatusLabel, Card, Alert, Spinner, Skeleton, Kbd, Divider, Avatar, Link.
+// Primitives: Button, IconButton, Badge, StatusLabel, Chip, Card, Alert, Spinner, Skeleton, Kbd, Divider, Avatar, AvatarGroup, Link.
 // Owned by the "primitives" group: add one export line per component. No other
 // group, and no shared file, needs to change when a component lands here.
 export { Alert, type AlertLabels, type AlertProps, DEFAULT_ALERT_LABELS } from "./Alert";
@@ -6,6 +6,7 @@ export { Avatar, type AvatarProps } from "./Avatar";
 export { Badge, type BadgeProps, type BadgeVariant } from "./Badge";
 export { Button, type ButtonProps } from "./Button";
 export { Card, type CardProps, type CardTitleProps } from "./Card";
+export { Chip, type ChipLabels, type ChipProps, DEFAULT_CHIP_LABELS } from "./Chip";
 export { Divider, type DividerProps } from "./Divider";
 export { IconButton, type IconButtonProps } from "./IconButton";
 export { Kbd, type KbdProps } from "./Kbd";
@@ -14,3 +15,11 @@ export { Skeleton, type SkeletonProps } from "./Skeleton";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { StatusLabel, type StatusLabelProps } from "./StatusLabel";
 export { type StatusTone, type Tone, TONE_LABELS } from "../../util/tone";
+export {
+  AvatarGroup,
+  type AvatarGroupItem,
+  type AvatarGroupLabels,
+  type AvatarGroupOverflow,
+  type AvatarGroupProps,
+  DEFAULT_AVATAR_GROUP_LABELS,
+} from "./AvatarGroup";

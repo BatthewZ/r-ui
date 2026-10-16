@@ -18,7 +18,7 @@ import { useLinkElement } from "../../util/router";
 import { cn } from "../../util/style";
 import { IconButton } from "../primitives";
 import { NavLink, type NavLinkProps } from "./NavLink";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 interface AppShellContextValue {
   collapsed: boolean;
@@ -56,6 +56,13 @@ export interface AppShellLabels {
 
 export const DEFAULT_APP_SHELL_LABELS: AppShellLabels = { skipLink: "Skip to content" };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    AppShellSidebarToggle: AppShellSidebarToggleLabels;
+    AppShell: AppShellLabels;
+  }
+}
+
 /**
  * The page frame of an app: sidebar, header, main region and, on phones, a bottom
  * nav. The VIEWPORT picks the layout (the one place it may): a full sidebar on
@@ -80,6 +87,7 @@ function AppShellRoot({
     defaultValue: defaultCollapsed,
     onChange: onCollapsedChange,
   });
+  const skipLink = useLabels("AppShell", DEFAULT_APP_SHELL_LABELS, labels).skipLink;
   const baseId = useId();
   const sidebarId = `${baseId}-sidebar`;
   const mainId = `${baseId}-main`;
@@ -100,7 +108,7 @@ function AppShellRoot({
     <AppShellContext.Provider value={ctx}>
       <div className={cn("r-navigation-shell", className)} data-collapsed={collapsed || undefined} {...props}>
         <a className="r-navigation-shell-skip" href={`#${mainId}`} onClick={skip}>
-          {mergeLabels(DEFAULT_APP_SHELL_LABELS, labels).skipLink}
+          {skipLink}
         </a>
         {children}
       </div>
@@ -214,7 +222,7 @@ export type AppShellSidebarToggleProps = {
  * means something (wide viewports); it renders nothing visible elsewhere.
  */
 function SidebarToggle({ labels: labelsProp, className }: AppShellSidebarToggleProps) {
-  const labels = mergeLabels(DEFAULT_APP_SHELL_SIDEBAR_TOGGLE_LABELS, labelsProp);
+  const labels = useLabels("AppShellSidebarToggle", DEFAULT_APP_SHELL_SIDEBAR_TOGGLE_LABELS, labelsProp);
   const { collapsed, setCollapsed, sidebarId } = useAppShell("SidebarToggle");
   const Icon = collapsed ? PanelLeftOpen : PanelLeftClose;
   return (

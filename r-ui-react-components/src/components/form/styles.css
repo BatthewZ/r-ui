@@ -429,6 +429,7 @@
    same distance apart. That pitch is also what keeps a coarse remove button's
    hit area (the floor, centred) from reaching the row below. */
 .r-form-chip-frame {
+  /* A Chip's height, for the draft and the adornments beside the chips. */
   --r-form-chip-h: calc(var(--CONTROL-H) - 2 * (var(--R-SIZE-6) + var(--BORDER-WIDTH)));
   gap: var(--R-SIZE-4);
   padding: var(--R-SIZE-6);
@@ -458,51 +459,9 @@
   block-size: var(--r-form-chip-h);
   padding-inline-start: calc(var(--R-SIZE-3) - var(--R-SIZE-6));
 }
-.r-form-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--R-SIZE-6);
-  min-inline-size: 0;
-  max-inline-size: 100%;
-  block-size: var(--r-form-chip-h);
-  padding-inline-start: var(--R-SIZE-5);
-  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
-  border-radius: var(--RADIUS-SM);
-  /* Ink at low alpha, not a surface rung: a rung is recessed in every theme and
-     reads as a hole in a dark theme's raised field. */
-  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 6%, transparent);
-  color: var(--C-TEXT-PRIMARY);
-  font-size: var(--BodyText-2);
-  line-height: var(--BodyText-2-line-height);
-}
-.r-form-chip:not(:has(.r-form-chip-remove)) {
-  padding-inline-end: var(--R-SIZE-5);
-}
-/* Square, the chip's full height: at every density and input it is the
-   chip's own target, and `hit-area` lifts it to the floor on coarse input. */
-.r-form-chip-remove {
-  display: inline-grid;
-  flex-shrink: 0;
-  place-items: center;
-  block-size: 100%;
-  aspect-ratio: 1;
-  border-start-end-radius: calc(var(--RADIUS-SM) - var(--BORDER-WIDTH));
-  border-end-end-radius: calc(var(--RADIUS-SM) - var(--BORDER-WIDTH));
-  color: var(--C-TEXT-SECONDARY);
-  cursor: pointer;
-  transition: color var(--DURATION-FAST) var(--EASE-STANDARD),
-    background-color var(--DURATION-FAST) var(--EASE-STANDARD);
-}
-.r-form-chip-remove svg {
-  inline-size: var(--ICON);
-  block-size: var(--ICON);
-}
-.r-form-chip-remove:hover:not(:disabled) {
-  color: var(--C-TEXT-PRIMARY);
-  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
-}
-/* Inset: chip rows are a few pixels apart and an outset ring would sit on the next. */
-.r-form-chip-remove:focus-visible,
+/* The chip look is primitives' `Chip` (`.r-primitives-chip`); a chip's height is the
+   `--r-form-chip-h` above. The summary keeps its own inset ring (rows sit a few pixels
+   apart, an outset ring would sit on the next). */
 .r-form-chip-summary:focus-visible {
   outline-offset: calc(var(--FOCUS-WIDTH) * -1);
 }
@@ -708,8 +667,21 @@
 .r-form-otp-input:focus-visible {
   outline: 0 none;
 }
+/* The contract's ::selection paints the selected text in --C-TEXT-ON-SELECTION,
+   and a filled box is a one-character selection: without this the input's own
+   copy of that character (a bullet when masked) shows through over the boxes. */
 .r-form-otp-input::selection {
   background: transparent;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+/* Autofill paints its own background and ink over the boxes; they draw the value. */
+.r-form-otp-input:autofill {
+  opacity: 0;
+}
+/* Edge's password reveal button would sit over the last box. */
+.r-form-otp-input::-ms-reveal {
+  display: none;
 }
 .r-form-otp-input:disabled {
   cursor: not-allowed;
@@ -903,4 +875,361 @@
   .r-form-color-swatch[aria-checked="true"] {
     border-color: Highlight;
   }
+}
+
+/* ── Slider, RangeSlider ───────────────────────────────────────────────────
+   The control strip is the press target, at least the hit floor thick; the
+   rail inside it is inset by half a thumb or half the hit floor, the larger,
+   so a thumb's centre reaches both ends and its hit area stays inside the
+   strip (past it, the hit area would widen any scroller the slider sits in).
+   Positions arrive as `--r-form-slider-at` (a thumb, a tick, a label)
+   and `--r-form-slider-from` / `-to` (the fill), as percentages of the rail;
+   the orientation decides which axis reads them. */
+.r-form-slider {
+  --r-form-slider-thumb: calc(var(--ICON) * 1.25);
+  --r-form-slider-track: calc(var(--ICON) * 0.25);
+  --r-form-slider-inset: calc(max(var(--HIT-MIN), var(--r-form-slider-thumb)) / 2);
+  display: grid;
+  min-inline-size: 0;
+}
+.r-form-slider[data-orientation="vertical"] {
+  grid-auto-flow: column;
+  justify-content: start;
+  block-size: calc(var(--CONTROL-H) * 5);
+}
+.r-form-slider-control {
+  position: relative;
+  display: flex;
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+.r-form-slider[data-orientation="horizontal"] > .r-form-slider-control {
+  block-size: max(var(--HIT-MIN), var(--r-form-slider-thumb));
+  padding-inline: var(--r-form-slider-inset);
+}
+.r-form-slider[data-orientation="vertical"] > .r-form-slider-control {
+  flex-direction: column;
+  inline-size: max(var(--HIT-MIN), var(--r-form-slider-thumb));
+  padding-block: var(--r-form-slider-inset);
+}
+.r-form-slider-rail {
+  position: relative;
+  flex: 1 1 auto;
+}
+
+/* The track's edge is a transparent border, so forced colours draw it. */
+.r-form-slider-track {
+  position: absolute;
+  overflow: hidden;
+  border: var(--BORDER-WIDTH) solid transparent;
+  border-radius: var(--RADIUS-FULL);
+  background-color: var(--C-BORDER);
+}
+.r-form-slider-fill {
+  position: absolute;
+  background-color: var(--C-ACCENT);
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-track {
+  inset-inline: 0;
+  inset-block: 0;
+  block-size: var(--r-form-slider-track);
+  margin-block: auto;
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-fill {
+  inset-block: 0;
+  inset-inline-start: var(--r-form-slider-from);
+  inline-size: calc(var(--r-form-slider-to) - var(--r-form-slider-from));
+}
+.r-form-slider[data-orientation="vertical"] .r-form-slider-track {
+  inset-block: 0;
+  inset-inline: 0;
+  inline-size: var(--r-form-slider-track);
+  margin-inline: auto;
+}
+.r-form-slider[data-orientation="vertical"] .r-form-slider-fill {
+  inset-inline: 0;
+  inset-block-end: var(--r-form-slider-from);
+  block-size: calc(var(--r-form-slider-to) - var(--r-form-slider-from));
+}
+
+/* A tick is a dot the track's thickness: line ink off the fill, on-accent on it. */
+.r-form-slider-tick {
+  position: absolute;
+  inline-size: var(--r-form-slider-track);
+  block-size: var(--r-form-slider-track);
+  border-radius: var(--RADIUS-FULL);
+  background-color: var(--C-BORDER-STRONG);
+  pointer-events: none;
+}
+.r-form-slider-tick[data-active] {
+  background-color: var(--C-TEXT-ON-ACCENT);
+}
+
+/* A thumb's centre sits on its value (negative logical margins, so RTL needs no sign). */
+.r-form-slider-thumb {
+  position: absolute;
+  inline-size: var(--r-form-slider-thumb);
+  block-size: var(--r-form-slider-thumb);
+  border: calc(var(--BORDER-WIDTH) * 2) solid var(--C-ACCENT);
+  border-radius: var(--RADIUS-FULL);
+  background-color: var(--C-SURFACE-0);
+  cursor: grab;
+  transition: box-shadow var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-form-slider[data-orientation="horizontal"] :is(.r-form-slider-tick, .r-form-slider-thumb) {
+  inset-block-start: 50%;
+  inset-inline-start: var(--r-form-slider-at);
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-tick {
+  margin-inline-start: calc(var(--r-form-slider-track) / -2);
+  margin-block-start: calc(var(--r-form-slider-track) / -2);
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-thumb {
+  margin-inline-start: calc(var(--r-form-slider-thumb) / -2);
+  margin-block-start: calc(var(--r-form-slider-thumb) / -2);
+}
+.r-form-slider[data-orientation="vertical"] :is(.r-form-slider-tick, .r-form-slider-thumb) {
+  inset-inline-start: 50%;
+  inset-block-end: var(--r-form-slider-at);
+}
+.r-form-slider[data-orientation="vertical"] .r-form-slider-tick {
+  margin-inline-start: calc(var(--r-form-slider-track) / -2);
+  margin-block-end: calc(var(--r-form-slider-track) / -2);
+}
+.r-form-slider[data-orientation="vertical"] .r-form-slider-thumb {
+  margin-inline-start: calc(var(--r-form-slider-thumb) / -2);
+  margin-block-end: calc(var(--r-form-slider-thumb) / -2);
+}
+/* `hit-area` needs `position: relative`, which an absolute thumb cannot take: it sits on a span filling the thumb. */
+.r-form-slider-thumb-hit {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+}
+.r-form-slider:not([data-disabled], [data-readonly]) .r-form-slider-thumb:hover {
+  box-shadow: 0 0 0 var(--R-SIZE-6) color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+.r-form-slider:not([data-disabled], [data-readonly]) .r-form-slider-thumb[data-dragging] {
+  box-shadow: 0 0 0 var(--R-SIZE-6) color-mix(in oklab, var(--C-TEXT-PRIMARY) 12%, transparent);
+  cursor: grabbing;
+}
+.r-form-slider[data-invalid] .r-form-slider-fill {
+  background-color: var(--C-STATUS-ERROR);
+}
+.r-form-slider[data-invalid] .r-form-slider-thumb {
+  border-color: var(--C-STATUS-ERROR);
+}
+.r-form-slider[data-disabled] {
+  opacity: var(--OPACITY-DISABLED);
+}
+.r-form-slider[data-disabled] :is(.r-form-slider-control, .r-form-slider-thumb) {
+  cursor: not-allowed;
+}
+.r-form-slider[data-readonly] :is(.r-form-slider-control, .r-form-slider-thumb) {
+  cursor: default;
+}
+
+/* The value bubble: in the flow of nothing (display: none) until the thumb is
+   dragged or keyboard-focused, so a hidden bubble never widens a scroller. A
+   zero-size anchor centres it on the thumb in either direction. */
+.r-form-slider-bubble-anchor {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}
+.r-form-slider-thumb:is(:focus-visible, [data-dragging]) > .r-form-slider-bubble-anchor {
+  display: flex;
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-bubble-anchor {
+  inset-inline-start: 50%;
+  inset-block-end: calc(100% + var(--R-SIZE-5));
+  inline-size: 0;
+  justify-content: center;
+}
+.r-form-slider[data-orientation="vertical"] .r-form-slider-bubble-anchor {
+  inset-inline-start: calc(100% + var(--R-SIZE-5));
+  inset-block-start: 50%;
+  block-size: 0;
+  align-items: center;
+}
+.r-form-slider-bubble {
+  flex-shrink: 0;
+  padding-block: var(--R-SIZE-6);
+  padding-inline: var(--R-SIZE-5);
+  border-radius: var(--RADIUS-SM);
+  white-space: nowrap;
+  font-variant-numeric: var(--NUMERALS-DATA);
+}
+
+/* Mark labels: horizontal, one line under the rail (same inset), each centred
+   on its value through a zero-width anchor, the end marks flush with the ends;
+   vertical, a column beside it, every label in one grid cell (so the widest
+   sizes the column) and lifted to its value. */
+.r-form-slider-marks {
+  position: relative;
+}
+.r-form-slider[data-orientation="horizontal"] > .r-form-slider-marks {
+  block-size: var(--BodyText-3-line-height);
+  margin-inline: var(--r-form-slider-inset);
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-mark {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: var(--r-form-slider-at);
+  display: flex;
+  inline-size: 0;
+  justify-content: center;
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-mark[data-edge="start"] {
+  justify-content: flex-start;
+}
+.r-form-slider[data-orientation="horizontal"] .r-form-slider-mark[data-edge="end"] {
+  justify-content: flex-end;
+}
+.r-form-slider[data-orientation="vertical"] > .r-form-slider-marks {
+  display: grid;
+  padding-block: var(--r-form-slider-inset);
+}
+.r-form-slider[data-orientation="vertical"] .r-form-slider-mark {
+  position: relative;
+  grid-area: 1 / 1;
+  align-self: end;
+  inset-block-end: var(--r-form-slider-at);
+  translate: 0 50%;
+}
+.r-form-slider-mark-label {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Rating ────────────────────────────────────────────────────────────────
+   Each icon is drawn twice: an outline in line ink, and a filled copy in
+   `currentColor` clipped to the fraction from the inline start (so RTL fills
+   from the right). As a control each icon's cell is at least the hit floor;
+   as a display the icons sit at text size. */
+.r-form-rating {
+  --r-form-rating-size: var(--ICON);
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  max-inline-size: 100%;
+  vertical-align: middle;
+  border-radius: var(--RADIUS-SM);
+  color: var(--C-TEXT-ACCENT);
+}
+.r-form-rating[role="slider"] {
+  --r-form-rating-size: calc(var(--ICON) * 1.25);
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+.r-form-rating-item {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+}
+.r-form-rating[role="slider"] .r-form-rating-item {
+  min-inline-size: var(--HIT-MIN);
+  min-block-size: var(--HIT-MIN);
+}
+.r-form-rating-glyph {
+  position: relative;
+  display: block;
+  inline-size: var(--r-form-rating-size);
+  block-size: var(--r-form-rating-size);
+}
+.r-form-rating-icon {
+  display: block;
+  block-size: 100%;
+}
+.r-form-rating-icon > svg {
+  display: block;
+  inline-size: var(--r-form-rating-size);
+  block-size: var(--r-form-rating-size);
+}
+.r-form-rating-base > svg {
+  fill: none;
+  stroke: var(--C-BORDER-STRONG);
+}
+.r-form-rating-fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: calc(var(--r-form-rating-size) * var(--r-form-rating-fill));
+  overflow: hidden;
+}
+.r-form-rating-fill > svg {
+  fill: currentColor;
+  stroke: currentColor;
+}
+.r-form-rating[data-invalid] .r-form-rating-base > svg {
+  stroke: var(--C-STATUS-ERROR);
+}
+.r-form-rating[data-disabled] {
+  opacity: var(--OPACITY-DISABLED);
+  cursor: not-allowed;
+}
+
+/* Forced colours: the fill is a Highlight band (the contract maps --C-ACCENT
+   to Highlight, a system colour forcing keeps; thumb and ticks in system
+   colours on it), the track a CanvasText edge; an invalid thumb's edge
+   doubles. Rating icons keep their two looks in one ink: outline vs solid. */
+@media (forced-colors: active) {
+  .r-form-slider-track {
+    border-color: CanvasText;
+    background-color: Canvas;
+  }
+  .r-form-slider-tick {
+    forced-color-adjust: none;
+    background-color: CanvasText;
+  }
+  .r-form-slider-tick[data-active] {
+    background-color: HighlightText;
+  }
+  .r-form-slider-thumb {
+    forced-color-adjust: none;
+    border-color: CanvasText;
+    background-color: Canvas;
+  }
+  .r-form-slider[data-invalid] .r-form-slider-thumb {
+    border-width: calc(var(--BORDER-WIDTH) * 4);
+  }
+  .r-form-slider[data-disabled] :is(.r-form-slider-fill, .r-form-slider-thumb) {
+    border-color: GrayText;
+  }
+  .r-form-slider[data-disabled] .r-form-slider-fill {
+    background-color: GrayText;
+  }
+  .r-form-rating {
+    forced-color-adjust: none;
+    color: CanvasText;
+  }
+  .r-form-rating-base > svg {
+    stroke: CanvasText;
+  }
+  .r-form-rating[data-disabled] {
+    color: GrayText;
+  }
+  .r-form-rating[data-disabled] .r-form-rating-base > svg {
+    stroke: GrayText;
+  }
+}
+
+/* ── AvatarUpload: a square stage holding the avatar, with room around it for
+   the ProgressRing drawn over the stage while the photo uploads (the ring's
+   stroke is a twelfth of its box, so the avatar is five sixths of it, less a
+   gap each side). */
+.r-form-avatar-stage {
+  --r-form-avatar-stage: calc(var(--ICON) * 6);
+  --r-form-avatar-size: calc(var(--r-form-avatar-stage) * 5 / 6 - 2 * var(--R-SIZE-6));
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  inline-size: var(--r-form-avatar-stage);
+  block-size: var(--r-form-avatar-stage);
+}
+.r-form-avatar-stage > * {
+  grid-area: 1 / 1;
 }

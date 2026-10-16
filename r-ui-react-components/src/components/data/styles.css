@@ -19,16 +19,99 @@
   box-shadow: inset calc(var(--R-SIZE-6) * -1) 0 0 var(--C-ACCENT);
 }
 
+/* DataTable: an open row's detail. The same leading marker as a selected row,
+   in the structural neutral rather than the accent: a row can be selected and
+   open at once, and an accent bar here would read as selection. */
+.r-data-table-detail {
+  box-shadow: inset var(--R-SIZE-6) 0 0 var(--C-BORDER-STRONG);
+}
+.r-data-table-detail:dir(rtl) {
+  box-shadow: inset calc(var(--R-SIZE-6) * -1) 0 0 var(--C-BORDER-STRONG);
+}
+
+/* DataTable: sticky leading columns. Each pinned cell holds its inline-start
+   offset (measured, inline) and paints an opaque fill, so the rows scrolling
+   under it never show through; the fill re-draws the row's band, hover and
+   selection washes over the table's surface, which a caller on another surface
+   names with --r-data-table-surface. A head cell's band is a utility and wins.
+   The last pinned cell draws its edge only while something is scrolled under
+   it: the rule exists only then, because forced colours paint even a
+   transparent border. */
+.r-data-table-sticky {
+  position: sticky;
+  z-index: var(--LAYER-RAISED);
+  background-color: var(--r-data-table-surface, var(--C-SURFACE-0));
+}
+[data-table-row][data-band] > .r-data-table-sticky {
+  background-color: var(--C-SURFACE-1);
+}
+tbody > [data-table-row]:hover > .r-data-table-sticky {
+  background-image: linear-gradient(color-mix(in oklab, var(--C-TEXT-PRIMARY) 5%, transparent) 0 0);
+}
+[data-table-row][data-selected] > .r-data-table-sticky {
+  background-image: linear-gradient(color-mix(in oklab, var(--C-ACCENT) 10%, transparent) 0 0);
+}
+tbody > [data-table-row][data-selected]:hover > .r-data-table-sticky {
+  background-image: linear-gradient(color-mix(in oklab, var(--C-ACCENT) 15%, transparent) 0 0);
+}
+[data-scrolled-inline] .r-data-table-sticky[data-sticky-edge]::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  border-inline-end: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
+  pointer-events: none;
+}
+
+/* DataTable: a column's resize handle, in the header's trailing padding (half
+   the hit floor wide, so it reaches into the content only on coarse input). A
+   hairline marks the column's edge; it firms on hover, focus and drag. */
+.r-data-table-resize {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: max(var(--R-SIZE-3), calc(var(--HIT-MIN) / 2));
+  cursor: col-resize;
+  touch-action: none;
+}
+.r-data-table-resize::after {
+  content: "";
+  position: absolute;
+  inset-block: var(--R-SIZE-5);
+  inset-inline-end: 0;
+  border-inline-end: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+.r-data-table-resize:hover::after,
+.r-data-table-resize:focus-visible::after,
+.r-data-table-resize[data-resizing]::after {
+  border-inline-end-color: var(--C-ACCENT);
+}
+
+/* DataTable: the bulk bar and the pages, inside the table's own scroll area
+   after the <table>: held to its bottom edge, and to its inline start while the
+   table scrolls sideways (a block is as wide as the scroll area, not the table),
+   above the sticky columns. */
+.r-data-table-footer {
+  position: sticky;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  z-index: var(--LAYER-STICKY);
+  background-color: var(--r-data-table-surface, var(--C-SURFACE-0));
+}
+
 /* Forced colors drop the wash and the shadow, so the marker becomes a Highlight
    bar of its own (a pseudo-element opted out of repainting, so nothing else in
    the cell is), and a meter's track, an ink wash, gets an edge so the fill
    still reads as a share of something: an outline, because a border would eat
    into a track only --R-SIZE-5 tall. */
 @media (forced-colors: active) {
-  [data-table-row][data-selected] > :first-child {
+  /* A sticky cell is already the bar's containing block; relative would unpin it. */
+  [data-table-row][data-selected] > :first-child:not(.r-data-table-sticky),
+  .r-data-table-detail {
     position: relative;
   }
-  [data-table-row][data-selected] > :first-child::before {
+  [data-table-row][data-selected] > :first-child::before,
+  .r-data-table-detail::before {
     content: "";
     position: absolute;
     inset-block: 0;
@@ -37,6 +120,9 @@
     background-color: Highlight;
     forced-color-adjust: none;
     pointer-events: none;
+  }
+  .r-data-table-detail::before {
+    background-color: CanvasText;
   }
   .r-data-meter-track {
     outline: var(--BORDER-WIDTH) solid CanvasText;
@@ -50,7 +136,15 @@
    a --R-SIZE-5 ring, sized from density tokens (never --CONTROL-H, which the hit
    floor raises on coarse input: a mark is not a target). The body's first line
    is nudged down by half the difference between the mark and the title's line
-   box, so the mark centres on it at either density. */
+   box, so the mark centres on it at either density.
+
+   The thread: mark · gap · line · gap · next mark, one --R-SIZE-6 gap at each
+   end, measured from the mark's drawn edge. The space between events is the
+   BODY's end padding, inside the grid row, so the rail (and its line) spans it;
+   a stateless event's mark box is its small dot, centred on the title line, so
+   the line above it reaches down past the item's end to meet the dot's real
+   top edge. Each day is its own list, and a list's last line is hidden, so a
+   thread never crosses a day header. */
 .r-data-timeline-list {
   display: flex;
   flex-direction: column;
@@ -62,13 +156,10 @@
   padding-block-start: var(--R-SIZE-4);
 }
 .r-data-timeline-item {
+  --r-data-timeline-mark: calc(var(--ICON) + 2 * var(--R-SIZE-5));
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   column-gap: var(--R-SIZE-3);
-  padding-block-end: var(--R-SIZE-3);
-}
-.r-data-timeline-item:last-child {
-  padding-block-end: 0;
 }
 .r-data-timeline-rail {
   display: flex;
@@ -79,15 +170,21 @@
   display: inline-grid;
   place-items: center;
   flex-shrink: 0;
-  inline-size: calc(var(--ICON) + 2 * var(--R-SIZE-5));
-  block-size: calc(var(--ICON) + 2 * var(--R-SIZE-5));
+  inline-size: var(--r-data-timeline-mark);
+  block-size: var(--r-data-timeline-mark);
   border-radius: var(--RADIUS-FULL);
 }
 .r-data-timeline-mark > svg {
   inline-size: var(--ICON);
   block-size: var(--ICON);
 }
-/* A stateless event: a solid dot drawn as a border, so forced colours keep it. */
+/* A stateless event's mark: as wide as a disc (the rails stay one column), as
+   tall as its dot, which sits where a disc's centre would. */
+.r-data-timeline-mark[data-timeline-mark="dot"] {
+  block-size: var(--R-SIZE-4);
+  margin-block-start: calc((var(--r-data-timeline-mark) - var(--R-SIZE-4)) / 2);
+}
+/* A solid dot drawn as a border, so forced colours keep it. */
 .r-data-timeline-dot {
   inline-size: var(--R-SIZE-4);
   block-size: var(--R-SIZE-4);
@@ -97,13 +194,20 @@
 .r-data-timeline-line {
   flex: 1 1 auto;
   margin-block: var(--R-SIZE-6);
-  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
+}
+.r-data-timeline-item:has(+ .r-data-timeline-item > .r-data-timeline-rail > [data-timeline-mark="dot"]) .r-data-timeline-line {
+  margin-block-end: calc(var(--R-SIZE-6) - (var(--r-data-timeline-mark) - var(--R-SIZE-4)) / 2);
 }
 .r-data-timeline-item:last-child .r-data-timeline-line {
   visibility: hidden;
 }
 .r-data-timeline-body {
-  padding-block-start: calc((var(--ICON) + 2 * var(--R-SIZE-5) - var(--BodyText-1-line-height)) / 2);
+  padding-block-start: calc((var(--r-data-timeline-mark) - var(--BodyText-1-line-height)) / 2);
+  padding-block-end: var(--R-SIZE-3);
+}
+.r-data-timeline-item:last-child > .r-data-timeline-body {
+  padding-block-end: 0;
 }
 .r-data-timeline-description[data-clamped] {
   display: -webkit-box;

@@ -1,7 +1,7 @@
 "use client";
 import { type CSSProperties, type RefObject, useMemo, useRef, useState } from "react";
 
-import { mergeLabels } from "../../util/labels";
+import { useLabels, useLocale } from "../../util/locale";
 import { cn } from "../../util/style";
 import { type ChartTable, makeFormatters, tidyLabel, type ValueFormatOptions } from "./chart-model";
 import {
@@ -104,14 +104,15 @@ export function Heatmap({
   valueLabel,
   unit,
   format,
-  locale,
+  locale: localeProp,
   labels,
   className,
   classNames,
   ref,
   ...rest
 }: HeatmapProps) {
-  const words = mergeLabels(DEFAULT_CHART_LABELS, labels);
+  const words = useLabels("Chart", DEFAULT_CHART_LABELS, labels);
+  const locale = useLocale(localeProp);
   const formatters = useMemo(() => makeFormatters({ unit, format, locale }), [unit, format, locale]);
   const model = useMemo(() => modelHeatmap({ rows, columns, values }), [rows, columns, values]);
   const plotRef = useRef<HTMLDivElement>(null);

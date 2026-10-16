@@ -82,8 +82,8 @@ const folders = Object.entries(ENTRIES).flatMap(([folder, entry]) => {
   return files.length ? [{ entry, perFile: files.map((file) => ({ file, ...classTokens(readFileSync(file, "utf8"), file) })) }] : [];
 });
 
-// A class-named lookup table is direct where ANY file uses it as classes (an
-// exported table is usually used elsewhere); see `scripts/lib/class-tokens.mjs`.
+// An exported class-named lookup table is direct where a file that imports it
+// uses it as classes; see `scripts/lib/class-tokens.mjs`.
 const usedAnywhere = new Set(folders.flatMap((f) => f.perFile.flatMap((p) => [...p.used])));
 for (const t of folders.flatMap((f) => f.perFile.flatMap((p) => p.tokens))) {
   if (t.table && usedAnywhere.has(t.table)) t.direct = true;

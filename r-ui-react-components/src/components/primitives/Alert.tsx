@@ -5,7 +5,7 @@ import type { ComponentPropsWithRef, ReactNode } from "react";
 
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "./IconButton";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { MARK_TEXT, type StatusTone, type Tone, TONE_LABELS, TONE_SUBTLE_BG, TONE_TEXT, ToneGlyph } from "../../util/tone";
 
 /**
@@ -40,6 +40,12 @@ export interface AlertLabels {
 }
 
 export const DEFAULT_ALERT_LABELS: AlertLabels = { dismiss: "Dismiss", tones: TONE_LABELS };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Alert: AlertLabels;
+  }
+}
 
 export type AlertProps = {
   tone?: StatusTone;
@@ -77,7 +83,7 @@ export function Alert({
   children,
   ...props
 }: AlertProps) {
-  const labels = mergeLabels(DEFAULT_ALERT_LABELS, labelsProp);
+  const labels = useLabels("Alert", DEFAULT_ALERT_LABELS, labelsProp);
   const word = labels.tones[tone];
   // `null` removes the glyph; `??` would treat it as absent and restore it.
   const glyph = icon === undefined ? <ToneGlyph tone={tone} /> : icon;

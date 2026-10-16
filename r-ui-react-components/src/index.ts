@@ -20,6 +20,11 @@ export * from "./components/charts";
 export * from "./components/marketing";
 export * from "./components/steps";
 export * from "./components/commands";
+export * from "./components/feedback";
+export * from "./components/toolbar";
+export * from "./components/filters";
+export * from "./components/guards";
+export * from "./components/boards";
 
 export * from "./hooks";
 export * from "./util";

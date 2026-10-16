@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useRef } from "react";
 
-import { mergeLabels } from "../../util/labels";
+import { useLabels, useLocale } from "../../util/locale";
 import { cn } from "../../util/style";
 import {
   type ChartSeries,
@@ -74,14 +74,15 @@ export function BarChart({
   unit,
   format,
   formatTick,
-  locale,
+  locale: localeProp,
   labels,
   className,
   classNames,
   ref,
   ...rest
 }: BarChartProps) {
-  const words = mergeLabels(DEFAULT_CHART_LABELS, labels);
+  const words = useLabels("Chart", DEFAULT_CHART_LABELS, labels);
+  const locale = useLocale(localeProp);
   const horizontal = orientation === "horizontal";
   const formatters = useMemo(() => makeFormatters({ unit, format, formatTick, locale }), [unit, format, formatTick, locale]);
   // Bars sit in bands: a time x is a band axis, so it keeps its order and labels, never a scale.

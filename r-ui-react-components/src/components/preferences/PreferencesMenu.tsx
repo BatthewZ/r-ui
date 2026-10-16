@@ -3,7 +3,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { useId } from "react";
 
 import { useDensity, useInputMode, useTheme } from "../../hooks/use-preferences";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import type { PreferencesConfig } from "../../util/preferences";
 import type { Placement } from "../../hooks/use-floating";
 import { DropdownMenu } from "../overlays";
@@ -37,7 +37,7 @@ export function PreferencesMenu({
   storageKey,
   className,
 }: PreferencesMenuProps) {
-  const labels = mergeLabels(DEFAULT_PREFERENCES_MENU_LABELS, labelsProp);
+  const labels = useLabels("PreferencesMenu", DEFAULT_PREFERENCES_MENU_LABELS, labelsProp);
   const options = themes.map(toOption);
   const { theme, setTheme } = useTheme({ themes: options.map((o) => o.value), storageKey });
   const { density, setDensity } = useDensity({ storageKey });

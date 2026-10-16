@@ -18,8 +18,11 @@
 //      then its answer ("cpu-high" is taken);
 //   6. a server rejection by path lands on that field (a condition's threshold)
 //      with focus;
-//   7. the sticky action row sits on its scroller's bottom edge at both ends of
-//      the scroll, at the sticky layer, and a narrow container stacks the actions;
+//   7. the long form's action row is sticky at the bottom, at the sticky layer;
+//      the FormActions demo's bounded box is a ScrollPanel: only its body
+//      scrolls, the footer (the actions) sits outside it on the panel's bottom
+//      edge at both ends of the scroll, the body ends where the footer begins;
+//      a narrow container stacks the actions;
 //   8. at 375 wide, compact density and coarse input (a dark theme): controls
 //      are their `--CONTROL-H` (raised to the 44px floor), nothing scrolls
 //      sideways, the actions stack full-width with the primary on top, and the
@@ -135,39 +138,55 @@ async (page) => {
     const thresholdText = await description(threshold);
     if (!thresholdText.includes("ceiling")) fail.push(`server: the threshold is described by "${thresholdText}"`);
 
-    // 7. Sticky actions, in the FormActions demo's scroll box (sticky follows the
-    //    nearest scroller; the Overview's demo frame is one, so the long form above
-    //    cannot show it against the page). Plus a narrow container stacking.
-    await page.goto(`${base}#/overview/form-formactions`);
-    await waitForShowcase(page);
-    const box = page.locator('[data-sc="form-actions-sticky"]');
-    await box.waitFor();
-    await box.scrollIntoViewIfNeeded();
-    const sticky = await box.evaluate((el) => {
-      el.scrollTop = 0;
-      const row = el.querySelector("[data-sticky]");
-      // Distance from the row's bottom to the box's inner (padding-box) bottom.
-      const at = () => {
-        const innerBottom = el.getBoundingClientRect().top + el.clientTop + el.clientHeight;
-        return { gap: innerBottom - row.getBoundingClientRect().bottom };
-      };
-      const top = at();
-      el.scrollTop = el.scrollHeight;
-      const end = at();
+    // 7. A sticky row (the long form's own) is sticky at the sticky layer; in a
+    //    bounded box the actions sit in a ScrollPanel's footer instead: only the
+    //    body scrolls, and its bottom edge (with its scrollbar) is the footer's top.
+    const stickyRow = await form.locator("[data-sticky]").evaluate((row) => {
       const cs = getComputedStyle(row);
       return {
-        scrolls: el.scrollHeight > el.clientHeight,
-        top,
-        end,
         position: cs.position,
+        bottom: cs.bottom,
         z: cs.zIndex,
         layer: getComputedStyle(document.documentElement).getPropertyValue("--LAYER-STICKY").trim(),
       };
     });
-    if (!sticky.scrolls) fail.push("sticky: harness: the demo box does not scroll");
-    if (sticky.position !== "sticky" || Math.abs(sticky.top.gap) > 1 || Math.abs(sticky.end.gap) > 1)
-      fail.push(`sticky: the row does not sit on the box's bottom edge at both ends ${JSON.stringify(sticky)}`);
-    if (sticky.z !== sticky.layer) fail.push(`sticky: z-index ${sticky.z}, not the sticky layer ${sticky.layer}`);
+    if (stickyRow.position !== "sticky" || stickyRow.bottom !== "0px" || stickyRow.z !== stickyRow.layer)
+      fail.push(`sticky: the long form's row is not sticky at the bottom, at the sticky layer ${JSON.stringify(stickyRow)}`);
+    await page.goto(`${base}#/overview/form-formactions`);
+    await waitForShowcase(page);
+    const panelBox = page.locator('[data-sc="form-actions-panel"]');
+    await panelBox.waitFor();
+    await panelBox.scrollIntoViewIfNeeded();
+    const panel = await panelBox.evaluate((el) => {
+      const [body, footer] = el.children;
+      const at = () => {
+        const inner = el.getBoundingClientRect().top + el.clientTop + el.clientHeight;
+        const b = body.getBoundingClientRect();
+        const f = footer.getBoundingClientRect();
+        return { footerToPanel: inner - f.bottom, bodyToFooter: f.top - b.bottom };
+      };
+      body.scrollTop = 0;
+      const top = at();
+      body.scrollTop = body.scrollHeight;
+      const end = at();
+      return {
+        parts: el.children.length,
+        scrolls: body.scrollHeight > body.clientHeight && getComputedStyle(body).overflowY === "auto",
+        panelScrolls: el.scrollHeight > el.clientHeight,
+        footerInside: body.contains(footer),
+        footerPosition: getComputedStyle(footer).position,
+        hasActions: footer.querySelectorAll("button").length,
+        top,
+        end,
+      };
+    });
+    if (panel.parts !== 2 || panel.hasActions !== 2) fail.push(`panel: harness: expected body + footer with two actions ${JSON.stringify(panel)}`);
+    if (!panel.scrolls) fail.push("panel: harness: the demo body does not scroll");
+    if (panel.panelScrolls || panel.footerInside || panel.footerPosition !== "static")
+      fail.push(`panel: the footer is inside the scroll, or the panel itself scrolls ${JSON.stringify(panel)}`);
+    for (const [when, gaps] of [["top", panel.top], ["end", panel.end]])
+      if (Math.abs(gaps.footerToPanel) > 1 || Math.abs(gaps.bodyToFooter) > 1)
+        fail.push(`panel: at the ${when} of the scroll the footer is not on the panel's bottom edge or the body does not end at it ${JSON.stringify(gaps)}`);
     const narrow = await page.locator('[data-sc="form-actions-narrow"]').evaluate((el) => {
       const [cancel, save] = [...el.querySelectorAll("button")].map((b) => b.getBoundingClientRect());
       return { stacked: save.bottom <= cancel.top + 0.5, full: Math.abs(save.width - cancel.width) < 1 };
@@ -221,5 +240,5 @@ async (page) => {
   }
 
   if (fail.length) throw new Error(`form-state-submit:\n  ${fail.join("\n  ")}`);
-  return "first invalid focused + described, summary links focus on screen, fix clears, async pending then taken, server error by path, sticky row at the layer, 375 compact coarse stacked, forced-colors edge";
+  return "first invalid focused + described, summary links focus on screen, fix clears, async pending then taken, server error by path, sticky row at the layer, panel footer outside the scroller, 375 compact coarse stacked, forced-colors edge";
 }

@@ -12,7 +12,7 @@ import {
   useState,
 } from "react";
 
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { cn, type SlotClassNames } from "../../util/style";
 import { MARK_TEXT, type Tone, TONE_LABELS, ToneGlyph } from "../../util/tone";
 import { Button, IconButton } from "../primitives";
@@ -75,6 +75,12 @@ export const DEFAULT_TOAST_LABELS: Readonly<ToastLabels> = {
   tones: TONE_LABELS,
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Toast: ToastLabels;
+  }
+}
+
 /** Interrupts: announced assertively and kept until dismissed. */
 const isUrgent = (tone: Tone) => tone === "error" || tone === "serious";
 
@@ -129,7 +135,7 @@ export function ToastProvider({
   const regionRef = useRef<HTMLElement>(null);
   /** Where focus was before it entered the stack. */
   const returnFocus = useRef<HTMLElement | null>(null);
-  const text = mergeLabels(DEFAULT_TOAST_LABELS, labels);
+  const text = useLabels("Toast", DEFAULT_TOAST_LABELS, labels);
 
   /**
    * Before toasts leave: if focus is in one of them, move it to the next

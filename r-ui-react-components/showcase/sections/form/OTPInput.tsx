@@ -81,11 +81,11 @@ export default function OTPInputSection() {
       </Row>
       <Row label="Variants: PIN (masked, 4) · recovery code (letters and digits, 4 + 4) · invalid · disabled">
         <Grid>
-          <Field>
+          <Field data-testid="otp-pin">
             <Field.Label>Card PIN</Field.Label>
             <OTPInput length={4} mask />
           </Field>
-          <Field>
+          <Field data-testid="otp-recovery">
             <Field.Label>Recovery code</Field.Label>
             <OTPInput length={8} mode="alphanumeric" groups={[4, 4]} defaultValue="K7QD" />
             <Field.Description>From the list you saved when you turned on two-step sign-in.</Field.Description>

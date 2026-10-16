@@ -20,7 +20,7 @@ import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 
 import { useFieldControl, useFieldValue } from "./Field";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 export type OTPInputMode = "numeric" | "alphanumeric";
 
@@ -39,6 +39,12 @@ export const DEFAULT_OTP_INPUT_LABELS: OTPInputLabels = {
   label: "Verification code",
   length: (length, mode) => `, ${length} ${mode === "numeric" ? "digits" : "characters"}`,
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    OTPInput: OTPInputLabels;
+  }
+}
 
 const ALLOWED: Record<OTPInputMode, RegExp> = {
   numeric: /[0-9]/,
@@ -124,7 +130,7 @@ export function OTPInput({
   onPointerUp,
   ...props
 }: OTPInputProps) {
-  const labels = mergeLabels(DEFAULT_OTP_INPUT_LABELS, labelsProp);
+  const labels = useLabels("OTPInput", DEFAULT_OTP_INPUT_LABELS, labelsProp);
   const field = useFieldControl({
     id: idProp,
     invalid: invalidProp,

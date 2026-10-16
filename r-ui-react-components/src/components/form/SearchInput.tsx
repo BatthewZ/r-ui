@@ -8,7 +8,7 @@ import { cn } from "../../util/style";
 
 import { useField, useFieldValue } from "./Field";
 import { Input, type InputProps } from "./Input";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 export interface SearchInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "start"> {
   value?: string;
@@ -34,6 +34,12 @@ export const DEFAULT_SEARCH_INPUT_LABELS: SearchInputLabels = {
   clear: "Clear search",
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    SearchInput: SearchInputLabels;
+  }
+}
+
 /**
  * A search field: magnifier, a clear button while there is text, and Escape
  * to clear. An Escape that clears nothing is left to reach the dialog or
@@ -53,7 +59,7 @@ export function SearchInput({
   end,
   ...props
 }: SearchInputProps) {
-  const labels = mergeLabels(DEFAULT_SEARCH_INPUT_LABELS, labelsProp);
+  const labels = useLabels("SearchInput", DEFAULT_SEARCH_INPUT_LABELS, labelsProp);
   const placeholder = placeholderProp ?? labels.search;
   const field = useField();
   const inputRef = useRef<HTMLInputElement>(null);

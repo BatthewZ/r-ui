@@ -13,7 +13,7 @@ import {
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { useLightDismiss } from "../../hooks/use-light-dismiss";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
@@ -81,6 +81,12 @@ export interface DialogLabels {
 }
 
 export const DEFAULT_DIALOG_LABELS: Readonly<DialogLabels> = { close: "Close" };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Dialog: DialogLabels;
+  }
+}
 
 export type ModalContentProps = Omit<ComponentPropsWithRef<"dialog">, "open" | "role"> & {
   /**
@@ -161,7 +167,7 @@ function ModalContent({
   const isAlert = role === "alertdialog";
   const close = showClose ?? !isAlert;
 
-  const text = mergeLabels(DEFAULT_DIALOG_LABELS, labels);
+  const text = useLabels("Dialog", DEFAULT_DIALOG_LABELS, labels);
 
   // After `ShowModal` (a child, so its effect ran first) and any `autoFocus`.
   useLayoutEffect(() => {

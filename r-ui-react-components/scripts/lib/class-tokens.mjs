@@ -14,10 +14,13 @@
 //     it in a class context: "class" is also an ordinary word
 //     (`ERROR_CLASSES = ["5xx server", "Timeouts"]` lists kinds of error), and
 //     a table's entries may be labels, while a class string is never anything
-//     else. Its tokens come back tagged with `table`; the caller upgrades them
-//     to direct when any file's `used` names include it (an exported table is
-//     used in another file). Until then they are indirect, which still checks
-//     every token Tailwind parses as a utility.
+//     else. An exported table's tokens come back tagged with `table`; the
+//     caller upgrades them to direct when another file IMPORTS that name and
+//     uses it as classes (`used` holds imported names only, by their exported
+//     name: a local `classes` in another file is a different binding). Until
+//     then, and always for an unexported table its own file does not use as
+//     classes, they are indirect, which still checks every token Tailwind
+//     parses as a utility.
 //
 // Those are DIRECT. Identifiers met inside a class context are followed to
 // their declaration in the same file (a hoisted constant, a lookup table, the
@@ -34,7 +37,11 @@
 
 import ts from "typescript";
 
-import { scriptKind } from "./raw-tailwind.mjs";
+/**
+ * TSX only for `.tsx`: read as TSX, a `.ts` file's generic arrow (`<T>(x) => …`)
+ * opens a JSX element and every string after it becomes JSX text, unscanned.
+ */
+export const scriptKind = (fileName) => (fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 
 const CLASS_CALLS = new Set(["cn", "clsx", "cx", "twMerge", "twJoin", "cva", "tv"]);
 const CLASS_ATTR = /^(?:class|className|classNames)$|(?:ClassName|ClassNames)$/;
@@ -75,9 +82,10 @@ const isLookupTable = (node) => {
 const isClassCall = (node) => ts.isCallExpression(node) && CLASS_CALLS.has(calleeName(node.expression) ?? "");
 
 /**
- * Every class token in a .ts/.tsx source, and every name a class context in
- * it reaches (`used`: same-file declarations and imports alike).
- * @returns {{ tokens: { token: string, line: number, direct: boolean, fragment: boolean, table?: string }[], used: Set<string> }}
+ * Every class token in a .ts/.tsx source, and every imported name a class
+ * context in it reaches (`used`, by the name the other module exports).
+ * `pos` is the start of the literal (or template part) the token was read from.
+ * @returns {{ tokens: { token: string, line: number, pos: number, direct: boolean, fragment: boolean, table?: string }[], used: Set<string> }}
  */
 export function classTokens(source, fileName) {
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind(fileName));
@@ -98,6 +106,20 @@ export function classTokens(source, fileName) {
   };
   index(sf);
 
+  // Import bindings: local name -> the name the other module exports.
+  const imports = new Map();
+  // Names this module exports (`export const X`, `export { X }`).
+  const exported = new Set();
+  for (const st of sf.statements) {
+    if (ts.isImportDeclaration(st) && st.importClause?.namedBindings && ts.isNamedImports(st.importClause.namedBindings)) {
+      for (const el of st.importClause.namedBindings.elements) imports.set(el.name.text, (el.propertyName ?? el.name).text);
+    } else if (ts.isVariableStatement(st) && st.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      for (const d of st.declarationList.declarations) if (ts.isIdentifier(d.name)) exported.add(d.name.text);
+    } else if (ts.isExportDeclaration(st) && !st.moduleSpecifier && st.exportClause && ts.isNamedExports(st.exportClause)) {
+      for (const el of st.exportClause.elements) exported.add((el.propertyName ?? el.name).text);
+    }
+  }
+
   const found = new Map(); // `${pos}:${token}` -> entry
   const lineOf = (node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
   let table; // the class-named table being collected, if any
@@ -109,7 +131,7 @@ export function classTokens(source, fileName) {
       prev.direct ||= direct;
       return;
     }
-    found.set(key, { token, line: lineOf(node), direct, fragment, ...(table && { table }) });
+    found.set(key, { token, line: lineOf(node), pos: node.getStart(sf), direct, fragment, ...(table && { table }) });
   };
   const addText = (text, node, direct) => {
     for (const t of text.split(/\s+/)) add(t, node, direct);
@@ -256,14 +278,15 @@ export function classTokens(source, fileName) {
   };
   const namedTables = [];
   visit(sf);
-  // After the walk, `followed` holds every name a class context reached. A
-  // table it did not reach waits, tagged, for the caller's cross-file verdict.
-  const used = new Set(followed);
+  // After the walk, `followed` holds every name a class context reached. An
+  // exported table it did not reach waits, tagged, for the caller's cross-file
+  // verdict; an unexported one is settled here.
+  const used = new Set([...followed].filter((n) => imports.has(n) && !decls.has(n)).map((n) => imports.get(n)));
   for (const node of namedTables) {
     const name = nameText(node.name);
-    if (name !== undefined && used.has(name)) collect(node.initializer, true);
+    if (name !== undefined && followed.has(name)) collect(node.initializer, true);
     else {
-      table = name;
+      table = name !== undefined && exported.has(name) ? name : undefined;
       collect(node.initializer, false);
       table = undefined;
     }

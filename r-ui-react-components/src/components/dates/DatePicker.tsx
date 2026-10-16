@@ -17,7 +17,7 @@ import {
   rejectionMessage,
   useDateText,
 } from "./picker-parts";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 
 export interface DatePickerLabels extends DateEntryLabels {
   /** The calendar button's name, and the popup's. */
@@ -29,6 +29,12 @@ export const DEFAULT_DATE_PICKER_LABELS: DatePickerLabels = {
   chooseDate: "Choose date",
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    DatePicker: DatePickerLabels;
+  }
+}
+
 export interface DatePickerProps
   extends Omit<
     ComponentPropsWithRef<"input">,
@@ -39,7 +45,7 @@ export interface DatePickerProps
   defaultValue?: Date | null;
   /** The committed date: after a pick, or a typed date on blur / Enter. `null` when cleared. */
   onValueChange?: (date: Date | null) => void;
-  /** Reads and writes dates in this locale's order and names. Defaults to the runtime's. */
+  /** Reads and writes dates in this locale's order and names. Defaults to the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
   weekStartsOn?: CalendarCommonProps["weekStartsOn"];
   /** Months side by side in the popup, while it fits. */
@@ -109,8 +115,8 @@ export function DatePicker({
   onKeyDown,
   ...props
 }: DatePickerProps) {
-  const labels = mergeLabels(DEFAULT_DATE_PICKER_LABELS, labelsProp);
-  const locale = resolveLocale(localeProp);
+  const labels = useLabels("DatePicker", DEFAULT_DATE_PICKER_LABELS, labelsProp);
+  const locale = resolveLocale(useLocale(localeProp));
   const field = useField();
   const disabled = disabledProp ?? field?.disabled ?? false;
   const readOnly = readOnlyProp ?? field?.readOnly ?? false;
@@ -165,6 +171,8 @@ export function DatePicker({
           end={
             <Popover.Trigger asChild>
               <IconButton
+                // Paper shows the date, not the calendar behind it.
+                data-print="hide"
                 label={labels.chooseDate}
                 icon={<CalendarDays />}
                 disabled={disabled || readOnly}

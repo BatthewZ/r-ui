@@ -1,0 +1,14 @@
+/* ── FilterBar ─────────────────────────────────────────────────────────────── */
+
+/* The summary row: the chips (primitives' `Chip`), Clear all and the result
+   count. Its lines sit one --CONTROL-H apart, as in a chip field: a chip is the
+   control height less twice the gap below, so a coarse remove button's centred
+   hit area never reaches the next line. */
+.r-filters-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--R-SIZE-6);
+  row-gap: calc(2 * (var(--R-SIZE-6) + var(--BORDER-WIDTH)));
+  min-inline-size: 0;
+}

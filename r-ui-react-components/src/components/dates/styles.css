@@ -140,3 +140,71 @@
     outline-offset: calc(var(--FOCUS-WIDTH) * -2);
   }
 }
+
+/* ── TimeField: segments in a field frame (the form frame's look and states).
+   The group draws the ring while a segment has focus; the focused segment is a
+   selection fill, so which one the keys edit is visible too. Segments are as
+   tall as the frame (`--CONTROL-H`, so at least `--HIT-MIN`) and at least
+   `--HIT-MIN` wide: touching boxes, never overlapping hit areas. */
+.r-dates-time-frame:has(.r-dates-segment:focus) {
+  outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+  outline-offset: var(--FOCUS-OFFSET);
+}
+
+/* Left to right in the locale's order, isolated from an RTL page's reordering.
+   It reaches over the frame's edges, so each segment is the frame's full
+   height: `--CONTROL-H`, at least `--HIT-MIN`, not that less two borders. */
+.r-dates-time-segments {
+  display: flex;
+  align-self: stretch;
+  margin-block: calc(var(--BORDER-WIDTH) * -1);
+  align-items: center;
+  unicode-bidi: isolate;
+}
+
+.r-dates-time-literal {
+  white-space: pre;
+  color: var(--C-TEXT-MUTED);
+}
+
+.r-dates-segment {
+  display: inline-grid;
+  place-items: center;
+  align-self: stretch;
+  min-inline-size: max(calc(1ch * 2 + var(--R-SIZE-6) * 2), var(--HIT-MIN));
+  padding-inline: var(--R-SIZE-6);
+  white-space: nowrap;
+  font-variant-numeric: var(--NUMERALS-DATA);
+  caret-color: transparent;
+  cursor: default;
+}
+.r-dates-segment[data-placeholder] {
+  color: var(--C-TEXT-MUTED);
+}
+/* Zero width, not just `none`: forced colours revive `outline-style` on focus.
+   The fill is an image band on the text line, inside the frame's padding,
+   while the segment's box (the press target) keeps the frame's full height. */
+.r-dates-segment:focus {
+  outline: 0 none;
+  color: var(--C-TEXT-ON-SELECTION);
+  background: linear-gradient(var(--C-SELECTION), var(--C-SELECTION)) center / 100% calc(100% - var(--R-SIZE-6) * 2)
+    no-repeat;
+}
+.r-dates-segment::selection {
+  background-color: transparent;
+}
+
+/* TimePicker's list: the keyboard's option carries the ring (the listbox
+   holds DOM focus), so the list itself draws none. */
+.r-dates-time-list:focus-visible {
+  outline: 0 none;
+}
+
+@media (forced-colors: active) {
+  /* A forced background image is dropped: keep this one, in system colours. */
+  .r-dates-segment:focus {
+    forced-color-adjust: none;
+    color: HighlightText;
+    background-image: linear-gradient(Highlight, Highlight);
+  }
+}

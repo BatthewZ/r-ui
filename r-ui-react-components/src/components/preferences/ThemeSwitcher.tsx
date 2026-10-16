@@ -5,7 +5,7 @@ import { useTheme } from "../../hooks/use-preferences";
 import type { PreferencesConfig } from "../../util/preferences";
 import { Choice, type ChoiceOption, type SwitcherHTMLProps, type SwitcherVariant } from "./Choice";
 import { DEFAULT_PREFERENCES_MENU_LABELS, type ThemeSwitcherLabels } from "./preferences-labels";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 /** A theme the app ships: its `data-theme` name and the words a viewer sees. A bare string is both. */
 export type ThemeOption = string | ChoiceOption;
@@ -46,10 +46,11 @@ export function ThemeSwitcher({
   const options = useMemo(() => themes.map(toOption), [themes]);
   const values = useMemo(() => options.map((o) => o.value), [options]);
   const { theme, setTheme } = useTheme({ themes: values, storageKey });
+  const label = useLabels("PreferencesMenu", DEFAULT_PREFERENCES_MENU_LABELS, labels).theme;
   return (
     <Choice
       variant={variant}
-      label={mergeLabels(DEFAULT_PREFERENCES_MENU_LABELS, labels).theme}
+      label={label}
       options={options}
       value={theme}
       onChange={setTheme}

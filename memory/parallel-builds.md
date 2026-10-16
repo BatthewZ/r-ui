@@ -74,6 +74,47 @@ the browsers once, in the gate, with nothing else running.
   that passed first time is broken on purpose and seen to go red, or it proves
   nothing.
 
+## Rounds, verification and fix batches
+
+A **round** is a few batches with a gate after each. Shape that has worked:
+
+1. **A solo contract step first** when something cross-cutting must exist
+   before parallel work: the token contract, a shared labels/locale mechanism,
+   anything every component will call. One agent, alone, then a light gate.
+   Parallel agents can't agree on a mechanism they are all inventing.
+2. **Builder batches** of up to five, each followed by its gate.
+3. **A verification round** once the building is done, with exactly one agent
+   editing and the rest read-only so they can't collide:
+   - one agent runs the `refactor` and then the `checker` skill across the
+     packages (it may fan out its own sub-agents; pass the resource rules on);
+   - read-only reviewers for API consistency and design principles,
+     accessibility at the code level, and test quality (checks that cannot
+     fail). Split these by area so none hands back half-finished;
+   - a consumer check: pack tarballs from a snapshot copy, install them into
+     a separate strict-TS app, follow only the READMEs.
+4. **A fix batch**: the findings, triaged by the orchestrator into up to five
+   agents with disjoint ownership, then a gate. Decide the cross-cutting
+   conventions the findings imply (naming of label props, destructive
+   variants, where `className` goes, controllable popups) **once, in the
+   batch brief**, so each owner applies them to its own groups.
+
+## The orchestrator's job between agents
+
+- **Write the briefs to disk** (`~/.cache/r-ui-orchestration/`, never `/tmp`)
+  and point every prompt at them; keep prompts short.
+- **Relay.** When one agent publishes something others need (a shared util,
+  a renamed selector, a reordered demo), message the agents still running
+  with the exact names. Agents can't see each other's reports.
+- **Collect** what reports scatter: breaking renames, memory files to index,
+  things the gate must run in a browser. Put them in one file for the gate;
+  agents don't edit the CHANGELOG in a fix batch, the gate assembles it.
+- **Spot-check claims** before acting on them (grep the line a reviewer
+  quotes) and **re-run the suite yourself** after every gate.
+- **Make the calls agents surface**: contract questions (a new token?),
+  deviations (APG order over the brief's wording), packaging choices.
+- **Commit only when the user asks**, after checking the staged set has no
+  screenshots, logs, PDFs, build output or secrets.
+
 ## Pitfalls seen
 
 - **`/tmp` is RAM.** On this WSL setup `/tmp` is a tmpfs, so briefs, screenshots,
@@ -139,3 +180,26 @@ the browsers once, in the gate, with nothing else running.
   line. Lint passed because its globals list named `URL` for the page side too. After
   changing a prelude, a runner or a shared helper, run one check through it before
   anything else, and make lint's globals the narrowest scope the code runs in.
+- **A demo nobody rendered is a draft too.** Builders that never open a browser lay out
+  demos by habit; in batch E1 two showcase sections put form fields in a flex row where
+  they collapse to nothing at every width, and the browser checks written for those demos
+  failed on the layout, not the component. The gate looks at every new section before
+  trusting what its checks say, and fixes the demo, not the assertion.
+- **A gate that matches names across files regresses as files are added.** A heuristic
+  keyed on a variable's spelling held until a later agent used the same common word
+  (`classes`) for something else, and an unchanged file started failing. Cross-file
+  matches go by binding (an import), and the fixture holds the same-name case.
+- **A break that stays green is a finding, not a pass.** Each gate breaks every new
+  assertion once; the ones that stayed green here found a duplicated guarantee (a rule
+  the contract already made) and a check that could not see its claim (centred vs merely
+  visible). Tighten the check or delete the duplicate, then break it again.
+- **The dev server reloads under a running check.** A gate that edits `src/` or the showcase
+  while browser checks run against the same dev server gets hot reloads mid-measure and
+  flaky failures that are nobody's bug. Batch the checks, edit between batches (docs and
+  scratch files are safe meanwhile), and re-run what an edit touches.
+- **A check that never ran hides real bugs behind harness bugs.** In gate E2 nine of the
+  twelve new browser checks failed first; about half on the harness (an unregistered token
+  read as `1.5rem`, a required field's label with its `*`, a locator matching two live
+  regions, a transition read mid-turn) and half on the code (a spill that scrolled the whole
+  page, a selection lost in the browser but kept by jsdom, a tree row taller than
+  `--ROW-H`). Fix the harness first, then believe the failures that remain.

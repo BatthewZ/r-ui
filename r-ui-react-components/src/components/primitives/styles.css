@@ -80,3 +80,84 @@
     border: var(--BORDER-WIDTH) solid CanvasText;
   }
 }
+
+/* AvatarGroup: each face overlaps the one before it by a quarter of its size,
+   and the list is padded by the same amount so a wrapped line starts flush. A
+   ring in the surface colour separates the faces (a theme's or a caller's
+   surface: set --r-primitives-avatar-ring on the group). */
+.r-primitives-avatar-group {
+  --r-primitives-avatar-overlap: calc(var(--CONTROL-H) / 4);
+  padding-inline-start: var(--r-primitives-avatar-overlap);
+  row-gap: var(--R-SIZE-6);
+}
+.r-primitives-avatar-group[data-size="icon"] {
+  --r-primitives-avatar-overlap: calc(var(--ICON) / 4);
+}
+.r-primitives-avatar-group-item {
+  margin-inline-start: calc(var(--r-primitives-avatar-overlap) * -1);
+  border-radius: var(--RADIUS-FULL);
+  box-shadow: 0 0 0 calc(var(--BORDER-WIDTH) * 2) var(--r-primitives-avatar-ring, var(--C-SURFACE-0));
+}
+/* The "+n" chip's text scales with its box, as an avatar's initials do. */
+.r-primitives-avatar-chip {
+  container-type: inline-size;
+}
+.r-primitives-avatar-chip-text {
+  font-size: calc(100cqi * 0.38);
+  line-height: 1;
+}
+
+/* ── Chip ───────────────────────────────────────────────────────────────────
+   One line of a chip row: --CONTROL-H less twice (--R-SIZE-6 + the border),
+   what a chip field's padding leaves; rows set that same distance apart keep a
+   coarse remove button's hit area off the next row. */
+.r-primitives-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--R-SIZE-6);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  block-size: calc(var(--CONTROL-H) - 2 * (var(--R-SIZE-6) + var(--BORDER-WIDTH)));
+  padding-inline-start: var(--R-SIZE-5);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  border-radius: var(--RADIUS-SM);
+  /* Ink at low alpha, not a surface rung: a rung is recessed in every theme and
+     reads as a hole in a dark theme's raised field. */
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 6%, transparent);
+  color: var(--C-TEXT-PRIMARY);
+  font-size: var(--BodyText-2);
+  line-height: var(--BodyText-2-line-height);
+}
+.r-primitives-chip:not(:has(.r-primitives-chip-remove)) {
+  padding-inline-end: var(--R-SIZE-5);
+}
+/* Square, the chip's full height: at every density and input it is the
+   chip's own target, and `hit-area` lifts it to the floor on coarse input. */
+.r-primitives-chip-remove {
+  display: inline-grid;
+  flex-shrink: 0;
+  place-items: center;
+  block-size: 100%;
+  aspect-ratio: 1;
+  border-start-end-radius: calc(var(--RADIUS-SM) - var(--BORDER-WIDTH));
+  border-end-end-radius: calc(var(--RADIUS-SM) - var(--BORDER-WIDTH));
+  color: var(--C-TEXT-SECONDARY);
+  cursor: pointer;
+  transition: color var(--DURATION-FAST) var(--EASE-STANDARD),
+    background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-primitives-chip-remove svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+.r-primitives-chip-remove:hover:not(:disabled) {
+  color: var(--C-TEXT-PRIMARY);
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+.r-primitives-chip-remove:disabled {
+  cursor: not-allowed;
+}
+/* Inset: chip rows are a few pixels apart and an outset ring would sit on the next. */
+.r-primitives-chip-remove:focus-visible {
+  outline-offset: calc(var(--FOCUS-WIDTH) * -1);
+}

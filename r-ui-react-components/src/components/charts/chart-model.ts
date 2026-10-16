@@ -75,7 +75,7 @@ export interface ValueFormatOptions {
   format?: (value: number) => string;
   /** Formats the value axis's ticks. Default: compact (`1.2K`), with the unit. */
   formatTick?: (value: number) => string;
-  /** BCP 47 locale for every number and date. Omitted: the runtime's. */
+  /** BCP 47 locale for every number and date. Omitted: the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
 }
 

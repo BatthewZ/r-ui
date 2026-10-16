@@ -107,10 +107,6 @@
     background: var(--C-STATUS-ERROR-BG);
     color: var(--C-TEXT-ERROR);
   }
-  .sc-retry {
-    justify-self: start;
-    text-decoration: underline;
-  }
   code {
     font-family: var(--FONT-MONO);
   }

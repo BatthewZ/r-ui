@@ -58,7 +58,12 @@ export {
   type StandardSchemaResult,
   type StandardSchemaV1,
 } from "./form-state-schema";
-export { ErrorSummary, type ErrorSummaryProps } from "./ErrorSummary";
+export {
+  DEFAULT_ERROR_SUMMARY_LABELS,
+  ErrorSummary,
+  type ErrorSummaryLabels,
+  type ErrorSummaryProps,
+} from "./ErrorSummary";
 export { FormActions, type FormActionsProps, type FormActionsSubmitProps } from "./FormActions";
 export {
   DEFAULT_FILE_UPLOAD_LABELS,
@@ -71,3 +76,27 @@ export {
 } from "./FileUpload";
 export { DEFAULT_OTP_INPUT_LABELS, OTPInput, type OTPInputLabels, type OTPInputMode, type OTPInputProps } from "./OTPInput";
 export { ColorPicker, type ColorPickerLabels, type ColorPickerProps, type ColorSwatch, DEFAULT_COLOR_PICKER_LABELS } from "./ColorPicker";
+export { Slider, type SliderProps } from "./Slider";
+export {
+  DEFAULT_RANGE_SLIDER_LABELS,
+  RangeSlider,
+  type RangeSliderLabels,
+  type RangeSliderProps,
+  type RangeSliderValue,
+} from "./RangeSlider";
+export { type SliderFormatProps, type SliderMark, type SliderSlot } from "./slider-parts";
+export { type SliderOrientation } from "./slider-core";
+export { DEFAULT_RATING_LABELS, Rating, type RatingLabels, type RatingProps } from "./Rating";
+export { DEFAULT_PASSWORD_INPUT_LABELS, PasswordInput, type PasswordInputLabels, type PasswordInputProps } from "./PasswordInput";
+export {
+  DEFAULT_PASSWORD_STRENGTH_LABELS,
+  estimatePasswordStrength,
+  type PasswordStrength,
+  type PasswordStrengthEstimator,
+  type PasswordStrengthLabels,
+} from "./password-strength";
+export { MaskedInput, type MaskedInputProps } from "./MaskedInput";
+export { DEFAULT_MASK_TOKENS, type MaskToken, type MaskTokens } from "./mask-core";
+export { CurrencyInput, type CurrencyInputProps } from "./CurrencyInput";
+export { AvatarUpload, type AvatarUploadLabels, type AvatarUploadProps, DEFAULT_AVATAR_UPLOAD_LABELS } from "./AvatarUpload";
+export { type AvatarImageType } from "./avatar-crop";

@@ -1,7 +1,8 @@
-import { fireEvent,render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { type ReactNode, useRef } from "react";
 import { describe, expect, it } from "vitest";
 
-import { useRovingFocus } from "./use-roving-focus";
+import { useRovingFocus, useRovingFocusWithin, type UseRovingFocusWithinOptions } from "./use-roving-focus";
 
 function RovingList({
   orientation = "vertical",
@@ -304,5 +305,261 @@ describe("useRovingFocus", () => {
       expect(screen.getByTestId("item-2")).toHaveAttribute("tabindex", "0");
       expect(document.activeElement).toBe(outside);
     });
+  });
+});
+
+function Within({
+  children,
+  ...options
+}: Partial<UseRovingFocusWithinOptions> & { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { onKeyDown } = useRovingFocusWithin(ref, { orientation: "horizontal", ...options });
+  return (
+    <div ref={ref} data-testid="group" onKeyDown={onKeyDown}>
+      {children}
+    </div>
+  );
+}
+
+const stops = () => [...screen.getByTestId("group").querySelectorAll<HTMLElement>("[tabindex='0']")].map((el) => el.dataset.testid);
+const press = (key: string) => fireEvent.keyDown(document.activeElement ?? document.body, { key });
+
+describe("useRovingFocusWithin", () => {
+  it("leaves one tab stop among whatever focusable elements the group holds", () => {
+    render(
+      <Within>
+        <button data-testid="a">A</button>
+        <span>
+          <input data-testid="b" aria-label="B" />
+        </span>
+        <select data-testid="c" aria-label="C" />
+        <a href="#d" data-testid="d">
+          D
+        </a>
+      </Within>,
+    );
+    expect(stops()).toEqual(["a"]);
+    for (const id of ["b", "c", "d"]) expect(screen.getByTestId(id)).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("moves with the arrows, Home and End, wrapping, and mirrors the arrows right to left", () => {
+    const { unmount } = render(
+      <Within>
+        <button data-testid="a">A</button>
+        <button data-testid="b">B</button>
+        <button data-testid="c">C</button>
+      </Within>,
+    );
+    screen.getByTestId("a").focus();
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("b"));
+    expect(stops()).toEqual(["b"]);
+    press("End");
+    expect(document.activeElement).toBe(screen.getByTestId("c"));
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("a"));
+    press("ArrowLeft");
+    expect(document.activeElement).toBe(screen.getByTestId("c"));
+    press("Home");
+    expect(document.activeElement).toBe(screen.getByTestId("a"));
+    unmount();
+
+    render(
+      <div style={{ direction: "rtl" }}>
+        <Within>
+          <button data-testid="a">A</button>
+          <button data-testid="b">B</button>
+        </Within>
+      </div>,
+    );
+    screen.getByTestId("a").focus();
+    press("ArrowLeft");
+    expect(document.activeElement).toBe(screen.getByTestId("b"));
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("a"));
+  });
+
+  it("uses Up and Down in a vertical group, and stays at an end without loop", () => {
+    render(
+      <Within orientation="vertical" loop={false}>
+        <button data-testid="a">A</button>
+        <button data-testid="b">B</button>
+      </Within>,
+    );
+    screen.getByTestId("a").focus();
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("a"));
+    press("ArrowDown");
+    expect(document.activeElement).toBe(screen.getByTestId("b"));
+    const atEnd = press("ArrowDown");
+    expect(document.activeElement).toBe(screen.getByTestId("b"));
+    // Still the group's key: it must not scroll the page.
+    expect(atEnd).toBe(false);
+  });
+
+  it("passes over natively disabled controls and keeps aria-disabled ones in the walk", () => {
+    render(
+      <Within>
+        <button data-testid="a">A</button>
+        <button data-testid="b" disabled>
+          B
+        </button>
+        <button data-testid="c" aria-disabled>
+          C
+        </button>
+      </Within>,
+    );
+    screen.getByTestId("a").focus();
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("c"));
+  });
+
+  it("a text input keeps its caret: arrows leave it only from the edge they point past", () => {
+    render(
+      <Within>
+        <button data-testid="a">A</button>
+        <input data-testid="find" aria-label="Find" defaultValue="hello" />
+        <button data-testid="c">C</button>
+      </Within>,
+    );
+    const input = screen.getByTestId("find") as HTMLInputElement;
+    input.focus();
+    input.setSelectionRange(2, 2);
+    expect(press("ArrowRight")).toBe(true);
+    expect(press("ArrowLeft")).toBe(true);
+    expect(press("Home")).toBe(true);
+    expect(press("End")).toBe(true);
+    expect(document.activeElement).toBe(input);
+
+    // A selection is the input's too, even when it touches the end.
+    input.setSelectionRange(3, 5);
+    press("ArrowRight");
+    expect(document.activeElement).toBe(input);
+
+    input.setSelectionRange(5, 5);
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("c"));
+
+    input.focus();
+    input.setSelectionRange(0, 0);
+    press("ArrowLeft");
+    expect(document.activeElement).toBe(screen.getByTestId("a"));
+  });
+
+  it("a select keeps Up, Down, Home and End; Left and Right move on", () => {
+    render(
+      <Within>
+        <select data-testid="font" aria-label="Font">
+          <option>Serif</option>
+          <option>Sans</option>
+        </select>
+        <button data-testid="b">B</button>
+      </Within>,
+    );
+    const select = screen.getByTestId("font");
+    select.focus();
+    expect(press("ArrowDown")).toBe(true);
+    expect(press("End")).toBe(true);
+    expect(document.activeElement).toBe(select);
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("b"));
+  });
+
+  it("ignores a key a part already handled, and keys from a popup opened inside the group", () => {
+    render(
+      <Within>
+        <button data-testid="a" onKeyDown={(e) => e.key === "ArrowRight" && e.preventDefault()}>
+          A
+        </button>
+        <button data-testid="b">B</button>
+        <div role="menu">
+          <div role="menuitem" tabIndex={-1} data-testid="item">
+            Item
+          </div>
+        </div>
+      </Within>,
+    );
+    screen.getByTestId("a").focus();
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("a"));
+
+    // The menu item is not one of the group's stops, and its keys are the menu's.
+    expect(screen.getByTestId("item")).toHaveAttribute("tabindex", "-1");
+    screen.getByTestId("item").focus();
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("item"));
+  });
+
+  it("returns Tab to the control that last had focus, and moves the stop off one that becomes disabled", async () => {
+    function Harness({ disableB }: { disableB: boolean }) {
+      return (
+        <>
+          <Within>
+            <button data-testid="a">A</button>
+            <button data-testid="b" disabled={disableB}>
+              B
+            </button>
+          </Within>
+          <button data-testid="outside">Outside</button>
+        </>
+      );
+    }
+    const { rerender } = render(<Harness disableB={false} />);
+    screen.getByTestId("a").focus();
+    press("ArrowRight");
+    screen.getByTestId("outside").focus();
+    expect(stops()).toEqual(["b"]);
+
+    rerender(<Harness disableB />);
+    await waitFor(() => expect(stops()).toEqual(["a"]));
+  });
+
+  it("a preferred stop takes the stop back when focus leaves", () => {
+    render(
+      <>
+        <Within preferredStop={(items) => items.find((el) => el.getAttribute("aria-checked") === "true")}>
+          <button role="radio" aria-checked={false} data-testid="a">
+            A
+          </button>
+          <button role="radio" aria-checked data-testid="b">
+            B
+          </button>
+        </Within>
+        <button data-testid="outside">Outside</button>
+      </>,
+    );
+    expect(stops()).toEqual(["b"]);
+    screen.getByTestId("b").focus();
+    press("ArrowLeft");
+    expect(stops()).toEqual(["a"]);
+    screen.getByTestId("outside").focus();
+    expect(stops()).toEqual(["b"]);
+  });
+
+  it("reports each move to onNavigate, once", () => {
+    const moved: string[] = [];
+    render(
+      <Within onNavigate={(el) => moved.push(el.dataset.testid ?? "")}>
+        <button data-testid="a">A</button>
+        <button data-testid="b">B</button>
+      </Within>,
+    );
+    screen.getByTestId("a").focus();
+    press("ArrowRight");
+    press("Enter");
+    expect(moved).toEqual(["b"]);
+  });
+
+  it("disabled, it touches neither tab stops nor keys (a nested group whose parent owns them)", () => {
+    render(
+      <Within enabled={false}>
+        <button data-testid="a">A</button>
+        <button data-testid="b">B</button>
+      </Within>,
+    );
+    expect(screen.getByTestId("b")).not.toHaveAttribute("tabindex");
+    screen.getByTestId("a").focus();
+    press("ArrowRight");
+    expect(document.activeElement).toBe(screen.getByTestId("a"));
   });
 });

@@ -54,6 +54,79 @@ pages. Read the group's file before changing its components.
 | [d2-form-dates-steps.md](./d2-form-dates-steps.md) | Keyboard reach equals what is drawn, key-derived descendant ids, focus targets a container query hides, null `relatedTarget` ambiguity, open/close side effects on the transition, widening callbacks to the value's type |
 | [d3-focus-handoff-and-shared-vocab.md](./d3-focus-handoff-and-shared-vocab.md) | Focus handoffs that wait for the commit, derived roving tab stops with a fallback, stepping from the target during smooth scroll, source indexes in key callbacks, "rounds to zero" on the printed value, one tone vocabulary, one `labels` prop |
 | [d4-gates-and-checks.md](./d4-gates-and-checks.md) | Gates that assert the line, exact allowances, widening unit lists, Node-only shipped gates, vacuity as failure; browser checks that pick themes by property, reset in the harness, count before `min`/`every`, positive controls; deleting a hook with no consumer |
+| [e0-locale-otp-panels.md](./e0-locale-otp-panels.md) | The labels/locale provider: a registry components join by declaration merging, precedence tested through real components, one key per shared set; an invisible input's selection still paints; sticky inside a boxed scroller vs `ScrollPanel` |
+| [e1a-sliders.md](./e1a-sliders.md) | Slider, RangeSlider, Rating: one frame for N thumbs, a commit measured against the gesture's start, stacked thumbs by slop, the active pointer in a ref, centring a label in both directions, hidden overlay parts, a rating as one slider |
+| [e1b-feedback.md](./e1b-feedback.md) | ProgressBar/Ring, Banner, ErrorBoundary: progress vs measurement, flooring with an epsilon, loops under reduced motion, forced-colours parts in the group sheet, a remembered dismissal as an external store, `resetKeys`, focus after a failed retry |
+| [e1c-time.md](./e1c-time.md) | TimeField, TimePicker, date-times: wall-clock vs instants and DST, segments as the source of what shows, refused times as `null`, editable segments for touch keyboards, ICU drift, typeahead by prefix, a band under forced colours, centring a promoted list |
+| [e1d-datatable-features.md](./e1d-datatable-features.md) | DataTable features and the Timeline thread: washes on pinned cells, sticky vs `relative`, forced colours and transparent borders, a sticky layer order, controls in auto-layout cells, live regions mounted early, measured lengths into CSS, what a virtual window holds, measuring a thread from the drawn mark |
+| [e1e-toolbar.md](./e1e-toolbar.md) | Toolbar and ToggleGroup: roving over children a caller writes, `inert` gaps, keys a control owns, a part rendered twice, menu items and portals, measuring what you hide, lifting the hit-area sibling rule |
+| [e2a-filters.md](./e2a-filters.md) | FilterBar: controlled from the first render, "not applied" as an absent key, focus on the drawn form of a folded bar, a count shown at once and spoken when settled, one value shape bridging to DataTable, units once in a range, a borrowed look that became `Chip` |
+| [e2b-tree-guards.md](./e2b-tree-guards.md) | TreeView and RequireAuth: one flat row list windowed or not, where focus is really lost, tri-state by inheritance, links and row actions inside a tree item, what a tree owns, gates that fail closed, narrow lint globals |
+| [e2c-hovercard-splitter.md](./e2c-hovercard-splitter.md) | HoverCard and Splitter: a hover card as an in-place disclosure, touch toggles, floating-ui close reasons, `:focus-visible` in jsdom, cell text rules leaking into panels, flex shares from a zero basis, stored vs drawn sizes, re-measured token bounds, a gutter's hit area off the scrollbar |
+| [e2d-form-inputs.md](./e2d-form-inputs.md) | Password, masked, currency and avatar inputs: reading a masked edit from texts and caret, literal deletions, selection across a type swap, toggles that keep their name, `blob:` sources, nested Fields, sizing a part a utility sized, the shared number draft, gate false positives fixed in the gate |
+| [e2e-kanban.md](./e2e-kanban.md) | Kanban: one target for two inputs, a card that stays until it lands, a measured drop line, press-vs-drag thresholds, touch hold vs scroll, snap against edge scrolling, scrollers clipping both axes, `Omit` over a union name |
+
+## 2026-10-16 — integration gate E2 (filters, TreeView, RequireAuth, HoverCard, Splitter, inputs, Kanban)
+
+- **A visually hidden span is placed by its nearest positioned ancestor.** Kanban's `sr-only`
+  column counts had none inside the board's scroller, so they sat at the page's edge and
+  scrolled the whole Overview sideways by 500px at 375. Give a scroller's items (or the
+  scroller) a containing block.
+- **A coarse hit area is part of what a scroller scrolls.** A slider's end thumb hung 14px
+  past the slider and scrolled FilterBar's drawer sideways. Inset the part so its hit area
+  stays inside the component, rather than relying on every container's padding; and a
+  check of "nothing spills" measures drawn boxes (a Range or element rects), not
+  `scrollWidth`, on a box that is not itself a scroller.
+- **Chromium resets an input's selection on the style update after a `type` swap**, which
+  undoes a restore made in the same commit. Flush (`offsetWidth`) before restoring. jsdom
+  kept the selection; the browser check caught it on its first run.
+- **Auto table layout reads a cell's `width` as a wish.** A resized column in a table
+  already at its width took the space from a truncating neighbour (to 24px) instead of
+  growing the table; `min-width` is what auto layout honours, and a resizable column's
+  automatic width keeps its min.
+- **A row's padding plus a control-height action outgrows `--ROW-H`.** A tree row with a
+  `size-control` delete button was 44px, not 40; the actions take the row's block padding
+  (negative margin), as the windowed rows (no padding) already did.
+- **The accessibility tree is checkable without a library.** `locator.ariaSnapshot()` gives
+  roles and computed names: a tree's items named by their labels alone, a gate's fallback
+  as a status or a named link. Breaking `aria-labelledby` turned the names into "src Rename
+  src Delete src".
+- **Unregistered tokens read back as written.** `getPropertyValue("--HIT-MIN")` is
+  `1.5rem`, not 24; a check resolves a length with a probe sized by the token.
+
+## 2026-10-16 — integration gate E1 (sliders, feedback, times, DataTable features, toolbar)
+
+- **A size container has no width in a flex row.** `Field` (and `Pagination`, `FormActions`)
+  is an `@container` root, so its intrinsic width is zero: the TimeField and TimePicker
+  demos put Fields in `flex flex-wrap` rows and every field collapsed to its border, at
+  every width, and DataTable's footer pager vanished the same way. Units that hold one get
+  a track; AGENTS.md says so.
+- **A hidden box still scrolls.** Toolbar units parked for "More" stayed laid out at full
+  width from the inline start and widened every narrow toolbar's scroll width, as did their
+  coarse hit areas once moved to the end. They now hang from the inline end (overflow
+  toward the start is unreachable) with their paint contained.
+- **Two mechanisms, again.** The slider fill's forced-colours rule restated what the
+  contract's `--C-ACCENT: Highlight` already guaranteed, and the TimePicker centred its list
+  in a layout effect and again on the next frame; breaking either one alone left its check
+  green. One of each went.
+- **A word in a content-sized track widens everything in it.** A Banner's unbroken German
+  word sized an `auto` grid column for every banner in the stack, and its `sr-only` span,
+  absolutely placed outside the demo's scroller, made the page scroll. `overflow-wrap:
+  anywhere` in the text column.
+- **A blur-time message moves the button under the pointer** in any form, not only the
+  Wizard: a TimeField's "incomplete" note shifted the demo's Submit and the press was lost.
+  Demos put their actions in `FormActions`.
+- **A gate's cross-file match must be by binding.** `verify:utilities-exist` upgraded a
+  class-named table when any file used any variable of that name as classes, so a local
+  `classes` string in ToggleGroup turned the BarChart demo's error categories into dead
+  classes. It now follows imports (aliases included).
+- **A pixel comparison needs a subject that held still.** The masked-OTP check compared two
+  clipped screenshots and failed one fresh run in three by 1048 pixels: a demo above it
+  finished and shifted the page between the shots. The pair is now taken over a box that
+  did not move (retaken if it did); a real paint bug differs on every try.
+- **A borrowed class is a dependency.** dates writes form's `r-form-frame` by name; the
+  group graph now counts `r-<group>-` strings as edges, so a cycle through borrowed looks
+  fails like one through imports.
 
 ## 2026-10-16 — integration gate D (verification fixes)
 

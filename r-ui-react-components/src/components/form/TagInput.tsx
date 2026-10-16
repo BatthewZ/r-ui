@@ -29,7 +29,7 @@ import {
 } from "./selection-field";
 import { foldText } from "../../util/text-match";
 import { buildSelectionList, type ComboboxOption, SelectionListbox, useSelectionPopup } from "./selection-popup";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 
 /** Every string the control says, for localisation. */
 export interface TagInputLabels {
@@ -50,6 +50,12 @@ export const DEFAULT_TAG_INPUT_LABELS: TagInputLabels = {
   duplicate: (tag) => `“${tag}” is already added.`,
   max: (max) => `Up to ${max} ${max === 1 ? "tag" : "tags"}.`,
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    TagInput: TagInputLabels;
+  }
+}
 
 export interface TagInputProps
   extends Omit<ComponentPropsWithRef<"input">, "value" | "defaultValue" | "type" | "size" | "children" | "name"> {
@@ -119,7 +125,7 @@ export function TagInput({
   placeholder,
   ...props
 }: TagInputProps) {
-  const labels = mergeLabels(DEFAULT_TAG_INPUT_LABELS, labelsProp);
+  const labels = useLabels("TagInput", DEFAULT_TAG_INPUT_LABELS, labelsProp);
   const [refusal, setRefusal] = useState<string | null>(null);
   const messageId = useId();
   // A refused tag makes the Field invalid and joins its description.

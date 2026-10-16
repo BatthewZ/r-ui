@@ -7,7 +7,7 @@ import { cn, type SlotClassNames } from "../../util/style";
 import { Skeleton } from "../primitives";
 import { TONE_LABELS } from "../../util/tone";
 import { StatusIcon } from "./data-tone";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 
 /** Whether the change is good news. Decided by the caller, never by the sign. */
 export type Sentiment = "good" | "bad" | "neutral";
@@ -26,7 +26,7 @@ export interface StatCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "tit
   unit?: ReactNode;
   /** The signed change. Its sign picks the arrow; `sentiment` picks the colour and the word. */
   delta?: number | null;
-  /** Formats `delta`. Default: `formatDelta` (signed, zero unsigned). */
+  /** Formats `delta`. Default: `formatDelta` (signed, zero unsigned) in the `LocaleProvider`'s locale. */
   formatDelta?: (delta: number) => string;
   /**
    * Is this change good news? "Error rate down" is `good`; "latency up" is
@@ -70,6 +70,12 @@ export const DEFAULT_STAT_CARD_LABELS: StatCardLabels = {
   stale: TONE_LABELS.stale,
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    StatCard: StatCardLabels;
+  }
+}
+
 /**
  * A KPI tile: label, value, change, and optionally a sparkline, a status and
  * a stale marker. The tile is a size container: the value is `text-kpi`
@@ -84,7 +90,7 @@ export function StatCard({
   value,
   unit,
   delta,
-  formatDelta: format = (d) => formatDelta(d, { maximumFractionDigits: 1 }),
+  formatDelta: formatProp,
   sentiment = "neutral",
   deltaLabel,
   labels: labelsProp,
@@ -98,13 +104,15 @@ export function StatCard({
   ...rest
 }: StatCardProps) {
   const labelId = useId();
+  const locale = useLocale();
+  const format = formatProp ?? ((d: number) => formatDelta(d, { locale, maximumFractionDigits: 1 }));
   const hasDelta = isPresent(delta);
   // A change that PRINTS as zero (0.04 at one decimal) is no change to the
   // reader: no arrow, no hue, no verdict, whatever its sign or sentiment.
   const flat = !hasDelta || format(delta) === format(0);
   const Arrow = flat ? Minus : delta > 0 ? ArrowUp : ArrowDown;
   const shownSentiment: Sentiment = flat ? "neutral" : sentiment;
-  const labels = mergeLabels(DEFAULT_STAT_CARD_LABELS, labelsProp);
+  const labels = useLabels("StatCard", DEFAULT_STAT_CARD_LABELS, labelsProp);
   const sentimentWord = labels[shownSentiment];
   const missingValue = value === null || value === undefined || value === "";
 

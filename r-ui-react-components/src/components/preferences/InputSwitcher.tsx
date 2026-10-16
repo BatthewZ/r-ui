@@ -1,6 +1,6 @@
 "use client";
 import { useInputMode } from "../../hooks/use-preferences";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { INPUT_MODES, type InputMode, type PreferencesConfig } from "../../util/preferences";
 import { Choice, type ChoiceOption, type SwitcherHTMLProps, type SwitcherVariant } from "./Choice";
 import { DEFAULT_PREFERENCES_MENU_LABELS, type InputSwitcherLabels } from "./preferences-labels";
@@ -34,7 +34,7 @@ export function InputSwitcher({
   ...passThrough
 }: InputSwitcherProps) {
   const { input, setInput } = useInputMode({ storageKey });
-  const labels = mergeLabels(DEFAULT_PREFERENCES_MENU_LABELS, labelsProp);
+  const labels = useLabels("PreferencesMenu", DEFAULT_PREFERENCES_MENU_LABELS, labelsProp);
   return (
     <Choice
       variant={variant}

@@ -18,7 +18,7 @@ import {
 import { Table } from "../data";
 import { useClickOutside } from "../../hooks/use-click-outside";
 import { type Placement, useFloating } from "../../hooks/use-floating";
-import { type LabelsProp } from "../../util/labels";
+import { type LabelsProp } from "../../util/locale";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 import { topLayerExit, useExitPresence } from "../overlays/internal";
@@ -119,6 +119,12 @@ export const DEFAULT_CHART_LABELS: ChartLabels = {
   gridCapped: (rows, totalRows, columns, totalColumns) =>
     `Showing the first ${rows} of ${totalRows} rows and ${columns} of ${totalColumns} columns.`,
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Chart: ChartLabels;
+  }
+}
 
 function notesText(notes: ChartNotes, labels: ChartLabels): string[] {
   const out: string[] = [];

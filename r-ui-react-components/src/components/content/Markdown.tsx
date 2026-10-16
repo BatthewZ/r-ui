@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import { type ComponentType, type HTMLAttributes, type ReactNode, type Ref, useMemo } from "react";
 
 import { isExternalHref } from "../../util/router";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels } from "../../util/locale";
 import { cn } from "../../util/style";
 import { Table } from "../data";
 import { Link } from "../primitives";
@@ -52,6 +52,12 @@ export const DEFAULT_MARKDOWN_LABELS: Readonly<MarkdownLabels> = {
   taskDone: "Done:",
   taskOpen: "To do:",
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Markdown: MarkdownLabels;
+  }
+}
 
 export interface MarkdownProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** The Markdown source (untrusted is fine: raw HTML renders as text, URLs are judged). */
@@ -340,15 +346,9 @@ export function Markdown({
   ...props
 }: MarkdownProps) {
   const blocks = useMemo(() => parseBlocks(children), [children]);
-  const newTab = labels?.newTab;
-  const taskDone = labels?.taskDone;
-  const taskOpen = labels?.taskOpen;
-  const defaults = useMemo(
-    () =>
-      // Keyed by each label, not the `labels` object a caller rebuilds every render.
-      makeDefaults(mergeLabels(DEFAULT_MARKDOWN_LABELS, { newTab, taskDone, taskOpen })),
-    [newTab, taskDone, taskOpen],
-  );
+  const { newTab, taskDone, taskOpen } = useLabels("Markdown", DEFAULT_MARKDOWN_LABELS, labels);
+  // Keyed by each label, not the `labels` object a caller rebuilds every render.
+  const defaults = useMemo(() => makeDefaults({ newTab, taskDone, taskOpen }), [newTab, taskDone, taskOpen]);
   // An override given as `undefined` must not erase the default renderer.
   const overrides = Object.fromEntries(
     Object.entries(components ?? {}).filter(([, renderer]) => renderer !== undefined),

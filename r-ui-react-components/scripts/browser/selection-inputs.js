@@ -131,7 +131,7 @@ async (page) => {
   // ── 4: MultiSelect keys ─────────────────────────────────────────────────
   const regions = field("Regions");
   const chipsOf = (locator) =>
-    locator.evaluate((input) => [...input.closest(".r-form-frame").querySelectorAll(".r-form-chip > span")].map((s) => s.textContent));
+    locator.evaluate((input) => [...input.closest(".r-form-frame").querySelectorAll(".r-primitives-chip > span")].map((s) => s.textContent));
   const before = await chipsOf(regions);
   await regions.click();
   await page.locator(`${CARD} [role=listbox]`).waitFor();
@@ -187,7 +187,7 @@ async (page) => {
     const input = [...section.querySelectorAll("input")].find((i) => i.id && document.querySelector(`label[for="${i.id}"]`)?.textContent.trim() === "Recipients");
     const frame = input.closest(".r-form-frame");
     const f = frame.getBoundingClientRect();
-    const chips = [...frame.querySelectorAll(".r-form-chip")].map((c) => c.getBoundingClientRect());
+    const chips = [...frame.querySelectorAll(".r-primitives-chip")].map((c) => c.getBoundingClientRect());
     const control = Number.parseFloat(getComputedStyle(frame).getPropertyValue("--CONTROL-H"));
     return {
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -220,7 +220,7 @@ async (page) => {
       frames: h(card.querySelectorAll(".r-form-frame")),
       // Rendered chips only: a folded field's summary chip is `display: none` until it folds.
       chipRows: [...card.querySelectorAll(".r-form-frame")]
-        .map((f) => [f, [...f.querySelectorAll(".r-form-chip")].filter((c) => c.getClientRects().length > 0)])
+        .map((f) => [f, [...f.querySelectorAll(".r-primitives-chip")].filter((c) => c.getClientRects().length > 0)])
         .filter(([, chips]) => chips.length > 0)
         .map(([f, chips]) => {
           const rows = new Set(chips.map((c) => Math.round(c.getBoundingClientRect().top))).size;
@@ -236,7 +236,7 @@ async (page) => {
   if (coarse.chipRows.length < 2 || coarse.chipRows.some((x) => x < 44)) fail.push(`coarse: chip rows are ${coarse.chipRows.join(", ")}px, floor 44px`);
 
   // A press just outside the remove button's visible box still removes that chip.
-  const remove = page.locator(`${CARD} .r-form-chip-remove`).first();
+  const remove = page.locator(`${CARD} .r-primitives-chip-remove`).first();
   const target = await remove.evaluate((button) => {
     const r = button.getBoundingClientRect();
     const x = (r.left + r.right) / 2;
@@ -244,10 +244,10 @@ async (page) => {
     const hit = document.elementFromPoint(x, y);
     return { x, y, height: Math.round(r.height * 100) / 100, hits: hit === button, label: button.getAttribute("aria-label") };
   });
-  const chipsBefore = await page.locator(`${CARD} .r-form-chip-remove`).count();
+  const chipsBefore = await page.locator(`${CARD} .r-primitives-chip-remove`).count();
   await page.mouse.click(target.x, target.y);
   await page.waitForTimeout(50);
-  const chipsAfter = await page.locator(`${CARD} .r-form-chip-remove`).count();
+  const chipsAfter = await page.locator(`${CARD} .r-primitives-chip-remove`).count();
   const gone = await page.locator(`${CARD} [aria-label="${target.label}"]`).count();
   if (!(target.height < 44)) fail.push(`harness: the remove button is ${target.height}px tall, too tall to prove its hit area`);
   if (!target.hits) fail.push(`a press 2px above "${target.label}" does not reach it (no hit area)`);
@@ -262,7 +262,7 @@ async (page) => {
     const search = box.getByRole("combobox");
     await search.scrollIntoViewIfNeeded();
     const summary = box.locator(".r-form-chip-summary");
-    const shown = await summary.evaluate((b) => ({ text: b.textContent.trim(), visible: b.checkVisibility(), chips: b.parentElement.querySelectorAll(".r-form-chip-remove").length }));
+    const shown = await summary.evaluate((b) => ({ text: b.textContent.trim(), visible: b.checkVisibility(), chips: b.parentElement.querySelectorAll(".r-primitives-chip-remove").length }));
     if (shown.text !== "3 selected" || !shown.visible) fail.push(`narrow (${input}): harness: summary ${JSON.stringify(shown)}, expected a visible "3 selected"`);
     await search.focus();
     await page.keyboard.press("Home");
@@ -288,8 +288,8 @@ async (page) => {
     await page.keyboard.press("Enter");
     await page.waitForTimeout(100);
     const unfolded = await box.evaluate((b) => ({
-      visibleChips: [...b.querySelectorAll(".r-form-chip-remove")].filter((r) => r.checkVisibility()).length,
-      focusedRemove: document.activeElement?.classList.contains("r-form-chip-remove") ?? false,
+      visibleChips: [...b.querySelectorAll(".r-primitives-chip-remove")].filter((r) => r.checkVisibility()).length,
+      focusedRemove: document.activeElement?.classList.contains("r-primitives-chip-remove") ?? false,
       summary: b.querySelector(".r-form-chip-summary")?.checkVisibility() ?? false,
     }));
     if (unfolded.visibleChips !== 3 || !unfolded.focusedRemove || unfolded.summary) fail.push(`narrow (${input}): Enter on the summary gave ${JSON.stringify(unfolded)}, expected 3 visible chips, focus on a remove button, no summary`);

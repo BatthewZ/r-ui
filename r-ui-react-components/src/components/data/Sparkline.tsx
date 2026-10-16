@@ -1,6 +1,8 @@
+"use client";
 import type { Ref, SVGAttributes } from "react";
 
 import { formatNumber, isPresent } from "../../util/format";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 import { cn } from "../../util/style";
 
 export type SeriesSlot = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
@@ -18,6 +20,25 @@ const STROKE: Record<SeriesSlot | "total", string> = {
   8: "stroke-series-8",
 };
 
+/** The words of the default spoken summary. */
+export interface SparklineLabels {
+  /** For a series with no value at all, and for a missing latest value. */
+  noData: string;
+  /** The default summary, from the formatted low, high and latest values. */
+  summary: (low: string, high: string, latest: string) => string;
+}
+
+export const DEFAULT_SPARKLINE_LABELS: SparklineLabels = {
+  noData: "no data",
+  summary: (low, high, latest) => `low ${low}, high ${high}, latest ${latest}`,
+};
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Sparkline: SparklineLabels;
+  }
+}
+
 export interface SparklineProps extends Omit<SVGAttributes<SVGSVGElement>, "values" | "children" | "format"> {
   /** The series, oldest first. `null` is a gap (no data), never a zero. */
   values: readonly (number | null | undefined)[];
@@ -28,8 +49,9 @@ export interface SparklineProps extends Omit<SVGAttributes<SVGSVGElement>, "valu
    * `format`. Pass your own when the trend matters more than the range.
    */
   summary?: string;
-  /** Formats the numbers in the default summary. */
+  /** Formats the numbers in the default summary. Default: `formatNumber`, one fraction digit, in the `LocaleProvider`'s locale. */
   format?: (value: number) => string;
+  labels?: LabelsProp<SparklineLabels>;
   /**
    * The entity's series slot (fixed per entity, never cycled). `"total"` is a
    * line that sums several series: it takes the primary ink, so it never reads
@@ -57,12 +79,16 @@ export function Sparkline({
   values,
   label,
   summary,
-  format = (v) => formatNumber(v, { maximumFractionDigits: 1 }),
+  format: formatProp,
   series = 1,
+  labels: labelsProp,
   className,
   ref,
   ...rest
 }: SparklineProps) {
+  const labels = useLabels("Sparkline", DEFAULT_SPARKLINE_LABELS, labelsProp);
+  const locale = useLocale();
+  const format = formatProp ?? ((v: number) => formatNumber(v, { locale, maximumFractionDigits: 1 }));
   const present = values.filter(isPresent);
   const min = Math.min(...present);
   const max = Math.max(...present);
@@ -70,8 +96,8 @@ export function Sparkline({
   const spoken =
     summary ??
     (present.length === 0
-      ? "no data"
-      : `low ${format(min)}, high ${format(max)}, latest ${isPresent(last) ? format(last) : "no data"}`);
+      ? labels.noData
+      : labels.summary(format(min), format(max), isPresent(last) ? format(last) : labels.noData));
 
   const step = values.length > 1 ? (W - PAD * 2) / (values.length - 1) : 0;
   const x = (i: number) => (values.length > 1 ? PAD + i * step : W / 2);

@@ -38,7 +38,7 @@ import { IconButton, StatusLabel } from "../primitives";
 
 import { useFieldControl, useFieldMessage, useFieldValue } from "./Field";
 import { HiddenValues, useAnnouncer } from "./selection-field";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 
 /** How a value that was not picked in this session is shown (a file uploaded last week). */
 export interface FileUploadItemInfo {
@@ -148,6 +148,12 @@ export const DEFAULT_FILE_UPLOAD_LABELS: FileUploadLabels = {
   canceledFile: (name) => `Upload of ${name} cancelled.`,
   removedFile: (name) => `Removed ${name}.`,
 };
+
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    FileUpload: FileUploadLabels;
+  }
+}
 
 /** The `accept` attribute's grammar: `.pdf`, `image/*`, `image/png`. A file with no MIME type matches only an extension. */
 export function matchesAccept(file: File, accept: string | undefined): boolean {
@@ -325,7 +331,7 @@ export function FileUpload<T = File>(props: FileUploadProps<T>) {
     onValueChange?: (values: unknown[]) => void;
     describe?: (value: unknown) => FileUploadItemInfo;
   };
-  const labels = mergeLabels(DEFAULT_FILE_UPLOAD_LABELS, labelsProp);
+  const labels = useLabels("FileUpload", DEFAULT_FILE_UPLOAD_LABELS, labelsProp);
   const uploads = onUploadProp !== undefined;
 
   const [refusals, setRefusals] = useState<string[]>([]);
@@ -760,6 +766,7 @@ function FileRow({
   onRetry: () => void;
   onRemove: () => void;
 }) {
+  const locale = useLocale();
   const { name, size, type } = row.info;
   const Glyph = glyphFor(type, name);
   const status = row.kind === "pending" ? row.entry.status : row.uploaded ? "uploaded" : "attached";
@@ -809,7 +816,7 @@ function FileRow({
           <span className="min-w-0 flex-1 truncate text-body-1 text-fg-primary" title={name}>
             {name}
           </span>
-          {size !== undefined && <span className="shrink-0 text-body-2 tabular-nums text-fg-muted">{formatBytes(size)}</span>}
+          {size !== undefined && <span className="shrink-0 text-body-2 tabular-nums text-fg-muted">{formatBytes(size, { locale })}</span>}
         </div>
         {status === "uploading" && (
           <div className="flex min-w-0 items-center gap-r4">
@@ -828,7 +835,7 @@ function FileRow({
               />
             </div>
             <span aria-hidden className="shrink-0 text-body-2 tabular-nums text-fg-secondary">
-              {progress === null ? labels.waiting : formatPercent(progress, { maximumFractionDigits: 0 })}
+              {progress === null ? labels.waiting : formatPercent(progress, { locale, maximumFractionDigits: 0 })}
             </span>
           </div>
         )}

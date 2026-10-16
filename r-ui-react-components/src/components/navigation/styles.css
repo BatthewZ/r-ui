@@ -466,3 +466,196 @@
   background: var(--C-PRIMARY);
   color: var(--C-TEXT-ON-PRIMARY);
 }
+
+/* ── TreeView ──────────────────────────────────────────────────────────────
+   One flat list of rows; depth is an indent of one spacing step per level
+   (`--r-navigation-tree-depth`, set per row). Positioned, so the row-height
+   probe and the windowed rows (absolute at index × --ROW-H) have their box. */
+.r-navigation-tree {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.r-navigation-tree-windowed {
+  display: block;
+  max-block-size: calc(var(--ROW-H) * 12);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.r-navigation-tree-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--R-SIZE-5);
+  min-inline-size: 0;
+  min-block-size: var(--ROW-H);
+  padding-block: var(--R-SIZE-6);
+  padding-inline: calc(var(--R-SIZE-5) + var(--r-navigation-tree-depth, 0) * var(--R-SIZE-2)) var(--R-SIZE-5);
+  border-radius: var(--RADIUS-MD);
+  color: var(--C-TEXT-PRIMARY);
+  font-size: var(--BodyText-1);
+  line-height: var(--BodyText-1-line-height);
+  cursor: default;
+  user-select: none;
+}
+/* Rows touch: a ring outside the row would be painted over by its neighbour's wash. */
+.r-navigation-tree-item:focus-visible {
+  outline-offset: calc(var(--FOCUS-WIDTH) * -1);
+}
+.r-navigation-tree-item:has(> .r-navigation-tree-link),
+.r-navigation-tree-item[data-tree-error] {
+  cursor: pointer;
+}
+/* Paper: a windowed tree mounts only its window, so it prints the rows it has, in
+   flow (the sizer and each row's offset let go), and says it holds more, as
+   VirtualizedTable does. */
+@media print {
+  .r-navigation-tree-windowed {
+    max-block-size: none;
+    overflow: visible;
+  }
+  .r-navigation-tree-windowed > [role="none"] {
+    block-size: auto !important;
+  }
+  .r-navigation-tree-windowed .r-navigation-tree-item {
+    position: relative !important;
+    inset: auto !important;
+  }
+  .r-navigation-tree-windowed::after {
+    content: var(--r-print-partial-note, "Only the rows loaded on screen are printed; this tree holds more.");
+    display: block;
+    padding: var(--R-SIZE-4) var(--R-SIZE-3);
+    border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+    color: var(--C-TEXT-SECONDARY);
+    font-size: var(--BodyText-2);
+    line-height: var(--BodyText-2-line-height);
+  }
+}
+.r-navigation-tree-windowed .r-navigation-tree-item {
+  block-size: var(--ROW-H);
+  min-block-size: 0;
+  padding-block: 0;
+}
+.r-navigation-tree-item[aria-current="page"] {
+  background: var(--C-SURFACE-2);
+  font-weight: var(--WEIGHT-SEMIBOLD);
+}
+.r-navigation-tree-item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 25%;
+  inline-size: var(--R-SIZE-6);
+  border-radius: var(--RADIUS-FULL);
+  background: var(--C-ACCENT);
+}
+/* Disabled dims the content, not the chevron: the node still opens. */
+.r-navigation-tree-item[aria-disabled="true"] > :not(.r-navigation-tree-toggle) {
+  opacity: var(--OPACITY-DISABLED);
+}
+
+.r-navigation-tree-toggle,
+.r-navigation-tree-check,
+.r-navigation-tree-icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+.r-navigation-tree-toggle {
+  color: var(--C-TEXT-MUTED);
+}
+.r-navigation-tree-icon {
+  color: var(--C-TEXT-SECONDARY);
+}
+.r-navigation-tree-toggle > *,
+.r-navigation-tree-icon > svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+/* Points to the inline end when closed, down when open, in either direction. */
+.r-navigation-tree-chevron {
+  transition: rotate var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-navigation-tree-chevron:dir(rtl) {
+  scale: -1 1;
+}
+[aria-expanded="true"] > .r-navigation-tree-toggle > .r-navigation-tree-chevron {
+  rotate: 90deg;
+}
+[aria-expanded="true"] > .r-navigation-tree-toggle > .r-navigation-tree-chevron:dir(rtl) {
+  rotate: -90deg;
+}
+
+/* The multiple-selection box: the Checkbox's look, drawn from the row's aria-checked. */
+.r-navigation-tree-check {
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-SM);
+  background-color: var(--C-SURFACE-0);
+  color: var(--C-TEXT-ON-ACCENT);
+}
+.r-navigation-tree-check > svg {
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--BORDER-WIDTH);
+}
+.r-navigation-tree-item:not([aria-disabled="true"]):hover[aria-checked="false"] > .r-navigation-tree-check {
+  border-color: var(--C-TEXT-MUTED);
+}
+:is([aria-checked="true"], [aria-checked="mixed"]) > .r-navigation-tree-check {
+  border-color: var(--C-ACCENT);
+  background-color: var(--C-ACCENT);
+}
+
+.r-navigation-tree-label {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.r-navigation-tree-windowed .r-navigation-tree-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.r-navigation-tree-link {
+  color: inherit;
+  text-decoration: none;
+}
+.r-navigation-tree-retry {
+  font-weight: var(--WEIGHT-MEDIUM);
+  text-decoration: underline;
+}
+/* Actions may use the row's block padding, so a control-height button keeps a row at
+   --ROW-H, as the windowed rows (no padding) are. */
+.r-navigation-tree-actions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--R-SIZE-6);
+  margin-block: calc(var(--R-SIZE-6) * -1);
+  margin-inline-start: auto;
+}
+
+/* Forced colours: the current bar and a ticked box are Highlight; a selected
+   row is a Highlight fill (`bg-selection`), so its inset ring turns
+   HighlightText, one ring-width further in. */
+@media (forced-colors: active) {
+  .r-navigation-tree-item[aria-current="page"]::before {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+  :is([aria-checked="true"], [aria-checked="mixed"]) > .r-navigation-tree-check {
+    forced-color-adjust: none;
+    border-color: Highlight;
+    background-color: Highlight;
+    color: HighlightText;
+  }
+  .r-navigation-tree-item[aria-selected="true"] {
+    --C-FOCUS: HighlightText;
+  }
+  .r-navigation-tree-item[aria-selected="true"]:focus-visible {
+    outline-offset: calc(var(--FOCUS-WIDTH) * -2);
+  }
+}

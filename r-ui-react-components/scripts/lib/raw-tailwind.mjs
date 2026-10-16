@@ -13,7 +13,8 @@
 //   text      default text sizes (`text-xs` … `text-9xl`, `text-base`).
 //   palette   default palette colours (`bg-blue-500`, `text-white`, `ring-black/50`).
 //   radius    bare `rounded` / `rounded-t` and default radius steps
-//   shadow    bare `shadow` and default shadow steps
+//   shadow    bare `shadow` and default shadow steps (a bare `rounded` or
+//             `shadow` only in a class context: elsewhere it is a word)
 //   container default container widths (`max-w-md`, `w-sm`)
 //   layer     a numeric stacking order (`z-10`, `z-index: 2`): in-flow stacking
 //             reads the contract's scale (`z-raised`, `z-sticky`, `z-docked`,
@@ -47,6 +48,7 @@
 
 import ts from "typescript";
 
+import { classTokens, scriptKind } from "./class-tokens.mjs";
 import { blankComments, lineAt, themeBlocks } from "./css.mjs";
 
 const NUM = String.raw`\d+(?:\.\d+)?`;
@@ -157,8 +159,15 @@ export function checkToken(token, allow = {}) {
   return null;
 }
 
-/** Problems in one string value (a class list, a style value, a constant). */
-export function checkString(value, allow = {}) {
+/** A token with no class syntax: outside a class context it is a word ("shadow" in a word list). */
+const WORD = /^[a-z]+$/;
+
+/**
+ * Problems in one string value (a class list, a style value, a constant). Raw
+ * literals count everywhere; a plain word counts as a class only where
+ * `inClassContext` says the string is one.
+ */
+export function checkString(value, allow = {}, inClassContext = true) {
   const problems = [];
   for (const token of value.split(/\s+/)) {
     if (!token) continue;
@@ -167,17 +176,11 @@ export function checkString(value, allow = {}) {
     // `_` is a space inside an arbitrary value (`shadow-[0_2px_4px_…]`).
     const lengths = rawLengths(token.replace(/_/g, " "));
     if (lengths.length) problems.push(`raw length ${lengths.join(", ")} in \`${token}\``);
-    const problem = checkToken(token, allow);
+    const problem = (inClassContext || !WORD.test(token)) && checkToken(token, allow);
     if (problem) problems.push(problem);
   }
   return problems;
 }
-
-/**
- * TSX only for `.tsx`: read as TSX, a `.ts` file's generic arrow (`<T>(x) => …`)
- * opens a JSX element and every string after it becomes JSX text, unscanned.
- */
-export const scriptKind = (fileName) => (fileName.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
 
 /** The key a string is the value of, in an object literal (`{ boxShadow: "…" }`), or null. */
 function styleKey(node) {
@@ -186,9 +189,16 @@ function styleKey(node) {
   return ts.isIdentifier(parent.name) || ts.isStringLiteral(parent.name) ? parent.name.text : null;
 }
 
-/** Scan a .ts/.tsx source: every string literal and template text, never comments. */
+/**
+ * Scan a .ts/.tsx source: every string literal and template text, never comments.
+ * Every string is read as a possible class list (a class string may be exported
+ * and used elsewhere), except that a bare word is judged as a class only in a
+ * class context (`scripts/lib/class-tokens.mjs`): data strings such as a word
+ * list or a label hold ordinary words that share a utility's name.
+ */
 export function scanTs(source, fileName, allow = {}) {
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, scriptKind(fileName));
+  const classPositions = new Set(classTokens(source, fileName).tokens.map((t) => t.pos));
   const found = [];
   const visit = (node) => {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
@@ -201,8 +211,9 @@ export function scanTs(source, fileName, allow = {}) {
     ) {
       // The type `"literal"` in `ts.isLiteralTypeNode` is also a StringLiteral;
       // a type naming a raw value is still a raw value, so it is scanned too.
-      const line = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
-      for (const problem of checkString(node.text, allow)) found.push({ line, problem });
+      const start = node.getStart(sf);
+      const line = sf.getLineAndCharacterOfPosition(start).line + 1;
+      for (const problem of checkString(node.text, allow, classPositions.has(start))) found.push({ line, problem });
       const property = styleKey(node);
       if (property && fixedLine(property, node.text)) {
         found.push({ line, problem: `fixed line weight in \`${property}: "${node.text}"\` ${LINE_HINT}` });

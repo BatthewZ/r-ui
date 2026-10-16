@@ -23,6 +23,14 @@ export function Grid({ children }: { children: ReactNode }) {
   );
 }
 
+/** Fields side by side, each at least --COLUMN-SM. A Field is a size container (no
+ * intrinsic width), so it needs a track that gives it one, never a bare flex row. */
+export const CELLS = "grid gap-r3 grid-cols-[repeat(auto-fit,minmax(min(100%,var(--COLUMN-SM)),1fr))]";
+
+export function Cells({ children }: { children: ReactNode }) {
+  return <div className={CELLS}>{children}</div>;
+}
+
 /** A fixed demo date, so the showcase and its checks never depend on the day they run. */
 export const day = (month: number, date: number, year = 2026) => new Date(year, month - 1, date);
 

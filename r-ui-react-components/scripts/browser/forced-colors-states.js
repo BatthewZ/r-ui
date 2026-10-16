@@ -34,7 +34,9 @@
 //      control (or the frame that draws its ring) has exactly one solid outline (an
 //      inner part's reset outline must not come back as a second ring), and an inset
 //      ring is not the colour of the fill it sits on (a ring in Highlight on a
-//      Highlight-filled selected tab is invisible).
+//      Highlight-filled selected tab is invisible);
+//  16. progress: a bar's track has an edge (dashed while indeterminate) and the fill
+//      differs from it; a ring's arc differs from its track and from Canvas.
 // It also asserts that --SCHEME-DARK follows the forced palette (light or dark), not
 // the theme, so the series and sequential fills that keep their colour suit the Canvas.
 // On the AppShell's rail (900 wide) and bottom nav (375) it also asserts that a rail
@@ -250,6 +252,36 @@ async (page) => {
 
         // 13. nav count pill
         edged("nav count badge", nl?.querySelector(".r-navigation-link-badge"));
+
+        // 16. progress: a bar's track has an edge (dashed while indeterminate) and its
+        // fill differs from it; a ring's arc differs from its track and from Canvas.
+        const pb = sec("feedback-progressbar");
+        const determinate = pb?.querySelector('[role="progressbar"]:not([data-indeterminate]) .r-feedback-progress-track');
+        edged("progress track", determinate);
+        if (need("progress fill", determinate?.firstElementChild)) {
+          n++;
+          if (fill(cs(determinate.firstElementChild).backgroundColor) === fill(cs(determinate).backgroundColor))
+            out.push("progress: the fill is the track's colour");
+        }
+        const sweeping = pb?.querySelector('[role="progressbar"][data-indeterminate] .r-feedback-progress-track');
+        edged("indeterminate progress track", sweeping);
+        if (sweeping) {
+          n++;
+          if (cs(sweeping).outlineStyle !== "dashed") out.push(`indeterminate progress track: outline ${cs(sweeping).outlineStyle}, not dashed`);
+        }
+        const ring = sec("feedback-progressring")?.querySelector('[role="progressbar"]:not([data-indeterminate]) svg');
+        const [ringTrack, arc] = ring ? [...ring.querySelectorAll("circle")] : [];
+        if (need("progress ring track", ringTrack) && need("progress ring arc", arc)) {
+          n++;
+          const t = cs(ringTrack).stroke;
+          const a = cs(arc).stroke;
+          // A wash keeps its alpha under forced-color-adjust: none; the track must be a solid system colour.
+          const translucent = (c) => {
+            const alpha = c.match(/\/\s*([\d.]+)\)$/) ?? c.match(/rgba\([^)]*,\s*([\d.]+)\)$/);
+            return Boolean(alpha && Number(alpha[1]) < 1);
+          };
+          if (t === a || rgb(a) === canvas || t === "none" || translucent(t)) out.push(`progress ring: arc ${a} on track ${t}`);
+        }
 
         return { out, n };
       });

@@ -1,0 +1,65 @@
+/* "feedback" group stylesheet (ProgressBar, ProgressRing, Banner, ErrorBoundary).
+   Imported by src/styles.css inside `@layer components`, so a caller's utility
+   (`className`) always beats these rules. Plain rules, tokens only. */
+
+/* Indeterminate bar: a short fill sweeps from the inline start past the end.
+   Inset (a logical property) rather than a transform, so RTL needs no rule.
+   The loop rides the duration token because reduced motion stops it below,
+   before the collapsed token could turn it into a strobe. */
+.r-feedback-progress-sweep {
+  position: absolute;
+  inset-block: 0;
+  inline-size: 40%;
+  animation: r-feedback-progress-sweep calc(var(--DURATION-SLOW) * 6) var(--EASE-STANDARD) infinite;
+}
+@keyframes r-feedback-progress-sweep {
+  from {
+    inset-inline-start: -40%;
+  }
+  to {
+    inset-inline-start: 100%;
+  }
+}
+
+/* Under reduced motion nothing sweeps: the fill stands still across the whole
+   track, cut into diagonal stripes by a mask (the fill keeps its own colour
+   utility; the mask only takes its alpha), which still reads "working, amount
+   unknown" next to the indeterminate word. */
+@media (prefers-reduced-motion: reduce) {
+  .r-feedback-progress-sweep {
+    animation: none;
+    inset-inline: 0;
+    inline-size: auto;
+    mask-image: repeating-linear-gradient(
+      -45deg,
+      var(--C-TEXT-PRIMARY) 0 var(--R-SIZE-5),
+      transparent var(--R-SIZE-5) calc(var(--R-SIZE-5) * 2)
+    );
+  }
+}
+
+/* The ring's track: an ink wash, painted here rather than by a utility so the
+   forced-colours rule below can replace it. */
+.r-feedback-ring-track {
+  stroke: color-mix(in oklab, var(--C-TEXT-PRIMARY) 12%, transparent);
+}
+
+/* Forced colours: a track is an ink wash, which paints nothing there, so it
+   takes an outline (a border would eat into a track --R-SIZE-5 tall); an
+   indeterminate track's is dashed, a second cue beside the word. The ring opts
+   out of repainting so its strokes keep the tokens' system colours, with a
+   GrayText track under the arc. */
+@media (forced-colors: active) {
+  .r-feedback-progress-track {
+    outline: var(--BORDER-WIDTH) solid CanvasText;
+  }
+  [data-indeterminate] .r-feedback-progress-track {
+    outline-style: dashed;
+  }
+  .r-feedback-ring-svg {
+    forced-color-adjust: none;
+  }
+  .r-feedback-ring-track {
+    stroke: GrayText;
+  }
+}

@@ -1,0 +1,238 @@
+/* ── Kanban ─────────────────────────────────────────────────────────────────── */
+
+/* The board takes the caller's height (`className`); bounded, each column scrolls
+   its own cards. It is the size container the narrow layout reads (`@max-xl:` in
+   the component: one column at a time, snapping, below about two columns). */
+.r-boards-kanban {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+.r-boards-kanban[data-dragging] {
+  user-select: none;
+}
+.r-boards-kanban[data-dragging="pointer"],
+.r-boards-kanban[data-dragging="pointer"] * {
+  cursor: grabbing;
+}
+
+.r-boards-kanban-scroller {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: var(--R-SIZE-3);
+  min-block-size: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  /* A scroller clips at its padding box: this keeps the drop target's outline and the
+     coarse hit areas of buttons near a column's edge inside it. */
+  padding: var(--R-SIZE-5);
+  scroll-padding-inline: var(--R-SIZE-5);
+}
+
+/* Positioned so its visually hidden count stays inside the scroller, not the page. */
+.r-boards-kanban-column {
+  position: relative;
+  display: flex;
+  flex: 1 0 var(--COLUMN-MD);
+  flex-direction: column;
+  min-inline-size: 0;
+  max-inline-size: var(--COLUMN-LG);
+  max-block-size: 100%;
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  border-radius: var(--RADIUS-LG);
+  background-color: var(--C-SURFACE-1);
+}
+.r-boards-kanban-column[data-over-limit] {
+  border-color: var(--C-STATUS-WARNING);
+}
+/* Where a dragged card would land. An outline's style survives forced colours. */
+.r-boards-kanban-column[data-drop-target] {
+  outline: calc(var(--BORDER-WIDTH) * 2) dashed var(--C-ACCENT);
+  outline-offset: var(--BORDER-WIDTH);
+}
+.r-boards-kanban-column[data-drop-over-limit] {
+  outline-color: var(--C-STATUS-WARNING);
+}
+
+.r-boards-kanban-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--R-SIZE-6) var(--R-SIZE-5);
+  min-block-size: calc(var(--CONTROL-H) + var(--R-SIZE-4));
+  padding: var(--R-SIZE-5) var(--R-SIZE-4) 0;
+}
+.r-boards-kanban-title {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  font-size: var(--BodyText-1);
+  font-weight: var(--WEIGHT-SEMIBOLD);
+  line-height: var(--BodyText-1-line-height);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.r-boards-kanban-count {
+  color: var(--C-TEXT-SECONDARY);
+  font-size: var(--BodyText-2);
+  font-variant-numeric: var(--NUMERALS-DATA);
+  line-height: var(--BodyText-2-line-height);
+  white-space: nowrap;
+}
+.r-boards-kanban-column[data-over-limit] .r-boards-kanban-count {
+  color: var(--C-TEXT-WARNING);
+  font-weight: var(--WEIGHT-SEMIBOLD);
+}
+
+/* Collapsed: a strip as wide as its button, the title running down it. */
+.r-boards-kanban-column[data-collapsed] {
+  flex: none;
+}
+.r-boards-kanban-column[data-collapsed] .r-boards-kanban-header {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  padding-block-end: var(--R-SIZE-4);
+}
+.r-boards-kanban-column[data-collapsed] .r-boards-kanban-toggle {
+  order: -1;
+}
+.r-boards-kanban-column[data-collapsed] .r-boards-kanban-title,
+.r-boards-kanban-column[data-collapsed] .r-boards-kanban-over {
+  flex: none;
+  max-block-size: var(--COLUMN-SM);
+  writing-mode: vertical-rl;
+}
+
+.r-boards-kanban-list {
+  position: relative;
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: var(--R-SIZE-4);
+  min-block-size: 0;
+  margin: 0;
+  padding: var(--R-SIZE-4);
+  overflow-y: auto;
+  overscroll-behavior-block: contain;
+  list-style: none;
+}
+.r-boards-kanban-list[data-empty] {
+  padding-block-end: 0;
+}
+
+/* A card is its own drag handle and a normal focus stop; what it holds stays usable. */
+.r-boards-kanban-card {
+  position: relative;
+  flex: none;
+  min-block-size: var(--HIT-MIN);
+  padding: var(--R-SIZE-4);
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  border-radius: var(--RADIUS-MD);
+  background-color: var(--C-SURFACE-0);
+  color: var(--C-TEXT-PRIMARY);
+  font-size: var(--BodyText-2);
+  line-height: var(--BodyText-2-line-height);
+  overflow-wrap: anywhere;
+  -webkit-touch-callout: none;
+  transition:
+    border-color var(--DURATION-FAST) var(--EASE-STANDARD),
+    translate var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-boards-kanban:not([data-disabled], [aria-busy]) .r-boards-kanban-card {
+  cursor: grab;
+}
+.r-boards-kanban-card:hover {
+  border-color: var(--C-BORDER-STRONG);
+}
+/* The card being moved stays in place until it lands: a dashed edge (its style survives
+   forced colours), faded under a pointer's preview, lifted while the keys move it. */
+.r-boards-kanban-card[data-drag-source] {
+  border-style: dashed;
+  border-color: var(--C-ACCENT);
+}
+.r-boards-kanban[data-dragging="pointer"] .r-boards-kanban-card[data-drag-source] {
+  opacity: var(--OPACITY-DISABLED);
+}
+.r-boards-kanban[data-dragging="keyboard"] .r-boards-kanban-card[data-drag-source] {
+  translate: 0 calc(var(--MOTION-DISTANCE-SM) * -1);
+  box-shadow: var(--SHADOW-MD);
+}
+.r-boards-kanban-placeholder {
+  cursor: auto;
+}
+
+/* The drop line: a ring at the inline start and a rule across the list, drawn with
+   borders so its shape (not only its colour) shows, under forced colours too. Its
+   offset is measured from the cards (`--r-boards-indicator-y`, in px). */
+.r-boards-kanban-indicator {
+  position: absolute;
+  inset-block-start: calc(var(--r-boards-indicator-y, 0) * 1px);
+  inset-inline: var(--R-SIZE-5);
+  block-size: var(--R-SIZE-3);
+  translate: 0 -50%;
+  pointer-events: none;
+}
+.r-boards-kanban-indicator::before {
+  position: absolute;
+  inset-block-start: calc(50% - var(--BORDER-WIDTH));
+  inset-inline: var(--R-SIZE-3) 0;
+  border-block-start: calc(var(--BORDER-WIDTH) * 2) solid var(--C-ACCENT);
+  content: "";
+}
+.r-boards-kanban-indicator::after {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  box-sizing: border-box;
+  inline-size: var(--R-SIZE-3);
+  border: calc(var(--BORDER-WIDTH) * 2) solid var(--C-ACCENT);
+  border-radius: var(--RADIUS-FULL);
+  content: "";
+}
+
+.r-boards-kanban-empty {
+  margin: 0 var(--R-SIZE-4) var(--R-SIZE-4);
+  padding: var(--R-SIZE-3);
+  border: var(--BORDER-WIDTH) dashed var(--C-BORDER-STRONG);
+  border-radius: var(--RADIUS-MD);
+  color: var(--C-TEXT-MUTED);
+  font-size: var(--BodyText-2);
+  line-height: var(--BodyText-2-line-height);
+  text-align: center;
+}
+
+.r-boards-kanban-footer {
+  padding: 0 var(--R-SIZE-4) var(--R-SIZE-4);
+}
+
+/* The pointer's preview: a copy of the card in the top layer. Pointer geometry is
+   physical (clientX / clientY), so it is placed by left/top, in px from the script. */
+.r-boards-kanban-preview {
+  position: fixed;
+  top: 0;
+  left: 0;
+  margin: 0;
+  inline-size: calc(var(--r-boards-preview-w, 0) * 1px);
+  translate: calc(var(--r-boards-preview-x, 0) * 1px) calc(var(--r-boards-preview-y, 0) * 1px);
+  pointer-events: none;
+}
+.r-boards-kanban-preview > .r-boards-kanban-card {
+  border-color: var(--C-BORDER-STRONG);
+  box-shadow: var(--SHADOW-LG);
+  cursor: grabbing;
+}
+
+/* On paper the columns wrap instead of scrolling, and every card prints. */
+@media print {
+  .r-boards-kanban-scroller {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .r-boards-kanban-column {
+    max-block-size: none;
+  }
+  .r-boards-kanban-list {
+    overflow: visible;
+  }
+}

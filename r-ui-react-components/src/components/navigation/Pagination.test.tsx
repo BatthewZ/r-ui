@@ -24,6 +24,15 @@ describe("pageSlots", () => {
 const page = (n: number) => screen.getByRole("button", { name: `Page ${formatNumber(n)}` });
 
 describe("Pagination", () => {
+  it("puts the row slot on the row that holds the arrows, and className on the nav", () => {
+    render(<Pagination page={2} pageCount={5} onPageChange={() => undefined} className="grow" classNames={{ row: "justify-end" }} />);
+    const nav = screen.getByRole("navigation");
+    expect(nav).toHaveClass("grow");
+    const row = screen.getByRole("button", { name: "Next page" }).parentElement;
+    expect(row).toHaveClass("justify-end");
+    expect(row?.parentElement).toBe(nav);
+  });
+
   it("is a named landmark with prev/next and numbered pages", () => {
     render(<Pagination pageCount={12} defaultPage={6} />);
     expect(screen.getByRole("navigation", { name: "Pagination" })).toBeInTheDocument();

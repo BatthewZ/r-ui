@@ -7,7 +7,7 @@ import { formatNumber } from "../../util/format";
 import { useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 import { IconButton } from "../primitives";
-import { type LabelsProp, mergeLabels } from "../../util/labels";
+import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 
 type PageSlot = number | "gap-start" | "gap-end";
 
@@ -51,6 +51,12 @@ export const DEFAULT_PAGINATION_LABELS: PaginationLabels = {
   status: (page, pageCount) => `Page ${page} of ${pageCount}`,
 };
 
+declare module "../../util/locale" {
+  interface LabelsRegistry {
+    Pagination: PaginationLabels;
+  }
+}
+
 export type PaginationProps = {
   /** Controlled current page, 1-based. */
   page?: number;
@@ -70,7 +76,7 @@ export type PaginationProps = {
    */
   getHref?: (page: number) => string;
   labels?: LabelsProp<PaginationLabels>;
-  classNames?: SlotClassNames<"previous" | "next" | "list" | "page" | "status">;
+  classNames?: SlotClassNames<"row" | "previous" | "next" | "list" | "page" | "status">;
 } & Omit<ComponentPropsWithRef<"nav">, "children">;
 
 /** A page number, and in link mode previous / next too: chrome-less, the quiet wash on hover. */
@@ -97,7 +103,8 @@ export function Pagination({
   classNames,
   ...props
 }: PaginationProps) {
-  const labels = mergeLabels(DEFAULT_PAGINATION_LABELS, labelsProp);
+  const labels = useLabels("Pagination", DEFAULT_PAGINATION_LABELS, labelsProp);
+  const locale = useLocale();
   // `|| 1`: NaN (a `?page=abc` parsed with `Number`, a 0/0 count) escapes Math.max/min.
   const pageCount = Math.max(1, Math.floor(pageCountProp) || 1);
   const [rawPage, setPage] = useControllableState({
@@ -139,7 +146,7 @@ export function Pagination({
     nav.querySelector<HTMLElement>(`[data-pagination="${pending.edge}"]`)?.focus();
   }, [page]);
 
-  const fmt = (n: number) => formatNumber(n);
+  const fmt = (n: number) => formatNumber(n, { locale });
 
   const arrow = (direction: "previous" | "next") => {
     const target = direction === "previous" ? page - 1 : page + 1;
@@ -192,7 +199,7 @@ export function Pagination({
 
   return (
     <nav ref={navRef} aria-label={labels.nav} className={cn("@container min-w-0", className)} {...props}>
-      <div className="flex items-center gap-r6">
+      <div className={cn("flex items-center gap-r6", classNames?.row)}>
         {arrow("previous")}
         <ul className={cn("hidden items-center gap-r6 @md:flex", classNames?.list)}>
           {pageSlots(page, pageCount, siblings).map((slot) =>

@@ -12,46 +12,24 @@ import {
   useState,
 } from "react";
 
+import { isRtl } from "../../util/direction";
+import { formatNumber, MISSING } from "../../util/format";
+import { useLocale } from "../../util/locale";
 import { cn } from "../../util/style";
 import { contrastRatio, composite, maxChroma, paintPlane, type Rgb, wcagLevels } from "./color-core";
+import { clamp, keyTarget, snapToStep } from "./slider-core";
+import { pointerFraction, usePointerDrag } from "./slider-pointer";
 
 /*
  * ColorPicker's internal parts: the lightness × chroma area, the one-axis
  * slider (hue, opacity), the swatch radio group and the contrast readout. Not
- * public components: a general Slider is out of scope, and these speak colour.
+ * public components: they speak colour. Pointer drag, pointer position and
+ * the one-axis keys are the slider family's (slider-core, slider-pointer).
  */
 
-const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
-const isRtl = (el: Element) => getComputedStyle(el).direction === "rtl";
-
-/** Where a pointer sits along an element, 0–1 from its inline start (RTL-aware), and down its block axis. */
-function pointerFraction(el: HTMLElement, event: PointerEvent) {
-  const r = el.getBoundingClientRect();
-  const fx = r.width > 0 ? clamp((event.clientX - r.left) / r.width, 0, 1) : 0;
-  const fy = r.height > 0 ? clamp((event.clientY - r.top) / r.height, 0, 1) : 0;
-  return { x: isRtl(el) ? 1 - fx : fx, y: fy };
-}
-
-/**
- * Pointer drag on a surface: a press moves the value there and captures the
- * pointer, so the drag follows outside the surface. Focus goes to `thumb` (the
- * keyboard control) without scrolling, so keys continue from where the press left.
- */
-function useDrag(onMove: (event: PointerEvent<HTMLDivElement>) => void, thumb: RefObject<HTMLElement | null>) {
-  return {
-    onPointerDown(event: PointerEvent<HTMLDivElement>) {
-      if (event.button !== 0) return;
-      // Before the press's default action, which would focus the panel instead.
-      event.preventDefault();
-      event.currentTarget.setPointerCapture?.(event.pointerId);
-      thumb.current?.focus({ preventScroll: true });
-      onMove(event);
-    },
-    onPointerMove(event: PointerEvent<HTMLDivElement>) {
-      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) onMove(event);
-    },
-  };
-}
+/** Drag on a surface that moves one thumb: `onMove` gets every press and move, and the thumb takes focus. */
+const useDrag = (onMove: (event: PointerEvent<HTMLDivElement>) => void, thumb: RefObject<HTMLElement | null>) =>
+  usePointerDrag<HTMLDivElement>({ grab: () => thumb.current, move: onMove });
 
 // ── The area ────────────────────────────────────────────────────────────────
 
@@ -220,44 +198,23 @@ export interface ColorSliderProps {
 export function ColorSlider({ label, value, min, max, step, valueText, track, checker, paint, onChange, className }: ColorSliderProps) {
   const railRef = useRef<HTMLDivElement>(null);
   const thumbRef = useRef<HTMLDivElement>(null);
-  const set = (next: number) => onChange(clamp(Math.round(next / step) * step, min, max));
+  const set = (next: number) => onChange(snapToStep(next, { min, max, step }));
   const drag = useDrag((event) => {
     const rail = railRef.current;
     if (rail) set(min + pointerFraction(rail, event).x * (max - min));
   }, thumbRef);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const big = step * 10;
-    const toEnd = isRtl(event.currentTarget) ? -1 : 1;
-    const by = event.shiftKey ? big : step;
-    switch (event.key) {
-      case "ArrowRight":
-        set(value + by * toEnd);
-        break;
-      case "ArrowLeft":
-        set(value - by * toEnd);
-        break;
-      case "ArrowUp":
-        set(value + by);
-        break;
-      case "ArrowDown":
-        set(value - by);
-        break;
-      case "PageUp":
-        set(value + big);
-        break;
-      case "PageDown":
-        set(value - big);
-        break;
-      case "Home":
-        set(min);
-        break;
-      case "End":
-        set(max);
-        break;
-      default:
-        return;
-    }
+    const target = keyTarget(event.key, event.shiftKey, value, {
+      min,
+      max,
+      step,
+      largeStep: step * 10,
+      rtl: isRtl(event.currentTarget),
+      orientation: "horizontal",
+    });
+    if (target === null) return;
+    set(target);
     event.preventDefault();
   };
 
@@ -385,8 +342,8 @@ export interface ContrastLabels {
 }
 
 /** Truncated, not rounded: 4.499 must not read as a passing "4.50". */
-const ratioText = (ratio: number, locale?: string) =>
-  new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.floor(ratio * 100) / 100);
+const ratioText = (ratio: number, locale: string | undefined) =>
+  formatNumber(Math.floor(ratio * 100) / 100, { locale, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
  * The WCAG 2.x ratio of the colour (laid over the background when translucent)
@@ -408,6 +365,7 @@ export function ContrastReadout({
   labels: ContrastLabels;
   className?: string;
 }) {
+  const locale = useLocale();
   const ratio = background ? contrastRatio(composite(color, alpha, background), background) : null;
   const levels = ratio === null ? null : wcagLevels(ratio);
   const level = (name: string, ok: boolean): ReactNode => (
@@ -425,7 +383,7 @@ export function ContrastReadout({
     <div className={cn("flex flex-wrap items-center gap-x-r4 gap-y-r6 text-body-2", className)} data-contrast>
       <span className="text-fg-secondary">{labels.heading(against)}</span>
       <span className="font-medium text-fg-primary" data-ratio={ratio === null ? undefined : ratio.toFixed(3)}>
-        {ratio === null ? "—" : `${ratioText(ratio)}:1`}
+        {ratio === null ? MISSING : `${ratioText(ratio, locale)}:1`}
       </span>
       {levels && level("AA", levels.aa)}
       {levels && level("AAA", levels.aaa)}

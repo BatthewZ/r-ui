@@ -1,4 +1,4 @@
-// Navigation: AppShell, Tabs, Breadcrumbs, Pagination, NavList.
+// Navigation: AppShell, Tabs, Breadcrumbs, Pagination, NavList, TreeView.
 // Owned by the "navigation" group: add one export line per component. No other
 // group, and no shared file, needs to change when a component lands here.
 export {
@@ -35,6 +35,15 @@ export {
   type TabsTabProps,
   type TabsVariant,
 } from "./Tabs";
+export {
+  DEFAULT_TREE_VIEW_LABELS,
+  type TreeNode,
+  TreeView,
+  type TreeViewItemProps,
+  type TreeViewLabels,
+  type TreeViewProps,
+  type TreeViewSelectionMode,
+} from "./TreeView";
 export {
   isExternalHref,
   type RouterConfig,

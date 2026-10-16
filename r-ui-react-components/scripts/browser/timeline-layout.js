@@ -22,6 +22,11 @@
 //      does not scroll sideways;
 //   7. RTL: in the right-to-left demo the rail (mark and connector) sits on the inline-start
 //      (right) side of the body, and on the left in the LTR demo.
+//   8. threads: in every list of every demo, for each event and the next, the connector starts
+//      exactly one --R-SIZE-6 below the mark's drawn edge (an icon disc's box, or the small
+//      dot) and ends one --R-SIZE-6 above the next mark's drawn top, centred on both (±1px),
+//      and every list's last event shows no connector; at comfortable and compact, and with
+//      the mixed demo (icon → dot, dot → dot, dot → icon, icon → icon) also turned RTL.
 async (page) => {
   const base = page.url().split("#")[0];
   const KEY = "r-ui-showcase:view";
@@ -39,6 +44,63 @@ async (page) => {
     await page.locator('[data-sc="timeline-deploys"]').waitFor();
     await page.locator('[data-sc="timeline-deploys"]').scrollIntoViewIfNeeded();
     await page.waitForTimeout(150);
+  };
+
+  // 8: the thread between consecutive marks, in every list under `scope` (default: every demo).
+  const threads = (scope) =>
+    page.evaluate((sel) => {
+      const tokenPx = (el, name) => {
+        const probe = document.createElement("span");
+        probe.style.cssText = `position:absolute;visibility:hidden;inline-size:var(${name})`;
+        el.appendChild(probe);
+        const w = probe.getBoundingClientRect().width;
+        probe.remove();
+        return w;
+      };
+      const out = { pairs: 0, kinds: {}, gap: null, bad: [], lasts: 0 };
+      const cx = (r) => (r.left + r.right) / 2;
+      for (const ol of document.querySelectorAll(`${sel} ol`)) {
+        if (ol.closest('[aria-hidden="true"]')) continue;
+        const items = [...ol.children].filter((li) => li.tagName === "LI");
+        const name = ol.closest("[data-sc]")?.dataset.sc ?? "?";
+        items.forEach((li, i) => {
+          const line = li.querySelector(".r-data-timeline-line");
+          const mark = li.querySelector("[data-timeline-mark]");
+          const next = items[i + 1];
+          if (!next) {
+            out.lasts += 1;
+            const r = line.getBoundingClientRect();
+            if (getComputedStyle(line).visibility !== "hidden" && r.height > 0) out.bad.push(`${name}: the last event's connector is visible`);
+            return;
+          }
+          const nextMark = next.querySelector("[data-timeline-mark]");
+          const gap = tokenPx(li, "--R-SIZE-6");
+          out.gap = gap;
+          const m = mark.getBoundingClientRect();
+          const l = line.getBoundingClientRect();
+          const n = nextMark.getBoundingClientRect();
+          const kind = `${mark.dataset.timelineMark}→${nextMark.dataset.timelineMark}`;
+          out.kinds[kind] = (out.kinds[kind] ?? 0) + 1;
+          out.pairs += 1;
+          const where = `${name} #${i} (${kind})`;
+          if (!(l.height > 0)) out.bad.push(`${where}: no connector drawn`);
+          if (Math.abs(l.top - (m.bottom + gap)) > 1) out.bad.push(`${where}: connector starts ${(l.top - m.bottom).toFixed(1)}px below the mark, gap is ${gap}px`);
+          if (Math.abs(n.top - (l.bottom + gap)) > 1) out.bad.push(`${where}: connector ends ${(n.top - l.bottom).toFixed(1)}px above the next mark, gap is ${gap}px`);
+          if (Math.abs(cx(l) - cx(m)) > 1 || Math.abs(cx(l) - cx(n)) > 1) {
+            out.bad.push(`${where}: connector centre ${cx(l).toFixed(1)} vs marks ${cx(m).toFixed(1)} / ${cx(n).toFixed(1)}`);
+          }
+        });
+      }
+      return out;
+    }, scope);
+  const checkThreads = (t, label, { mixed }) => {
+    if (!(t.gap > 0)) problems.push(`threads ${label}: harness: --R-SIZE-6 resolved to ${t.gap}`);
+    if (t.pairs < (mixed ? 5 : 20)) problems.push(`threads ${label}: harness: only ${t.pairs} consecutive pairs measured`);
+    for (const kind of ["disc→dot", "dot→dot", "dot→disc", "disc→disc"]) {
+      if (!t.kinds[kind]) problems.push(`threads ${label}: harness: no ${kind} pair found (the mixed demo lists every pairing)`);
+    }
+    if (t.lasts === 0) problems.push(`threads ${label}: harness: no list's last event found`);
+    for (const b of t.bad) problems.push(`threads ${label}: ${b}`);
   };
 
   const summary = {};
@@ -155,6 +217,22 @@ async (page) => {
     if (!facts.ltr.railLeft || !facts.ltr.lineInRail) problems.push(`LTR: rail ${JSON.stringify(facts.ltr)}, expected on the left with the connector in it`);
     if (!facts.rtl.railRight || !facts.rtl.lineInRail) problems.push(`RTL: rail ${JSON.stringify(facts.rtl)}, expected on the right with the connector in it`);
 
+    // 8: threads at comfortable, LTR, then the mixed demo turned RTL.
+    const ltrThreads = await threads('[data-sc^="timeline-"]');
+    checkThreads(ltrThreads, "comfortable", { mixed: false });
+    await page.evaluate(() => document.querySelector('[data-sc="timeline-threads"]').setAttribute("dir", "rtl"));
+    const rtlThreads = await threads('[data-sc="timeline-threads"]');
+    checkThreads(rtlThreads, "comfortable RTL", { mixed: true });
+    const rtlSide = await page.evaluate(() => {
+      const li = document.querySelector('[data-sc="timeline-threads"] li');
+      const rail = li.querySelector(".r-data-timeline-rail").getBoundingClientRect();
+      const body = li.querySelector(".r-data-timeline-body").getBoundingClientRect();
+      return rail.left >= body.right - 0.5;
+    });
+    if (!rtlSide) problems.push("threads RTL: harness: the mixed demo's rail is not on the right after dir=rtl");
+    await page.evaluate(() => document.querySelector('[data-sc="timeline-threads"]').removeAttribute("dir"));
+    summary.threads = `${ltrThreads.pairs} pairs, gap ${ltrThreads.gap}px`;
+
     // 2b: the full reading is reachable by keyboard: Tab onto a time opens its Tooltip,
     // which describes it.
     const firstTime = page.locator('[data-sc="timeline-incidents"] li time').first();
@@ -256,6 +334,13 @@ async (page) => {
     }
     summary.forced = Object.entries(forced).map(([k, v]) => `${v.length} ${k}`).join(", ");
     await page.emulateMedia({ forcedColors: "none" });
+
+    // 8 again at compact, LTR and the mixed demo RTL.
+    await load(1280, { theme: "default", density: "compact", input: "fine" });
+    const compactThreads = await threads('[data-sc^="timeline-"]');
+    checkThreads(compactThreads, "compact", { mixed: false });
+    await page.evaluate(() => document.querySelector('[data-sc="timeline-threads"]').setAttribute("dir", "rtl"));
+    checkThreads(await threads('[data-sc="timeline-threads"]'), "compact RTL", { mixed: true });
 
     // 6: narrow, both inputs.
     for (const input of ["fine", "coarse"]) {
