@@ -161,6 +161,9 @@ describe("ToggleGroup type=single", () => {
     screen.getByRole("radio", { name: "Left" }).focus();
     fireEvent.keyDown(document.activeElement!, { key: "ArrowLeft" });
     expect(document.activeElement).toBe(screen.getByRole("radio", { name: "Center" }));
+    // Standalone, the arrows check as they move, mirrored too.
+    expect(screen.getByRole("radio", { name: "Center" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Left" })).toHaveAttribute("aria-checked", "false");
   });
 });
 

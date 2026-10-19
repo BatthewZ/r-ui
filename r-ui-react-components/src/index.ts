@@ -25,6 +25,7 @@ export * from "./components/toolbar";
 export * from "./components/filters";
 export * from "./components/guards";
 export * from "./components/boards";
+export * from "./components/media";
 
 export * from "./hooks";
 export * from "./util";

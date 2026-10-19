@@ -1,15 +1,16 @@
 "use client";
 
 import { ImageOff } from "lucide-react";
-import { type ComponentPropsWithRef, type ElementType, type ReactNode, useState } from "react";
+import { type ComponentPropsWithRef, type ElementType, type ReactNode } from "react";
 
 import { useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 import { safeUrl } from "../../util/url";
+import { Image, type ImageRatio } from "../media";
 import { Skeleton } from "../primitives";
 
-/** The media box's shape, width to height. */
-export type MediaRatio = "wide" | "classic" | "square" | "portrait";
+/** The media box's shape, width to height: `Image`'s fixed ratios. */
+export type MediaRatio = Exclude<ImageRatio, "intrinsic" | "fill">;
 
 const RATIO: Record<MediaRatio, string> = {
   wide: "aspect-video",
@@ -18,15 +19,21 @@ const RATIO: Record<MediaRatio, string> = {
   portrait: "aspect-3/4",
 };
 
+/** The card's picture, drawn by `Image` (its loading, placeholder and failure states). */
 export interface MediaCardImage {
-  src: string;
+  /** `null` while the address is still on the way: the box shows the pending placeholder. */
+  src: string | null;
   /** What the image shows; `""` when it is decoration the title already says. */
   alt: string;
-  /** The file's intrinsic size: with the ratio box it reserves the space before the image loads (no layout shift). */
+  /** The file's intrinsic size. */
   width: number;
   height: number;
   srcSet?: string;
   sizes?: string;
+  /** A tiny blurred preview shown until the picture arrives (`Image`'s `placeholder`). */
+  placeholder?: string;
+  /** A fill until the picture arrives (`Image`'s `placeholderColor`). */
+  placeholderColor?: string;
 }
 
 export type MediaCardProps = {
@@ -36,7 +43,7 @@ export type MediaCardProps = {
   title: ReactNode;
   /** The title's heading level in the page outline (default `h3`). */
   titleAs?: "h2" | "h3" | "h4" | "h5" | "h6";
-  /** Lazy-loaded. Without one (or when it fails to load) the media box shows a quiet placeholder. */
+  /** Lazy-loaded, through `Image` (a failure shows its glyph and `alt`). Without one the media box shows a quiet placeholder. */
   image?: MediaCardImage;
   /** Default `wide` (16:9). */
   ratio?: MediaRatio;
@@ -96,7 +103,7 @@ function MediaCardRoot({
       <div className={cn("flex min-w-0 flex-col gap-r4 p-r2", classNames?.body)}>
         <Heading className={cn("min-w-0 break-words text-pretty text-display-4 text-fg-primary", classNames?.title)}>
           {safeHref ? (
-            <Link href={safeHref} className={cn("r-marketing-media-card-link", classNames?.link)}>
+            <Link href={safeHref} className={cn("r-marketing-stretched-link", classNames?.link)}>
               {title}
             </Link>
           ) : (
@@ -134,24 +141,10 @@ function MediaBox({
   badge,
   classNames,
 }: Pick<MediaCardProps, "image" | "badge" | "classNames"> & { ratio: MediaRatio }) {
-  // A failed image falls back to the placeholder; keyed by src so a new one gets its own try.
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const showImage = image && failedSrc !== image.src;
   return (
     <div className={cn("r-marketing-media-card-media relative w-full", RATIO[ratio], classNames?.media)}>
-      {showImage ? (
-        <img
-          src={image.src}
-          srcSet={image.srcSet}
-          sizes={image.sizes}
-          alt={image.alt}
-          width={image.width}
-          height={image.height}
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailedSrc(image.src)}
-          className={cn("size-full object-cover", classNames?.image)}
-        />
+      {image ? (
+        <Image {...image} ratio="fill" radius="none" classNames={{ image: classNames?.image }} />
       ) : (
         <span className="r-marketing-media-card-placeholder flex size-full items-center justify-center text-fg-muted" aria-hidden>
           <ImageOff className="size-icon" />

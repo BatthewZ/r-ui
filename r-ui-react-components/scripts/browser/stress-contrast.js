@@ -1,3 +1,7 @@
+// @covers   *
+// @tier     sweep
+// @cost     5
+//
 // Browser check: in a dark theme (the first the showcase lists) at compact density with coarse input,
 // every visible text element on the Stress page reads at 4.5:1 or better.
 //

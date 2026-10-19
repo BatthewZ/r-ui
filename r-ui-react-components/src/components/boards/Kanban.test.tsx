@@ -91,6 +91,9 @@ describe("Kanban: structure", () => {
     await user.keyboard("{Enter}");
     expect(alpha).not.toHaveAttribute("data-drag-source");
     expect(status()).toBe("");
+    // Past a card's own controls, Tab reaches the next card itself.
+    await user.tab();
+    expect(card("Bravo")).toHaveFocus();
   });
 
   it("says it is loading, with placeholders and no cards to move", () => {

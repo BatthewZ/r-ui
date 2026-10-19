@@ -65,6 +65,75 @@ pages. Read the group's file before changing its components.
 | [e2c-hovercard-splitter.md](./e2c-hovercard-splitter.md) | HoverCard and Splitter: a hover card as an in-place disclosure, touch toggles, floating-ui close reasons, `:focus-visible` in jsdom, cell text rules leaking into panels, flex shares from a zero basis, stored vs drawn sizes, re-measured token bounds, a gutter's hit area off the scrollbar |
 | [e2d-form-inputs.md](./e2d-form-inputs.md) | Password, masked, currency and avatar inputs: reading a masked edit from texts and caret, literal deletions, selection across a type swap, toggles that keep their name, `blob:` sources, nested Fields, sizing a part a utility sized, the shared number draft, gate false positives fixed in the gate |
 | [e2e-kanban.md](./e2e-kanban.md) | Kanban: one target for two inputs, a card that stays until it lands, a measured drop line, press-vs-drag thresholds, touch hold vs scroll, snap against edge scrolling, scrollers clipping both axes, `Omit` over a union name |
+| [e3a-site-header.md](./e3a-site-header.md) | SiteHeader and NavigationMenu: disclosure navigation (never a menu), a press that pins a hover-opened panel, "a panel is open" read from the DOM, null `relatedTarget`, sticky in the nearest scroller, a published bar height, contrast against what paints behind, mega panels through the surface cap |
+| [e3b-footer-logos.md](./e3b-footer-logos.md) | Footer, LogoCloud, the Carousel's scrollbar: two forms picked by a container query, slots that count elements, a marquee as a transform loop, bringing focus into view without a scroller, never `pause()` a CSS animation, scoping holds, headless scrollbars |
+| [e3c-pricing-testimonial.md](./e3c-pricing-testimonial.md) | Pricing, PricingTable, Testimonial: rows shared by subgrid, speaking a change where it is observed, list formatting by locale, sticky head vs sticky column stacking, a scroller as every sticky's frame, press-to-explain on a tooltip, `<cite>` as the work, the language's quotation marks |
+| [e3d-features-cta.md](./e3d-features-cta.md) | FeatureGrid, FeatureRows, HowItWorks, CallToAction, EmailCapture: one numeric toggle for two layouts, borrowing a look means borrowing what sizes it, server errors and retry, failures through the form, a success status mounted early, stretched links on borderless items |
+| [e3e-media.md](./e3e-media.md) | Image, Lightbox, MasonryGrid: sizes as unitless custom properties, a `<span>` root, already-loaded pictures, a placeholder under the fade, `preload()` memory, `asChild` links, focus home after a dialog, masonry by the grid's own tracks, print fallback |
+| [e4a-motion-extras.md](./e4a-motion-extras.md) | Parallax, CountUp, ReadingProgress, Spotlight: a view-timeline subject that never moves, strength as a multiple of a contract distance, decorative by construction, a wash as the box's own background, timing read from tokens, a figure that speaks once, view timelines and the nearest scroller, proving a theme lever and its collapse |
+| [e4b-marketing-page.md](./e4b-marketing-page.md) | The Marketing page from the library: a header under a host's sticky bar, scroll padding for every bar, a transparent header's hero padding, motion layers hold only decoration, pictures in prose, pinned-column surfaces, one locale switch, promoting a repeated heading group |
+| [e4c-dashboard.md](./e4c-dashboard.md) | The Dashboard on round four: the URL as the view with defaults left out, adopting an anchor only when it changed, a frozen clock as `now`, progress vs measurement, a toolbar beside a title, a boundary per card, two kinds of table rows, what new table columns cost |
+| [t1-browser-harness.md](./t1-browser-harness.md) | The browser-check harness: the whole-Overview load as the cost, sections opened alone, the View switched live, hash-only navigations keep the document, patches on a long-lived page, inserted code in page-side callbacks, session memory growth, parallel sessions, `use()` under jsdom; the slack a light page removes, frame-timed readouts, equal widths on both routes |
+| [t3-sweeps-and-waits.md](./t3-sweeps-and-waits.md) | Live View switches vs fresh loads (mount-only faults, rotating fresh loads), a fake clock in a context of its own, waits that are timers in disguise, bounded condition waits, reduced motion's sub-ms durations, `fill` vs a frame-deferred caret, defining a target for the size floor, batched probes, axis-specific known findings, finding a panel wherever it ended up, one clipping card per floating component |
+| [t4-converts.md](./t4-converts.md) | Moving a browser check into a unit test: a green break is a finding (the fault masked by a fallback, or a test too weak), two-item roving tests cannot prove direction, a jsdom MutationObserver sees a one-commit flash only through a non-discrete update, `dir` vs inline `direction` in jsdom, what stays in the browser, a group left with no component script; the gate after: headers that drift from their bodies, order claims on the first pair only, readouts matched by shape, merges proved by their summaries |
+| [t5-preview-and-shards.md](./t5-preview-and-shards.md) | Browser checks on a development build under `vite preview` and in parallel sessions: building every run, React's warnings in a development build, source maps and chunk names for module claims, a limit on every wait, frame windows timed from the event, per-run folders, the dev server's cold compile, timing readouts across runs |
+
+## 2026-10-19 — integration gate E4 (motion extras, the Marketing and Dashboard pages)
+
+- **A page's workaround is a library finding, again.** The two page builders worked around
+  seven gaps (a picture pushed down by prose, a sticky header with no offset, a pinned column
+  on the wrong surface, presets on the device's clock, a filter with no placeholder, URL
+  helpers that wrote defaults, a toolbar squeezed to nothing). Each is fixed at the source
+  with a test or a browser assertion that goes red without it, and each workaround is gone.
+- **Every new motion check failed first, all for real reasons or harness ones worth
+  keeping:** a view timeline bound to the demo frame (it scrolls sideways), a prose margin
+  the inserted bar caused, a 1px `sr-only` counted as a scroller, a serialised gradient
+  without `at`, and CDP's ignored pointer media. Run a check before trusting its silence.
+- **A reduced-motion transition is still a transition.** The contract collapses durations
+  to near zero, not zero, and React renders a scroll's state in a later task: a check that
+  counts two frames reads the start of the slide. Wait for the element's animations to
+  finish.
+- **A break that stays green after a fix found the check's blind spot.** Once the hidden
+  header slid fully past the host's bar, the "paints under the bar" assertion could no
+  longer fail; it now half-slides the header itself to create the overlap it guards.
+
+## 2026-10-19 — integration gate E3 (marketing and media)
+
+- **A size container cannot be a subgrid.** `@container` applies layout containment, and a
+  contained grid lays out on its own, so Pricing's cards (a `Card`, a container) ignored
+  `grid-rows-subgrid` and only lined up while their parts happened to be equal. The check
+  now makes one card's description longer before comparing rows; the card passes
+  `@container-normal`.
+- **A grid that pins items to columns must read its tracks with the items unpinned.** An
+  item placed in a column the narrowed grid no longer has creates an implicit track, which
+  `grid-template-columns` reports, so MasonryGrid kept five columns at 352px. It drops
+  `data-placed` before reading.
+- **A wrapped flex row stretches its lines.** HowItWorks' shorter steps shared the row's
+  spare height between marker and text, so titles started lower beside a two-line title.
+  `align-content: flex-start`, and the check asserts titles on one line.
+- **A box that stands in for an `<img>` is not compressible.** `Image`'s file width is also
+  its min-content width, so in an `auto` track it widened the track to 1600px; an `<img>`
+  would have shrunk. Pass `w-full` (documented on Image).
+- **Small imported assets are data URIs, in dev too.** The gallery art was inlined, so a
+  "replay" query appended to it broke every picture, and a network hold matched only the
+  modules. Demo assets that a check must hold back import with `?no-inline`; a query is
+  appended with `&` when the address already has one.
+- **"Nothing running" is measured two frames on.** A reduced-motion transition or animation
+  (0.01ms) still starts on the frame its style changes and ends on the next, so a check one
+  frame after the change flaked (Image's fade, Lightbox's entrance). Two frames is still an
+  eighth of a full fade, so the check keeps its teeth.
+- **A transparent colour test must not match black.** `/, 0\)$/` read `rgb(0, 0, 0)` as
+  transparent and failed every forced-colours ring; test the alpha of `rgba()` only.
+- **Logos are pictures.** Inline SVG wordmarks inherit `direction` (their text ran
+  backwards over the mark in RTL) and the theme's face (it overflowed the viewBox): give
+  them `direction="ltr"` and a `textLength`. Image logos drawn for a light page invert on
+  a dark scheme (`invert(var(--SCHEME-DARK))`), or dark ink vanishes.
+- **A group sheet that writes `:root` publishes the group's own hook only**
+  (`--r-marketing-site-header-h`); `verify:class-prefix` now fails anything else declared
+  by a rule with no class of its own.
+- **Equal things get equal treatment across a family of sections**: list links in a footer
+  do not underline at rest (like nav rows), and an end group that wraps under narrow
+  content starts at the start edge, not the end.
 
 ## 2026-10-16 — integration gate E2 (filters, TreeView, RequireAuth, HoverCard, Splitter, inputs, Kanban)
 
@@ -200,14 +269,14 @@ pages. Read the group's file before changing its components.
   bundle every grammar. And a dev server's pre-bundled dependency is not the production
   chunk: Vite's dev copy of lowlight drags in its whole grammar set, so the browser check
   counts the grammar requests the loader itself initiates.
-- **A spill lands in the nearest scroller.** `overview-matrix` measured only the demo frame,
+- **A spill lands in the nearest scroller.** `sweep-overview` measured only the demo frame,
   so content spilling inside an inner `overflow: auto` box never reached it. It now checks
   every scroll container in a demo; a scroller designed to scroll says so with
   `data-sc-scrolls` (on itself or a wrapper inside the demo), never the whole demo.
 - **`outline: none` is not off under forced colours.** The contract forces
   `outline-style: solid` on `:focus-visible` to rescue rings drawn as shadows, which revives a
   reset outline at its default width: a second ring inside the frame. Reset with
-  `outline: 0 none`. `forced-colors-states.js` counts rings.
+  `outline: 0 none`. `sweep-forced-colors.js` counts rings.
 - **Code-split pages need a ready signal, not longer timeouts.** Every browser check waits
   for `<html data-showcase-ready="<page>">` (set once the page and everything it suspends on
   committed) through one prelude the runner injects, instead of each script guessing a

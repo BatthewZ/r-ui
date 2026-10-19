@@ -1,11 +1,12 @@
-import { CircleCheck, LoaderCircle, Undo2 } from "lucide-react";
+import { CircleCheck, Undo2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Heatmap } from "../../../src/components/charts";
 import { type DataTableColumn, DataTable, Meter, Timeline, type TimelineEvent } from "../../../src/components/data";
-import { Stack } from "../../../src/components/layout";
+import { ProgressRing } from "../../../src/components/feedback";
+import { Inline, Stack } from "../../../src/components/layout";
 import { Card, Link, StatusLabel, type Tone } from "../../../src/components/primitives";
-import { formatCompact, formatPercent, formatUnit } from "../../../src/util/format";
+import { formatCompact, formatNumber, formatPercent, formatUnit } from "../../../src/util/format";
 import { type DashboardData, type Deploy, type DeployStatus, DEPLOYS, type Endpoint, INCIDENTS, NOW, SLOS, STATUS, WEEKDAYS } from "./data";
 import { ago } from "./format";
 
@@ -85,11 +86,40 @@ export function BudgetCard(placement: Placement) {
   );
 }
 
-const DEPLOY_STATUS: Record<DeployStatus, { tone: Tone; label: string; icon?: ReactNode }> = {
-  progress: { tone: "info", label: "Rolling out", icon: <LoaderCircle /> },
+export const DEPLOY_STATUS: Record<DeployStatus, { tone: Tone; label: string; icon?: ReactNode }> = {
+  progress: { tone: "info", label: "Rolling out" },
   good: { tone: "success", label: "Live", icon: <CircleCheck /> },
   rolledBack: { tone: "error", label: "Rolled back", icon: <Undo2 /> },
 };
+
+/**
+ * A deploy's state. A rollout under way is work toward done, so its mark is a
+ * ProgressRing at the share of hosts updated (named, with its value, for a
+ * reader); the others are a status glyph and word.
+ */
+export function DeployState({ deploy }: { deploy: Deploy }) {
+  const s = DEPLOY_STATUS[deploy.status];
+  const { rollout } = deploy;
+  if (deploy.status === "progress" && rollout) {
+    return (
+      <Inline as="span" gap="r6" wrap={false} className="text-fg-primary">
+        <ProgressRing
+          size="icon"
+          value={rollout.hosts}
+          max={rollout.of}
+          label={`Rollout of ${deploy.service} ${deploy.version}`}
+          valueText={`${formatNumber(rollout.hosts)} of ${formatNumber(rollout.of)} hosts`}
+        />
+        {s.label}
+      </Inline>
+    );
+  }
+  return (
+    <StatusLabel tone={s.tone} icon={s.icon}>
+      {s.label}
+    </StatusLabel>
+  );
+}
 
 const DEPLOY_COLUMNS: DataTableColumn<Deploy>[] = [
   {
@@ -108,14 +138,7 @@ const DEPLOY_COLUMNS: DataTableColumn<Deploy>[] = [
     header: "Status",
     truncate: false,
     sortable: false,
-    cell: (d) => {
-      const s = DEPLOY_STATUS[d.status];
-      return (
-        <StatusLabel tone={s.tone} icon={s.icon}>
-          {s.label}
-        </StatusLabel>
-      );
-    },
+    cell: (d) => <DeployState deploy={d} />,
   },
   { id: "author", header: "By", value: (d) => d.author, truncate: false, priority: 3 },
   { id: "age", header: "When", value: (d) => d.ageMin, numeric: true, firstDirection: "asc", cell: (d) => ago(d.ageMin) },
@@ -124,7 +147,8 @@ const DEPLOY_COLUMNS: DataTableColumn<Deploy>[] = [
 /**
  * Recent deploys in a COMPACT card on a comfortable page: the card alone sets
  * `data-density="compact"`, and its table rows, type and padding re-derive
- * there. (At coarse input every row still meets the 44px hit floor.)
+ * there. (At coarse input every row still meets the 44px hit floor.) The
+ * rollout under way carries its progress.
  */
 export function DeploysCard(placement: Placement) {
   return (

@@ -1,3 +1,7 @@
+// @covers   filters/FilterBar
+// @sections filters-filterbar
+// @tier     component
+//
 // Browser check: FilterBar chips, focus, result count and the keyboard-only path.
 //
 // Run it through `bun run browser:check filters-bar`, or by hand against a running showcase:
@@ -6,7 +10,7 @@
 //
 // jsdom has no layout (so it cannot tell which of the folded and inline controls
 // is drawn), no real focus order across the composed controls and no timing of a
-// live region. On the Overview's FilterBar section, the dashboard bar
+// live region. On the FilterBar section, opened alone, the dashboard bar
 // (`[data-sc="filters-dashboard"]`), it asserts:
 //   1. harness: the bar is inline at 1280 (its own width ≥ the container 2xl step,
 //      every control drawn, the Filters button not); it opened on the sample URL,
@@ -25,7 +29,7 @@
 //      is back on the trigger; Tab to the search, typing "api". The chips are
 //      exactly the five filters in definition order with the right words, the
 //      query line has each parameter, and the count again equals the table's;
-//   4. Tab reaches the chips' remove buttons, each named "Remove filter <chip>";
+//   4. Tab reaches the first chip's remove button, named "Remove filter <chip>";
 //      Enter on the first removes Region (its MultiSelect empties) and focus
 //      goes to the chip that took its place (Status); Delete removes Status (its
 //      Down toggle un-presses) and focus moves on to the p95 chip; from the
@@ -34,16 +38,11 @@
 //   5. Tab to Clear all, Enter: no chips, focus on the Region combobox again;
 //   6. no console or page error from the section.
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
   const summary = {};
   const { errors, stop: stopErrors } = collectErrors(page);
 
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`${base}#/overview/filters-filterbar`);
-  await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [SHOWCASE_VIEW_KEY, { theme: "default", density: "comfortable", input: "fine" }]);
-  await page.reload();
-  await waitForShowcase(page);
+  await openSection(page, "filters-filterbar", { view: { theme: "default", density: "comfortable", input: "fine" } });
 
   const SCOPE = '[data-sc="filters-dashboard"]';
   const BAR = `${SCOPE} [role="search"]`;
@@ -78,6 +77,19 @@ async (page) => {
     const m = /of\s+([\d,]+)/.exec(text);
     return m ? Number(m[1].replace(/,/g, "")) : null;
   };
+  /** Waits (at most 3s) until the status speaks what the bar shows: the announcement is debounced. The assertion after it reads the state. */
+  const untilSpoken = () =>
+    page
+      .waitForFunction(
+        (BAR) => {
+          const r = document.querySelector(`${BAR} [data-filter-results]`);
+          const shown = r?.querySelector("[aria-hidden]")?.textContent;
+          return shown != null && r.querySelector('[role="status"]')?.textContent === shown;
+        },
+        BAR,
+        { timeout: 3000 },
+      )
+      .catch(() => undefined);
   const query = async () => (await page.locator('[data-sc="filters-query"]').textContent()) ?? "";
   const countOf = (text) => Number((/^([\d,]+) results?$/.exec(text ?? "")?.[1] ?? "NaN").replace(/,/g, ""));
   /** Tab until `pred(focus)` holds, at most `max` presses. */
@@ -105,7 +117,7 @@ async (page) => {
   if (JSON.stringify(start) !== JSON.stringify(["Region: us-east, eu-west", "p95 ≥ 300 ms", "Last 30 days"])) fail.push(`URL start: chips ${JSON.stringify(start)}`);
   const q0 = await query();
   for (const part of ["region=eu-west", "region=us-east", "p95=300..", "deployed=last-30-days"]) if (!q0.includes(part)) fail.push(`URL start: the query line "${q0}" lacks ${part}`);
-  await page.waitForTimeout(700);
+  await untilSpoken();
   const r0 = await results();
   const t0 = await tableTotal();
   if (countOf(r0.shown) !== t0) fail.push(`count: shown "${r0.shown}" but the table totals ${t0}`);
@@ -123,7 +135,7 @@ async (page) => {
   const r2a = await results();
   if (r2a.shown !== "48 results") fail.push(`Clear all: shows "${r2a.shown}" at once, expected "48 results"`);
   if (r2a.spoken !== r0.spoken) fail.push(`Clear all: the status spoke "${r2a.spoken}" at once; it waits for the count to settle`);
-  await page.waitForTimeout(800);
+  await untilSpoken();
   const r2b = await results();
   if (r2b.spoken !== "48 results") fail.push(`Clear all: the status speaks "${r2b.spoken}" once settled, expected "48 results"`);
 
@@ -142,7 +154,8 @@ async (page) => {
   await page.getByRole("dialog", { name: "Choose a date range" }).waitFor();
   await tabTo((f) => f.name === "Last 7 days", "the Last 7 days preset");
   await page.keyboard.press("Enter");
-  await page.waitForTimeout(400);
+  // The preset closes the popover, which hands focus back to its trigger.
+  await page.waitForFunction(() => document.activeElement?.closest("[data-filter]")?.getAttribute("data-filter") === "deployed", null, { timeout: 3000 }).catch(() => undefined);
   const back = await focus();
   if (back.filter !== "deployed" || back.role !== "button") fail.push(`keyboard: after the preset focus is on ${JSON.stringify(back)}, expected the Deployed trigger`);
   await tabTo((f) => f.filter === "q", "the search box");
@@ -152,7 +165,7 @@ async (page) => {
   if (JSON.stringify(applied) !== JSON.stringify(expected)) fail.push(`keyboard: chips ${JSON.stringify(applied)}, expected ${JSON.stringify(expected)}`);
   const q3 = await query();
   for (const part of ["region=eu-west", "status=error", "p95=300..", "deployed=last-7-days", "q=api"]) if (!q3.includes(part)) fail.push(`keyboard: the query line "${q3}" lacks ${part}`);
-  await page.waitForTimeout(800);
+  await untilSpoken();
   const r3 = await results();
   const t3 = await tableTotal();
   if (countOf(r3.shown) !== t3 || r3.spoken !== r3.shown) fail.push(`keyboard: shown "${r3.shown}", spoken "${r3.spoken}", table ${t3}`);

@@ -34,4 +34,4 @@
   satisfies the component. Re-add the name the wrapper requires.
 
 Enforced by the vitest suites (`Kanban.test.tsx`, `kanban-model.test.ts`) and
-`scripts/browser/kanban-pointer.js`, `kanban-keyboard.js`, `kanban-layout.js`.
+`scripts/browser/boards-kanban.js`.

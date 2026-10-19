@@ -1,42 +1,37 @@
+// @covers   steps/Stepper, steps/Wizard
+// @sections steps-stepper steps-wizard
+// @tier     component
+//
 // Browser check: Stepper and Wizard in a real browser, on the "Invite your team"
 // demo (showcase/sections/steps/Wizard.tsx) and the Stepper demos beside it.
 //
 // jsdom has no layout and no CSS: whether the narrow Stepper really collapses
-// (a container query), where focus lands as steps change, the hit floor at
-// coarse input and what survives forced colours are only measurable here.
+// (a container query), the marker's size by density and what survives forced
+// colours are only measurable here. The flow (an invalid step blocks Next and
+// focuses its first invalid field, a press keeps focus in the field, focus on
+// the new step's heading, the server check busy then blocking, Back keeping
+// values, only completed steps selectable) is Wizard.test.tsx's and Stepper.test.tsx's.
 //
 // Asserts:
 //   1. harness: a Stepper marker is exactly `--ICON + 2 × --R-SIZE-5` (the
 //      formula in the steps stylesheet), and the Wizard's Next is `--CONTROL-H`;
-//   2. Next on an empty step 1 stays there and focuses its first invalid field
-//      (aria-invalid, described by its message);
-//   3. a valid step advances and focus moves to the new step's heading, which
-//      reads "Step 2 of 4: People"; step 2 with an invalid email is blocked the
-//      same way, and its server check ("already in this workspace") is busy,
-//      then blocks and focuses the field;
-//   4. Back keeps values on both sides (step 1's text, then step 2's email);
-//   5. in the Stepper's nav only completed steps are buttons (upcoming ones are
-//      not), and pressing one goes back to it with focus on its heading;
-//   6. a narrow container collapses the Stepper (list gone, "Step 1 of 4 · Team"
-//      shown) while the wide one shows the list and hides the compact form;
-//   7. compact density and coarse input: markers re-derive smaller than the
-//      comfortable formula, selectable steps (1280, rows) and Next (375) meet
-//      the 44px floor, the compact Wizard collapses and nothing scrolls sideways;
-//   8. forced colours: the five marker states (complete, skipped, current,
+//   2. a narrow container collapses the Stepper (list gone, "Step 1 of 4 · Team"
+//      shown, its text "Step 1 of 4 · : Team" with the colon visually hidden) while the
+//      wide one shows the list and hides the compact form;
+//   3. compact density and coarse input: markers re-derive smaller than the
+//      comfortable formula, and at 375 the compact Wizard collapses (the steps' and
+//      Next's 44px floor and the page not scrolling sideways are sweep-overview's
+//      geometry sweep);
+//   4. forced colours: the five marker states (complete, skipped, current,
 //      error, upcoming) differ pairwise in what survives forcing (border
 //      style, width and colour, kept fill, glyph), and the current step is
 //      still `aria-current`.
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
   const { errors, stop: stopErrors } = collectErrors(page);
 
-  const open = async (view, width, anchor = "steps-wizard") => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/overview/${anchor}`);
-    await page.evaluate((v) => localStorage.setItem("r-ui-showcase:view", JSON.stringify(v)), view);
-    await page.reload();
-    await waitForShowcase(page);
+  const open = async (view, width) => {
+    await openSection(page, ["steps-stepper", "steps-wizard"], { view, width });
     const wizard = page.locator('[data-sc="wizard-invite"]');
     await wizard.waitFor();
     await wizard.scrollIntoViewIfNeeded();
@@ -44,28 +39,9 @@ async (page) => {
     return wizard;
   };
 
-  const until = async (locator, check, ms = 2500) => {
-    const end = Date.now() + ms;
-    for (;;) {
-      if (await locator.evaluate(check).catch(() => false)) return true;
-      if (Date.now() > end) return false;
-      await page.waitForTimeout(25);
-    }
-  };
-  const isFocused = (el) => el === document.activeElement;
-  const description = (locator) =>
-    locator.evaluate((el) =>
-      (el.getAttribute("aria-describedby") ?? "")
-        .split(" ")
-        .filter(Boolean)
-        .map((id) => document.getElementById(id)?.textContent?.trim() ?? "")
-        .join(" | "),
-    );
-  const focusedText = () => page.evaluate(() => `${document.activeElement?.tagName} ${document.activeElement?.textContent?.trim()}`);
-
   try {
     // 1. Harness.
-    let wizard = await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
+    const wizard = await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
     const fit = await wizard.evaluate((el) => {
       const marker = el.querySelector(".r-steps-marker");
       const cs = getComputedStyle(marker);
@@ -87,64 +63,7 @@ async (page) => {
       fail.push(`harness: marker ${fit.marker}px, expected --ICON + 2×--R-SIZE-5 = ${fit.expected}px`);
     if (!(fit.control > 0) || Math.abs(fit.next - fit.control) > 0.5) fail.push(`harness: Next is ${fit.next}px, --CONTROL-H ${fit.control}px`);
 
-    const heading = wizard.locator("h4");
-    const next = wizard.getByRole("button", { name: "Next" });
-    const nav = wizard.getByRole("navigation", { name: "Invite progress" });
-
-    // 2. An invalid step blocks Next and focuses its first invalid field.
-    await next.click();
-    const team = wizard.getByRole("textbox", { name: "Team name" });
-    if (!(await until(team, isFocused))) fail.push(`block: Next on an empty step did not focus Team name (focus: ${await focusedText()})`);
-    if ((await team.getAttribute("aria-invalid")) !== "true") fail.push("block: Team name is not aria-invalid");
-    if (!(await description(team)).includes("Name the team")) fail.push(`block: Team name is described by "${await description(team)}"`);
-    if (!(await heading.textContent()).includes("Team")) fail.push("block: the step changed although it was invalid");
-
-    // 3. A valid step advances, focus on the heading; step 2 blocks, then its server check.
-    await team.fill("Platform");
-    await wizard.getByRole("textbox", { name: "Workspace URL" }).fill("platform");
-    await next.click();
-    if (!(await until(heading, (el) => el === document.activeElement && el.textContent.includes("Step 2 of 4: People"))))
-      fail.push(`advance: focus is not on the "Step 2 of 4: People" heading (focus: ${await focusedText()})`);
-    const email = wizard.getByRole("textbox", { name: "Email (person 1)" });
-    await email.fill("not-an-email");
-    await next.click();
-    // A real click after typing: the press keeps focus in the field, so its
-    // blur-time error cannot shift the row and swallow the click.
-    if (!(await until(email, isFocused))) fail.push(`block 2: an invalid email did not keep focus on it (focus: ${await focusedText()})`);
-    if (!(await description(email)).includes("like name@example.com")) fail.push(`block 2: email described by "${await description(email)}"`);
-    if (!(await heading.textContent()).includes("People")) fail.push("block 2: the step changed with an invalid email");
-    await email.fill("ada@example.com");
-    await next.click();
-    if (!(await until(next, (el) => el.getAttribute("aria-busy") === "true", 1000))) fail.push("server: Next is not busy while step 2 is checked");
-    if (!(await until(email, (el) => el === document.activeElement && el.getAttribute("aria-invalid") === "true", 4000)))
-      fail.push(`server: the member check did not focus the email (focus: ${await focusedText()})`);
-    if (!(await description(email)).includes("already in this workspace")) fail.push(`server: email described by "${await description(email)}"`);
-
-    // 4. Back keeps values, both ways.
-    await email.fill("lin@example.com");
-    await wizard.getByRole("button", { name: "Back" }).click();
-    if (!(await until(heading, (el) => el === document.activeElement && el.textContent.includes("Team")))) fail.push("back: focus did not move to the Team heading");
-    if ((await team.inputValue()) !== "Platform") fail.push(`back: Team name is "${await team.inputValue()}"`);
-    await next.click();
-    await until(heading, (el) => el.textContent.includes("People"));
-    if ((await email.inputValue()) !== "lin@example.com") fail.push(`back: step 2's email is "${await email.inputValue()}" after Back and Next`);
-
-    // 5. Only completed steps are buttons; one goes back to its step.
-    const steps = await nav.evaluate((el) =>
-      [...el.querySelectorAll("li")].map((li) => ({ position: li.dataset.position, button: !!li.querySelector("button, a") })),
-    );
-    const expected = [
-      { position: "complete", button: true },
-      { position: "current", button: false },
-      { position: "upcoming", button: false },
-      { position: "upcoming", button: false },
-    ];
-    if (JSON.stringify(steps) !== JSON.stringify(expected)) fail.push(`select: steps ${JSON.stringify(steps)}`);
-    await nav.getByRole("button", { name: /^Team/ }).click();
-    if (!(await until(heading, (el) => el === document.activeElement && el.textContent.includes("Step 1 of 4: Team"))))
-      fail.push(`select: the completed Team step did not go back there with focus on its heading (focus: ${await focusedText()})`);
-
-    // 6. The narrow container collapses; the wide one does not.
+    // 2. The narrow container collapses; the wide one does not.
     const collapse = await page.evaluate(() => {
       const read = (sc) => {
         const root = document.querySelector(`[data-sc="${sc}"] .r-steps-stepper`);
@@ -163,15 +82,13 @@ async (page) => {
     if (collapse.narrow.list !== "none" || collapse.narrow.compact === "none" || !collapse.narrow.text.startsWith("Step 1 of 4 · : Team"))
       fail.push(`collapse: the narrow Stepper ${JSON.stringify(collapse.narrow)}`);
 
-    // 7. Compact + coarse: at 1280 (where the Steppers are rows) the targets, then at 375.
+    // 3. Compact + coarse: the markers at 1280, then the collapse at 375.
     const otherTheme = (await showcaseThemes(page)).find((t) => t.name !== "default").name;
-    await open({ theme: otherTheme, density: "compact", input: "coarse" }, 1280, "steps-stepper");
+    await open({ theme: otherTheme, density: "compact", input: "coarse" }, 1280);
     const coarse = await page.evaluate(() => {
       const marker = (sc) => document.querySelector(`[data-sc="${sc}"] .r-steps-marker`).getBoundingClientRect().width;
-      const targets = [...document.querySelectorAll('[data-sc="stepper-selectable"] li button, [data-sc="stepper-rtl"] li button')];
       return {
         compact: marker("stepper-compact"),
-        targets: targets.map((t) => t.getBoundingClientRect().height),
       };
     });
     // The whole page is compact here: compare with the marker formula read in a comfortable subtree.
@@ -187,28 +104,17 @@ async (page) => {
       return width;
     });
     if (!(coarse.compact < formula)) fail.push(`compact: a compact marker (${coarse.compact}px) is not smaller than a comfortable one (${formula}px)`);
-    if (coarse.targets.length < 3) fail.push(`coarse: harness: found ${coarse.targets.length} selectable steps`);
-    if (coarse.targets.some((h) => !(h >= 44))) fail.push(`coarse: selectable steps are ${JSON.stringify(coarse.targets)}px tall (floor 44)`);
-    await page.setViewportSize({ width: 375, height: 900 });
-    await page.goto(`${base}#/overview/steps-wizard`);
-    await waitForShowcase(page);
+    await setView(page, { width: 375 });
     await page.locator('[data-sc="wizard-compact"]').scrollIntoViewIfNeeded();
     await page.waitForTimeout(150);
     const phone = await page.evaluate(() => {
-      const next = [...document.querySelectorAll('[data-sc="wizard-compact"] button')].find((b) => b.textContent.trim() === "Next");
       const compact = document.querySelector('[data-sc="wizard-compact"] [data-compact]');
-      return {
-        next: next.getBoundingClientRect().height,
-        collapsed: getComputedStyle(compact).display !== "none",
-        scroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      };
+      return { collapsed: getComputedStyle(compact).display !== "none" };
     });
-    if (!(phone.next >= 44)) fail.push(`coarse: Next is ${phone.next}px tall (floor 44)`);
     if (!phone.collapsed) fail.push("375: the compact Wizard's Stepper did not collapse");
-    if (phone.scroll > 0) fail.push(`375: the page scrolls sideways by ${phone.scroll}px`);
 
-    // 8. Forced colours: every marker state stays distinguishable.
-    await open({ theme: "default", density: "comfortable", input: "fine" }, 1280, "steps-stepper");
+    // 4. Forced colours: every marker state stays distinguishable.
+    await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
     await page.emulateMedia({ forcedColors: "active" });
     await page.waitForTimeout(100);
     const forced = await page.locator('[data-sc="stepper-states"]').evaluate((root) => {
@@ -248,9 +154,8 @@ async (page) => {
   } finally {
     stopErrors();
     await page.emulateMedia({ forcedColors: "none" });
-    await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
   }
 
   if (fail.length) throw new Error(`steps-wizard:\n  ${fail.join("\n  ")}`);
-  return "invalid step blocks Next + focuses its field, server check busy then blocks, heading focus on change, Back keeps values, only completed steps selectable, narrow collapses, compact + coarse floors, forced-colour states distinct";
+  return "marker = --ICON + 2 × --R-SIZE-5, Next = --CONTROL-H, narrow collapses, compact markers, compact Wizard collapses at 375, forced-colour states distinct";
 }

@@ -14,3 +14,8 @@
     opacity: 0;
   }
 }
+:root,
+[data-density] {
+  --r-demo-height: 0;
+  --C-ACCENT: red;
+}

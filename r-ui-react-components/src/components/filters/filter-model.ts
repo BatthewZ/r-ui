@@ -77,6 +77,8 @@ export interface DateRangeFilterDefinition extends FilterBase<DateRange<Date>> {
   presets?: DateRangePreset[];
   min?: Date;
   max?: Date;
+  /** The trigger's text while no range applies ("All time" where no filter means all the data). Default: the picker's `labels.placeholder`. */
+  placeholder?: string;
 }
 
 /**

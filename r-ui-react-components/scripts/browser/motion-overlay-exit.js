@@ -1,3 +1,8 @@
+// @covers   overlays/Popover, overlays/Dialog, overlays/Tooltip, overlays/ToastProvider
+// @sections overlays-popover overlays-dialog overlays-tooltip overlays-toast form-input
+// @tier     component
+// @flags    timing
+//
 // Browser check: overlays animate OUT, in CSS, and reduced motion makes the
 // close instant.
 //
@@ -7,8 +12,9 @@
 // painted while it transitions, and the component unmounts it when
 // `getAnimations()` reports the exit finished.
 //
-// Asserts, on the Overview's Popover ("With arrow") and Dialog ("Rename
-// dashboard") demos:
+// Asserts, on the Popover ("With arrow") and Dialog ("Rename dashboard")
+// demos, each section opened alone (the Tooltip's with the Input section, for
+// a field to hold focus):
 //   1. harness: once open and settled, the panel's opacity is 1 (the dialog's
 //      scrim too), so a mid-transition sample has something to fall from; and
 //      the popover ARRIVES animated too (some frame of its open is between 0
@@ -29,17 +35,13 @@
 //      pick would differ), and the alertdialog on its `autoFocus` Cancel; a
 //      hover-opened Tooltip closes on Escape while focus sits in a text field
 //      elsewhere (WCAG 1.4.13), and focus stays in the field; two sticky toasts:
-//      Dismiss on the first hands focus to the other toast's Dismiss, and
+//      Dismiss on the first hands focus to a remaining toast's Dismiss, and
 //      Dismiss on the last returns focus to the trigger it came from.
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
-  await page.setViewportSize({ width: 1280, height: 900 });
 
-  const openPopover = async () => {
-    await page.goto(`${base}#/overview/overlays-popover`);
-    await page.reload();
-    await waitForShowcase(page);
+  const openPopover = async ({ reduced = false } = {}) => {
+    await openSection(page, "overlays-popover", { reduced });
     const trigger = page.locator("#overlays-popover").getByRole("button", { name: "With arrow" });
     await trigger.waitFor();
     await trigger.scrollIntoViewIfNeeded();
@@ -92,10 +94,8 @@ async (page) => {
       return { before, mid, focusBack, fading, goneAfter: panel() ? null : Math.round(performance.now() - started) };
     });
 
-  const openDialog = async () => {
-    await page.goto(`${base}#/overview/overlays-dialog`);
-    await page.reload();
-    await waitForShowcase(page);
+  const openDialog = async ({ reduced = false } = {}) => {
+    await openSection(page, "overlays-dialog", { reduced });
     const trigger = page.locator("#overlays-dialog").getByRole("button", { name: "Rename dashboard" });
     await trigger.waitFor();
     await trigger.scrollIntoViewIfNeeded();
@@ -143,7 +143,6 @@ async (page) => {
     });
 
   // Normal motion.
-  await page.emulateMedia({ reducedMotion: "no-preference" });
   const arriving = await openPopover();
   if (arriving.length === 0) fail.push("popover: no frame of its open had an opacity between 0 and 1 (no entrance)");
   const pop = await closePopover();
@@ -172,23 +171,19 @@ async (page) => {
   if (dlg.after.content) fail.push("dialog: content still mounted after the exit");
 
   // Reduced motion: no fade, and gone at once.
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await openPopover();
+  await openPopover({ reduced: true });
   const popReduced = await closePopover();
   if (popReduced.fading.length) fail.push(`reduced motion: popover faded (${popReduced.fading.join(", ")})`);
   if (popReduced.goneAfter === null || popReduced.goneAfter > 100) fail.push(`reduced motion: popover unmounted after ${popReduced.goneAfter}ms, expected within 100ms`);
   if (!popReduced.focusBack) fail.push("reduced motion: popover focus not returned");
-  await openDialog();
+  await openDialog({ reduced: true });
   const dlgReduced = await closeDialog();
   if (dlgReduced.fading.length) fail.push(`reduced motion: dialog faded (${dlgReduced.fading.join(", ")})`);
   if (dlgReduced.goneAfter === null || dlgReduced.goneAfter > 100) fail.push(`reduced motion: dialog displayed for ${dlgReduced.goneAfter}ms more, expected within 100ms`);
   if (!dlgReduced.focusBack) fail.push("reduced motion: dialog focus not returned");
-  await page.emulateMedia({ reducedMotion: null });
 
   // 5. Focus in and out.
-  await page.goto(`${base}#/overview/overlays-dialog`);
-  await page.reload();
-  await waitForShowcase(page);
+  await openSection(page, "overlays-dialog");
   const reportTrigger = page.locator("#overlays-dialog").getByRole("button", { name: "Run report" });
   await reportTrigger.scrollIntoViewIfNeeded();
   await reportTrigger.click();
@@ -202,9 +197,7 @@ async (page) => {
   if (reportFocus.first === "Done") fail.push("harness: the report dialog's first focusable is its autoFocus button, so landing there proves nothing");
   if (reportFocus.focused !== "Done") fail.push(`dialog: focus landed on ${JSON.stringify(reportFocus.focused)}, expected its autoFocus "Done"`);
   await page.keyboard.press("Escape");
-  await page.goto(`${base}#/overview/overlays-dialog`);
-  await page.reload();
-  await waitForShowcase(page);
+  await openSection(page, "overlays-dialog");
   const alertTrigger = page.locator("#overlays-dialog").getByRole("button", { name: "Delete 3 dashboards" });
   await alertTrigger.scrollIntoViewIfNeeded();
   await alertTrigger.click();
@@ -218,9 +211,7 @@ async (page) => {
   if (alertFocus.focused !== "Cancel") fail.push(`alertdialog: focus landed on ${JSON.stringify(alertFocus.focused)}, expected its autoFocus "Cancel"`);
   await page.keyboard.press("Escape");
 
-  await page.goto(`${base}#/overview/overlays-tooltip`);
-  await page.reload();
-  await waitForShowcase(page);
+  await openSection(page, ["overlays-tooltip", "form-input"]);
   const tipTrigger = page.locator("#overlays-tooltip").getByRole("button", { name: "Copy link" });
   await tipTrigger.scrollIntoViewIfNeeded();
   const field = await page.evaluate(() => {
@@ -241,9 +232,7 @@ async (page) => {
   if (!(await fieldFocused())) fail.push("tooltip: Escape moved focus out of the field");
   await page.mouse.move(0, 0);
 
-  await page.goto(`${base}#/overview/overlays-toast`);
-  await page.reload();
-  await waitForShowcase(page);
+  await openSection(page, "overlays-toast");
   const toastTrigger = page.locator("#overlays-toast").getByRole("button", { name: "Serious (stays)" });
   await toastTrigger.scrollIntoViewIfNeeded();
   await toastTrigger.click();

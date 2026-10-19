@@ -1,6 +1,5 @@
-import { Accordion, Container, Grid, ScrollReveal, Section } from "../../../src";
+import { Accordion, Container, Grid, ScrollReveal, Section, SectionHeading } from "../../../src";
 import { FAQ } from "./content";
-import { SectionHeading } from "./SectionHeading";
 
 /**
  * Questions grouped by topic, each topic an Accordion of its own (one answer
@@ -15,7 +14,7 @@ export function Faq() {
     <Section id="faq" padding="section-2" aria-labelledby="mkt-faq-title">
       <Container>
         <Grid minColumn="lg" gap="r1" rowGap="r1" className="items-start">
-          <SectionHeading id="mkt-faq-title" eyebrow="Questions" title="What teams ask before they switch." />
+          <SectionHeading titleId="mkt-faq-title" eyebrow="Questions" title="What teams ask before they switch." />
           <ScrollReveal className="flex min-w-0 flex-col gap-r1">
             {FAQ.map(({ id, label, questions }) => (
               <div key={id} className="min-w-0">

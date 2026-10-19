@@ -109,6 +109,7 @@ describe("FileUpload", () => {
     );
     await user.upload(picker(container), [PNG, HUGE, PDF]);
     expect(onValueChange.mock.calls).toEqual([[[PDF]]]);
+    expect(names()).toEqual(["report.pdf"]);
     expect(zone()).toHaveAttribute("aria-invalid", "true");
     expect(zone()).toHaveAccessibleDescription(
       "PDF, up to 5 MB each. “avatar.png” is not a file type this field takes. “scan.pdf” is larger than 5 MB. Shared with the team.",
@@ -194,6 +195,10 @@ describe("FileUpload", () => {
     expect(container.querySelector('input[type="hidden"][name="docs"]')).toHaveValue("doc_1");
     expect(picker(container)).not.toHaveAttribute("name");
     expect(spoken()).toBe("report.pdf uploaded.");
+    // Removing the uploaded file drops its value from the submission.
+    await user.click(screen.getByRole("button", { name: "Remove report.pdf" }));
+    expect(onValueChange.mock.calls[1]).toEqual([[]]);
+    expect(container.querySelector('input[type="hidden"][name="docs"]')).toBeNull();
   });
 
   it("cancels through the signal, then retries; a failure shows its reason and retries too", async () => {
@@ -204,6 +209,7 @@ describe("FileUpload", () => {
     await user.click(screen.getByRole("button", { name: "Cancel upload of report.pdf" }));
     expect(calls[0]!.context.signal.aborted).toBe(true);
     expect(screen.getByText("Cancelled")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).toBeNull();
     // Focus stays in the row: the Cancel button became Retry and Remove.
     expect(screen.getByRole("button", { name: "Retry upload of report.pdf" })).toHaveFocus();
     // A late answer from the cancelled upload changes nothing.

@@ -279,6 +279,28 @@
   }
 }
 
+/* ── Parallax: how far `Parallax`'s layer drifts each way at its medium
+   strength (subtle reads half, strong one and a half). A length, so a theme
+   tones parallax down or off (`0px`) without touching `--MOTION-DISTANCE-LG`,
+   which also moves reveals. The default derives from that distance, and reduced
+   motion and paper zero it whatever a theme set (`!important` outranks a
+   theme's `:root[data-theme]`), as the contract does for its own distances. */
+:root {
+  --PARALLAX-SHIFT: calc(var(--MOTION-DISTANCE-LG) * 4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --PARALLAX-SHIFT: 0px !important;
+  }
+}
+
+@media print {
+  :root {
+    --PARALLAX-SHIFT: 0px !important;
+  }
+}
+
 /* Density SELECTS. Themes never write these names. */
 :root,
 [data-density="comfortable"] {

@@ -30,6 +30,8 @@ export interface FilterFieldProps {
   /** The "no filter" choice of a select. */
   anyLabel: string;
   locale: string | undefined;
+  /** A time range's preset clock. */
+  now: Date | undefined;
   className?: string;
 }
 
@@ -39,16 +41,16 @@ export interface FilterFieldProps {
  * from its first render (an empty value is `""`, `[]`, `null` or the whole
  * scale, never `undefined`), so a chip's removal reaches it.
  */
-export function FilterField({ def, value, onValueChange, disabled, anyLabel, locale, className }: FilterFieldProps) {
+export function FilterField({ def, value, onValueChange, disabled, anyLabel, locale, now, className }: FilterFieldProps) {
   return (
     <Field disabled={disabled || def.disabled === true} data-filter={def.id} className={cn("min-w-0 grow", BASIS[def.kind], className)}>
       <Field.Label>{def.label}</Field.Label>
-      <FilterInput def={def} value={value} onValueChange={onValueChange} disabled={disabled} anyLabel={anyLabel} locale={locale} />
+      <FilterInput def={def} value={value} onValueChange={onValueChange} disabled={disabled} anyLabel={anyLabel} locale={locale} now={now} />
     </Field>
   );
 }
 
-function FilterInput({ def, value, onValueChange, disabled, anyLabel, locale }: Omit<FilterFieldProps, "className">) {
+function FilterInput({ def, value, onValueChange, disabled, anyLabel, locale, now }: Omit<FilterFieldProps, "className">) {
   switch (def.kind) {
     case "select":
       return def.searchable ? (
@@ -110,6 +112,8 @@ function FilterInput({ def, value, onValueChange, disabled, anyLabel, locale }: 
           onValueChange={(next) => onValueChange(next ?? undefined)}
           withTime={def.withTime}
           presets={def.presets}
+          now={now}
+          placeholder={def.placeholder}
           min={def.min}
           max={def.max}
           locale={locale}

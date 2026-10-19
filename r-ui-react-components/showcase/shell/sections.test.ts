@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { collectSections } from "./sections";
+import { collectSections, loadModules, sectionIdOf } from "./sections";
 
 const Demo = () => null;
 const mod = (meta: unknown, component: unknown = Demo) => ({ meta, default: component });
@@ -39,5 +39,52 @@ describe("collectSections", () => {
       { path: "./sections/form/NoMeta.tsx", reason: "no `meta` export" },
       { path: "./sections/form/NoOrder.tsx", reason: "`meta.order` must be a number" },
     ]);
+  });
+
+  it("refuses a section whose group is not its folder's, since the id is read from the path", () => {
+    const { groups, invalid } = collectSections({ "./sections/form/Stray.tsx": mod({ title: "Stray", group: "data", order: 1 }) });
+    expect(groups).toEqual([]);
+    expect(invalid).toEqual([{ path: "./sections/form/Stray.tsx", reason: '`meta.group` must be its folder\'s name ("form")' }]);
+  });
+});
+
+describe("sectionIdOf", () => {
+  it("reads the id from the path alone", () => {
+    expect(sectionIdOf("./sections/data/DataTable.tsx")).toBe("data-datatable");
+    expect(sectionIdOf("./sections/form/OTPInput.tsx")).toBe("form-otpinput");
+    expect(sectionIdOf("./sections/form/parts/demo.ts")).toBeNull();
+  });
+});
+
+describe("loadModules", () => {
+  const importers = () => ({
+    "./sections/form/Input.tsx": vi.fn(async () => mod({ title: "Input", group: "form", order: 20 })),
+    "./sections/form/Field.tsx": vi.fn(async () => mod({ title: "Field", group: "form", order: 1 })),
+    "./sections/data/Table.tsx": vi.fn(async () => mod({ title: "Table", group: "data", order: 1 })),
+  });
+
+  it("imports every section when no ids are given", async () => {
+    const all = importers();
+    const { groups, missing } = await loadModules(all);
+    expect(groups.flatMap((g) => g.sections.map((s) => s.id))).toEqual(["form-field", "form-input", "data-table"]);
+    expect(missing).toEqual([]);
+    for (const importer of Object.values(all)) expect(importer).toHaveBeenCalledTimes(1);
+  });
+
+  it("imports only the sections it is asked for, and names the ids no file answers", async () => {
+    const some = importers();
+    const { groups, missing } = await loadModules(some, ["data-table", "form-nothing"]);
+    expect(groups.flatMap((g) => g.sections.map((s) => s.id))).toEqual(["data-table"]);
+    expect(missing).toEqual(["form-nothing"]);
+    expect(some["./sections/data/Table.tsx"]).toHaveBeenCalledTimes(1);
+    expect(some["./sections/form/Input.tsx"]).not.toHaveBeenCalled();
+    expect(some["./sections/form/Field.tsx"]).not.toHaveBeenCalled();
+  });
+
+  it("lists a section whose chunk fails as invalid", async () => {
+    const failing = { "./sections/data/Table.tsx": vi.fn(async () => Promise.reject(new Error("offline"))) };
+    const { groups, invalid } = await loadModules(failing, ["data-table"]);
+    expect(groups).toEqual([]);
+    expect(invalid).toEqual([{ path: "./sections/data/Table.tsx", reason: "failed to load: Error: offline" }]);
   });
 });

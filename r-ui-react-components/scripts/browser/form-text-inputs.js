@@ -1,0 +1,192 @@
+// @covers   form/PasswordInput, form/MaskedInput, form/CurrencyInput
+// @sections form-passwordinput form-maskedinput form-currencyinput
+// @tier     component
+//
+// Browser check: PasswordInput, MaskedInput and CurrencyInput with real keys, real focus and real layout.
+//
+// jsdom keeps a selection across an input's `type` swap and has no layout, so the caret,
+// the hit areas and the sizes are settled here. The strength score in words and filled
+// segments, and CurrencyInput's locale typing, blur formatting, sign side and precision are
+// the unit tests' (PasswordInput, CurrencyInput). On the sections, opened alone together, it asserts:
+//   1. harness: the page resolves --CONTROL-H 36px at comfortable/fine (the source's 2.25rem),
+//      the sign-in password is a password field holding "correct horse" (its source value),
+//      and the phone field's placeholder is "(___) ___-____";
+//   2. password show/hide: with "rr" selected (3..5) a mouse press on "Show password" makes
+//      the field text, pressed, still focused, the value and the selection unchanged; a second
+//      press hides it with the same selection; from the keyboard, Tab reaches the toggle and
+//      Space swaps it back while the value stays;
+//   3. strength: typing "abc" in the sign-up password shows a meter of five segments whose
+//      filled and empty segments differ in fill, both drawn at a height > 0;
+//   4. mask caret: typing "5551234567" into the checkout phone shows "(555) 123-4567"; with
+//      the caret at 2 a typed "9" gives "(59|5) 512-3456" (refitted, overflow dropped); with the
+//      caret after ") " Backspace deletes the digit before the literal ("(59|5) 123-456");
+//      Delete at 1 deletes forward ("(|951) 234-56"); inserted text over a selection 1..9
+//      ("212-867", as a paste or an IME commit delivers it) gives "(212) 867-|56"; a refused
+//      letter leaves value and caret; the plate upper-cases ("abc1234" → "ABC-1234", raw ABC1234);
+//      the RTL phone is laid out left to right;
+//   5. forced colours (switched live): the strength meter's filled segments keep a fill that
+//      differs from the empty ones, and every segment has a visible edge;
+//   6. coarse + 375, the three sections together: --CONTROL-H resolves to 44px in each section
+//      (the frames being exactly it is sweep-overview's geometry sweep), no section (nor the
+//      page) scrolls sideways, and the show-password toggle answers a press 2px outside its
+//      visible box on both axes (its hit area is at least 44 × 44).
+async (page) => {
+  const fail = [];
+  const { errors, stop: stopErrors } = collectErrors(page);
+
+  const open = async (sections, { input = "fine", width = 1280 } = {}) => {
+    const section = await openSection(page, sections, { width, view: { theme: "default", density: "comfortable", input } });
+    await section.scrollIntoViewIfNeeded();
+  };
+  /** The field's text with `|` at the caret (or `[ ]` round a selection). */
+  const caretText = (locator) =>
+    locator.evaluate((el) => {
+      const { value, selectionStart: s, selectionEnd: e } = el;
+      return s === e ? `${value.slice(0, s)}|${value.slice(s)}` : `${value.slice(0, s)}[${value.slice(s, e)}]${value.slice(e)}`;
+    });
+  const select = (locator, start, end = start) => locator.evaluate((el, [s, e]) => el.setSelectionRange(s, e), [start, end]);
+  const focused = (locator) => locator.evaluate((el) => el === document.activeElement);
+  const noSpill = async (anchor) => {
+    const spill = await page.evaluate((id) => {
+      const section = document.getElementById(id);
+      const scroller = document.scrollingElement;
+      return { page: scroller.scrollWidth - scroller.clientWidth, section: section.scrollWidth - section.clientWidth };
+    }, anchor);
+    if (spill.page > 0 || spill.section > 0) fail.push(`375 ${anchor}: sideways scroll ${JSON.stringify(spill)}`);
+  };
+
+  try {
+    // ── 1: harness ──────────────────────────────────────────────────────────
+    await open(["form-passwordinput", "form-maskedinput"]);
+    const controlH = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--CONTROL-H"));
+    if (Math.round(Number.parseFloat(controlH)) !== 36) fail.push(`harness: page --CONTROL-H is ${controlH}, source predicts 36px`);
+    const signin = page.locator('[data-sc="password-signin"]').locator("input");
+    const toggle = page.locator('[data-sc="password-signin"]').getByRole("button", { name: "Show password", exact: true });
+    if ((await signin.count()) !== 1 || (await toggle.count()) !== 1) fail.push(`harness: ${await signin.count()} sign-in inputs, ${await toggle.count()} toggles`);
+    if ((await signin.getAttribute("type")) !== "password" || (await signin.inputValue()) !== "correct horse") {
+      fail.push(`harness: sign-in field is ${await signin.getAttribute("type")} "${await signin.inputValue()}", source says password "correct horse"`);
+    }
+
+    // ── 2: show / hide keeps value, focus and caret ─────────────────────────
+    await signin.click();
+    await select(signin, 3, 5);
+    await toggle.click();
+    const shown = {
+      type: await signin.getAttribute("type"),
+      pressed: await toggle.getAttribute("aria-pressed"),
+      focus: await focused(signin),
+      text: await caretText(signin),
+    };
+    if (shown.type !== "text" || shown.pressed !== "true" || !shown.focus || shown.text !== "cor[re]ct horse") fail.push(`show: ${JSON.stringify(shown)}`);
+    await toggle.click();
+    const hidden = { type: await signin.getAttribute("type"), focus: await focused(signin), text: await caretText(signin) };
+    if (hidden.type !== "password" || !hidden.focus || hidden.text !== "cor[re]ct horse") fail.push(`hide: ${JSON.stringify(hidden)}`);
+    await page.keyboard.press("Tab");
+    const toggleFocused = await focused(toggle);
+    await page.keyboard.press("Space");
+    if (!toggleFocused || (await signin.getAttribute("type")) !== "text" || (await signin.inputValue()) !== "correct horse") {
+      fail.push(`toggle keys: focused ${toggleFocused}, then ${await signin.getAttribute("type")} "${await signin.inputValue()}"`);
+    }
+
+    // ── 3: strength meter ───────────────────────────────────────────────────
+    const signup = page.locator('[data-sc="password-signup"]');
+    const newPassword = signup.getByLabel(/^Password\*?$/);
+    const meterState = () =>
+      signup.getByRole("meter", { name: "Password strength" }).evaluate((meter) => {
+        const segments = [...meter.children].map((s) => ({ filled: s.hasAttribute("data-filled"), bg: getComputedStyle(s).backgroundColor, h: s.getBoundingClientRect().height }));
+        return { filled: segments.filter((s) => s.filled).length, count: segments.length, segments };
+      });
+    await newPassword.fill("");
+    await newPassword.pressSequentially("abc");
+    const weak = await meterState();
+    if (weak.count !== 5 || weak.filled === 0 || weak.filled === weak.count) fail.push(`strength harness: ${JSON.stringify({ filled: weak.filled, count: weak.count })}, expected filled and empty segments`);
+    const fillOf = (state, filled) => state.segments.find((s) => s.filled === filled)?.bg;
+    if (fillOf(weak, true) === fillOf(weak, false) || weak.segments.some((s) => !(s.h > 0))) fail.push(`strength: segments ${JSON.stringify(weak.segments)}`);
+
+    // ── 4: mask caret ───────────────────────────────────────────────────────
+    const phone = page.locator('[data-sc="masked-checkout"]').getByRole("textbox", { name: "Phone", exact: true });
+    if ((await phone.getAttribute("placeholder")) !== "(___) ___-____") fail.push(`mask harness: placeholder "${await phone.getAttribute("placeholder")}"`);
+    await phone.click();
+    await page.keyboard.type("5551234567");
+    if ((await phone.inputValue()) !== "(555) 123-4567") fail.push(`mask type: "${await phone.inputValue()}"`);
+    const steps = [
+      ["insert 9 at 2", 2, 2, () => page.keyboard.type("9"), "(59|5) 512-3456"],
+      ["Backspace after a literal", 6, 6, () => page.keyboard.press("Backspace"), "(59|5) 123-456"],
+      ["Delete at 1", 1, 1, () => page.keyboard.press("Delete"), "(|951) 234-56"],
+      ["text over a selection", 1, 9, () => page.keyboard.insertText("212-867"), "(212) 867-|56"],
+      ["a refused letter", 3, 3, () => page.keyboard.type("x"), "(21|2) 867-56"],
+    ];
+    for (const [what, start, end, act, expected] of steps) {
+      await select(phone, start, end);
+      await act();
+      const got = await caretText(phone);
+      if (got !== expected) fail.push(`mask ${what}: "${got}", expected "${expected}"`);
+    }
+    const plate = page.locator('[data-sc="masked-plate"]');
+    await plate.getByRole("textbox", { name: "Licence plate", exact: true }).click();
+    await page.keyboard.type("abc1234");
+    const plateState = { shown: await plate.getByRole("textbox", { name: "Licence plate", exact: true }).inputValue(), raw: await plate.locator('[data-sc="masked-raw"]').innerText() };
+    if (plateState.shown !== "ABC-1234" || plateState.raw !== "ABC1234") fail.push(`mask plate: ${JSON.stringify(plateState)}`);
+    const rtlPhone = page.locator('[id="form-maskedinput"] [dir="rtl"] input[inputmode="numeric"]');
+    if ((await rtlPhone.count()) !== 1) fail.push(`mask rtl: ${await rtlPhone.count()} RTL phone inputs`);
+    else {
+      const direction = await rtlPhone.evaluate((el) => getComputedStyle(el).direction);
+      if (direction !== "ltr") fail.push(`mask rtl: the number is laid out ${direction}`);
+    }
+
+    // ── 5: forced colours ───────────────────────────────────────────────────
+    await setView(page, { forced: true });
+    const forcedPassword = page.locator('[data-sc="password-signup"]').getByLabel(/^Password\*?$/);
+    await forcedPassword.fill("");
+    await forcedPassword.pressSequentially("Tr0ub4dor&3");
+    const forced = await page.locator('[data-sc="password-signup"]').getByRole("meter").evaluate((meter) =>
+      [...meter.children].map((s) => {
+        const css = getComputedStyle(s);
+        return { filled: s.hasAttribute("data-filled"), bg: css.backgroundColor, edge: css.borderTopStyle !== "none" && Number.parseFloat(css.borderTopWidth) > 0 };
+      }),
+    );
+    const forcedFilled = forced.filter((s) => s.filled);
+    const forcedEmpty = forced.filter((s) => !s.filled);
+    if (forcedFilled.length === 0 || forcedEmpty.length === 0) fail.push(`forced harness: ${forcedFilled.length} filled / ${forcedEmpty.length} empty segments`);
+    else if (forcedFilled.some((f) => forcedEmpty.some((e) => e.bg === f.bg)) || forced.some((s) => !s.edge)) fail.push(`forced: segments ${JSON.stringify(forced)}`);
+    await setView(page, { forced: false });
+
+    // ── 6: coarse + 375 ─────────────────────────────────────────────────────
+    const sections = ["form-passwordinput", "form-maskedinput", "form-currencyinput"];
+    await open(sections, { input: "coarse", width: 375 });
+    for (const anchor of sections) {
+      const frames = await page.evaluate((id) => {
+        const section = document.getElementById(id);
+        const probe = document.createElement("div");
+        probe.style.blockSize = "var(--CONTROL-H)";
+        section.append(probe);
+        const controlH = probe.getBoundingClientRect().height;
+        probe.remove();
+        return { controlH };
+      }, anchor);
+      if (Math.round(frames.controlH) !== 44) fail.push(`coarse ${anchor}: --CONTROL-H resolves to ${frames.controlH}px, expected 44`);
+      await noSpill(anchor);
+    }
+    const coarseToggle = page.locator('[data-sc="password-signin"]').getByRole("button", { name: "Show password", exact: true });
+    await coarseToggle.scrollIntoViewIfNeeded();
+    const hit = await coarseToggle.evaluate((button) => {
+      const r = button.getBoundingClientRect();
+      const area = getComputedStyle(button, "::before");
+      const cx = r.x + r.width / 2;
+      const cy = r.y + r.height / 2;
+      const answers = [
+        [r.left - 2, cy],
+        [r.right + 2, cy],
+        [cx, r.top - 2],
+        [cx, r.bottom + 2],
+      ].map(([x, y]) => button.contains(document.elementFromPoint(x, y)));
+      return { answers, w: Number.parseFloat(area.width), h: Number.parseFloat(area.height), box: [r.width, r.height] };
+    });
+    if (hit.answers.includes(false) || !(hit.w >= 44 && hit.h >= 44)) fail.push(`coarse toggle: ${JSON.stringify(hit)}`);
+  } finally {
+    stopErrors();
+  }
+  if (errors.length) fail.push(...errors);
+  if (fail.length) throw new Error(`form-text-inputs:\n  ${fail.join("\n  ")}`);
+  return "form-text-inputs: show/hide keeps caret and focus, strength segments painted, mask caret on insert/delete/paste/refusal, coarse --CONTROL-H and toggle hit area, no spill at 375, forced-colour segments";
+}

@@ -2,8 +2,9 @@ import { Sparkline, StatCard } from "../../../src/components/data";
 import { Grid } from "../../../src/components/layout";
 import { StatusLabel } from "../../../src/components/primitives";
 import { formatCompact, formatNumber, formatUnit } from "../../../src/util/format";
-import type { DashboardData, Range } from "./data";
-import { percentDelta, pointDelta, RANGE_LABEL } from "./format";
+import type { DashboardData } from "./data";
+import type { DashboardView } from "./filters";
+import { percentDelta, pointDelta } from "./format";
 
 const TWO_PLACES = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
@@ -13,10 +14,10 @@ const TWO_PLACES = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
  * error rate falling is good, latency and CPU rising are bad, availability
  * holding is neutral. Active users comes from a lagging pipeline: stale.
  */
-export function KpiRow({ data, range }: { data: DashboardData; range: Range }) {
+export function KpiRow({ data, view }: { data: DashboardData; view: DashboardView }) {
   const { kpis } = data;
-  const prior = RANGE_LABEL[range].prior;
-  const span = RANGE_LABEL[range].span.toLowerCase();
+  const { prior } = view;
+  const span = view.phrase;
   const trend = (label: string, values: number[]) => (
     <Sparkline label={`${label}, ${span}`} values={values} summary={`trend over ${span}`} />
   );

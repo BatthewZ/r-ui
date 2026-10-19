@@ -1,16 +1,21 @@
+// @covers   disclosure/Accordion
+// @sections disclosure-accordion
+// @tier     component
+// @flags    timing
+//
 // Browser check: Accordion rows, keyboard and the height animation, for real.
 //
 // jsdom has no layout, no CSS transitions and no focus-visible styling, so the
 // panel's height and the row sizes are only measurable here.
 //
-// Asserts, on the Overview's Accordion demos:
+// Asserts, on the Accordion demos (the section opened alone):
 //   1. harness: in the first demo the open panel ("Which alerts…") is as tall as
 //      its content, and a closed one is 0px tall with its content
 //      `visibility: hidden` (the grid track is 0fr in the source);
 //   2. rows: a one-line trigger is exactly the `--ROW-H` it reads, at
 //      comfortable, in the compact demo (a smaller `--ROW-H`) and at coarse
 //      input (where `--ROW-H` is raised to `--HIT-MIN`), so rows follow density
-//      and never fall under the hit floor;
+//      (that no row falls under the hit floor is sweep-overview's geometry sweep);
 //   3. keyboard (real key presses): ArrowDown moves to the next header, End to
 //      the last ENABLED one, then ArrowDown crosses the disabled last header and
 //      wraps to the first, ArrowUp crosses it back to the last enabled one (harness:
@@ -22,13 +27,8 @@
 //   5. with reduced motion emulated, the panel is at its full height two frames
 //      after the press.
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.goto(`${base}#/overview/disclosure-accordion`);
-  await page.reload();
-  await waitForShowcase(page);
+  await openSection(page, "disclosure-accordion");
   const demo = page.locator('[data-sc="accordion-single"]');
   await demo.waitFor();
   await demo.scrollIntoViewIfNeeded();
@@ -80,15 +80,13 @@ async (page) => {
     }, scope);
   const comfortable = await rowFit(first);
   const compact = await rowFit('[data-density="compact"]:has(> [data-accordion])');
-  await page.evaluate(() => (document.documentElement.dataset.input = "coarse"));
-  await page.waitForTimeout(50);
+  await setView(page, { input: "coarse" });
   const coarse = await rowFit(first);
-  await page.evaluate(() => delete document.documentElement.dataset.input);
+  await setView(page, { input: "auto" });
   for (const [label, m] of Object.entries({ comfortable, compact, coarse })) {
     if (!(m.rowH > 0) || Math.abs(m.height - m.rowH) > 0.5) fail.push(`rows: ${label} trigger is ${m.height}px, its --ROW-H is ${m.rowH}px`);
   }
   if (!(compact.rowH < comfortable.rowH)) fail.push(`rows: compact --ROW-H ${compact.rowH} is not below comfortable ${comfortable.rowH}`);
-  if (!(coarse.height >= 44)) fail.push(`rows: at coarse input the trigger is ${coarse.height}px, under the 44px floor`);
 
   // 3. Keyboard, with real key presses. Harness: the demo's LAST header is the disabled one.
   const order = await page.evaluate(
@@ -165,10 +163,10 @@ async (page) => {
   if (Math.abs(opening.end - opening.content) > 0.5 || opening.visibility !== "visible") fail.push(`open: settled at ${opening.end}px of ${opening.content}, ${opening.visibility}`);
 
   // 5. Reduced motion: full height two frames after the press.
-  await page.emulateMedia({ reducedMotion: "reduce" });
+  await setView(page, { reduced: true });
   const reducedShut = await animate();
   const reducedOpen = await animate();
-  await page.emulateMedia({ reducedMotion: null });
+  await setView(page, { reduced: false });
   if (reducedShut.mid !== 0) fail.push(`reduced motion: closing panel still ${reducedShut.mid}px two frames in`);
   if (Math.abs(reducedOpen.mid - reducedOpen.content) > 0.5) fail.push(`reduced motion: opening panel ${reducedOpen.mid}px of ${reducedOpen.content} two frames in`);
 

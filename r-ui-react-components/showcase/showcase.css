@@ -78,6 +78,13 @@
   }
 
   /* ── Pages ─────────────────────────────────────────────────────────────── */
+  /* One column exactly the main's width, whatever any child's min-content: a
+     section is as wide alone (the solo route) as among all the others (the
+     Overview), so a browser check measures the same layout on both. */
+  .sc-page,
+  .sc-group {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .sc-page {
     display: grid;
     gap: var(--R-SIZE-1);
@@ -156,5 +163,15 @@
     border-radius: var(--RADIUS-LG);
     background: var(--C-SURFACE-0);
     overflow-x: auto;
+  }
+  /* Not a scroller, so a view timeline inside reaches the page (meta.frame "open"). */
+  .sc-demo[data-sc-frame="open"] {
+    overflow-x: visible;
+  }
+
+  /* ── Solo route ────────────────────────────────────────────────────────── */
+  /* A viewport of page above and below, so a section can start below the fold or scroll away. */
+  .sc-solo-runway {
+    block-size: 100dvh;
   }
 }

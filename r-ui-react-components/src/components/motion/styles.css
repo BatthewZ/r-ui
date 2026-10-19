@@ -1,8 +1,150 @@
 /* "motion" group stylesheet. Imported by src/styles.css inside
    `@layer components`.
 
-   Deliberately empty of rules: ScrollReveal and Stagger use the contract's own
-   classes (`.scroll-reveal-hidden`, `.stagger-item`, the `animate-*`
-   entrances), whose durations, distances and stagger step are motion tokens
-   that collapse under reduced motion. A rule added here must read those tokens
-   too, never a duration of its own. */
+   ScrollReveal and Stagger use the contract's own classes (`.scroll-reveal-hidden`,
+   `.stagger-item`, the `animate-*` entrances) and need no rules here. Every rule
+   below reads the contract's motion tokens (or `--PARALLAX-SHIFT`, which
+   derives from them), never a duration or distance of its own, so reduced
+   motion and print (which zero them) hold it still. */
+
+/* ── Parallax ──────────────────────────────────────────────────────────────
+   The box is the view timeline's subject and never moves; the layer inside it
+   drifts from -shift to +shift while the box crosses the scrollport (the `cover`
+   range), so it trails the page. The layer is grown by the shift at both ends
+   so the drift never uncovers the box. Browsers without scroll-driven
+   animations get neither: a still layer the box's own size. The shift is the
+   domain token `--PARALLAX-SHIFT` (medium; subtle half, strong one and a
+   half), which reduced motion and print zero. */
+.r-motion-parallax {
+  --r-motion-parallax-shift: var(--PARALLAX-SHIFT);
+  position: relative;
+  overflow: clip;
+  pointer-events: none;
+  view-timeline: --r-motion-parallax block;
+}
+.r-motion-parallax[data-strength="subtle"] {
+  --r-motion-parallax-shift: calc(var(--PARALLAX-SHIFT) * 0.5);
+}
+.r-motion-parallax[data-strength="strong"] {
+  --r-motion-parallax-shift: calc(var(--PARALLAX-SHIFT) * 1.5);
+}
+.r-motion-parallax-layer {
+  position: absolute;
+  inset: 0;
+}
+@supports (animation-timeline: view()) {
+  .r-motion-parallax-layer {
+    inset-block: calc(var(--r-motion-parallax-shift) * -1);
+    animation: r-motion-parallax-drift linear both;
+    animation-timeline: --r-motion-parallax;
+    animation-range: cover 0% cover 100%;
+  }
+}
+@keyframes r-motion-parallax-drift {
+  from {
+    translate: 0 calc(var(--r-motion-parallax-shift) * -1);
+  }
+  to {
+    translate: 0 var(--r-motion-parallax-shift);
+  }
+}
+
+/* ── CountUp ───────────────────────────────────────────────────────────────
+   Its timing lives here so a theme's motion retunes it and reduced motion
+   collapses it: the script reads the computed `transition-duration` and
+   `transition-timing-function` and plays them on a keyframe-less animation
+   (nothing transitions: `transition-property: none`). A `duration-*` or `ease-*`
+   utility on the component overrides either. The value and the sizer share one
+   grid cell, so the box is never narrower than the final value. */
+.r-motion-count-up {
+  display: inline-grid;
+  transition-property: none;
+  transition-duration: calc(var(--DURATION-SLOW) * 4);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+.r-motion-count-up-value,
+.r-motion-count-up-sizer {
+  grid-area: 1 / 1;
+  justify-self: end;
+}
+.r-motion-count-up-sizer {
+  visibility: hidden;
+}
+/* Paper shows the final value, whatever frame the screen was on. */
+@media print {
+  .r-motion-count-up-sizer {
+    visibility: visible;
+  }
+  .r-motion-count-up-value {
+    visibility: hidden;
+  }
+}
+
+/* ── ReadingProgress ───────────────────────────────────────────────────────
+   A bar stuck to the top of the scrollport while the reader is inside the
+   region; it takes no space (the negative margin) and no pointer. The fill
+   scales from the inline start over the region's `contain` range: 0 when its
+   top meets the scrollport's top, 1 when its bottom meets the scrollport's
+   bottom. Without scroll-driven animations the script writes the same share
+   to `--r-motion-reading-progress` once per frame. Not motion: a position read
+   straight off the scroll, with no easing, so reduced motion keeps it. */
+.r-motion-reading {
+  view-timeline: --r-motion-reading block;
+}
+.r-motion-reading-bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--LAYER-STICKY);
+  block-size: var(--R-SIZE-6);
+  margin-block-end: calc(var(--R-SIZE-6) * -1);
+  pointer-events: none;
+}
+/* The bar is not content: what follows it starts the region's flow as its first
+   element would, so a prose region (`* + h2` spacing) keeps its own first margin. */
+.r-motion-reading-bar + * {
+  margin-block-start: 0;
+}
+.r-motion-reading-fill {
+  block-size: 100%;
+  transform-origin: left;
+  scale: var(--r-motion-reading-progress, 0) 1;
+}
+.r-motion-reading-fill:dir(rtl) {
+  transform-origin: right;
+}
+@supports (animation-timeline: view()) {
+  .r-motion-reading-fill {
+    animation: r-motion-reading-fill linear both;
+    animation-timeline: --r-motion-reading;
+    animation-range: contain 0% contain 100%;
+  }
+}
+@keyframes r-motion-reading-fill {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+
+/* ── Spotlight ─────────────────────────────────────────────────────────────
+   A soft wash of the primary ink centred on the pointer, painted as the box's
+   own background image: beneath every child without a stacking context or a
+   negative z-index, and over the box's background colour. 4% at the centre,
+   fading out: muted text keeps 4.5:1 on surfaces 0–2 in every shipped theme
+   (8%, the hover wash, would not). Fine hovering pointers only; none on touch,
+   a forced coarse input, reduced motion, forced colours or paper. */
+@media screen and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  .r-motion-spotlight[data-spotlight="on"] {
+    background-image: radial-gradient(
+      circle var(--COLUMN-SM) at calc(var(--r-motion-spotlight-x, 0.5) * 100%)
+        calc(var(--r-motion-spotlight-y, 0.5) * 100%),
+      color-mix(in oklab, var(--C-TEXT-PRIMARY) 4%, transparent),
+      transparent
+    );
+  }
+  :root[data-input="coarse"] .r-motion-spotlight[data-spotlight="on"] {
+    background-image: none;
+  }
+}

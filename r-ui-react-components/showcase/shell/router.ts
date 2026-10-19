@@ -40,3 +40,21 @@ export function useHashRoute(fallback: string): Route {
   );
   return parseHash(hash, fallback);
 }
+
+/** What the solo route's anchor holds: `#/solo/<id>[,<id>…][?runway]`. */
+export interface SoloRoute {
+  /** Section ids (`<group>-<file>`, as on the Overview), in the order to render them. */
+  ids: string[];
+  /** A viewport of empty page above and below the sections, for checks that need them below the fold or scrolled away. */
+  runway: boolean;
+}
+
+export function parseSoloAnchor(anchor: string | null): SoloRoute {
+  const [list = "", options = ""] = (anchor ?? "").split("?");
+  return {
+    ids: [...new Set(list.split(",").map((id) => id.trim()).filter(Boolean))],
+    runway: options.split("&").includes("runway"),
+  };
+}
+
+export const soloHref = ({ ids, runway }: SoloRoute) => href("solo", `${ids.join(",")}${runway ? "?runway" : ""}`);

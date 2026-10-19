@@ -29,5 +29,5 @@ the cases they did not cover on their own.
 - **Invalid loses its red, so it gets a second cue**: a doubled edge, beside the message.
 - **Keep normal rendering byte-identical.** Every fix sits behind `forced-colors:` or the
   media query; screenshot diffs outside forced colors showed only animation frames.
-- Enforced by the `forced-colors-states` browser check (on/off pairs, edges, focus rings,
+- Enforced by the `sweep-forced-colors` browser check (on/off pairs, edges, focus rings,
   the rail and the bottom nav).

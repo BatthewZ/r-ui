@@ -1,11 +1,15 @@
+// @covers   commands/CommandPalette
+// @sections commands-commandpalette overlays-contextmenu
+// @tier     component
+// @cost     15
+//
 // Browser check: CommandPalette, with real keys, a real <dialog> and real layout.
 //
 // Run it through `bun run browser:check commands-palette`, or by hand against a running showcase:
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print commands-palette)"
 //
 // Asserts:
-//   1. harness: at fine input the page's --ROW-H is 40px and the section's compact card's
-//      30px, as the source predicts (comfortable vs compact); the palette is closed;
+//   1. harness: the palette is closed;
 //   2. the showcase's global palette: Ctrl+K on the Dashboard opens it as a modal with
 //      focus in its field; typing filters the list to what matches; ArrowDown / ArrowUp
 //      move aria-activedescendant; Enter runs the highlighted command (the hash changes),
@@ -17,29 +21,32 @@
 //      the run command is then listed first under Recent;
 //   4. the async sections page lists the Overview's sections; "contextmenu" + Enter
 //      goes to the ContextMenu section's anchor; Escape closes and returns focus;
-//   5. the section's palette written in a compact card: in place (a DOM descendant of
-//      the card), modal, its rows exactly the card's --ROW-H (30px), never the page's;
-//      at coarse input every row is the 44px floor;
+//   5. the section's palette written in a compact card: Escape hands focus back to its
+//      opener (in place, modal, and rows at the card's --ROW-H, fine and coarse, are
+//      sweep-floating's sweep);
 //   6. the highlighted row carries a painted accent bar beside its wash; under forced
 //      colours its background is the system Highlight (the selection fill survives).
 async (page) => {
   const base = page.url().split("#")[0];
-  const KEY = "r-ui-showcase:view";
   const RECENT = "r-ui-showcase:recent-commands";
   const fail = [];
   const { errors, stop: stopErrors } = collectErrors(page);
 
-  const load = async (hash, input = "fine") => {
-    await page.goto(`${base}${hash}`);
+  const loadDashboard = async () => {
+    await page.goto(`${base}#/dashboard`);
     await page.evaluate(
       ([key, recent, view]) => {
         localStorage.setItem(key, JSON.stringify(view));
         localStorage.removeItem(recent);
       },
-      [KEY, RECENT, { theme: "default", density: "comfortable", input }],
+      [SHOWCASE_VIEW_KEY, RECENT, { theme: "default", density: "comfortable", input: "fine" }],
     );
     await page.reload();
     await waitForShowcase(page);
+    await page.waitForTimeout(200);
+  };
+  const open = async (input = "fine") => {
+    await openSection(page, "commands-commandpalette", { view: { theme: "default", density: "comfortable", input } });
     await page.waitForTimeout(200);
   };
   const GLOBAL = "dialog[data-showcase-palette]";
@@ -60,10 +67,8 @@ async (page) => {
     }, selector);
   const settle = () => page.waitForTimeout(120);
 
-  await page.setViewportSize({ width: 1280, height: 900 });
-
   // ── 1 + 2: the global palette from the Dashboard ────────────────────────
-  await load("#/dashboard");
+  await loadDashboard();
   const closed = await state();
   if (closed.open) fail.push("harness: the global palette is open before Ctrl+K");
   const view = page.locator(".sc-topbar").getByRole("button", { name: "View", exact: true });
@@ -101,7 +106,7 @@ async (page) => {
   if (!focusBack) fail.push("focus did not return to the View button after the palette closed");
 
   // Ctrl+K inside a text field is the field's.
-  await load("#/dashboard");
+  await loadDashboard();
   const search = page.getByRole("searchbox", { name: "Search services" });
   await search.focus();
   await page.keyboard.press("Control+k");
@@ -174,41 +179,19 @@ async (page) => {
   if ((await state()).open) fail.push("Escape did not close the palette");
   if (!(await view.evaluate((el) => el === document.activeElement))) fail.push("Escape did not return focus to the View button");
 
-  // ── 5: the section's palette in a compact card, fine and coarse ──────────
+  // ── 5: the section's palette in a compact card hands focus back to its opener ──
   const CARD = '[data-testid="cp-compact-card"]';
-  for (const input of ["fine", "coarse"]) {
-    await load("#/overview/commands-commandpalette", input);
-    const opener = page.locator(`${CARD} [data-testid="cp-open"]`);
-    await opener.scrollIntoViewIfNeeded();
-    await opener.click();
-    await settle();
-    const measured = await page.evaluate((sel) => {
-      const card = document.querySelector(sel);
-      const dialog = card.querySelector("dialog");
-      const rows = [...dialog.querySelectorAll("[role=option]")].map((o) => Math.round(o.getBoundingClientRect().height * 100) / 100);
-      return {
-        inCard: !!dialog,
-        modal: !!dialog?.matches(":modal"),
-        cardRow: Number.parseFloat(getComputedStyle(card).getPropertyValue("--ROW-H")),
-        pageRow: Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ROW-H")),
-        rows,
-      };
-    }, CARD);
-    if (!measured.inCard || !measured.modal) fail.push(`${input}: the compact card's palette is not in place and modal (${JSON.stringify(measured)})`);
-    const want = input === "fine" ? 30 : 44;
-    if (input === "fine" && (measured.cardRow !== 30 || measured.pageRow !== 40)) {
-      fail.push(`harness: compact card --ROW-H ${measured.cardRow}px, page ${measured.pageRow}px; source predicts 30 and 40`);
-    }
-    if (measured.rows.length < 6 || measured.rows.some((h) => Math.abs(h - want) > 0.5)) {
-      fail.push(`${input}: compact palette rows are ${measured.rows.join(", ")}px, expected ${want}px each`);
-    }
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(250);
-    if (!(await opener.evaluate((el) => el === document.activeElement))) fail.push(`${input}: Escape did not return focus to the compact card's opener`);
-  }
+  await open("fine");
+  const opener = page.locator(`${CARD} [data-testid="cp-open"]`);
+  await opener.scrollIntoViewIfNeeded();
+  await opener.click();
+  await settle();
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(250);
+  if (!(await opener.evaluate((el) => el === document.activeElement))) fail.push("Escape did not return focus to the compact card's opener");
 
   // ── 6: the highlight, plain and under forced colours ────────────────────
-  await load("#/overview/commands-commandpalette");
+  await open();
   const highlight = async () => {
     const opener = page.locator('[data-testid="cp-open"]').first();
     await opener.click();
@@ -240,9 +223,9 @@ async (page) => {
   if (plain.bar.content === "none" || !(plain.bar.width > 0) || plain.bar.bg === plain.active || plain.bar.bg === "rgba(0, 0, 0, 0)") {
     fail.push(`the highlighted row's accent bar is not painted (${JSON.stringify(plain.bar)})`);
   }
-  await page.emulateMedia({ forcedColors: "active" });
+  await setView(page, { forced: true });
   const forced = await highlight();
-  await page.emulateMedia({ forcedColors: "none" });
+  await setView(page, { forced: false });
   // Forced colours repaint the wash as a faint Canvas (its alpha survives, so a bare
   // "differs from a plain row" passes on the wash alone); the highlighted row must be
   // the opaque system Highlight, as a selected row is.
@@ -251,11 +234,7 @@ async (page) => {
   }
 
   stopErrors();
-  await page.evaluate(([key, recent]) => {
-    localStorage.removeItem(key);
-    localStorage.removeItem(recent);
-  }, [KEY, RECENT]);
   if (errors.length > 0) fail.push(...errors.slice(0, 5));
   if (fail.length > 0) throw new Error(`commands-palette: ${fail.length} problem(s)\n  ${fail.join("\n  ")}`);
-  return `commands-palette: Ctrl+K, filter, arrows, Enter (ran, closed, focus home), nested page + Backspace, Recent, async sections page, Escape; compact card rows 30px fine / 44px coarse; forced-colours highlight`;
+  return `commands-palette: Ctrl+K, filter, arrows, Enter (ran, closed, focus home), nested page + Backspace, Recent, async sections page, Escape; compact card palette hands focus back; forced-colours highlight`;
 }

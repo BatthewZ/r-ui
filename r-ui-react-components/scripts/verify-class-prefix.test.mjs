@@ -19,15 +19,18 @@ describe("verify:class-prefix", { timeout: 30_000 }, () => {
     expect(out).toMatch(/demo\/styles\.css:6 {2}class `demo-card` must start with `r-demo-`/);
     expect(out).toMatch(/demo\/styles\.css:12 {2}keyframes `slide-in` must start with `r-demo-`/);
     expect(out).toMatch(/shared\.css:1 {2}class `top-layer` must start with `r-shared-`/);
+    // A rule with no class of its own writes page-wide: only the owner's hook.
+    expect(out).toMatch(/demo\/styles\.css:20 {2}page-wide custom property `--C-ACCENT` must start with `--r-demo-`/);
+    expect(out).not.toMatch(/--r-demo-height/);
     // A comment and a name only referenced inside :has() are not definitions.
     expect(out).not.toMatch(/comment-class|someone-elses|`r-demo-ok`/);
-    expect(out).toMatch(/— 4 unprefixed name\(s\)/);
+    expect(out).toMatch(/— 5 unprefixed name\(s\)/);
   });
 
-  it("passes prefixed names, references inside :is(), and names inside at-rules", () => {
+  it("passes prefixed names, references inside :is(), names inside at-rules, a class rule's custom property and tokens.css", () => {
     const result = run(join(HERE, "fixtures/class-prefix/good"));
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toMatch(/OK \(5 name\(s\) in 2 stylesheet\(s\)\)/);
+    expect(result.stdout).toMatch(/OK \(7 name\(s\) in 3 stylesheet\(s\)\)/);
   });
 });

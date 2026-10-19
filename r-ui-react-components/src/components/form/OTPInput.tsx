@@ -285,8 +285,15 @@ export function OTPInput({
   const handleFocus = () => {
     if (pointerDown.current) return;
     // Arriving by keyboard (the browser may select all): the first empty box, or the last when full.
+    // The value is read when the frame comes, not at focus: what was typed before it stays put.
+    // A selection someone else made since the focus (a caller's `select()`, a test's fill) stays too.
+    const input = inputRef.current;
+    const atFocus = input ? { start: input.selectionStart, end: input.selectionEnd, value: input.value } : null;
     requestAnimationFrame(() => {
-      if (document.activeElement === inputRef.current && !pointerDown.current) place(code.length);
+      const el = inputRef.current;
+      if (!el || document.activeElement !== el || pointerDown.current) return;
+      const reselected = atFocus !== null && el.value === atFocus.value && (el.selectionStart !== atFocus.start || el.selectionEnd !== atFocus.end);
+      if (!reselected) place(el.value.length, el.value.length);
     });
   };
 

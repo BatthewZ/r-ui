@@ -25,7 +25,7 @@ describe("MediaCard", () => {
     expect(links[0]).toHaveAccessibleName("Nobody reads your changelog");
     expect(links[0]).toHaveAttribute("href", "/journal/changelogs");
     // The stretched-link class is what covers the card.
-    expect(links[0]).toHaveClass("r-marketing-media-card-link");
+    expect(links[0]).toHaveClass("r-marketing-stretched-link");
     expect(screen.getByRole("heading", { level: 3 })).toContainElement(links[0]!);
   });
 
@@ -64,30 +64,41 @@ describe("MediaCard", () => {
     expect(img).toHaveAttribute("loading", "lazy");
     expect(img).toHaveAttribute("width", "1600");
     expect(img).toHaveAttribute("height", "900");
-    expect(img.parentElement).toHaveClass("aspect-square");
-    expect(img.parentElement).not.toHaveClass("aspect-video");
+    const box = img.closest(".r-marketing-media-card-media");
+    expect(box).toHaveClass("aspect-square");
+    expect(box).not.toHaveClass("aspect-video");
   });
 
   it("defaults to the wide ratio", () => {
     render(<MediaCard href="/a" title="Card" image={IMAGE} />);
-    expect(screen.getByRole("img").parentElement).toHaveClass("aspect-video");
+    expect(screen.getByRole("img").closest(".r-marketing-media-card-media")).toHaveClass("aspect-video");
   });
 
-  it("shows a decorative placeholder with no image, and when the image fails", () => {
+  it("shows a decorative placeholder with no image; a failed image is Image's fallback, named by its alt", () => {
     const { container, rerender } = render(<MediaCard href="/a" title="Card" />);
     expect(container.querySelector(".r-marketing-media-card-placeholder")).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("img")).toBeNull();
 
     rerender(<MediaCard href="/a" title="Card" image={IMAGE} />);
     const img = screen.getByRole("img", { name: "A kiln at night" });
+    expect(img.closest(".r-media-image")).toHaveAttribute("data-state", "loading");
     expect(container.querySelector(".r-marketing-media-card-placeholder")).toBeNull();
     fireEvent.error(img);
-    expect(screen.queryByRole("img")).toBeNull();
-    expect(container.querySelector(".r-marketing-media-card-placeholder")).not.toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+    expect(container.querySelector(".r-media-image")).toHaveAttribute("data-state", "error");
+    expect(screen.getByRole("img", { name: "A kiln at night" })).not.toBe(img);
 
     // A new image gets its own try.
     rerender(<MediaCard href="/a" title="Card" image={{ ...IMAGE, src: "/other.jpg" }} />);
-    expect(screen.getByRole("img", { name: "A kiln at night" })).toHaveAttribute("src", "/other.jpg");
+    expect(container.querySelector("img")).toHaveAttribute("src", "/other.jpg");
+  });
+
+  it("holds a pending image's box (src null) and passes the blur-up placeholder through", () => {
+    const { container, rerender } = render(<MediaCard href="/a" title="Card" image={{ ...IMAGE, src: null }} />);
+    expect(container.querySelector(".r-media-image")).toHaveAttribute("data-state", "pending");
+    expect(container.querySelector("img")).toBeNull();
+    rerender(<MediaCard href="/a" title="Card" image={{ ...IMAGE, placeholder: "data:image/png;base64,AAAA" }} />);
+    expect(container.querySelector(".r-media-image-blur")).toHaveAttribute("src", "data:image/png;base64,AAAA");
   });
 
   it("puts the badge in the media box", () => {

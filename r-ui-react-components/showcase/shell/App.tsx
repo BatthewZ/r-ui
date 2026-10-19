@@ -6,6 +6,7 @@ import { ToastProvider } from "../../src/components/overlays";
 import { DocumentTitleProvider, useDocumentTitle } from "../../src/hooks/use-document-title";
 import { CommandMenu } from "./CommandMenu";
 import { href, useHashRoute } from "./router";
+import { ViewBridge } from "./ViewBridge";
 import { ViewPanel } from "./ViewPanel";
 
 export interface PageProps {
@@ -20,11 +21,29 @@ const Dashboard = lazy(() => import("../pages/Dashboard").then((m) => ({ default
 const Marketing = lazy(() => import("../pages/Marketing").then((m) => ({ default: m.Marketing })));
 const Stress = lazy(() => import("../pages/Stress").then((m) => ({ default: m.Stress })));
 
-const ROUTES: { page: string; label: string; Icon: ComponentType<{ className?: string }>; Page: ComponentType<PageProps> }[] = [
+const Solo = lazy(() => import("../pages/Solo").then((m) => ({ default: m.Solo })));
+
+interface PageRoute {
+  page: string;
+  label: string;
+  Page: ComponentType<PageProps>;
+}
+
+const ROUTES: (PageRoute & { Icon: ComponentType<{ className?: string }> })[] = [
   { page: "overview", label: "Overview", Icon: LayoutGrid, Page: Overview },
   { page: "dashboard", label: "Dashboard", Icon: Gauge, Page: Dashboard },
   { page: "marketing", label: "Marketing", Icon: Megaphone, Page: Marketing },
   { page: "stress", label: "Stress", Icon: FlaskConical, Page: Stress },
+];
+
+/**
+ * Pages outside the navigation, for the browser checks: chosen sections alone
+ * (`#/solo/<id>,…`), and an empty page a check resets to, which costs no
+ * section's load.
+ */
+const HIDDEN_ROUTES: PageRoute[] = [
+  { page: "solo", label: "Solo", Page: Solo },
+  { page: "blank", label: "Blank", Page: () => null },
 ];
 
 const FALLBACK = "overview";
@@ -37,7 +56,7 @@ const FALLBACK = "overview";
  */
 export function App() {
   const { page, anchor } = useHashRoute(FALLBACK);
-  const route = ROUTES.find((r) => r.page === page) ?? ROUTES[0]!;
+  const route: PageRoute = ROUTES.find((r) => r.page === page) ?? HIDDEN_ROUTES.find((r) => r.page === page) ?? ROUTES[0]!;
 
   // A new page starts at the top; an anchor is the page's own business.
   useEffect(() => {
@@ -49,6 +68,7 @@ export function App() {
   // demo calls `useToast()`, and no section depends on another for a provider.
   return (
     <DocumentTitleProvider base="r-ui showcase" separator=" · ">
+      <ViewBridge />
       <ToastProvider>
         <AppShell>
           <ShellNav current={route.page}>

@@ -1,22 +1,20 @@
-import { collectSections } from "./shell/sections";
+import { loadModules } from "./shell/sections";
 
-// Every demo section, each its own lazy chunk: only the Overview fetches them,
-// so the other pages never pay for sixty demos. Later agents add files under
-// `sections/<group>/` only.
+// Every demo section, each its own lazy chunk: only the Overview fetches them
+// all, and a solo route only the ones it names, so the other pages never pay for
+// a hundred demos. Later agents add files under `sections/<group>/` only.
 const modules = import.meta.glob("./sections/*/*.tsx");
 
-async function load() {
-  const entries = await Promise.all(
-    Object.entries(modules).map(async ([path, importer]) => {
-      // A section whose chunk fails is listed as invalid, not a blank page.
-      const mod = await importer().catch((error: unknown) => ({ loadError: String(error) }));
-      return [path, mod] as const;
-    }),
-  );
-  return collectSections(Object.fromEntries(entries));
-}
-
-let loading: ReturnType<typeof load> | undefined;
+let loading: ReturnType<typeof loadModules> | undefined;
+const some = new Map<string, ReturnType<typeof loadModules>>();
 
 /** Every section, grouped and sorted; loaded once and shared. */
-export const loadSections = () => (loading ??= load());
+export const loadSections = () => (loading ??= loadModules(modules));
+
+/** Only the sections `ids` names (and the ids no file answers); loaded once per list. */
+export function loadSomeSections(ids: readonly string[]) {
+  const key = ids.join(",");
+  let promise = some.get(key);
+  if (!promise) some.set(key, (promise = loadModules(modules, ids)));
+  return promise;
+}

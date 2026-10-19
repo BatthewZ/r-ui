@@ -124,6 +124,7 @@ describe("ColorPicker", () => {
     ["hex", "oklch(0.628 0.2577 29.23)", "#ff0000"],
     ["oklch", "oklch(0.7 0.1 150)", "oklch(0.7 0.1 150)"],
     ["oklch", "oklch(70% 0.1 150deg)", "oklch(0.7 0.1 150)"],
+    ["oklch", "#ff0000", "oklch(0.628 0.257 29.2)"],
   ] as const)("%s: typed %s commits %s on Enter", async (format, typed, committed) => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
@@ -286,6 +287,19 @@ describe("ColorPicker", () => {
     await user.keyboard("{Shift>}{ArrowLeft}{/Shift}");
     expect(onValueChange).toHaveBeenLastCalledWith("#0f766ee6");
     expect(opacity).toHaveAttribute("aria-valuetext", "90%");
+  });
+
+  it("takes a typed oklch() with alpha as written when alpha is on", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<Picker format="oklch" alpha onValueChange={onValueChange} />);
+    const { dialog } = await openPicker(user);
+    const input = within(dialog).getByRole("textbox", { name: "Colour value", hidden: true });
+    await user.clear(input);
+    await user.type(input, "oklch(0.6 0.08 200 / 0.5){Enter}");
+    expect(onValueChange.mock.calls).toEqual([["oklch(0.6 0.08 200 / 0.5)"]]);
+    expect(input).toHaveValue("oklch(0.6 0.08 200 / 0.5)");
+    expect(submitted()).toBe("oklch(0.6 0.08 200 / 0.5)");
   });
 
   it("drops alpha when it is off", async () => {

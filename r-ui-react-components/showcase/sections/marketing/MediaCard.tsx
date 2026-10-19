@@ -12,7 +12,7 @@ export const meta = {
   group: "marketing",
   order: 20,
   description:
-    "The whole card is one link (a stretched pseudo-element), named by its title, ringed as a whole on focus; secondary actions stay their own tab stops and press targets. Lazy images with their intrinsic size in a ratio box, a placeholder with no image or a broken one, a skeleton, a hover lift that reduced motion stills.",
+    "The whole card is one link (a stretched pseudo-element), named by its title, ringed as a whole on focus; secondary actions stay their own tab stops and press targets. Lazy images (the media group's Image) in a ratio box, a placeholder with no image, a broken one's glyph and words, a skeleton, a hover lift that reduced motion stills.",
 };
 
 const GRID = "grid grid-cols-[repeat(auto-fit,minmax(min(100%,var(--COLUMN-MD)),1fr))] gap-r2";
@@ -49,7 +49,7 @@ export default function MediaCardSection() {
           <MediaCard
             href="#/overview/marketing-mediacard"
             title="The cover failed to load"
-            description="A broken image falls back to the same placeholder."
+            description="A broken image shows Image's fallback: the glyph and its alt text."
             meta="Joris van Dijk · 4 min read"
             image={{ src: "data:image/png;base64,bm90LWFuLWltYWdl", alt: "Release day", width: 1600, height: 900 }}
             actions={

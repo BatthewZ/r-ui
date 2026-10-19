@@ -26,7 +26,7 @@ const PANELS = [
     id: "stress-floating",
     title: "Floating panels from a clipping compact card",
     proves:
-      "a menu, popover, tooltip and select opened inside a compact card with overflow: hidden are compact (they inherit from where they are written) and unclipped (they are in the top layer).",
+      "every floating panel (menus, popover, tooltip, hover card, the selection lists, colour and date pickers, navigation panel, command palette) opened inside a compact card with overflow: hidden is compact (it inherits from where it is written) and unclipped (it is in the top layer).",
     Body: FloatingPanel,
   },
   {

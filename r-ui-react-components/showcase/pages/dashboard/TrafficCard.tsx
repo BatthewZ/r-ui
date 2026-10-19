@@ -3,24 +3,25 @@ import { Inline, Stack } from "../../../src/components/layout";
 import { Tabs } from "../../../src/components/navigation";
 import { Card } from "../../../src/components/primitives";
 import { formatCompact, formatNumber } from "../../../src/util/format";
-import type { DashboardData, Range } from "./data";
-import { RANGE_LABEL } from "./format";
+import type { DashboardData } from "./data";
+import type { DashboardView } from "./filters";
+import type { Placement } from "./SideCards";
 
 const wholeNumber = (v: number) => formatNumber(v, { maximumFractionDigits: 0 });
 
 /**
  * Traffic and errors over the selected range, on real axes: requests per second
- * by region as lines (an area when one region is filtered in), error responses
+ * by region as lines (an area when the filters leave one region), error responses
  * by class as stacked columns. Each entity keeps its series slot, so filtering
  * to one region never repaints it. Above each chart, the total's now / peak /
  * low as text.
  */
-export function TrafficCard({ data, range, className }: { data: DashboardData; range: Range; className?: string }) {
-  const { span, step } = RANGE_LABEL[range];
+export function TrafficCard({ data, view, ...placement }: { data: DashboardData; view: DashboardView } & Placement) {
+  const { span, step } = view;
   const x = data.times.map((t) => new Date(t));
   const single = data.traffic.length === 1;
   return (
-    <Card className={className} data-dashboard-traffic="">
+    <Card {...placement} data-dashboard-traffic="">
       <Card.Header>
         <Card.Title as="h2">Traffic</Card.Title>
         <Card.Description>
@@ -37,7 +38,7 @@ export function TrafficCard({ data, range, className }: { data: DashboardData; r
             <Stack gap="r3">
               <Readout values={total(data.traffic)} unit="req/s" format={wholeNumber} />
               <LineChart
-                label={`Requests per second by region, ${span.toLowerCase()}`}
+                label={`Requests per second by region, ${view.phrase}`}
                 x={x}
                 series={data.traffic}
                 unit="req/s"
@@ -50,7 +51,7 @@ export function TrafficCard({ data, range, className }: { data: DashboardData; r
             <Stack gap="r3">
               <Readout values={total(data.errors)} unit="errors" format={(v) => formatCompact(v)} />
               <BarChart
-                label={`Error responses by class, ${span.toLowerCase()}`}
+                label={`Error responses by class, ${view.phrase}`}
                 x={x}
                 series={data.errors}
                 stacked

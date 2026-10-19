@@ -1,3 +1,7 @@
+// @covers   content/CodeBlock, content/CopyButton
+// @sections content-codeblock content-copybutton content-markdown
+// @tier     component
+//
 // Browser check: CodeBlock and CopyButton in a real browser.
 //
 // Run it through `bun run browser:check content-code`, or by hand against a running showcase:
@@ -6,9 +10,11 @@
 //
 // Asserts:
 //   1. lazy load: a page with no CodeBlock (the Dashboard) requests no lowlight
-//      module; opening the Overview requests lowlight's core and exactly the
-//      grammars its blocks name (plus what those embed), and its blocks then
-//      carry coloured token spans (`data-highlight="on"`);
+//      module; opening the content sections (every section with a CodeBlock:
+//      CodeBlock, CopyButton, Markdown) requests lowlight's core and exactly the
+//      grammars their blocks name (plus what those embed): in the build, the grammar
+//      chunks the page fetched; on the dev server (`--dev`), the grammars the loader
+//      itself asked for. Its blocks then carry coloured token spans (`data-highlight="on"`);
 //   2. copy: with clipboard permission granted, the first block's Copy button
 //      puts exactly the block's source on the system clipboard, the button shows
 //      the check, and the status region beside it says "Copied";
@@ -18,25 +24,22 @@
 //      tokens give;
 //   4. 375px: no CodeBlock reaches past its section and no line paints past its
 //      block outside a scroller (a `hidden` clip loses content, so it does not
-//      count), the page never scrolls sideways, a long line scrolls inside its
+//      count), a long line scrolls inside its
 //      <pre> (positive control) and stops scrolling once wrapped;
 //   5. forced colors: tokens collapse to the block's ink (the documented
 //      decision) while keywords keep their weight, comments their slant, and a
 //      marked line its inline-start bar.
 async (page) => {
   const base = page.url().split("#")[0];
-  const KEY = "r-ui-showcase:view";
+  const SECTIONS = ["content-codeblock", "content-copybutton", "content-markdown"];
   const problems = [];
   const notes = {};
-  const setView = async (view) => {
-    await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [KEY, view]);
-  };
   const isLowlight = (url) => /lowlight/i.test(url);
 
   try {
     // ── 1. Lazy load ────────────────────────────────────────────────────
     await page.goto(`${base}#/dashboard`);
-    await setView({ theme: "default", density: "comfortable", input: "fine" });
+    await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [SHOWCASE_VIEW_KEY, { theme: "default", density: "comfortable", input: "fine" }]);
     const requested = [];
     const grammarRequests = [];
     const onRequest = (req) => {
@@ -52,20 +55,24 @@ async (page) => {
     if (onDashboard.length) problems.push(`lazy: the Dashboard (no CodeBlock) requested ${onDashboard.join(", ")}`);
     const before = requested.length;
     const grammarsBefore = grammarRequests.length;
-    await page.goto(`${base}#/overview/content-codeblock`);
-    await waitForShowcase(page);
+    await openSection(page, SECTIONS, { view: { theme: "default", density: "comfortable", input: "fine" } });
     const section = page.locator("#content-codeblock");
     await section.waitFor();
     await page.waitForFunction(() => document.querySelectorAll("#content-codeblock [data-highlight=on]").length >= 6, null, { timeout: 15000 });
     page.off("request", onRequest);
     const onOverview = requested.slice(before).filter(isLowlight);
     if (onOverview.length === 0) problems.push("lazy: highlighting appeared but no lowlight module was requested after navigation");
-    // Grammars load per language: the loader asks for exactly those the Overview's
+    // Grammars load per language: the loader asks for exactly those the sections'
     // blocks name (ts, json, shell, diff, html, python, sql, and the Markdown
     // demo's sh) plus what they embed; go, rust, yaml and markdown are curated but
-    // unused. Counted by initiator: the dev server's pre-bundled lowlight entry
-    // drags in its own grammar set, which a production build tree-shakes away.
-    const grammars = [...new Set(grammarRequests.slice(grammarsBefore).flatMap(({ url, from }) => (/code-highlight/.test(from) ? (url.match(/languages[_/]([a-z0-9]+)\.js/)?.[1] ?? []) : [])))].sort();
+    // unused. In a build each curated grammar is a chunk named after it, so the
+    // chunks the page fetched are the claim. On the dev server they are counted by
+    // initiator: its pre-bundled lowlight entry drags in its own grammar set,
+    // which the build tree-shakes away.
+    const CURATED = /\/assets\/(bash|css|diff|go|javascript|json|markdown|python|rust|shell|sql|typescript|xml|yaml)-[\w-]{8}\.js$/;
+    const grammarOf = ({ url, from }) =>
+      BROWSER_CHECK_BUILT ? (CURATED.exec(url)?.[1] ?? []) : /code-highlight/.test(from) ? (url.match(/languages[_/]([a-z0-9]+)\.js/)?.[1] ?? []) : [];
+    const grammars = [...new Set(grammarRequests.slice(grammarsBefore).flatMap(grammarOf))].sort();
     const expectedGrammars = ["bash", "css", "diff", "javascript", "json", "python", "shell", "sql", "typescript", "xml"];
     if (grammars.join() !== expectedGrammars.join()) problems.push(`lazy: the loader fetched grammars ${grammars.join(", ")}; expected ${expectedGrammars.join(", ")}`);
     const tokens = await section.locator("[data-token]").count();
@@ -100,9 +107,7 @@ async (page) => {
     notes.copy = { chars: clip.length, announced };
 
     // ── 3. Contrast in a dark theme ─────────────────────────────────────
-    await setView({ theme: await darkTheme(page), density: "comfortable", input: "fine" });
-    await page.reload();
-    await waitForShowcase(page);
+    await openSection(page, SECTIONS, { view: { theme: await darkTheme(page), density: "comfortable", input: "fine" } });
     await page.waitForFunction(() => document.querySelectorAll("#content-codeblock [data-highlight=on]").length >= 6, null, { timeout: 15000 });
     const contrast = await page.evaluate(() => {
       const canvas = document.createElement("canvas");
@@ -172,10 +177,7 @@ async (page) => {
     notes.contrast = { measured: contrast.measured, worst: contrast.worst[0] };
 
     // ── 4. 375px: never wider than the page ─────────────────────────────
-    await setView({ theme: "default", density: "comfortable", input: "coarse" });
-    await page.setViewportSize({ width: 375, height: 800 });
-    await page.reload();
-    await waitForShowcase(page);
+    await openSection(page, SECTIONS, { view: { theme: "default", density: "comfortable", input: "coarse" }, width: 375, height: 800 });
     await page.waitForFunction(() => document.querySelectorAll("#content-codeblock [data-highlight=on]").length >= 6, null, { timeout: 15000 });
     const narrow = await page.evaluate(() => {
       const out = [];
@@ -199,12 +201,10 @@ async (page) => {
       const longPre = [...document.querySelectorAll("#content-codeblock pre")].find((p) => p.textContent.includes("acme-industries-international") && !p.hasAttribute("data-wrap"));
       return {
         out,
-        page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         longScrolls: longPre ? longPre.scrollWidth > longPre.clientWidth + 50 : null,
       };
     });
     problems.push(...narrow.out.map((o) => `375: ${o}`));
-    if (narrow.page > 0) problems.push(`375: the page scrolls sideways by ${narrow.page}px`);
     if (narrow.longScrolls !== true) problems.push("375: harness: the long-line block does not scroll inside its <pre>");
     const longBlock = section.locator("[data-highlight]").filter({ hasText: "acme-industries-international" }).first();
     await longBlock.getByRole("button", { name: "Wrap lines" }).click();
@@ -213,10 +213,7 @@ async (page) => {
     notes.narrow = { pageOverflow: narrow.page, wrappedOverflow: wrapped };
 
     // ── 5. Forced colors ────────────────────────────────────────────────
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await page.emulateMedia({ forcedColors: "active" });
-    await page.reload();
-    await waitForShowcase(page);
+    await openSection(page, SECTIONS, { view: { theme: "default", density: "comfortable", input: "coarse" }, forced: true });
     await page.waitForFunction(() => document.querySelectorAll("#content-codeblock [data-highlight=on]").length >= 6, null, { timeout: 15000 });
     const forced = await page.evaluate(() => {
       const block = document.querySelector("#content-codeblock [data-highlight=on]");
@@ -241,10 +238,7 @@ async (page) => {
     if (!(forced.bar > 0)) problems.push(`forced: a marked line's bar is ${forced.bar}px`);
     notes.forced = forced;
   } finally {
-    await page.emulateMedia({ forcedColors: "none" });
-    await page.setViewportSize({ width: 1280, height: 900 });
     await page.context().clearPermissions();
-    await page.evaluate((key) => localStorage.removeItem(key), KEY);
   }
 
   if (problems.length) throw new Error(`content-code FAILED (${problems.length}):\n  ${problems.join("\n  ")}\n${JSON.stringify(notes)}`);

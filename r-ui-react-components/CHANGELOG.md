@@ -14,6 +14,12 @@ tokens or the public surface are versioned events and are recorded here.
 - Content, dates, steps: `Markdown` keeps the text between two HTML comments when the second ends a later line, parses long paragraphs, runs of unclosed `[a](` and of unclosed `<!--` in linear time instead of hanging, and no longer loads an allowlisted image from another host through `/\host/…` (nor throws on a root-relative `src` that does not parse); the date components format and read the Gregorian calendar in every locale (`th-TH` no longer types a Buddhist year that reads back 543 years late, `fa-IR` no longer labels a Gregorian month with a Persian name); a `Stepper.Step` whose `href` `safeUrl` refuses is a button instead of an `<a>` no keyboard can reach.
 - Router: `isExternalHref` resolves an href as a browser does, so `/\host`, `\\host`, `///host` or ` //host` (another host to a URL parser) is external: `Link` and every routed navigation part render it as a plain `<a>` instead of the router's link, and `Markdown` opens it in a new tab with the glyph and description.
 
+### Fixed
+
+- Overlays: under reduced motion every closed surface with an exit (dialogs and the Lightbox, popovers, menus, tooltips, hover cards, toasts, selection lists, navigation panels, chart tooltips) unmounts its content at once. The collapsed 0.01ms exits were still waited on, which kept the content mounted a frame or two after the close.
+- Form: `OTPInput` keeps what is typed in the frame after it takes focus. Its focus-time caret placement used the code as it was at focus, so it threw the caret back to the first box and the next keys landed there ("4821" typed fast became "821").
+- Form: `OTPInput` keeps a selection made between its focus and the next frame (a caller's `focus()` then `select()`, or a test's `fill("")`, which selects all before it deletes). The focus-time caret placement collapsed it, so the delete removed nothing and the next keys were appended to the old code.
+
 ### Breaking
 
 Since the round-one surface (recorded below under "Added"):
@@ -131,6 +137,18 @@ Round 5:
   render `.r-primitives-chip` / `.r-primitives-chip-remove`, and `.r-form-chip` /
   `.r-form-chip-remove` (and FilterBar's `.r-filters-chip`) are gone. A stylesheet of yours
   that targeted them renames; the `classNames.chip` slots are unchanged.
+- `MediaCard` draws its picture with the new `Image`: a failed image now shows `Image`'s
+  fallback (the glyph and the `alt` text) instead of the "no image" placeholder, which is
+  kept for a card with no `image`. `MediaCardImage.src` also takes `null` (pending) and
+  gains `placeholder` / `placeholderColor`; `MediaRatio` is `Image`'s four fixed ratios.
+  The stretched-link class `r-marketing-media-card-link` is now `r-marketing-stretched-link`
+  (shared with `FeatureGrid`): a stylesheet of yours that targeted it renames.
+- `Table stickyHeader` paints its opaque band on the head's cells only; a body row header
+  (`scope="row"`) keeps the row's own paint. A pinned row header of yours that relied on
+  the band gives itself a fill.
+- `PricingTable`'s pinned feature column paints the canvas by default (a marketing section's
+  surface), not `--C-SURFACE-0`. A comparison on a card or a band names its surface with
+  `--r-marketing-pricing-surface` (`[--r-marketing-pricing-surface:var(--C-SURFACE-0)]`).
 
 ### Added
 
@@ -602,6 +620,92 @@ Additive (the chip classes that moved are under Breaking).
   `hovercard-splitter-card`, `hovercard-splitter-panes`, `form-inputs-text`,
   `form-inputs-avatars`, `kanban-keyboard`, `kanban-pointer`, `kanban-layout`;
   `datatable-columns` resizes a squeezed table, `print-pages` prints a windowed tree.
+
+#### Round 5: marketing and media
+
+Additive (the MediaCard and Table changes are under Breaking).
+
+- **Marketing.** `NavigationMenu` (links, dropdowns and mega panels as APG disclosure
+  navigation, never a menu; `open` controllable; hover intent with a bridge, a press pins a
+  hover-opened panel; mega panels span `anchorRef`; `navigationMenuLinks`) and `SiteHeader`
+  (brand, navigation, actions; `solid` / `transparent`, `sticky`, `hideOnScroll`;
+  `collapseBelow` folds it by its own width into a menu drawer with the same links as an
+  accordion; a skip link; the bar's height published as `--r-marketing-site-header-h`).
+  `Footer` (+ `Column`, `Link`, `SocialLink`: brand, newsletter slot, link columns that fold
+  into an accordion by the footer's width, legal row, social links, locale switcher, `plain`
+  / `band`; prints its legal row only) and `LogoCloud` (monochrome logos, inverted on a dark
+  scheme; `colorOnHover`; an optional marquee with a pause toggle, held on hover and focus,
+  still under reduced motion). `Pricing` (plan cards sharing their rows, a monthly / annual
+  toggle announced once per change, locale currency, "Free" / "Custom", a highlighted plan
+  in words) and `PricingTable` (plans compared in the library `Table`, head and feature
+  column pinned in its own scroller, explanations by hover, focus or press). `Testimonial`
+  (`card` / `pull` / `compact`; avatar, rating, logo, the source work as `<cite>`; the
+  language's quotation marks). `FeatureGrid` (+ `Item`), `FeatureRows` (+ `Row`),
+  `HowItWorks` (+ `Step`, in the Stepper's look), `CallToAction` (`stacked` / `split`) and
+  `EmailCapture` (validation, pending, failure with retry, a focused success status,
+  consent, honeypot). Labels `NavigationMenu`, `SiteHeader`, `Footer`, `LogoCloud`,
+  `Pricing`, `Testimonial`, `EmailCapture`.
+- **Media (new group).** `Image` (a box sized before it loads from `width` / `height` and a
+  ratio, `fit`, `radius`, a blurred preview and a colour while it loads, a cross-fade, a
+  fallback that keeps the alt; `src: null` is pending; lazy unless `priority`), `Lightbox`
+  (+ `Trigger`: a modal viewer with keys, swipes and neighbour preloading, controllable;
+  labels `Lightbox`) and `MasonryGrid` (columns by its own width, items packed in source
+  and tab order, a plain grid on paper).
+- **Changed.** The `Carousel` track hides its scrollbar and stays a native scroller.
+  `SegmentedControl`'s segments take the `hit-area`, so a press anywhere in the frame's
+  padding picks the segment above or below it. A stretched `DateRangePicker` trigger
+  reads as a field: the value at the start, the chevron at the end.
+- Checks: `verify:class-prefix` also fails a rule with no class of its own (`:root`) that
+  declares anything but the owner's `--r-<group>-…` custom properties. New browser checks:
+  `site-header-menu`, `site-header-layout`, `footer-logos-footer`, `footer-logos-marquee`,
+  `pricing-plans`, `pricing-compare`, `pricing-testimonials`, `features-cta-layout`,
+  `features-cta-email`, `media-image`, `media-lightbox`, `media-masonry`;
+  `marketing-components` proves the carousel's hidden scrollbar.
+
+#### Round 5: motion extras, the Marketing and Dashboard pages
+
+Additive (the PricingTable surface is under Breaking).
+
+- **Motion.** `Parallax` (`strength` subtle / medium / strong; a decorative layer on a CSS
+  view timeline, no script; the box is `aria-hidden`, `inert` and takes no pointer; still
+  under reduced motion, in print and without scroll-driven animations), `CountUp` (counts to
+  `value` once in view, every frame in the locale with `formatOptions` or `format`; the
+  final value is in the markup and the only one read; timing from the motion tokens),
+  `ReadingProgress` (polymorphic; a bar that sticks to the scrollport's top and fills through
+  the region it wraps, on a view timeline with a passive-listener fallback; `aria-hidden`,
+  not printed, takes no space: what follows it keeps the region's first margin) and
+  `Spotlight` (polymorphic; a soft wash under a card's content that follows a fine pointer,
+  off on touch, coarse input, reduced motion, forced colours and paper).
+- **Domain token** `--PARALLAX-SHIFT`: how far `Parallax` drifts at its medium strength
+  (subtle half, strong one and a half), by default `--MOTION-DISTANCE-LG` × 4. A theme tones
+  parallax down or off without moving reveals; reduced motion and print zero it whatever a
+  theme set.
+- **Marketing.** `SectionHeading` (eyebrow, display heading, lead; `headingLevel`, `align`,
+  `titleId` for the section's name): the heading group every section after the hero opens
+  with. `SiteHeader` sticks `--r-marketing-site-header-top` below its scroller's top (a bar
+  the host already sticks there) and, hidden, slides past that offset too.
+- **Dates and filters.** `DateRangePicker now` and `FilterBar now`: the instant presets
+  resolve against (a frozen specimen, a replay), so presets stay usable when `max` is the
+  data's "now". A `dateRange` filter takes a `placeholder`. `filtersToSearchParams` and
+  `searchParamsToFilters` take `defaults`: the default view is the bare URL, a removed
+  default is written empty (`time=`), and a missing parameter reads as its default.
+- **Changed.** An overflowing `Toolbar` never shrinks below what cannot leave it (its pinned
+  units and "More"), so a growing sibling cannot squeeze it to nothing. An `Image` inside a
+  prose region keeps its picture flush with its box (prose's `* + img` margin and image
+  radius no longer reach it).
+- **Showcase.** The Marketing page is rebuilt from the library (SiteHeader, Hero, LogoCloud,
+  FeatureRows with parallax illustrations, HowItWorks, FeatureGrid with spotlight cards,
+  counting figures, a Testimonial carousel, the journal essay with a reading bar, MediaCard
+  posts, Pricing and PricingTable, an FAQ Accordion, CallToAction with EmailCapture, Footer
+  with a region switcher through `LocaleProvider`). The Dashboard adopts FilterBar (time,
+  region, status, latency, search; in the URL), a header Toolbar, the DataTable features
+  (columns menu, resizing, a pinned column, detail rows, bulk actions, pages), rollout and
+  export progress, a maintenance Banner, a HoverCard on teams and an ErrorBoundary per card.
+- Checks: new browser checks `motion-extras-parallax`, `motion-extras-count-up`,
+  `motion-extras-reading`, `motion-extras-spotlight`; `marketing-page` proves the site header
+  under the showcase's bar, anchors clearing both bars, a picture flush inside prose and the
+  essay's reading bar; `dashboard-layout` proves the FilterBar, Toolbar, table features,
+  progress, Banner and per-card boundaries; `toolbar-layout` proves the toolbar's floor.
 
 ### Known gaps
 

@@ -154,7 +154,7 @@ describe("Toolbar: one tab stop, arrows between controls", () => {
 /*
  * jsdom lays nothing out, so the overflow tests give the toolbar a width and
  * each unit the width its control declares in `data-w` (separators 1px, More
- * 32px). The real layout is the toolbar-layout browser check's.
+ * 32px). The real layout is the toolbar browser check's.
  */
 describe("Toolbar: overflow into More", () => {
   let width = 1000;

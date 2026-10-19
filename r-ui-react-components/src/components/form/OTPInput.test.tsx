@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -56,6 +56,47 @@ describe("OTPInput", () => {
     // The caret sits on the first empty box.
     expect(selection(input())).toEqual([3, 3]);
     expect(activeBoxes(container)).toEqual([3]);
+  });
+
+  it("keeps what is typed before the focus's caret placement runs, and places after it", async () => {
+    const frames: FrameRequestCallback[] = [];
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((frame) => frames.push(frame));
+    try {
+      const user = userEvent.setup();
+      render(<Code />);
+      act(() => input().focus());
+      await user.keyboard("48");
+      act(() => {
+        for (const frame of frames.splice(0)) frame(0);
+      });
+      expect(selection(input())).toEqual([2, 2]);
+      await user.keyboard("21");
+      expect(input()).toHaveValue("4821");
+    } finally {
+      raf.mockRestore();
+    }
+  });
+
+  it("keeps a selection made after the focus, before its caret placement runs", async () => {
+    const frames: FrameRequestCallback[] = [];
+    const raf = vi.spyOn(window, "requestAnimationFrame").mockImplementation((frame) => frames.push(frame));
+    try {
+      const user = userEvent.setup();
+      render(<Code defaultValue="1234" />);
+      // A caller's focus() then select() in one go (what a test's fill does before it deletes).
+      act(() => {
+        input().focus();
+        (input() as HTMLInputElement).select();
+      });
+      act(() => {
+        for (const frame of frames.splice(0)) frame(0);
+      });
+      expect(selection(input())).toEqual([0, 4]);
+      await user.keyboard("{Delete}");
+      expect(input()).toHaveValue("");
+    } finally {
+      raf.mockRestore();
+    }
   });
 
   it("goes back with Backspace, one box at a time", async () => {

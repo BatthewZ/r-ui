@@ -6,7 +6,22 @@ import { type FilterDefinition, type FilterOption, type FilterValues, normalizeF
 export interface FilterUrlOptions {
   /** Put before every filter's parameter name (`"f."` → `f.region`), to keep them apart from the page's own. */
   prefix?: string;
+  /**
+   * The view a URL without the filter's parameter means (a page that opens on
+   * "last 7 days"). Writing, a filter at its default is left out, so the
+   * default view is the bare URL, and a filter removed where the default
+   * applies one is written empty (`time=`). Reading, a missing parameter is
+   * the default and an empty one is no filter. Pass the same to both.
+   */
+  defaults?: FilterValues;
 }
+
+/** Whether two values of `def` write the same parameters (a preset by its id, so its resolved instants never differ). */
+const sameParams = (def: FilterDefinition, a: unknown, b: unknown) => {
+  const x = a === undefined ? [] : encode(def, a);
+  const y = b === undefined ? [] : encode(def, b);
+  return x.length === y.length && x.every((v, i) => v === y[i]);
+};
 
 /**
  * The applied filters as URL search parameters, one name per filter id
@@ -18,19 +33,25 @@ export interface FilterUrlOptions {
  * date-times with their offset. A `custom` filter goes in through its `toParam`.
  *
  * `base` keeps its other parameters; every parameter the filters own is
- * replaced, so a filter that was removed leaves the URL too. Pure: no router,
- * no `location`. `params.toString()` is the query string.
+ * replaced, so a filter that was removed leaves the URL too. With `defaults`,
+ * only what differs from them is written. Pure: no router, no `location`.
+ * `params.toString()` is the query string.
  */
 export function filtersToSearchParams(
   values: FilterValues,
   filters: readonly FilterDefinition[],
-  { prefix = "", base }: FilterUrlOptions & { base?: URLSearchParams | string } = {},
+  { prefix = "", base, defaults = {} }: FilterUrlOptions & { base?: URLSearchParams | string } = {},
 ): URLSearchParams {
   const params = new URLSearchParams(base);
   for (const def of filters) params.delete(prefix + def.id);
   for (const def of filters) {
     const value = normalizeFilterValue(def, values[def.id]);
-    if (value === undefined) continue;
+    const fallback = normalizeFilterValue(def, defaults[def.id]);
+    if (sameParams(def, value, fallback)) continue;
+    if (value === undefined) {
+      params.append(prefix + def.id, "");
+      continue;
+    }
     for (const item of encode(def, value)) params.append(prefix + def.id, item);
   }
   return params;
@@ -41,20 +62,22 @@ export function filtersToSearchParams(
  * Whatever does not read as its filter's value is left out: a choice that is
  * not an option (except a creatable `multi`), a number that is not one, an
  * interval whose end is before its start, an unknown preset. A preset is
- * resolved against `now`. Parameters for ids the filters do not define are
- * ignored.
+ * resolved against `now`. With `defaults`, a filter whose parameter is
+ * missing takes its default, and an empty parameter (`time=`) is no filter.
+ * Parameters for ids the filters do not define are ignored.
  */
 export function searchParamsToFilters(
   search: URLSearchParams | string,
   filters: readonly FilterDefinition[],
-  { prefix = "", now = new Date() }: FilterUrlOptions & { now?: Date } = {},
+  { prefix = "", now = new Date(), defaults = {} }: FilterUrlOptions & { now?: Date } = {},
 ): FilterValues {
   const params = typeof search === "string" ? new URLSearchParams(search) : search;
   let values: FilterValues = {};
   for (const def of filters) {
     const raw = params.getAll(prefix + def.id);
-    if (raw.length === 0) continue;
-    values = setFilterValue(values, def, decode(def, raw, now));
+    if (raw.length === 0) values = setFilterValue(values, def, defaults[def.id]);
+    else if (raw.every((item) => item === "")) continue;
+    else values = setFilterValue(values, def, decode(def, raw, now));
   }
   return values;
 }

@@ -81,14 +81,18 @@ export function usePartId(own: string | undefined, register: ((id: string | unde
   return id;
 }
 
+/** Under this many ms an exit moves nothing anyone sees: reduced motion's collapsed durations (0.01ms). */
+const COLLAPSED_EXIT_MS = 1;
+
 /**
  * Runs `done` once every exit now running on `element` has finished: the CSS
  * transitions or animations a closing surface starts on itself. At once when
- * none is running, which is the fallback for free: reduced motion collapses
- * them to ~0, an engine without `allow-discrete` hides the element before any
- * transition starts, and one without the Web Animations API (jsdom) reports
- * nothing. Event-driven rather than a timer, so a theme's slower motion tokens
- * need no matching number here. Returns a cancel.
+ * none is running or every one is collapsed, which is the fallback for free:
+ * reduced motion collapses them to ~0 (still started, and finishing only on a
+ * later frame, so they are not waited for), an engine without `allow-discrete`
+ * hides the element before any transition starts, and one without the Web
+ * Animations API (jsdom) reports nothing. Event-driven rather than a timer, so
+ * a theme's slower motion tokens need no matching number here. Returns a cancel.
  *
  * Read synchronously after the change that starts the exit: `getAnimations()`
  * flushes style, so the transitions it starts are already listed.
@@ -96,8 +100,11 @@ export function usePartId(own: string | undefined, register: ((id: string | unde
 export function afterExit(element: Element, done: () => void): () => void {
   const running =
     typeof element.getAnimations === "function"
-      ? // A looping animation on the element itself (a pulse) never finishes.
-        element.getAnimations().filter((animation) => animation.effect?.getTiming().iterations !== Infinity)
+      ? element.getAnimations().filter((animation) => {
+          const timing = animation.effect?.getComputedTiming();
+          // A looping animation on the element itself (a pulse) never finishes.
+          return timing?.iterations !== Infinity && !(Number(timing?.endTime) < COLLAPSED_EXIT_MS);
+        })
       : [];
   if (running.length === 0) {
     done();

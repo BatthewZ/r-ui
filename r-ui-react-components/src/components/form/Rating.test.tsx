@@ -89,6 +89,8 @@ describe("Rating", () => {
     expect(rating).toHaveAttribute("aria-valuenow", "3.5");
     fireEvent.click(cells[3] as HTMLElement, { clientX: 76 });
     expect(rating).toHaveAttribute("aria-valuenow", "4");
+    await user.keyboard("{End}{ArrowLeft}");
+    expect(rating).toHaveAttribute("aria-valuetext", "4.5 out of 5");
   });
 
   it("previews under a hovering mouse, and drops the preview when it leaves", () => {

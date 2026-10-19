@@ -11,6 +11,12 @@
 // as a selector's subject in these files; a reference to one inside `:is()`,
 // `:has()` or `:not()` is fine and is not checked.
 //
+// The same goes for custom properties a rule with no class of its own declares
+// (`:root`, `[data-density]`): such a rule writes to the whole page, so it may
+// only publish the owner's own `--r-<group>-…` hook (the site header's height),
+// never re-point a contract token or another group's lever page-wide.
+// `src/tokens.css` is exempt from that one rule: page-wide names are its job.
+//
 // Usage: node scripts/verify-class-prefix.mjs [--root <dir>]
 
 import { readFileSync } from "node:fs";
@@ -50,7 +56,7 @@ function definedNames(css) {
   const names = [];
   // A prelude is the text between a block boundary and the next `{`; nested
   // rules (inside `@media`) start after a `{`, top-level ones after a `}`.
-  for (const sel of text.matchAll(/(?<=^|[{};])(\s*)([^{};]*)\{/g)) {
+  for (const sel of text.matchAll(/(?<=^|[{};])(\s*)([^{};]*)\{(?=([^{}]*))/g)) {
     const prelude = sel[2];
     const start = sel.index + sel[1].length;
     const at = prelude.match(/^@keyframes\s+([\w-]+)/);
@@ -59,8 +65,15 @@ function definedNames(css) {
       continue;
     }
     if (prelude.startsWith("@") || /^(?:from|to|\d+%)/.test(prelude)) continue;
-    for (const cls of prelude.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
+    const classes = [...prelude.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)];
+    for (const cls of classes) {
       names.push({ kind: "class", name: cls[1], line: lineAt(text, start + cls.index) });
+    }
+    if (classes.length === 0) {
+      const body = sel.index + sel[0].length;
+      for (const prop of sel[3].matchAll(/(?<![\w-])--([\w-]+)\s*:/g)) {
+        names.push({ kind: "page-wide custom property", name: prop[1], line: lineAt(text, body + prop.index) });
+      }
     }
   }
   return names;
@@ -72,10 +85,14 @@ let checked = 0;
 for (const file of files) {
   const prefix = prefixFor(file);
   if (!prefix) continue;
+  const tokens = basename(file) === "tokens.css" && !relative(join(ROOT, "src"), file).includes("/");
   for (const { kind, name, line } of definedNames(readFileSync(file, "utf8"))) {
+    if (tokens && kind !== "class" && kind !== "keyframes") continue;
     checked++;
     if (!name.startsWith(prefix)) {
-      offenders.push(`${relative(ROOT, file)}:${line}  ${kind} \`${name}\` must start with \`${prefix}\``);
+      const shown = kind === "class" || kind === "keyframes" ? name : `--${name}`;
+      const wanted = kind === "class" || kind === "keyframes" ? prefix : `--${prefix}`;
+      offenders.push(`${relative(ROOT, file)}:${line}  ${kind} \`${shown}\` must start with \`${wanted}\``);
     }
   }
 }
@@ -89,7 +106,8 @@ if (offenders.length > 0) {
     `verify:class-prefix — ${offenders.length} unprefixed name(s):\n` +
       offenders.map((o) => `  ${o}`).join("\n") +
       "\n\nClass names are global. Prefix a group's names `r-<group>-` and a shared\n" +
-      "stylesheet's `r-<file>-`, so no two groups, and no consumer, can collide.",
+      "stylesheet's `r-<file>-`, so no two groups, and no consumer, can collide. A rule\n" +
+      "with no class of its own (`:root`) writes page-wide: only the owner's `--r-…-` hook.",
   );
   process.exit(1);
 }

@@ -17,16 +17,19 @@ import { Popover } from "./Popover";
 function stubExits() {
   const proto = Element.prototype as unknown as Record<string, unknown>;
   const pending: Array<{ element: Element; finish: () => void }> = [];
+  const exit = { endTime: 150 };
   const getAnimations = vi.fn(function (this: Element) {
     let finish!: () => void;
     const finished = new Promise<void>((resolve) => (finish = resolve));
     pending.push({ element: this, finish });
-    return [{ finished, effect: { getTiming: () => ({ iterations: 1 }) } }];
+    return [{ finished, effect: { getComputedTiming: () => ({ iterations: 1, endTime: exit.endTime }) } }];
   });
   proto.getAnimations = getAnimations;
   return {
     getAnimations,
     pending,
+    /** How long the stubbed exit runs, in ms (reduced motion collapses it to 0.01). */
+    exit,
     async finishAll() {
       await act(async () => {
         for (const p of pending.splice(0)) p.finish();
@@ -154,6 +157,32 @@ describe("overlay exits", () => {
       expect(exits.pending.map((p) => p.element)).toContain(dialog);
 
       await exits.finishAll();
+      expect(dialog).not.toHaveTextContent("Rename dashboard");
+      expect(dialog).not.toHaveAttribute("inert");
+    } finally {
+      dialogStub.restore();
+    }
+  });
+
+  it("an exit reduced motion collapses to ~0 is not waited for: the content goes at once", async () => {
+    exits.exit.endTime = 0.01;
+    const dialogStub = stubDialog();
+    try {
+      const user = userEvent.setup();
+      render(
+        <Dialog>
+          <Dialog.Trigger>Rename</Dialog.Trigger>
+          <Dialog.Content>
+            <Dialog.Title>Rename dashboard</Dialog.Title>
+            <Dialog.Close>Cancel</Dialog.Close>
+          </Dialog.Content>
+        </Dialog>
+      );
+      await user.click(screen.getByRole("button", { name: "Rename" }));
+      const dialog = screen.getByRole("dialog", { name: "Rename dashboard" });
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(exits.pending.map((p) => p.element)).toContain(dialog);
+      // Nothing finished: the collapsed exit was never waited on.
       expect(dialog).not.toHaveTextContent("Rename dashboard");
       expect(dialog).not.toHaveAttribute("inert");
     } finally {

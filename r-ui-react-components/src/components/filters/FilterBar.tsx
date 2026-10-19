@@ -102,6 +102,12 @@ export interface FilterBarProps extends Omit<ComponentPropsWithRef<"div">, "defa
   disabled?: boolean;
   /** For chip numbers and dates, the sliders and the pickers. Omitted: the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
+  /**
+   * The instant a time range's presets resolve against (`DateRangePicker`'s
+   * `now`), for data whose "now" is not the device's; pass the same to
+   * `searchParamsToFilters`. Omitted: the device's clock.
+   */
+  now?: Date;
   labels?: LabelsProp<FilterBarLabels>;
   classNames?: SlotClassNames<"controls" | "field" | "trigger" | "drawer" | "summary" | "chip" | "clear" | "results">;
 }
@@ -172,6 +178,7 @@ export function FilterBar({
   drawerSide = "end",
   disabled = false,
   locale: localeProp,
+  now,
   labels: labelsProp,
   className,
   classNames,
@@ -230,6 +237,7 @@ export function FilterBar({
         disabled={disabled}
         anyLabel={labels.any}
         locale={locale}
+        now={now}
         className={cn(!inDrawer && collapse === "auto" && "@max-2xl:hidden", classNames?.field)}
       />
     ));

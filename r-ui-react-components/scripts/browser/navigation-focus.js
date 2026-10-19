@@ -1,3 +1,7 @@
+// @covers   navigation/Pagination, navigation/Tabs
+// @sections navigation-pagination navigation-tabs
+// @tier     component
+//
 // Browser check: where focus goes in the navigation group when a press disables
 // the control that made it, and which tab is the tab stop when the value names
 // no enabled tab.
@@ -6,25 +10,18 @@
 // not, so a handoff that runs before the commit enables its target passes in
 // jsdom and drops focus here.
 //
-// On the Overview's Pagination and Tabs sections, asserts:
+// On the Pagination and Tabs sections, each opened alone, asserts:
 //   1. two pages: Next on page 1 lands on page 2 and focus moves to Previous
 //      (Next is now disabled); Previous then returns to page 1 with focus on
 //      Next. Harness: Previous starts disabled, so the handoff target was itself
 //      disabled before the move;
-//   2. link mode (getHref): from page 23, the Next link lands on page 24 (the
-//      URL) and focus moves to the Previous link;
+//   2. link mode (getHref): from page 23, the Next link lands on page 24 (its
+//      current link) and focus moves to the Previous link;
 //   3. Tabs whose selected value is a disabled tab: exactly one tab is in the
 //      Tab order, the first enabled one, and Tab from the control before the
 //      list lands on it.
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
-  await page.setViewportSize({ width: 1280, height: 900 });
-  const load = async (anchor) => {
-    await page.goto(`${base}#/overview/${anchor}`);
-    await page.reload();
-    await waitForShowcase(page);
-  };
   const focused = () =>
     page.evaluate(() => {
       const el = document.activeElement;
@@ -32,7 +29,7 @@ async (page) => {
     });
 
   // ── 1. Two pages ─────────────────────────────────────────────────────────
-  await load("navigation-pagination");
+  await openSection(page, "navigation-pagination");
   const two = page.locator('[data-sc="pagination-two"]');
   await two.scrollIntoViewIfNeeded();
   const prev = two.locator('[data-pagination="previous"]');
@@ -67,7 +64,7 @@ async (page) => {
   if (linkFocus?.label !== "Previous page" || linkFocus.tag !== "A" || linkFocus.disabled) fail.push(`link mode: after Next to the last page focus is on ${JSON.stringify(linkFocus)}, expected the Previous link`);
 
   // ── 3. Tabs: the selected tab is disabled ───────────────────────────────
-  await load("navigation-tabs");
+  await openSection(page, "navigation-tabs");
   const box = page.locator('[data-sc="tabs-disabled-selected"]');
   await box.scrollIntoViewIfNeeded();
   const tabs = await box.getByRole("tab").evaluateAll((list) =>

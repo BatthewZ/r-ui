@@ -17,6 +17,13 @@ export interface SectionMeta {
   order: number;
   /** One line under the title: what the demo proves. */
   description?: string;
+  /**
+   * `open`: the demo frame is not a scroll container. For a demo whose
+   * scroll-driven effect must follow the page: a view timeline attaches to the
+   * nearest scroll container, and the frame's own (sideways) scroller would be
+   * it. Default `scroller` (a wide demo scrolls inside its frame).
+   */
+  frame?: "scroller" | "open";
 }
 
 export interface Section {
@@ -57,6 +64,7 @@ export const GROUP_ORDER = [
   "steps",
   "layout",
   "marketing",
+  "media",
   "motion",
   "preferences",
   "locale",
@@ -67,6 +75,19 @@ const slug = (s: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+
+const PATH = /sections\/([^/]+)\/([^/]+)\.tsx$/;
+
+/**
+ * A section's anchor id, `<group>-<file>` (`./sections/data/DataTable.tsx` →
+ * `data-datatable`), read from its path alone, so a route can pick sections
+ * before loading any of them. The browser checks' tags mirror it
+ * (`scripts/lib/browser-tags.mjs`).
+ */
+export function sectionIdOf(path: string): string | null {
+  const m = PATH.exec(path);
+  return m ? `${slug(m[1]!)}-${slug(m[2]!)}` : null;
+}
 
 function validate(path: string, mod: unknown): Section | InvalidSection {
   const m = mod as { meta?: Partial<SectionMeta>; default?: unknown; loadError?: string };
@@ -79,9 +100,12 @@ function validate(path: string, mod: unknown): Section | InvalidSection {
     return { path, reason: "`meta.order` must be a number" };
   }
   if (typeof m.default !== "function") return { path, reason: "no default-exported component" };
-  const file = path.split("/").pop()?.replace(/\.tsx$/, "") ?? meta.title;
+  const id = sectionIdOf(path);
+  // The id comes from the path, so the group must be the folder's: one name, read before loading.
+  const folder = PATH.exec(path)?.[1];
+  if (!id || meta.group !== folder) return { path, reason: `\`meta.group\` must be its folder's name ("${folder}")` };
   return {
-    id: `${slug(meta.group)}-${slug(file)}`,
+    id,
     path,
     meta: meta as SectionMeta,
     Component: m.default as ComponentType,
@@ -118,4 +142,29 @@ export function collectSections(modules: Record<string, unknown>): {
       ),
     }));
   return { groups, invalid: invalid.sort((a, b) => a.path.localeCompare(b.path)) };
+}
+
+/** What the glob gives: one importer per section file. */
+export type SectionImporters = Record<string, () => Promise<unknown>>;
+
+/**
+ * Imports the sections (all of them, or only those `ids` names, in which case
+ * no other section's chunk is fetched) and collects them. A section whose chunk
+ * fails is listed as invalid, not a blank page; an id no file answers is
+ * `missing`.
+ */
+export async function loadModules(
+  importers: SectionImporters,
+  ids?: readonly string[],
+): Promise<ReturnType<typeof collectSections> & { missing: string[] }> {
+  const wanted = ids ? new Set(ids) : null;
+  const picked = Object.entries(importers).filter(([path]) => !wanted || wanted.has(sectionIdOf(path) ?? ""));
+  const entries = await Promise.all(
+    picked.map(async ([path, importer]) => {
+      const mod = await importer().catch((error: unknown) => ({ loadError: String(error) }));
+      return [path, mod] as const;
+    }),
+  );
+  const found = new Set(picked.map(([path]) => sectionIdOf(path)));
+  return { ...collectSections(Object.fromEntries(entries)), missing: ids ? ids.filter((id) => !found.has(id)) : [] };
 }

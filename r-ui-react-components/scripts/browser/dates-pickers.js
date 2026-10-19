@@ -1,41 +1,38 @@
+// @covers   dates/Calendar, dates/DatePicker, dates/DateRangePicker
+// @sections dates-calendar dates-datepicker dates-daterangepicker
+// @tier     component
+//
 // Browser check: the dates group with real keys, real layout and the top layer.
 //
 // jsdom has no layout, no top layer and no hit testing, so the calendar's month
 // count, its cell sizes and a popup escaping a clipping card are settled here.
 //
-// On the Overview's dates sections (default theme) it asserts:
+// On the dates sections, each opened alone (default theme), it asserts:
 //   1. harness: in the single-date demo a day cell is exactly the page's
 //      --CONTROL-H (36px at comfortable + fine, predicted from source), and the
 //      range demo shows two months side by side at 1280;
 //   2. keyboard across a month boundary (real presses): from 30 October,
 //      ArrowRight twice lands on 1 November, the grid pages to November 2026, and
 //      ArrowLeft goes back into October;
-//   3. a range by keyboard: Enter on 20 October, ArrowDown twice (3 November, in the
-//      second month: no paging), Enter: the demo reports 2026-10-20 → 2026-11-03;
+//   3. a range by keyboard: Enter on 20 October, ArrowDown twice (3 November), Enter: two
+//      months still shown and the demo reports 2026-10-20 → 2026-11-03;
 //   4. typed entry: "10/15/2026" in the en-US field and "15.10.2026" in the de-DE
 //      field both submit due = 2026-10-15; "13/45/2026" is refused (aria-invalid,
 //      the reason in its description, nothing submitted);
-//   5. the DateRangePicker opened from the compact card with overflow: hidden is a
-//      DOM descendant of the card, in the top layer (:popover-open), its day cells
-//      are the CARD's --CONTROL-H (28px, not the page's 36px), it reaches past the
-//      card's clip box, and a day lying outside that box takes the press
-//      (elementFromPoint); a preset applies and the card reports it;
+//   5. the DateRangePicker in the compact toolbar card: its trigger is the card's
+//      --CONTROL-H, Clear, Cancel and Apply sit on one footer row inside the panel at
+//      it, Clear at the start, and a preset applies and the card reports it (in
+//      place, top layer, past the clip and day cells at the card's --CONTROL-H are
+//      sweep-floating's sweep);
 //   6. at 375 wide, with the range popup open: no sideways scroll in the page, the
 //      panel lies inside the viewport, and the calendar fell back to one month
 //      because its own width holds one;
-//   7. at coarse input: every day cell and the month buttons are at least 44px, and
-//      the toolbar trigger is at least 44px tall.
+//   (At coarse input the day cells, month buttons and toolbar trigger meeting 44px is
+//   sweep-overview's geometry sweep, in every View.)
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
-  const KEY = "r-ui-showcase:view";
-  const open = async (section, { width = 1280, input = "fine" } = {}) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/overview/${section}`);
-    await page.evaluate(({ KEY, input }) => localStorage.setItem(KEY, JSON.stringify({ theme: "default", density: "comfortable", input })), { KEY, input });
-    await page.reload();
-    await waitForShowcase(page);
-    await page.locator(`[id="${section}"]`).waitFor();
+  const open = async (section, { width, input = "fine" } = {}) => {
+    await openSection(page, section, { width, view: { theme: "default", density: "comfortable", input } });
     await page.waitForTimeout(400);
   };
   const captions = (scope) =>
@@ -117,29 +114,9 @@ async (page) => {
     const card = document.querySelector('[data-sc="range-toolbar-card"]');
     const panel = card.querySelector('[role="dialog"]');
     if (!panel) return { panel: false };
-    const clip = card.getBoundingClientRect();
-    const days = [...panel.querySelectorAll("[data-date]")];
-    // Below the card, or above it if the panel flipped.
-    const outside = days.find((d) => {
-      const r = d.getBoundingClientRect();
-      return r.top > clip.bottom + 2 || r.bottom < clip.top - 2;
-    });
-    const or = outside?.getBoundingClientRect();
-    const hit = or && document.elementFromPoint(or.left + or.width / 2, or.top + or.height / 2);
-    const page36 = Number.parseFloat(getComputedStyle(document.querySelector("main") ?? document.body).getPropertyValue("--CONTROL-H"));
     return {
       panel: true,
-      inCard: card.contains(panel),
-      topLayer: panel.matches(":popover-open"),
       cardControl: Number.parseFloat(getComputedStyle(card).getPropertyValue("--CONTROL-H")),
-      pageControl: page36,
-      cell: days[0]?.getBoundingClientRect().height,
-      overflow: getComputedStyle(card).overflow,
-      reachesPast: (() => {
-        const p = panel.getBoundingClientRect();
-        return p.bottom > clip.bottom + 20 || p.top < clip.top - 20;
-      })(),
-      hitOutside: Boolean(hit && outside && hit.closest("[data-date]") === outside),
       trigger: card.querySelector('button[aria-haspopup="dialog"], button[aria-expanded]')?.getBoundingClientRect().height,
       footer: (() => {
         const p = panel.getBoundingClientRect();
@@ -159,16 +136,12 @@ async (page) => {
   });
   if (!popup.panel) fail.push("popup: no dialog inside the card after pressing the trigger");
   else {
-    if (!popup.inCard || !popup.topLayer) fail.push(`popup: in card ${popup.inCard}, top layer ${popup.topLayer}`);
-    if (popup.overflow !== "hidden") fail.push(`popup harness: the card is overflow ${popup.overflow}, expected hidden`);
-    if (!(popup.cardControl === 28 && popup.pageControl === 36 && popup.cell === 28)) fail.push(`popup: day cell ${popup.cell}px, card --CONTROL-H ${popup.cardControl}, page ${popup.pageControl} (expected compact 28 in a 36 page)`);
-    if (!popup.reachesPast || !popup.hitOutside) fail.push(`popup: reaches past the clip ${popup.reachesPast}, a day outside it takes the press ${popup.hitOutside}`);
+    if (popup.cardControl !== 28) fail.push(`popup harness: the card's --CONTROL-H is ${popup.cardControl}px, source predicts the compact 28px`);
     if (popup.trigger !== popup.cardControl) fail.push(`trigger: ${popup.trigger}px tall in the compact card, its --CONTROL-H is ${popup.cardControl}px`);
     const f = popup.footer;
     if (!f.inside || !f.oneRow || !f.clearAtStart || f.heights.some((h) => h !== popup.cardControl)) fail.push(`footer: Clear, Cancel, Apply not laid out on one row inside the panel at --CONTROL-H, Clear first (${JSON.stringify(f)})`);
   }
-  // A DOM click: the press itself was measured above, and a clipped panel must
-  // report its failures rather than time out here.
+  // A DOM click: a clipped panel must report its failures rather than time out here.
   await page.evaluate(() =>
     [...document.querySelectorAll('[data-sc="range-toolbar-card"] [role="dialog"] button')].find((b) => b.textContent === "Last 30 days")?.click(),
   );
@@ -196,29 +169,6 @@ async (page) => {
   if (narrow.months !== 1) fail.push(`375: popup shows ${narrow.months} months, expected 1`);
   await page.keyboard.press("Escape");
 
-  // ── 7. coarse ──────────────────────────────────────────────────────────────
-  await open("dates-calendar", { input: "coarse" });
-  const coarse = await page.evaluate(() => {
-    const section = document.querySelector('[id="dates-calendar"]');
-    const days = [...section.querySelectorAll("[data-date]")].map((d) => d.getBoundingClientRect());
-    const nav = [...section.querySelectorAll('button[aria-label$="month"]')].map((b) => b.getBoundingClientRect());
-    return {
-      dayMin: Math.min(...days.map((r) => Math.min(r.width, r.height))),
-      navMin: Math.min(...nav.map((r) => Math.min(r.width, r.height))),
-      days: days.length,
-      navs: nav.length,
-    };
-  });
-  // Math.min of nothing is Infinity: both lists must hold something before their minimum means anything.
-  if (!(coarse.days > 100 && coarse.navs >= 2 && coarse.dayMin >= 44 && coarse.navMin >= 44)) {
-    fail.push(`coarse: smallest day ${coarse.dayMin}px over ${coarse.days} days, month button ${coarse.navMin}px over ${coarse.navs}`);
-  }
-  await open("dates-daterangepicker", { input: "coarse" });
-  const trigger = await card.getByRole("button", { name: /Time range/ }).boundingBox();
-  if (!(trigger.height >= 44)) fail.push(`coarse: toolbar trigger ${trigger.height}px tall`);
-
-  await page.evaluate((KEY) => localStorage.removeItem(KEY), KEY);
-  await page.setViewportSize({ width: 1280, height: 900 });
   if (fail.length) throw new Error(fail.join("\n"));
-  return `dates ok: cell ${harness.h}px; Oct 30 → ${crossed.at}; range ${picked}; en/de → 2026-10-15; popup cell ${popup.cell}px in card, outside clip hit; 375: ${narrow.months} month, no scroll; coarse day ${coarse.dayMin}px`;
+  return `dates ok: cell ${harness.h}px; Oct 30 → ${crossed.at}; range ${picked}; en/de → 2026-10-15; popup trigger and footer at the card's ${popup.cardControl}px; 375: ${narrow.months} month, no scroll`;
 }

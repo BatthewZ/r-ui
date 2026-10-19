@@ -13,7 +13,16 @@ import tseslint from "typescript-eslint";
  */
 
 /** Node globals the gates use. */
-const NODE = { process: "readonly", console: "readonly", URL: "readonly", fetch: "readonly", setTimeout: "readonly" };
+const NODE = {
+  process: "readonly",
+  console: "readonly",
+  URL: "readonly",
+  fetch: "readonly",
+  setTimeout: "readonly",
+  setInterval: "readonly",
+  clearInterval: "readonly",
+  clearTimeout: "readonly",
+};
 
 /**
  * A browser check is one `async (page) => …` expression run by playwright-cli:
@@ -37,6 +46,7 @@ const BROWSER_CHECK = {
   innerWidth: "readonly",
   innerHeight: "readonly",
   fetch: "readonly",
+  Intl: "readonly",
   Node: "readonly",
   NodeFilter: "readonly",
   HTMLElement: "readonly",
@@ -52,6 +62,20 @@ const BROWSER_CHECK = {
   resetShowcase: "readonly",
   SHOWCASE_VIEW_KEY: "readonly",
   SHOWCASE_VIEWPORT: "readonly",
+  SHOWCASE_BLANK: "readonly",
+  openSection: "readonly",
+  setView: "readonly",
+  settle: "readonly",
+  openPage: "readonly",
+  withClock: "readonly",
+  viewMatrix: "readonly",
+  sweepViews: "readonly",
+  mark: "readonly",
+  // Declared by the runner's wrapper, ahead of the prelude.
+  BROWSER_CHECK_PROFILE: "readonly",
+  BROWSER_CHECK_ROUTE: "readonly",
+  BROWSER_CHECK_SEED: "readonly",
+  BROWSER_CHECK_BUILT: "readonly",
 };
 
 const SCRIPT_RULES = { "no-unreachable": "error", "no-undef": "error", "no-unused-vars": "error" };

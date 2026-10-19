@@ -26,4 +26,4 @@
   and only when focus was in the timeline or lost, so a remote load that lands later does not
   steal focus from somewhere else.
 - **A browser check on the Overview sees every section's console errors.** Scope a component
-  check's error capture to its own component; `overview-matrix` owns the rest.
+  check's error capture to its own component; `sweep-overview` owns the rest.

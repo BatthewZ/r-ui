@@ -30,7 +30,7 @@
   and `(pointer: coarse)` missed a stylesheet that retunes `--ROW-H-*` with no attribute moving
   (a late theme, a consumer override), and the window desynced. A hidden probe of
   `height: var(--ROW-H)` inside the scroll area, under a ResizeObserver, sees every cause,
-  listed or not. Proven by `data-virtualized-rows.js` (step 6).
+  listed or not. Proven by `data-virtualized.js` (step 6).
 - **Shrinking the row height under a scrolled-down window lands the start index past the
   last row** for one render. `useVirtualRows` clamps its start to the last full window and sizes
   the spacers from the clamped indices; unclamped, the top spacer alone outgrew the new list and

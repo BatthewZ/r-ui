@@ -1,0 +1,139 @@
+/* "media" group stylesheet (Image, Lightbox, MasonryGrid). Imported by
+   src/styles.css inside `@layer components`, so a caller's utility (`className`)
+   always beats these rules. Plain rules, tokens only. */
+
+/* ── Image ──────────────────────────────────────────────────────────────────
+   The box is sized before a byte arrives: the file's own ratio (or a ratio
+   utility on the element, which beats this rule), and its width capped at the
+   file's, as a plain `<img width>` would be. The sizes arrive as unitless
+   numbers (`--r-media-image-w`), scaled by the one-pixel unit. */
+.r-media-image {
+  inline-size: calc(var(--r-media-image-w) * 1px);
+  max-inline-size: 100%;
+  aspect-ratio: var(--r-media-image-w) / var(--r-media-image-h);
+}
+
+/* The pictures are placed inside the box, never in a flow: a prose region's
+   `* + img` spacing and image radius (or any page's) would push the picture down
+   its own box or round it apart from it. The box carries the radius. */
+.r-media-image img {
+  margin: 0;
+  border-radius: 0;
+}
+
+/* What fills the box until the picture arrives: the caller's colour (inline), else
+   a quiet ink wash that reads on any surface. The fallback takes the same wash. */
+.r-media-image-placeholder,
+.r-media-image-fallback {
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 6%, transparent);
+}
+
+/* The tiny preview, scaled up: blurred so its pixels never show, and scaled past
+   the box so the blur's soft edge falls outside the clip. */
+.r-media-image-blur {
+  filter: blur(var(--R-SIZE-3));
+  scale: 1.15;
+}
+
+/* The cross-fade. The picture fades in; the placeholder stays under it until it
+   is opaque, then fades out (a `contain` picture's letterbox shows the box
+   again). Both are motion tokens, so reduced motion swaps at once. */
+.r-media-image-picture {
+  opacity: 0;
+  transition: opacity var(--DURATION-SLOW) var(--EASE-STANDARD);
+}
+.r-media-image[data-state="loaded"] > .r-media-image-picture {
+  opacity: 1;
+}
+.r-media-image[data-state="loaded"] > .r-media-image-placeholder {
+  opacity: 0;
+  transition: opacity var(--DURATION-SLOW) var(--EASE-STANDARD) var(--DURATION-SLOW);
+}
+
+/* Forced colours paint the wash as Canvas, so the box would vanish while it
+   loads or after it fails: it draws its edge instead. */
+@media (forced-colors: active) {
+  .r-media-image {
+    outline: var(--BORDER-WIDTH) solid CanvasText;
+    outline-offset: calc(var(--BORDER-WIDTH) * -1);
+  }
+}
+
+/* ── Lightbox ───────────────────────────────────────────────────────────────
+   The viewer is the library's dialog, grown to the viewport less one gutter on
+   each side (a modal dialog is fixed, so the percentages are of the viewport).
+   `dialog.` outranks the dialog's own measure whatever the import order. */
+dialog.r-media-lightbox {
+  inline-size: calc(100% - 2 * var(--R-SIZE-2));
+  block-size: calc(100% - 2 * var(--R-SIZE-2));
+  max-inline-size: none;
+  max-block-size: none;
+}
+
+/* Horizontal moves are the gallery's (a swipe); vertical panning and pinch-zoom
+   stay the browser's. While the page is pinch-zoomed, every pan is the browser's. */
+.r-media-lightbox-stage {
+  touch-action: pan-y pinch-zoom;
+}
+.r-media-lightbox-stage[data-pinched] {
+  touch-action: auto;
+}
+
+/* A thumbnail that opens the viewer: the one quiet wash on hover, over the
+   picture, in the trigger's own corners. */
+.r-media-lightbox-trigger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  transition: background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-media-lightbox-trigger:hover::after {
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+.r-media-lightbox-trigger:active::after {
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 12%, transparent);
+}
+
+/* ── MasonryGrid ────────────────────────────────────────────────────────────
+   The columns are a CSS grid on the grid's own width: as many tracks of at least
+   the floor as fit (capped at `--r-media-masonry-max` by raising the floor to that
+   share of the width), empty ones kept so every column is one width. Until the
+   script has placed the items they are this plain grid, in source order. */
+.r-media-masonry {
+  display: grid;
+  gap: var(--r-media-masonry-gap, var(--R-SIZE-3));
+  align-items: start;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(
+      max(
+        min(100%, var(--r-media-masonry-floor, var(--COLUMN-MD))),
+        calc(
+          (100% - (var(--r-media-masonry-max, 24) - 1) * var(--r-media-masonry-gap, var(--R-SIZE-3))) /
+            var(--r-media-masonry-max, 24)
+        )
+      ),
+      1fr
+    )
+  );
+}
+
+/* Placed: every item in the first row, in its column, offset by the stacks above
+   it (unitless pixels from the script). The row grows to the tallest column. */
+.r-media-masonry[data-placed] > .r-media-masonry-item {
+  grid-row: 1;
+  grid-column: var(--r-media-masonry-column);
+  margin-block-start: calc(var(--r-media-masonry-top) * 1px);
+}
+
+/* On paper the page is cut into pages, and one grid row cannot follow the cuts: the
+   items go back to the plain grid in source order, each kept whole (`avoid-break`). */
+@media print {
+  .r-media-masonry[data-placed] > .r-media-masonry-item {
+    grid-row: auto;
+    grid-column: auto;
+    margin-block-start: 0;
+  }
+}

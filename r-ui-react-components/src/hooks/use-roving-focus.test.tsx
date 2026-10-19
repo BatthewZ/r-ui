@@ -369,9 +369,11 @@ describe("useRovingFocusWithin", () => {
         <Within>
           <button data-testid="a">A</button>
           <button data-testid="b">B</button>
+          <button data-testid="c">C</button>
         </Within>
       </div>,
     );
+    // Three items: with two, "next" and "previous" (wrapping) land on the same one.
     screen.getByTestId("a").focus();
     press("ArrowLeft");
     expect(document.activeElement).toBe(screen.getByTestId("b"));
@@ -412,6 +414,23 @@ describe("useRovingFocusWithin", () => {
     screen.getByTestId("a").focus();
     press("ArrowRight");
     expect(document.activeElement).toBe(screen.getByTestId("c"));
+  });
+
+  it("wraps past a disabled control at the start to the last one", () => {
+    render(
+      <Within>
+        <button data-testid="undo" disabled>
+          Undo
+        </button>
+        <button data-testid="redo" aria-disabled>
+          Redo
+        </button>
+        <button data-testid="save">Save</button>
+      </Within>,
+    );
+    screen.getByTestId("redo").focus();
+    press("ArrowLeft");
+    expect(document.activeElement).toBe(screen.getByTestId("save"));
   });
 
   it("a text input keeps its caret: arrows leave it only from the edge they point past", () => {

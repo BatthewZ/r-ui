@@ -1,17 +1,15 @@
 /**
  * The Dashboard's fake data: seeded, so every load (and every screenshot) is
- * identical, and regenerated per filter (range, region, environment) the way a
- * real query would be. Values are raw numbers; the cards format them through
- * `src/util/format.ts`.
+ * identical, and regenerated per query (time window, regions, environment) the
+ * way a real query would be. Values are raw numbers; the cards format them
+ * through `src/util/format.ts`.
  */
 
 import type { SeriesSlot } from "../../../src/components/data";
 import type { Tone } from "../../../src/components/primitives";
 
-export type Range = "24h" | "7d" | "30d" | "90d";
 export type Env = "production" | "staging";
 
-export const RANGES: readonly Range[] = ["24h", "7d", "30d", "90d"];
 export const REGIONS = ["us-east", "eu-west", "ap-south", "sa-east"] as const;
 export type Region = (typeof REGIONS)[number];
 export const ERROR_KINDS = ["5xx server", "4xx client", "Timeouts"] as const;
@@ -32,12 +30,23 @@ function rng(key: string): () => number {
   };
 }
 
-const RANGE_SHAPE: Record<Range, { points: number; stepHours: number }> = {
-  "24h": { points: 24, stepHours: 1 },
-  "7d": { points: 42, stepHours: 4 },
-  "30d": { points: 30, stepHours: 24 },
-  "90d": { points: 90, stepHours: 24 },
-};
+export const HOUR_MS = 3_600_000;
+export const DAY_MS = 24 * HOUR_MS;
+/** How far back the specimen keeps data: no time filter means all of it. */
+export const RETENTION_DAYS = 90;
+
+/** A query's time window, epoch ms. */
+export interface TimeWindow {
+  start: number;
+  end: number;
+}
+
+/** Hourly up to two days, 4-hourly up to two weeks, daily beyond: 24 to 90 points for the presets. */
+export function windowShape({ start, end }: TimeWindow): { points: number; stepHours: number } {
+  const hours = Math.max(1, (end - start) / HOUR_MS);
+  const stepHours = hours <= 48 ? 1 : hours <= 14 * 24 ? 4 : 24;
+  return { points: Math.max(2, Math.round(hours / stepHours)), stepHours };
+}
 
 const REGION_BASE: Record<Region, number> = { "us-east": 1850, "eu-west": 1320, "ap-south": 880, "sa-east": 410 };
 
@@ -96,7 +105,7 @@ const SERVICES: [string, string, number | null, number | null, number | null, nu
   ["auth", "Identity", 1480, 96, 0.0008, 44, 2900],
   ["billing", "Payments", 212, 310, 0.0034, 52, 12],
   ["checkout", "Payments", 388, 1240, 0.0342, 77, 95],
-  ["search", "Discovery", 940, 912, 0.0062, 68, 40],
+  ["search", "Discovery", 940, 912, 0.0062, 68, 6],
   ["inventory", "Commerce", 610, 188, 0.0012, 39, 5200],
   ["notifications", "Messaging", 455, 230, 0.0027, 33, 800],
   ["media-transcoder", "Media", 64, 640, 0.0044, 91, 260],
@@ -119,6 +128,11 @@ const ENDPOINTS: [string, number][] = [
   ["GET /inventory/:sku", 190],
 ];
 
+/** The services a team owns, in catalogue order. */
+export function servicesOwnedBy(team: string): string[] {
+  return SERVICES.filter(([, owner]) => owner === team).map(([name]) => name);
+}
+
 function statusOf(s: Omit<Service, "status" | "owner" | "name" | "deployedMin">): ServiceStatus {
   if (s.rps === null || s.p95 === null || s.errors === null) return "stale";
   if (s.errors > 0.02) return "critical";
@@ -131,13 +145,16 @@ function statusOf(s: Omit<Service, "status" | "owner" | "name" | "deployedMin">)
 export const NOW = new Date(2026, 9, 15).getTime();
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
-export function generate(range: Range, region: Region | "all", env: Env): DashboardData {
-  const r = rng(`${range}|${env}`);
-  const { points, stepHours } = RANGE_SHAPE[range];
+/** `regions` empty: every region. */
+export function generate(window: TimeWindow, regions: readonly Region[], env: Env): DashboardData {
+  const r = rng(`${window.start}|${window.end}|${env}`);
+  const { points, stepHours } = windowShape(window);
   const envScale = env === "staging" ? 0.06 : 1;
+  const shown: readonly Region[] = regions.length === 0 ? REGIONS : REGIONS.filter((name) => regions.includes(name));
   const totalBase = REGIONS.reduce((sum, name) => sum + REGION_BASE[name], 0);
-  const share = region === "all" ? 1 : REGION_BASE[region] / totalBase;
+  const share = shown.reduce((sum, name) => sum + REGION_BASE[name], 0) / totalBase;
   const daily = stepHours < 24;
+  const times = Array.from({ length: points }, (_, i) => window.end - (points - 1 - i) * stepHours * HOUR_MS);
 
   const allTraffic: Series[] = REGIONS.map((name, ri) => ({
     name,
@@ -151,7 +168,7 @@ export function generate(range: Range, region: Region | "all", env: Env): Dashbo
       return Math.round(REGION_BASE[name] * wave * weekly * trend * (0.94 + r() * 0.12) * envScale);
     }),
   }));
-  const traffic = region === "all" ? allTraffic : allTraffic.filter((s) => s.name === region);
+  const traffic = allTraffic.filter((s) => shown.some((name) => name === s.name));
 
   const errors: Series[] = ERROR_KINDS.map((name, ci) => {
     const base = [38, 120, 11][ci] ?? 0;
@@ -159,8 +176,8 @@ export function generate(range: Range, region: Region | "all", env: Env): Dashbo
       name,
       slot: (ci + 1) as SeriesSlot,
       values: Array.from({ length: points }, (_, i) => {
-        // The open checkout incident: 5xx spike in the last two intervals.
-        const spike = ci === 0 && i >= points - 2 ? 2.8 + r() : 1;
+        // The open checkout incident: a 5xx spike in the two intervals up to now.
+        const spike = ci === 0 && NOW - (times[i] ?? 0) < 2 * stepHours * HOUR_MS ? 2.8 + r() : 1;
         return Math.round(base * stepHours * share * envScale * spike * (0.75 + r() * 0.5));
       }),
     };
@@ -195,11 +212,9 @@ export function generate(range: Range, region: Region | "all", env: Env): Dashbo
     return { name, owner, deployedMin, ...metrics, status: statusOf(metrics) };
   });
 
-  const times = Array.from({ length: points }, (_, i) => NOW - (points - 1 - i) * stepHours * 3_600_000);
-
   // 5xx by weekday × hour: a business-hours hump, quieter weekends, and the
   // checkout incident on Thursday afternoon.
-  const h5 = rng(`heat|${env}|${region}`);
+  const h5 = rng(`heat|${env}|${shown.join(",")}`);
   const heat = WEEKDAYS.map((_, d) =>
     Array.from({ length: 24 }, (__, h) => {
       const busy = Math.max(0.08, Math.sin(((h - 6) / 24) * Math.PI * 2));
@@ -275,6 +290,14 @@ export const SLOS: Slo[] = [
 
 export type DeployStatus = "progress" | "good" | "rolledBack";
 
+/** A staged rollout: hosts updated so far, through canary stages. */
+export interface Rollout {
+  stage: number;
+  stages: number;
+  hosts: number;
+  of: number;
+}
+
 export interface Deploy {
   id: string;
   status: DeployStatus;
@@ -282,13 +305,44 @@ export interface Deploy {
   version: string;
   author: string;
   ageMin: number;
+  /** While `status` is `progress`. */
+  rollout?: Rollout;
 }
 
 export const DEPLOYS: Deploy[] = [
-  { id: "d1", status: "progress", service: "search", version: "4f2a91c", author: "@jt", ageMin: 6 },
+  {
+    id: "d1",
+    status: "progress",
+    service: "search",
+    version: "4f2a91c",
+    author: "@jt",
+    ageMin: 6,
+    rollout: { stage: 3, stages: 5, hosts: 31, of: 50 },
+  },
   { id: "d2", status: "good", service: "billing", version: "v2.14.0", author: "@mia", ageMin: 12 },
   { id: "d3", status: "rolledBack", service: "checkout", version: "v5.3.1", author: "@raf", ageMin: 95 },
   { id: "d4", status: "good", service: "api-gateway", version: "v9.0.2", author: "@devon", ageMin: 180 },
   { id: "d5", status: "good", service: "media-transcoder", version: "a81c02e", author: "@kim", ageMin: 260 },
   { id: "d6", status: "good", service: "webhooks", version: "v1.8.7", author: "@sp", ageMin: 610 },
 ];
+
+export interface Team {
+  onCall: string;
+  channel: string;
+}
+
+/** Who answers for each owning team: what a team's hover card previews. */
+export const TEAMS: Record<string, Team> = {
+  Edge: { onCall: "Devon Hale", channel: "#edge-oncall" },
+  Identity: { onCall: "Priya Nair", channel: "#identity" },
+  Payments: { onCall: "Mia Rossi", channel: "#payments-oncall" },
+  Discovery: { onCall: "Jon Tate", channel: "#discovery" },
+  Commerce: { onCall: "Lena Vogel", channel: "#commerce" },
+  Messaging: { onCall: "Omar Haddad", channel: "#messaging" },
+  Media: { onCall: "Kim Seo-yeon", channel: "#media-pipeline" },
+  Platform: { onCall: "Sam Park", channel: "#platform" },
+  Data: { onCall: "Ama Kofi", channel: "#data-eng" },
+};
+
+/** The maintenance window the dashboard's banner announces: two days after "now". */
+export const MAINTENANCE = { start: NOW + 2 * DAY_MS + 2 * HOUR_MS, end: NOW + 2 * DAY_MS + 3 * HOUR_MS, region: "eu-west" };

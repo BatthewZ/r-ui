@@ -80,6 +80,18 @@ describe("TagInput", () => {
     expect(spoken()).toBe("Added ok-1. 1 tag. “Not OK” may use a–z, 0–9 and dashes.");
   });
 
+  it("refuses a typed tag its validate rejects: kept as the draft, invalid, described by why", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    render(<Labels onValueChange={onValueChange} validate={(tag) => (/^[a-z0-9-]+$/.test(tag) ? null : `“${tag}” may use only a–z, 0–9 and dashes.`)} />);
+    await user.type(input(), "sev2,Not Valid{Enter}");
+    expect(onValueChange.mock.calls).toEqual([[["sev2"]]]);
+    expect(tags()).toEqual(["sev2"]);
+    expect(input()).toHaveValue("Not Valid");
+    expect(input()).toHaveAttribute("aria-invalid", "true");
+    expect(input()).toHaveAccessibleDescription("“Not Valid” may use only a–z, 0–9 and dashes. Comma or Enter adds a label.");
+  });
+
   it("stops at max", async () => {
     const user = userEvent.setup();
     render(<Labels max={1} defaultValue={["a"]} />);

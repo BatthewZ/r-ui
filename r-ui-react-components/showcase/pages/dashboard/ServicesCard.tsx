@@ -1,32 +1,73 @@
-import { BellOff, BookOpen, Copy, MoreHorizontal, RotateCcw, SearchX } from "lucide-react";
-import { useState } from "react";
+import { BellOff, BookOpen, Copy, FileDown, MoreHorizontal, RotateCcw, SearchX } from "lucide-react";
+import { type MouseEvent, useState } from "react";
 
-import { type DataTableColumn, DataTable, EmptyState, Meter } from "../../../src/components/data";
-import { SegmentedControl } from "../../../src/components/form";
-import { Inline } from "../../../src/components/layout";
-import { ContextMenu, DropdownMenu, useToast } from "../../../src/components/overlays";
-import { Button, Card, IconButton, StatusLabel } from "../../../src/components/primitives";
+import { type DataTableColumn, DataTable, DescriptionList, EmptyState, Meter, type RowKey } from "../../../src/components/data";
+import { ProgressBar } from "../../../src/components/feedback";
+import { Inline, Stack } from "../../../src/components/layout";
+import { ContextMenu, DropdownMenu, HoverCard, useToast } from "../../../src/components/overlays";
+import { Button, Card, IconButton, Link, StatusLabel } from "../../../src/components/primitives";
 import { formatNumber, formatPercent } from "../../../src/util/format";
-import { type Service, type ServiceStatus, STATUS } from "./data";
+import { DEPLOYS, INCIDENTS, type Service, type ServiceStatus, servicesOwnedBy, SLOS, STATUS, TEAMS } from "./data";
 import { ago } from "./format";
+import { DeployState, type Placement } from "./SideCards";
+import type { ExportJob } from "./use-export-job";
 
-export type ServiceFilter = "all" | "attention";
+/** A team's on-call and channel, previewed from its name. The link is the way in on touch: the card only previews it. */
+function TeamLink({ team }: { team: string }) {
+  const { toast } = useToast();
+  const info = TEAMS[team];
+  if (!info) return team;
+  const notHere = (event: MouseEvent) => {
+    event.preventDefault();
+    toast({ title: "Team pages are not part of this specimen", description: team });
+  };
+  return (
+    <HoverCard>
+      <HoverCard.Trigger>
+        <Link href={`#team-${team.toLowerCase()}`} onClick={notHere}>
+          {team}
+        </Link>
+      </HoverCard.Trigger>
+      <HoverCard.Content data-dashboard-team={team}>
+        <Stack gap="r4">
+          <p className="font-semibold">{team}</p>
+          <DescriptionList>
+            <DescriptionList.Item term="On call">{info.onCall}</DescriptionList.Item>
+            <DescriptionList.Item term="Channel">
+              <span className="font-mono">{info.channel}</span>
+            </DescriptionList.Item>
+            <DescriptionList.Item term="Services">{servicesOwnedBy(team).join(", ")}</DescriptionList.Item>
+          </DescriptionList>
+          <Button
+            variant="secondary"
+            className="self-start"
+            onClick={() => toast({ title: `Paged ${info.onCall}`, description: `${team} on-call`, tone: "info" })}
+          >
+            Page on-call
+          </Button>
+        </Stack>
+      </HoverCard.Content>
+    </HoverCard>
+  );
+}
 
 const COLUMNS: DataTableColumn<Service>[] = [
   {
     id: "name",
     header: "Service",
+    required: true,
+    // The row's name keeps a short column's width; the selection, expand and actions
+    // columns leave a card-wide table room for less, so Errors and CPU (priority 5)
+    // step out first, and the name never truncates.
+    width: "var(--COLUMN-SM)",
     value: (s) => s.name,
-    title: (s) => `${s.name} · ${s.owner}`,
     cell: (s) => (
-      <>
-        <span className="font-medium" data-service={s.name}>
-          {s.name}
-        </span>{" "}
-        <span className="text-fg-muted">{s.owner}</span>
-      </>
+      <span className="font-medium" data-service={s.name}>
+        {s.name}
+      </span>
     ),
   },
+  { id: "owner", header: "Team", priority: 3, value: (s) => s.owner, cell: (s) => <TeamLink team={s.owner} /> },
   {
     id: "status",
     header: "Status",
@@ -41,7 +82,7 @@ const COLUMNS: DataTableColumn<Service>[] = [
     id: "errors",
     header: "Errors",
     numeric: true,
-    priority: 4,
+    priority: 5,
     value: (s) => s.errors,
     cell: (s) => formatPercent(s.errors, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   },
@@ -49,7 +90,7 @@ const COLUMNS: DataTableColumn<Service>[] = [
     id: "cpu",
     header: "CPU",
     truncate: false,
-    priority: 4,
+    priority: 5,
     value: (s) => s.cpu,
     firstDirection: "desc",
     cell: (s) => (
@@ -74,6 +115,71 @@ const COLUMNS: DataTableColumn<Service>[] = [
     cell: (s) => ago(s.deployedMin),
   },
 ];
+
+/** The deploy age starts hidden (a row's detail has the deploy); the columns menu brings it back. */
+const DEFAULT_COLUMNS: ReadonlySet<string> = new Set(COLUMNS.map((c) => c.id).filter((id) => id !== "deploy"));
+
+/** A row's detail: its deploy (with a rollout's progress), its open incident, its error budget, who has it. */
+function ServiceDetail({ service }: { service: Service }) {
+  const deploy = DEPLOYS.find((d) => d.service === service.name);
+  const incident = INCIDENTS.find((i) => i.service === service.name);
+  const slo = SLOS.find((x) => x.service === service.name);
+  const team = TEAMS[service.owner];
+  const rollout = deploy?.status === "progress" ? deploy.rollout : undefined;
+  return (
+    <Stack gap="r4" className="max-w-measure" data-dashboard-detail={service.name}>
+      {deploy && rollout && (
+        <ProgressBar
+          variant="segmented"
+          value={rollout.stage}
+          max={rollout.stages}
+          label={
+            <>
+              Rollout of <span className="font-mono">{deploy.version}</span>
+            </>
+          }
+          valueText={`Stage ${formatNumber(rollout.stage)} of ${formatNumber(rollout.stages)} · ${formatNumber(rollout.hosts)} of ${formatNumber(rollout.of)} hosts`}
+        />
+      )}
+      <DescriptionList>
+        <DescriptionList.Item term="Owner">
+          {service.owner}
+          {team && ` · on call: ${team.onCall}`}
+        </DescriptionList.Item>
+        <DescriptionList.Item term="Last deploy">
+          {deploy ? (
+            <Inline as="span" gap="r5" rowGap="r6">
+              <span>
+                <span className="font-mono">{deploy.version}</span> by {deploy.author}, {ago(deploy.ageMin)}
+              </span>
+              <DeployState deploy={deploy} />
+            </Inline>
+          ) : (
+            ago(service.deployedMin)
+          )}
+        </DescriptionList.Item>
+        <DescriptionList.Item term="Open incident">
+          {incident ? (
+            <Inline as="span" gap="r5" rowGap="r6">
+              <StatusLabel tone={STATUS[incident.status].tone}>{STATUS[incident.status].label}</StatusLabel>
+              <span>
+                {incident.title}, opened {ago(incident.ageMin)}
+              </span>
+            </Inline>
+          ) : (
+            "None"
+          )}
+        </DescriptionList.Item>
+        {slo && (
+          <DescriptionList.Item term="Error budget">
+            {formatPercent(slo.left / 100, { maximumFractionDigits: 0 })} left of a{" "}
+            {formatPercent(slo.target, { maximumFractionDigits: 2 })} objective
+          </DescriptionList.Item>
+        )}
+      </DescriptionList>
+    </Stack>
+  );
+}
 
 const COUNT_ORDER: ServiceStatus[] = ["good", "warning", "serious", "critical", "stale"];
 
@@ -118,32 +224,51 @@ function RowMenu({ service }: { service: string }) {
   );
 }
 
-export interface ServicesCardProps {
+const services = (n: number) => (n === 1 ? "1 service" : `${formatNumber(n)} services`);
+
+export interface ServicesCardProps extends Placement {
+  /** Every service: the header counts them. */
   services: Service[];
-  query: string;
-  filter: ServiceFilter;
-  onFilterChange: (filter: ServiceFilter) => void;
-  onClear: () => void;
-  id?: string;
-  className?: string;
+  /** The services the filters leave. */
+  rows: Service[];
+  /** The applied search, which the empty state names. */
+  search: string;
+  /** The data is being fetched again. */
+  loading: boolean;
+  /** Removes the filters only this table reads. */
+  onClearFilters: () => void;
+  /** An export under way, and the way to start or cancel one. */
+  exportJob: ExportJob | null;
+  onExport: (count: number) => void;
+  onCancelExport: () => void;
 }
 
 /**
- * Every service, worst first. Columns drop by the TABLE's width (priority), so
- * the same table reads in a wide board and on a phone. Filtering to nothing
- * shows a designed empty state with the way out.
+ * Every service, worst first, ten to a page. Columns drop by the TABLE's
+ * width (priority) and the columns menu chooses among them; headers resize; the
+ * service name stays pinned while the table scrolls sideways. A row opens to
+ * its deploy, incident and error budget; selected rows take bulk actions. The
+ * filters live in the page's FilterBar; filtering to nothing shows a designed
+ * empty state with the way out. An export in progress shows its progress here.
  */
-export function ServicesCard({ services, query, filter, onFilterChange, onClear, id, className }: ServicesCardProps) {
-  const needle = query.trim().toLowerCase();
-  const rows = services.filter(
-    (s) =>
-      (filter === "all" || s.status !== "good") &&
-      (!needle || s.name.includes(needle) || s.owner.toLowerCase().includes(needle)),
-  );
+export function ServicesCard({
+  services: all,
+  rows,
+  search,
+  loading,
+  onClearFilters,
+  exportJob,
+  onExport,
+  onCancelExport,
+  id,
+  className,
+}: ServicesCardProps) {
+  const { toast } = useToast();
   const [menuFor, setMenuFor] = useState<string | null>(null);
-  const counts = COUNT_ORDER.map((status) => ({ status, n: services.filter((s) => s.status === status).length })).filter(
-    (c) => c.n > 0,
-  );
+  const counts = COUNT_ORDER.map((status) => ({ status, n: all.filter((s) => s.status === status).length })).filter((c) => c.n > 0);
+  const needle = search.trim();
+  const bulk = (title: string, keys: ReadonlySet<RowKey>, tone?: "warning") => () =>
+    toast({ title, description: [...keys].join(", "), tone });
 
   return (
     <Card id={id} className={className} data-dashboard-services="">
@@ -158,22 +283,28 @@ export function ServicesCard({ services, query, filter, onFilterChange, onClear,
             ))}
           </Inline>
         </Card.Description>
-        <Card.Actions>
-          <SegmentedControl
-            aria-label="Show services"
-            value={filter}
-            onValueChange={(v) => onFilterChange(v as ServiceFilter)}
-          >
-            <SegmentedControl.Item value="all">All</SegmentedControl.Item>
-            <SegmentedControl.Item value="attention">Needs attention</SegmentedControl.Item>
-          </SegmentedControl>
-        </Card.Actions>
       </Card.Header>
+      {exportJob && (
+        <Card.Body>
+          <Inline gap="r3" wrap={false} align="end" data-dashboard-export="">
+            <ProgressBar
+              className="flex-1"
+              label={`Exporting ${services(exportJob.total)} to CSV`}
+              value={exportJob.done}
+              max={exportJob.total}
+              valueText={`${formatNumber(exportJob.done)} of ${formatNumber(exportJob.total)}`}
+            />
+            <Button variant="ghost" onClick={onCancelExport}>
+              Cancel export
+            </Button>
+          </Inline>
+        </Card.Body>
+      )}
       <ContextMenu>
         <ContextMenu.Trigger
           asChild
           // The row under the pointer, or holding focus (its actions button), decides
-          // what the menu acts on; the header and the empty state keep the browser's menu.
+          // what the menu acts on; the header, detail rows and the empty state keep the browser's menu.
           onBeforeOpen={(target) => {
             const service = target.closest("tbody tr")?.querySelector<HTMLElement>("[data-service]")?.dataset.service;
             if (!service) return false;
@@ -187,18 +318,43 @@ export function ServicesCard({ services, query, filter, onFilterChange, onClear,
               columns={COLUMNS}
               rows={rows}
               getRowKey={(s) => s.name}
+              getRowLabel={(s) => `Select ${s.name}`}
               defaultSort={{ column: "status", direction: "desc" }}
+              loading={loading}
               rowActions={(s) => <RowMenu service={s.name} />}
+              renderDetail={(s) => <ServiceDetail service={s} />}
+              columnsMenu
+              defaultVisibleColumns={DEFAULT_COLUMNS}
+              resizableColumns
+              stickyColumns={1}
+              selectable
+              bulkActions={(keys) => (
+                <>
+                  <Button variant="secondary" iconStart={<FileDown />} onClick={() => onExport(keys.size)}>
+                    Export
+                  </Button>
+                  <Button variant="ghost" iconStart={<BellOff />} onClick={bulk("Alerts silenced for an hour", keys)}>
+                    Silence alerts
+                  </Button>
+                  <Button variant="danger" iconStart={<RotateCcw />} onClick={bulk("Restart requested", keys, "warning")}>
+                    Restart
+                  </Button>
+                </>
+              )}
+              defaultPageSize={10}
+              pageSizeOptions={[5, 10, 25]}
               empty={
                 <EmptyState
                   icon={<SearchX />}
-                  title={needle ? `No services match “${query.trim()}”` : "Every service is healthy"}
+                  title={needle ? `No services match “${needle}”` : "No services match these filters"}
                   description={
-                    needle ? "Search looks at service names and owning teams." : "Nothing needs attention in this range."
+                    needle
+                      ? "Search looks at service names and owning teams; status and latency filters apply too."
+                      : "Status and latency filters narrow this table; time and region still apply."
                   }
                   actions={
-                    <Button variant="secondary" onClick={onClear}>
-                      {needle ? "Clear search" : "Show all services"}
+                    <Button variant="secondary" onClick={onClearFilters}>
+                      Clear filters
                     </Button>
                   }
                 />

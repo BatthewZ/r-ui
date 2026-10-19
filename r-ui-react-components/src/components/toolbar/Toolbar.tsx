@@ -58,7 +58,10 @@ export type ToolbarProps = Omit<ComponentPropsWithRef<"div">, "role" | "aria-lab
     /**
      * Horizontal only: when the toolbar's own width cannot hold every item, the
      * trailing ones that have a menu form move, in order, into a "More" menu at
-     * the end. The toolbar then takes its container's width (`w-full min-w-0`).
+     * the end. The toolbar then takes its container's width (`w-full`) and
+     * never shrinks below what cannot move (its pinned units and "More"), so a
+     * sibling that grows (a title beside it) cannot squeeze it to nothing; a
+     * `min-w-*` utility overrides.
      * @default true
      */
     overflow?: boolean;
@@ -133,13 +136,20 @@ function ToolbarRoot({
       const more = [...root.children].find((el) => el.hasAttribute("data-toolbar-more"));
       const style = getComputedStyle(root);
       const px = (value: string) => Number.parseFloat(value) || 0;
+      const widths = unitElements.map((el) => el.getBoundingClientRect().width);
+      const unitKinds = unitElements.map((el) => (el.dataset.kind as UnitKind | undefined) ?? "pinned");
+      const gap = px(style.columnGap);
+      const moreWidth = more?.getBoundingClientRect().width ?? 0;
       plan = planOverflow({
-        widths: unitElements.map((el) => el.getBoundingClientRect().width),
-        kinds: unitElements.map((el) => (el.dataset.kind as UnitKind | undefined) ?? "pinned"),
+        widths,
+        kinds: unitKinds,
         available: root.clientWidth - px(style.paddingInlineStart) - px(style.paddingInlineEnd),
-        gap: px(style.columnGap),
-        moreWidth: more?.getBoundingClientRect().width ?? 0,
+        gap,
+        moreWidth,
       });
+      // The narrowest the bar can be: what never leaves it (pinned units) beside More.
+      const floor = widths.reduce((sum, width, i) => (unitKinds[i] === "pinned" ? sum + width + gap : sum), moreWidth);
+      root.style.setProperty("--r-toolbar-floor", `${floor + px(style.paddingInlineStart) + px(style.paddingInlineEnd)}px`);
     }
     const previous = hiddenRef.current;
     if (sameList(previous, plan)) return;
@@ -193,11 +203,12 @@ function ToolbarRoot({
           role="toolbar"
           aria-orientation={orientation}
           data-orientation={orientation}
+          data-overflow={canOverflow ? "" : undefined}
           className={cn(
             "r-toolbar-root",
             SPACED_CLASSES,
             orientation === "vertical" ? "inline-flex flex-col" : "flex",
-            canOverflow && "w-full min-w-0",
+            canOverflow && "w-full",
             className,
           )}
           onKeyDown={composeEventHandlers(onKeyDown, roving.onKeyDown)}

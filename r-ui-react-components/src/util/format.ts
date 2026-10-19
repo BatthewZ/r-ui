@@ -187,6 +187,7 @@ function withLocaleFallback<F>(locale: Locales, make: (locale: string[] | undefi
 
 const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
 const relativeTimeFormats = new Map<string, Intl.RelativeTimeFormat>();
+const listFormats = new Map<string, Intl.ListFormat>();
 
 /**
  * One shared `Intl.DateTimeFormat` per locale + options: building one costs far
@@ -207,5 +208,12 @@ export function relativeTimeFormatter(
 ): Intl.RelativeTimeFormat {
   return cached(relativeTimeFormats, JSON.stringify([locale ?? null, options]), () =>
     withLocaleFallback(locale, (tags) => new Intl.RelativeTimeFormat(tags, options)),
+  );
+}
+
+/** `dateTimeFormatter`'s counterpart for `Intl.ListFormat` ("A, B and C"). */
+export function listFormatter(locale: Locales, options: Intl.ListFormatOptions = {}): Intl.ListFormat {
+  return cached(listFormats, JSON.stringify([locale ?? null, options]), () =>
+    withLocaleFallback(locale, (tags) => new Intl.ListFormat(tags, options)),
   );
 }

@@ -1,3 +1,7 @@
+// @covers   form/useForm, form/ErrorSummary, form/FormActions, layout/ScrollPanel
+// @sections form-useform form-formactions
+// @tier     component
+//
 // Browser check: useForm's submit path in a real browser, on the "Create alert
 // rule" demo (showcase/sections/form/UseForm.tsx).
 //
@@ -13,7 +17,7 @@
 //      an error summary (role alert) lists every error in page order;
 //   3. a summary link (real click) focuses its field and leaves it on screen,
 //      not under the sticky action row;
-//   4. fixing a field clears its error and takes it off the summary;
+//   4. fixing a field clears its error and the summary lists one error fewer;
 //   5. the async name check shows its pending state (spinner status + hint),
 //      then its answer ("cpu-high" is taken);
 //   6. a server rejection by path lands on that field (a condition's threshold)
@@ -23,23 +27,18 @@
 //      scrolls, the footer (the actions) sits outside it on the panel's bottom
 //      edge at both ends of the scroll, the body ends where the footer begins;
 //      a narrow container stacks the actions;
-//   8. at 375 wide, compact density and coarse input (a dark theme): controls
-//      are their `--CONTROL-H` (raised to the 44px floor), nothing scrolls
-//      sideways, the actions stack full-width with the primary on top, and the
+//   8. at 375 wide, compact density and coarse input (a dark theme): nothing
+//      scrolls sideways (the controls at their 44px `--CONTROL-H` are
+//      sweep-overview's geometry sweep), the actions stack full-width with the primary on top, and the
 //      submit / focus / summary path still works;
 //   9. forced colors: the summary keeps an edge (a border) and its glyph, so
 //      it does not rely on its tinted background.
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
   const { errors, stop: stopErrors } = collectErrors(page);
 
   const open = async (view, width) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/overview/form-useform`);
-    await page.evaluate((v) => localStorage.setItem("r-ui-showcase:view", JSON.stringify(v)), view);
-    await page.reload();
-    await waitForShowcase(page);
+    await openSection(page, "form-useform", { width, view });
     const form = page.locator('[data-sc="form-state-form"]');
     await form.waitFor();
     await form.scrollIntoViewIfNeeded();
@@ -76,7 +75,8 @@ async (page) => {
 
   try {
     // 1. Harness.
-    let form = await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
+    const fineView = { theme: "default", density: "comfortable", input: "fine" };
+    let form = await open(fineView, 1280);
     const name = form.getByRole("textbox", { name: "Rule name" });
     const fit = await name.evaluate((el) => {
       const frame = el.closest(".r-form-frame");
@@ -152,8 +152,7 @@ async (page) => {
     });
     if (stickyRow.position !== "sticky" || stickyRow.bottom !== "0px" || stickyRow.z !== stickyRow.layer)
       fail.push(`sticky: the long form's row is not sticky at the bottom, at the sticky layer ${JSON.stringify(stickyRow)}`);
-    await page.goto(`${base}#/overview/form-formactions`);
-    await waitForShowcase(page);
+    await openSection(page, "form-formactions", { view: fineView });
     const panelBox = page.locator('[data-sc="form-actions-panel"]');
     await panelBox.waitFor();
     await panelBox.scrollIntoViewIfNeeded();
@@ -196,12 +195,9 @@ async (page) => {
     // 8. 375 · compact · coarse · dark.
     form = await open({ theme: await darkTheme(page), density: "compact", input: "coarse" }, 375);
     const phone = await form.evaluate((el) => {
-      const frame = el.querySelector(".r-form-frame");
       const row = el.querySelector("[data-sticky] > div");
       const [reset, submit] = [...row.children].map((b) => b.getBoundingClientRect());
       return {
-        h: frame.getBoundingClientRect().height,
-        token: Number.parseFloat(getComputedStyle(frame).getPropertyValue("--CONTROL-H")),
         pageScroll: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         cardScroll: el.scrollWidth - el.clientWidth,
         rowWidth: row.getBoundingClientRect().width,
@@ -209,7 +205,6 @@ async (page) => {
         submit: { top: submit.top, width: submit.width },
       };
     });
-    if (Math.abs(phone.h - phone.token) > 0.5 || phone.h < 44) fail.push(`375: a control is ${phone.h}px, its --CONTROL-H ${phone.token}px (floor 44)`);
     if (phone.pageScroll > 0 || phone.cardScroll > 0) fail.push(`375: sideways scroll (page ${phone.pageScroll}px, card ${phone.cardScroll}px)`);
     if (!(phone.submit.top < phone.reset.top)) fail.push("375: the stacked primary is not on top");
     if (Math.abs(phone.submit.width - phone.rowWidth) > 1 || Math.abs(phone.reset.width - phone.rowWidth) > 1)
@@ -221,7 +216,7 @@ async (page) => {
     if (!(await until(form.getByRole("combobox", { name: "Service" }), isFocused))) fail.push("375: the Service summary link did not focus the select");
 
     // 9. Forced colors: the summary keeps a border and its glyph.
-    await page.emulateMedia({ forcedColors: "active" });
+    await setView(page, { forced: true });
     await page.waitForTimeout(100);
     const forced = await form.getByRole("alert").evaluate((el) => {
       const cs = getComputedStyle(el);
@@ -230,13 +225,10 @@ async (page) => {
     });
     if (forced.style === "none" || !(forced.width > 0) || forced.color === "rgba(0, 0, 0, 0)" || !(forced.glyph > 0))
       fail.push(`forced colors: the summary lost its edge or glyph ${JSON.stringify(forced)}`);
-    await page.emulateMedia({ forcedColors: "none" });
 
     if (errors.length) fail.push(...errors.slice(0, 5));
   } finally {
     stopErrors();
-    await page.emulateMedia({ forcedColors: "none" });
-    await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
   }
 
   if (fail.length) throw new Error(`form-state-submit:\n  ${fail.join("\n  ")}`);

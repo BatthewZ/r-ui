@@ -1,10 +1,14 @@
+// @covers   content/Markdown
+// @sections content-markdown
+// @tier     component
+//
 // Browser check: Markdown with hostile input, in a real browser.
 //
 // Run it through `bun run browser:check content-markdown`, or by hand against a running showcase:
 //   playwright-cli -s=<session> open http://localhost:<port>/
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print content-markdown)"
 //
-// On the Overview's Markdown section (release notes + a hostile document),
+// On the Markdown section (release notes + a hostile document), opened alone,
 // asserts:
 //   1. no href or src in the Markdown section uses a script-capable scheme
 //      (javascript:, vbscript:, data: other than an image), the hostile links
@@ -19,13 +23,11 @@
 //      list's indent (never left of the list's own box) and the item's text
 //      starts where a plain item's text does (box end + the gap = the item's
 //      content edge), so a task list keeps one text column;
-//   4. at 375px, comfortable + coarse and compact + fine: the page never scrolls
-//      sideways and nothing in the section paints past it unless it sits in a
+//   4. at 375px, comfortable + coarse and compact + fine: nothing in the section
+//      paints past it unless it sits in a
 //      scroller (a `hidden` clip loses content, so it is no excuse) (deep quotes and lists, an unbroken word, a 24-column table, a
 //      400-character code line).
 async (page) => {
-  const base = page.url().split("#")[0];
-  const KEY = "r-ui-showcase:view";
   const problems = [];
   const notes = {};
   let dialogs = 0;
@@ -41,11 +43,7 @@ async (page) => {
   page.on("request", onRequest);
 
   const open = async (view, width) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/overview/content-markdown`);
-    await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [KEY, view]);
-    await page.reload();
-    await waitForShowcase(page);
+    await openSection(page, "content-markdown", { view, width });
     await page.locator('[data-testid="markdown-hostile"]').waitFor();
     await page.waitForTimeout(300);
   };
@@ -59,7 +57,7 @@ async (page) => {
       const strip = (u) => [...u].filter((c) => !ignored(c.codePointAt(0))).join("").toLowerCase();
       const bad = [];
       // The Markdown section's own output: the rest of the Overview is other sections (the
-      // marketing demos' art is the app's own SVG, inlined by the dev server as a data: URI).
+      // marketing demos' art is the app's own SVG, which Vite may inline as a data: URI).
       const section = document.getElementById("content-markdown");
       if (!section) bad.push("harness: no #content-markdown section");
       for (const el of section?.querySelectorAll("[href], [src]") ?? []) {
@@ -169,10 +167,9 @@ async (page) => {
           }
           if (!clipped) out.push(`${el.tagName.toLowerCase()} "${el.textContent.trim().slice(0, 30)}" ${Math.round(r.left)}–${Math.round(r.right)} vs ${Math.round(sec.left)}–${Math.round(sec.right)}`);
         }
-        return { out: out.slice(0, 5), count: out.length, page: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+        return { out: out.slice(0, 5), count: out.length };
       });
       const label = `${view.theme}/${view.density}/${view.input}@375`;
-      if (n.page > 0) problems.push(`${label}: the page scrolls sideways by ${n.page}px`);
       for (const o of n.out) problems.push(`${label}: spills: ${o}`);
       if (n.count > n.out.length) problems.push(`${label}: …and ${n.count - n.out.length} more`);
     }
@@ -182,8 +179,6 @@ async (page) => {
   } finally {
     page.off("dialog", onDialog);
     page.off("request", onRequest);
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await page.evaluate((key) => localStorage.removeItem(key), KEY);
   }
 
   if (problems.length) throw new Error(`content-markdown FAILED (${problems.length}):\n  ${problems.join("\n  ")}\n${JSON.stringify(notes)}`);

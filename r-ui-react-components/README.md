@@ -24,16 +24,17 @@ colours, KPI sizing).
 | navigation | `AppShell`, `Tabs`, `Breadcrumbs`, `Pagination`, `NavList`, `TreeView` (lazy, tri-state, windowed), `RouterProvider` |
 | layout | `Stack`, `Inline`, `Grid`, `Container`, `Section`, `Prose`, `ScrollPanel`, `Splitter` |
 | preferences | `ThemeSwitcher`, `DensitySwitcher`, `InputSwitcher`, `PreferencesMenu`, `ThemeScript` |
-| motion | `ScrollReveal`, `Stagger`, `startViewTransition` / `useViewTransition` |
+| motion | `ScrollReveal`, `Stagger`, `startViewTransition` / `useViewTransition`, `Parallax` (CSS only), `CountUp`, `ReadingProgress`, `Spotlight` |
 | disclosure | `Collapsible`, `Accordion` |
 | charts | `LineChart`, `BarChart`, `Heatmap` (hand-rolled SVG, a table behind every chart) |
 | content | `CopyButton`, `CodeBlock`, `Markdown` |
 | dates | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker` (dates, or dates and times with `withTime`), `TimeField`, `TimePicker` |
 | steps | `Stepper`, `Wizard` |
-| marketing | `Hero`, `MediaCard`, `Carousel` |
+| marketing | `Hero`, `MediaCard`, `Carousel`, `SiteHeader` + `NavigationMenu` (mega panels, a drawer when narrow), `Footer`, `LogoCloud` (optional marquee), `Pricing` + `PricingTable`, `Testimonial`, `FeatureGrid`, `FeatureRows`, `HowItWorks`, `CallToAction`, `EmailCapture`, `SectionHeading` |
+| media | `Image` (a box sized before it loads, blur-up), `Lightbox`, `MasonryGrid` |
 | feedback | `ProgressBar`, `ProgressRing`, `Banner`, `ErrorBoundary` (+ `ErrorFallback`) |
 | toolbar | `Toolbar` (+ `Item`, `Group`, `Separator`), `ToggleGroup` |
-| filters | `FilterBar` (+ `filtersToSearchParams` / `searchParamsToFilters`) |
+| filters | `FilterBar` (+ `filtersToSearchParams` / `searchParamsToFilters`, defaults left out of the URL) |
 | guards | `RequireAuth` |
 | boards | `Kanban` (WIP limits; pointer, touch and keyboard moves) |
 
@@ -231,6 +232,19 @@ const GERMAN: LocaleLabels = {
 - Put the provider outside `ToastProvider` (and anything else that renders components for
   you), so those components sit inside it.
 
+### Tune the domain tokens
+
+A theme may also retune this package's domain tokens by name: a data colour pair
+(`--C-SERIES-3-DARK`), a domain size's per-density values (`--CHART-H-COMPACT`), or
+`--PARALLAX-SHIFT`, how far `Parallax` drifts (`0px` turns it off while reveals keep moving;
+reduced motion and print zero it whatever the theme sets).
+
+```css
+:root[data-theme="midnight"] {
+  --PARALLAX-SHIFT: 2rem;
+}
+```
+
 ### Check your theme
 
 A theme you write gets the same checks the example themes do. The CSS package's scripts
@@ -268,7 +282,7 @@ has a browser check in `scripts/browser/`.
 
 Subpath imports: `@batthewz/r-ui-react-components/components/<group>` (primitives, form,
 overlays, commands, data, navigation, layout, preferences, motion, disclosure, charts, content,
-dates, steps, marketing, feedback, toolbar), `/hooks/<name>` (for example `/hooks/use-floating`,
+dates, steps, marketing, feedback, toolbar, filters, guards, boards, media), `/hooks/<name>` (for example `/hooks/use-floating`,
 `/hooks/use-preferences`) and `/theme-script` (the pre-paint script and preference helpers,
 no React).
 

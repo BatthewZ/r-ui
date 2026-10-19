@@ -126,7 +126,9 @@ function SegmentedControlItem({
 
   return (
     <label
-      className={cn("r-form-segment forced-colors:data-selected:bg-selection", className)}
+      // The frame's padding is inside its `--CONTROL-H`; the hit area reaches over it, so
+      // a press anywhere in the frame above or below a segment picks that segment.
+      className={cn("r-form-segment hit-area forced-colors:data-selected:bg-selection", className)}
       data-selected={selected ? "" : undefined}
       data-disabled={disabled ? "" : undefined}
     >

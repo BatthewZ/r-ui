@@ -1,37 +1,26 @@
-import {
-  Activity,
-  BellOff,
-  Copy,
-  FileDown,
-  FlaskConical,
-  LayoutGrid,
-  Megaphone,
-  MoreHorizontal,
-  RefreshCw,
-  Rocket,
-  ScrollText,
-  Server,
-  Settings,
-  Target,
-  TriangleAlert,
-  Waypoints,
-} from "lucide-react";
-import { type MouseEvent, type ReactNode, useMemo, useState } from "react";
+import { Activity, FlaskConical, LayoutGrid, Megaphone, Rocket, ScrollText, Server, Settings, Target, TriangleAlert, Waypoints } from "lucide-react";
+import { type MouseEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-import { SearchInput, SegmentedControl, Select } from "../../src/components/form";
-import { Grid, Inline, Stack } from "../../src/components/layout";
+import { Banner } from "../../src/components/feedback";
+import { FilterBar, type FilterValues } from "../../src/components/filters";
+import { Grid, Stack } from "../../src/components/layout";
 import { AppShell } from "../../src/components/navigation";
-import { DropdownMenu, useToast } from "../../src/components/overlays";
-import { Avatar, Badge, IconButton } from "../../src/components/primitives";
-import { formatNumber } from "../../src/util/format";
+import { useToast } from "../../src/components/overlays";
+import { Avatar, Link } from "../../src/components/primitives";
+import { dateTimeFormatter, formatNumber } from "../../src/util/format";
+import type { PageProps } from "../shell/App";
 import { href } from "../shell/router";
-import { type Env, generate, INCIDENTS, RANGES, type Range, type Region, REGIONS } from "./dashboard/data";
+import { CardBoundary } from "./dashboard/CardBoundary";
+import { type Env, generate, INCIDENTS, MAINTENANCE } from "./dashboard/data";
+import { CLOCK, FILTERS, fromAnchor, matchService, SERVICE_FILTER_IDS, toAnchor, viewOf } from "./dashboard/filters";
 import { ago } from "./dashboard/format";
 import { DashboardFrame } from "./dashboard/Frame";
+import { HeaderActions } from "./dashboard/HeaderActions";
 import { KpiRow } from "./dashboard/KpiRow";
-import { type ServiceFilter, ServicesCard } from "./dashboard/ServicesCard";
-import { BudgetCard, DeploysCard, EndpointsCard, HeatmapCard, IncidentsCard } from "./dashboard/SideCards";
+import { ServicesCard } from "./dashboard/ServicesCard";
+import { BudgetCard, DeploysCard, EndpointsCard, HeatmapCard, IncidentsCard, type Placement } from "./dashboard/SideCards";
 import { TrafficCard } from "./dashboard/TrafficCard";
+import { useExportJob } from "./dashboard/use-export-job";
 
 type NavId = "overview" | "services" | "incidents" | "deploys" | "slos" | "logs" | "traces" | "settings";
 
@@ -71,23 +60,113 @@ const SHOWCASE = [
 /** A sticky header sits over the top of a scrolled-to card; keep the card clear of it. */
 const SCROLL_MARGIN = "scroll-mt-[calc(var(--CONTROL-H)+var(--R-SIZE-3)*3)]";
 
+/** How long a refresh takes to come back. */
+const REFRESH_MS = 700;
+
+/** Change it when the announcement changes, so a dismissal of an older one does not hide it. */
+const MAINTENANCE_KEY = "kestrel:maintenance:2026-10-17";
+
+const services = (n: number) => (n === 1 ? "1 service" : `${formatNumber(n)} services`);
+
+/**
+ * The view (filters and environment) in the page's hash anchor, both ways:
+ * written with `replaceState` as it changes (no history entry per keystroke),
+ * and read back when the hash moves from outside (back, a pasted link).
+ */
+function useViewInHash(anchor: string | null) {
+  const [values, setValues] = useState<FilterValues>(() => fromAnchor(anchor).values);
+  const [env, setEnv] = useState<Env>(() => fromAnchor(anchor).env);
+  const written = useRef(anchor ?? "");
+
+  useEffect(() => {
+    const next = anchor ?? "";
+    if (next === written.current) return;
+    written.current = next;
+    const read = fromAnchor(anchor);
+    setValues(read.values);
+    setEnv(read.env);
+  }, [anchor]);
+
+  useEffect(() => {
+    const next = toAnchor(values, env);
+    if (next === written.current) return;
+    written.current = next;
+    window.history.replaceState(window.history.state, "", href("dashboard", next || undefined));
+  }, [values, env]);
+
+  return { values, setValues, env, setEnv };
+}
+
 /**
  * The mockup's operations dashboard, rebuilt from library components only:
- * an AppShell (full sidebar / rail / bottom nav by viewport), filters that
- * regenerate seeded data, KPI tiles, traffic as a line chart and stacked error
- * columns, incidents, a services table that drops columns by its own width,
- * meters, a compact card, a 5xx heatmap, and toasts from the header's actions. See `dashboard/Frame.tsx` for why it
- * takes the whole window.
+ * an AppShell (full sidebar / rail / bottom nav by viewport) whose header
+ * holds a Toolbar (environment, actions); a maintenance Banner; a FilterBar
+ * whose time range, regions, status, latency and search regenerate seeded data
+ * and live in the URL; KPI tiles; traffic as a line chart and stacked error
+ * columns; incidents as a Timeline; a services DataTable with detail rows,
+ * columns menu, resizing, a pinned name, bulk actions and pages; meters; a
+ * compact card whose rollout shows its progress; a 5xx heatmap. Each card has
+ * its own ErrorBoundary. See `dashboard/Frame.tsx` for why it takes the whole
+ * window.
  */
-export function Dashboard() {
+export function Dashboard({ anchor }: PageProps) {
   const { toast } = useToast();
-  const [range, setRange] = useState<Range>("7d");
-  const [region, setRegion] = useState<Region | "all">("all");
-  const [env, setEnv] = useState<Env>("production");
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<ServiceFilter>("all");
+  const { values, setValues, env, setEnv } = useViewInHash(anchor);
   const [current, setCurrent] = useState<NavId>("overview");
-  const data = useMemo(() => generate(range, region, env), [range, region, env]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [fresh, setFresh] = useState(false);
+  const refreshTimer = useRef<number | undefined>(undefined);
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  const { time, region } = values;
+  const view = useMemo(() => viewOf({ time, region }), [time, region]);
+  const data = useMemo(() => generate(view.window, view.regions, env), [view, env]);
+  const rows = useMemo(() => data.services.filter((s) => matchService(s, values)), [data, values]);
+  const resetKeys = [values, env];
+
+  const exportJob = useExportJob((total) =>
+    toast({
+      title: "Export ready",
+      description: `${services(total)}, ${view.phrase}.`,
+      tone: "success",
+      action: { label: "Download", onClick: () => toast({ title: "Downloaded services.csv" }) },
+    }),
+  );
+
+  useEffect(() => {
+    const timer = refreshTimer;
+    return () => window.clearTimeout(timer.current);
+  }, []);
+
+  const refresh = () => {
+    window.clearTimeout(refreshTimer.current);
+    setRefreshing(true);
+    refreshTimer.current = window.setTimeout(() => {
+      setRefreshing(false);
+      setFresh(true);
+      toast({ title: "Dashboard refreshed", description: "Every panel reloaded.", tone: "success" });
+    }, REFRESH_MS);
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast({ title: "Link copied", description: `Opens this view: ${view.span}, ${env}.` });
+    } catch {
+      toast({ title: "Couldn't copy the link", description: window.location.href, tone: "warning" });
+    }
+  };
+
+  const mute = () =>
+    toast({
+      title: "Alerts muted for 1 hour",
+      description: "On-call will not be paged for this dashboard.",
+      tone: "warning",
+      action: { label: "Undo", onClick: () => toast({ title: "Alerts unmuted", tone: "success" }) },
+    });
+
+  const clearServiceFilters = () =>
+    setValues((all) => Object.fromEntries(Object.entries(all).filter(([id]) => !SERVICE_FILTER_IDS.includes(id))));
 
   const go = (entry: NavEntry) => (event: MouseEvent) => {
     event.preventDefault();
@@ -111,15 +190,20 @@ export function Dashboard() {
     </AppShell.NavItem>
   );
 
-  const search = (className: string) => (
-    <SearchInput
-      aria-label="Search services"
-      placeholder="Search services or teams"
-      value={query}
-      onValueChange={setQuery}
-      className={className}
-    />
+  /** A card in its own boundary: a fallback takes its place (and its scroll target) if it throws. */
+  const guard = (title: string, placement: Placement, card: (placement: Placement) => ReactNode) => (
+    <CardBoundary title={title} resetKeys={resetKeys} {...placement}>
+      {card(placement)}
+    </CardBoundary>
   );
+
+  const maintenance = dateTimeFormatter(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).formatRange(MAINTENANCE.start, MAINTENANCE.end);
 
   return (
     <DashboardFrame>
@@ -142,127 +226,84 @@ export function Dashboard() {
         </AppShell.Sidebar>
 
         <AppShell.Header>
-          <Inline gap="r4" wrap={false} className="min-w-0 flex-1">
-            <h1 className="truncate text-h2">Platform overview</h1>
-            <Badge className="shrink-0 max-md:hidden">{env}</Badge>
-          </Inline>
-          {search("w-column-md max-md:hidden")}
-          <DropdownMenu placement="bottom-end">
-            <DropdownMenu.Trigger asChild>
-              <IconButton variant="ghost" label="Dashboard actions" icon={<MoreHorizontal />} />
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content>
-              <DropdownMenu.Item
-                icon={<RefreshCw />}
-                onSelect={() => toast({ title: "Dashboard refreshed", description: "Every panel reloaded.", tone: "success" })}
-              >
-                Refresh now
-              </DropdownMenu.Item>
-              <DropdownMenu.Item
-                icon={<Copy />}
-                onSelect={() => toast({ title: "Link copied", description: `Opens this view: ${range}, ${region}, ${env}.` })}
-              >
-                Copy link to this view
-              </DropdownMenu.Item>
-              <DropdownMenu.Item
-                icon={<FileDown />}
-                onSelect={() =>
-                  toast({
-                    title: "Export started",
-                    description: `${formatNumber(data.services.length)} services, ${range}. You will get an email.`,
-                    tone: "info",
-                  })
-                }
-              >
-                Export services as CSV
-              </DropdownMenu.Item>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Item
-                icon={<BellOff />}
-                onSelect={() =>
-                  toast({
-                    title: "Alerts muted for 1 hour",
-                    description: "On-call will not be paged for this dashboard.",
-                    tone: "warning",
-                    action: { label: "Undo", onClick: () => toast({ title: "Alerts unmuted", tone: "success" }) },
-                  })
-                }
-              >
-                Mute alerts for 1 hour
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu>
+          {/* Focus lands here when the banner is dismissed. */}
+          <h1 ref={heading} tabIndex={-1} className="min-w-0 truncate text-h2">
+            Platform overview
+          </h1>
+          <HeaderActions
+            env={env}
+            onEnvChange={setEnv}
+            onRefresh={refresh}
+            onCopyLink={copyLink}
+            onExport={() => exportJob.start(data.services.length)}
+            onMute={mute}
+          />
           <Avatar name="Bea Marsh" alt="Signed in as Bea Marsh" className="shrink-0" />
         </AppShell.Header>
 
         {/* The showcase page already owns <main>; a second main landmark is invalid. */}
         <AppShell.Main as="div">
           <Stack gap="r3" id="dash-top" className={SCROLL_MARGIN}>
-            <Inline as="section" aria-label="Filters" gap="r4" rowGap="r4">
-              <SegmentedControl aria-label="Time range" value={range} onValueChange={(v) => setRange(v as Range)}>
-                {RANGES.map((r) => (
-                  <SegmentedControl.Item key={r} value={r}>
-                    {r}
-                  </SegmentedControl.Item>
-                ))}
-              </SegmentedControl>
-              <Inline gap="r4" wrap={false} className="max-md:w-full">
-                <Select
-                  aria-label="Region"
-                  value={region}
-                  onChange={(e) => setRegion(e.target.value as Region | "all")}
-                  className="w-column-sm max-md:flex-1"
-                >
-                  <option value="all">All regions</option>
-                  {REGIONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </Select>
-                <Select
-                  aria-label="Environment"
-                  value={env}
-                  onChange={(e) => setEnv(e.target.value as Env)}
-                  className="w-column-sm max-md:flex-1"
-                >
-                  <option value="production">Production</option>
-                  <option value="staging">Staging</option>
-                </Select>
-              </Inline>
-              {search("md:hidden")}
-              <span className="ms-auto text-body-3 text-fg-muted">Updated {ago(2)}</span>
-            </Inline>
+            <Banner
+              tone="info"
+              title="Scheduled maintenance"
+              dismissKey={MAINTENANCE_KEY}
+              onDismiss={() => heading.current?.focus()}
+              actions={
+                <Link href="#status" onClick={(event) => event.preventDefault()}>
+                  Status page
+                </Link>
+              }
+              data-dashboard-banner=""
+            >
+              Database failover in {MAINTENANCE.region}, {maintenance}. Writes pause for up to five minutes; reads keep
+              working.
+            </Banner>
 
-            <KpiRow data={data} range={range} />
+            <Stack gap="r5">
+              <FilterBar
+                filters={FILTERS}
+                now={CLOCK}
+                value={values}
+                onValueChange={setValues}
+                resultCount={rows.length}
+                loading={refreshing}
+                labels={{ results: services }}
+                data-dashboard-filters=""
+              />
+              <p className="text-body-3 text-fg-muted">{fresh ? "Updated just now" : `Updated ${ago(2)}`}</p>
+            </Stack>
+
+            {guard("Key metrics", {}, () => <KpiRow data={data} view={view} />)}
 
             <Grid columns={{ base: 1, "@4xl": 3 }} className="items-start">
-              <TrafficCard data={data} range={range} className="@4xl:col-span-2" />
-              <IncidentsCard id="dash-incidents" className={SCROLL_MARGIN} />
+              {guard("Traffic", { className: "@4xl:col-span-2" }, (p) => <TrafficCard data={data} view={view} {...p} />)}
+              {guard("Open incidents", { id: "dash-incidents", className: SCROLL_MARGIN }, (p) => <IncidentsCard {...p} />)}
             </Grid>
 
             <Grid columns={{ base: 1, "@4xl": 3 }} className="items-start">
-              <ServicesCard
-                id="dash-services"
-                className={`${SCROLL_MARGIN} @4xl:col-span-2`}
-                services={data.services}
-                query={query}
-                filter={filter}
-                onFilterChange={setFilter}
-                onClear={() => {
-                  setQuery("");
-                  setFilter("all");
-                }}
-              />
+              {guard("Services", { id: "dash-services", className: `${SCROLL_MARGIN} @4xl:col-span-2` }, (p) => (
+                <ServicesCard
+                  {...p}
+                  services={data.services}
+                  rows={rows}
+                  search={typeof values.q === "string" ? values.q : ""}
+                  loading={refreshing}
+                  onClearFilters={clearServiceFilters}
+                  exportJob={exportJob.job}
+                  onExport={exportJob.start}
+                  onCancelExport={exportJob.cancel}
+                />
+              ))}
               <Grid columns={{ base: 1, "@2xl": 2 }} className="items-start">
-                <BudgetCard id="dash-slos" className={SCROLL_MARGIN} />
-                <DeploysCard id="dash-deploys" className={SCROLL_MARGIN} />
+                {guard("Error budget remaining", { id: "dash-slos", className: SCROLL_MARGIN }, (p) => <BudgetCard {...p} />)}
+                {guard("Recent deploys", { id: "dash-deploys", className: SCROLL_MARGIN }, (p) => <DeploysCard {...p} />)}
               </Grid>
             </Grid>
 
             <Grid columns={{ base: 1, "@4xl": 3 }} className="items-start">
-              <EndpointsCard data={data} className="@4xl:col-span-2" />
-              <HeatmapCard data={data} />
+              {guard("Slowest endpoints", { className: "@4xl:col-span-2" }, (p) => <EndpointsCard data={data} {...p} />)}
+              {guard("5xx errors by hour", {}, (p) => <HeatmapCard data={data} {...p} />)}
             </Grid>
           </Stack>
         </AppShell.Main>

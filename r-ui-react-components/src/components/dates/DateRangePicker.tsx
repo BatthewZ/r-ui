@@ -130,6 +130,12 @@ export interface DateRangePickerProps
   onOpenChange?: (open: boolean) => void;
   /** Quick ranges listed beside the calendar. Default {@link DEFAULT_DATE_RANGE_PRESETS}; `[]` for none. */
   presets?: DateRangePreset[];
+  /**
+   * The instant the presets resolve against, for an app whose "now" is its
+   * data's rather than the device's (a frozen specimen, a replay). Omitted: the
+   * device's clock, read when the panel draws and when a preset is chosen.
+   */
+  now?: Date;
   /** Names, order and week start of the calendar and the typed entry. Defaults to the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
   weekStartsOn?: CalendarCommonProps["weekStartsOn"];
@@ -224,6 +230,7 @@ export function DateRangePicker({
   timeStep,
   hourCycle,
   presets = DEFAULT_DATE_RANGE_PRESETS,
+  now,
   locale: localeProp,
   weekStartsOn,
   months = 2,
@@ -305,8 +312,12 @@ export function DateRangePicker({
           variant="secondary"
           iconStart={<CalendarRange />}
           iconEnd={<ChevronDown />}
+          // Stretched (a form row, a filter bar) it reads as a field: the value at the
+          // start, the chevron at the end. At its own width nothing moves.
+          classNames={{ label: "flex-1 text-start" }}
           className={cn(
-            "min-w-0 flex-1",
+            // `*:flex-1`: the button's content row fills it, so the label can push the chevron out.
+            "min-w-0 flex-1 *:flex-1",
             // Invalid loses its red in forced colors: a doubled edge is the second cue, as on every field.
             field.invalid &&
               "border-status-error hover:border-status-error forced-colors:border-[length:calc(var(--BORDER-WIDTH)*2)]",
@@ -330,7 +341,8 @@ export function DateRangePicker({
             onDraftChange={setDraft}
             presets={presets}
             activePreset={committed?.preset}
-            onPreset={(p) => commit({ ...p.range(new Date(), { withTime }), preset: p.id })}
+            now={now}
+            onPreset={(p) => commit({ ...p.range(now ?? new Date(), { withTime }), preset: p.id })}
             onApply={() => {
               const range = withTime ? timedRange(draft, times) : draft.start && draft.end ? { start: draft.start, end: draft.end } : null;
               if (range) commit(range);
@@ -380,6 +392,7 @@ function RangePanel({
   timeStep,
   hourCycle,
   presets,
+  now: nowProp,
   activePreset,
   onPreset,
   onApply,
@@ -402,6 +415,7 @@ function RangePanel({
   timeStep: number | undefined;
   hourCycle: 12 | 24 | undefined;
   presets: DateRangePreset[];
+  now: Date | undefined;
   activePreset: string | undefined;
   onPreset: (preset: DateRangePreset) => void;
   onApply: () => void;
@@ -436,7 +450,7 @@ function RangePanel({
   const hintId = `${uid}-hint`;
   const errorId = `${uid}-error`;
   const describedBy = error ? errorId : hintId;
-  const now = new Date();
+  const now = nowProp ?? new Date();
 
   return (
     <div className="@container">

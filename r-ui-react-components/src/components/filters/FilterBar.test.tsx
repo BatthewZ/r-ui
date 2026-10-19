@@ -259,4 +259,18 @@ describe("FilterBar: words and states", () => {
     await user.type(screen.getByLabelText("Owner"), "ana");
     expect(chipTexts()).toEqual(["Owner is ana"]);
   });
+  it("a time range shows its placeholder while unapplied, and resolves presets against the bar's `now`", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    // The data's clock (March) is behind the device's; `max` ends there, so only `now` keeps the presets usable.
+    const now = new Date(2026, 2, 20, 12, 0);
+    const time: FilterDefinition = { id: "time", label: "Time", kind: "dateRange", withTime: true, placeholder: "All time", max: now };
+    render(<FilterBar filters={[time]} collapse="never" locale="en-US" now={now} onValueChange={onValueChange} />);
+    const trigger = screen.getByRole("button", { name: /^Time/ });
+    expect(trigger).toHaveTextContent("All time");
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "Last 24 hours" }));
+    const value = onValueChange.mock.lastCall![0] as FilterValues;
+    expect(value.time).toEqual({ start: new Date(2026, 2, 19, 12, 0), end: now, preset: "last-24-hours" });
+  });
 });

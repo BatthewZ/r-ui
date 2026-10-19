@@ -122,6 +122,19 @@ describe("DateRangePicker", () => {
     expect(screen.getByRole("button", { name: "Last 7 days" })).toBeEnabled();
   });
 
+  it("`now` is the clock presets resolve against: enabled and committed from it, not the device's", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+    // The data ends in March; the device's clock (October) is past `max`.
+    const now = day(3, 20);
+    render(
+      <DateRangePicker aria-label="Time range" locale="en-US" now={now} min={day(1, 1)} max={now} onValueChange={onValueChange} />,
+    );
+    await user.click(screen.getByRole("button", { name: /Time range/ }));
+    await user.click(screen.getByRole("button", { name: "Last 7 days" }));
+    expect(asIso(onValueChange.mock.calls[0]![0])).toEqual(["2026-03-14", "2026-03-20", "last-7-days"]);
+  });
+
   it("Clear empties a committed range: null to the caller, the placeholder, an empty submission", async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();

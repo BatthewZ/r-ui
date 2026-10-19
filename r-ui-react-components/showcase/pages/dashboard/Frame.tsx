@@ -1,4 +1,6 @@
-import { type CSSProperties, type ReactNode, useLayoutEffect, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+import { useShowcaseBar } from "../../shell/bars";
 
 /**
  * The window the Dashboard's AppShell owns.
@@ -16,8 +18,8 @@ import { type CSSProperties, type ReactNode, useLayoutEffect, useState } from "r
  * frame prints in the flow (`data-print="flow"`), or only one window of it would.
  */
 export function DashboardFrame({ children }: { children: ReactNode }) {
-  const top = useHeight(".sc-topbar");
-  const bottom = useHeight("[data-showcase-bottomnav]");
+  const top = useShowcaseBar("top");
+  const bottom = useShowcaseBar("bottom");
   const style = {
     insetBlockStart: top,
     insetBlockEnd: bottom,
@@ -28,19 +30,4 @@ export function DashboardFrame({ children }: { children: ReactNode }) {
       {children}
     </div>
   );
-}
-
-/** A showcase bar's live height (it re-derives with density and input; 0 while hidden). */
-function useHeight(selector: string): number {
-  const [height, setHeight] = useState(0);
-  useLayoutEffect(() => {
-    const bar = document.querySelector<HTMLElement>(selector);
-    if (!bar) return;
-    const measure = () => setHeight(bar.getBoundingClientRect().height);
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(bar);
-    return () => observer.disconnect();
-  }, [selector]);
-  return height;
 }

@@ -332,6 +332,7 @@ function TableHeaderCell({
   ...rest
 }: TableHeaderCellProps) {
   const { variant, layout, stickyHeader } = useContext(TableContext);
+  const pinnedHead = useContext(SectionContext) === "head" && stickyHeader;
   const SortIcon = sort === "asc" ? ArrowUp : sort === "desc" ? ArrowDown : ChevronsUpDown;
   return (
     <th
@@ -344,9 +345,10 @@ function TableHeaderCell({
         cellClasses({ variant, layout, numeric, truncate, wrap, priority }),
         "text-start text-body-3 font-semibold text-fg-secondary",
         numeric && "text-end",
-        // An opaque band: a pinned head floats over rows that keep painting.
-        (variant === "boxed" || stickyHeader) && "bg-surface-1",
-        variant === "plain" && stickyHeader && "border-b border-border",
+        // An opaque band: a pinned head floats over rows that keep painting. A body
+        // row header is not in the pinned head and keeps the row's own paint.
+        (variant === "boxed" || pinnedHead) && "bg-surface-1",
+        variant === "plain" && pinnedHead && "border-b border-border",
         className,
       )}
       {...rest}

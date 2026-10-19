@@ -3,14 +3,25 @@ import { Archive, Copy, Download, Pencil, Pin, Share2, Trash2, UserPlus } from "
 import { Field, Input, Select } from "../../../src/components/form";
 import { DropdownMenu, Popover, Tooltip } from "../../../src/components/overlays";
 import { Button, Card } from "../../../src/components/primitives";
+import { FloatingCases } from "./FloatingCases";
 import { TokenReadout } from "./parts";
 
 /**
  * A compact card that clips (`overflow: hidden`) and is barely taller than its
  * controls. Every panel opened from it is longer than the card, so a panel that
- * stayed in the card's box would be visibly cut off.
+ * stayed in the card's box would be visibly cut off. Below it, one more such card
+ * per floating component.
  */
 export function FloatingPanel() {
+  return (
+    <div className="flex min-w-0 flex-col gap-r3">
+      <ClipCard />
+      <FloatingCases />
+    </div>
+  );
+}
+
+function ClipCard() {
   return (
     <Card data-density="compact" data-testid="stress-clip-card" className="overflow-hidden p-r3">
       <div className="flex flex-col gap-r4">

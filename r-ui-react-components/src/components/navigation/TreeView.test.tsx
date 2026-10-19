@@ -87,6 +87,10 @@ describe("TreeView structure", () => {
       />,
     );
     expect(item("docs")).toBeInTheDocument();
+    // The tree owns only its rows: every role outside a row is a treeitem (a status region lives outside the tree).
+    const tree = screen.getByRole("tree");
+    const owned = [...tree.querySelectorAll("[role]")].filter((el) => !el.parentElement?.closest('[role="treeitem"]'));
+    expect(owned.map((el) => el.getAttribute("role"))).toEqual(screen.getAllByRole("treeitem").map(() => "treeitem"));
   });
 });
 
@@ -155,6 +159,19 @@ describe("TreeView keyboard (APG)", () => {
     expect(item("docs")).toHaveAttribute("aria-expanded", "true");
     expect(item("components")).toHaveAttribute("aria-expanded", "false");
     expect(focusedName()).toBe("src");
+  });
+
+  it("* leaves a visible deeper branch closed", async () => {
+    const user = userEvent.setup();
+    render(<TreeView aria-label="Files" items={FILES} defaultExpandedIds={["src"]} />);
+    await focusTree(user);
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
+    expect(focusedName()).toBe("docs");
+    await user.keyboard("*");
+    expect(item("docs")).toHaveAttribute("aria-expanded", "true");
+    expect(item("src")).toHaveAttribute("aria-expanded", "true");
+    expect(item("components")).toHaveAttribute("aria-expanded", "false");
+    expect(focusedName()).toBe("docs");
   });
 
   it("typeahead jumps to the next label that starts with the typed text; a repeated letter cycles", async () => {
@@ -306,7 +323,15 @@ describe("TreeView lazy children", () => {
     expect(loadChildren).toHaveBeenCalledTimes(1);
     expect(loadChildren).toHaveBeenCalledWith("r");
     expect(item("Remote")).toHaveAttribute("aria-busy", "true");
-    expect(document.querySelector("[data-tree-loading]")).toHaveTextContent("Loading…");
+    const loading = document.querySelector<HTMLElement>("[data-tree-loading]");
+    expect(loading).toHaveTextContent("Loading…");
+    // A stand-in, never a row: no role, no tab stop, one level in, and the arrows pass it by.
+    expect(loading).not.toHaveAttribute("role");
+    expect(loading).not.toHaveAttribute("tabindex");
+    expect(loading?.style.getPropertyValue("--r-navigation-tree-depth")).toBe("1");
+    expect(screen.getAllByRole("treeitem")).toEqual([item("Remote")]);
+    await user.keyboard("{ArrowDown}");
+    expect(document.activeElement).toBe(item("Remote"));
     expect(screen.getByRole("status")).toHaveTextContent("Loading…");
     await act(async () => pending.resolve([{ id: "r1", label: "First" }, { id: "r2", label: "Second" }]));
     expect(names()).toEqual(["Remote", "First", "Second"]);
@@ -316,6 +341,20 @@ describe("TreeView lazy children", () => {
     // Closing and reopening uses what was loaded.
     await user.keyboard("{ArrowLeft}{ArrowRight}");
     expect(loadChildren).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(item("Remote"));
+  });
+
+  it("a branch that loads no children becomes a leaf", async () => {
+    const user = userEvent.setup();
+    const pending = deferred();
+    render(<TreeView aria-label="Remote" items={[{ id: "r", label: "Remote", hasChildren: true }]} loadChildren={() => pending.promise} />);
+    await user.tab();
+    await user.keyboard("{ArrowRight}");
+    expect(item("Remote")).toHaveAttribute("aria-expanded", "true");
+    await act(async () => pending.resolve([]));
+    expect(item("Remote")).not.toHaveAttribute("aria-expanded");
+    expect(document.querySelector("[data-tree-loading]")).toBeNull();
+    expect(names()).toEqual(["Remote"]);
     expect(document.activeElement).toBe(item("Remote"));
   });
 
@@ -449,6 +488,42 @@ describe("TreeView actions", () => {
     await user.click(within(item("docs")).getByRole("button"));
     expect(onDelete).toHaveBeenCalledExactlyOnceWith("docs");
     expect(item("docs")).toHaveAttribute("aria-selected", "false");
+  });
+});
+
+describe("TreeView Tab order", () => {
+  it("Tab enters on the tab-stop row, then reaches that row's own actions, then leaves the tree", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">Before</button>
+        <TreeView
+          aria-label="Files"
+          items={FILES}
+          defaultExpandedIds={["src"]}
+          renderActions={(node, { tabIndex }) => (
+            <>
+              <button type="button" tabIndex={tabIndex}>
+                Rename {String(node.label)}
+              </button>
+              <button type="button" tabIndex={tabIndex}>
+                Delete {String(node.label)}
+              </button>
+            </>
+          )}
+        />
+        <button type="button">After</button>
+      </>,
+    );
+    await user.click(screen.getByRole("button", { name: "Before" }));
+    await user.tab();
+    expect(document.activeElement).toBe(item("src"));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Rename src" }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Delete src" }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "After" }));
   });
 });
 

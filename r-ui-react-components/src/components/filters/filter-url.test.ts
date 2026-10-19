@@ -131,3 +131,29 @@ describe("searchParamsToFilters", () => {
     expect(searchParamsToFilters("owner=BOB&plain=y", custom)).toEqual({ owner: "bob" });
   });
 });
+
+describe("defaults", () => {
+  const sevenDays = { start: new Date(2026, 9, 9, 14, 30), end: NOW, preset: "last-7-days" };
+  const DEFAULTS: FilterValues = { time: sevenDays, region: ["eu-west"] };
+
+  it("the default view is the bare URL; only what differs is written, a removed default as an empty parameter", () => {
+    expect(filtersToSearchParams(DEFAULTS, FILTERS, { defaults: DEFAULTS }).toString()).toBe("");
+    // A preset is compared by its id, so a later resolution of the same preset is still the default.
+    const later = { ...sevenDays, start: new Date(2026, 9, 10), end: new Date(2026, 9, 17) };
+    expect(filtersToSearchParams({ ...DEFAULTS, time: later }, FILTERS, { defaults: DEFAULTS }).toString()).toBe("");
+    expect(filtersToSearchParams({ region: ["eu-west"], q: "api" }, FILTERS, { defaults: DEFAULTS }).toString()).toBe("time=&q=api");
+    expect(filtersToSearchParams({ time: sevenDays, region: ["us-east"] }, FILTERS, { defaults: DEFAULTS }).toString()).toBe(
+      "region=us-east",
+    );
+  });
+
+  it("reads a missing parameter as its default and an empty one as no filter, round trip", () => {
+    expect(searchParamsToFilters("", FILTERS, { defaults: DEFAULTS, now: NOW })).toEqual(DEFAULTS);
+    expect(searchParamsToFilters("time=&q=api", FILTERS, { defaults: DEFAULTS, now: NOW })).toEqual({ region: ["eu-west"], q: "api" });
+    const view: FilterValues = { region: ["us-east"], status: ["down"] };
+    const url = filtersToSearchParams(view, FILTERS, { defaults: DEFAULTS });
+    expect(searchParamsToFilters(url, FILTERS, { defaults: DEFAULTS, now: NOW })).toEqual(view);
+    // Without defaults an empty parameter is still no filter, and a missing one nothing.
+    expect(searchParamsToFilters("time=", FILTERS, { now: NOW })).toEqual({});
+  });
+});

@@ -1,4 +1,4 @@
-/* "marketing" group stylesheet (Hero, MediaCard, Carousel). Imported by
+/* "marketing" group stylesheet. Imported by
    src/styles.css inside `@layer components`, so a caller's utility (`className`)
    always beats these rules. Plain rules, tokens only. */
 
@@ -30,27 +30,30 @@
   background: color-mix(in oklab, var(--C-TEXT-PRIMARY) 6%, transparent);
 }
 
-/* The stretched link: its ::after covers the card (border included), so a press
-   anywhere on it follows the title's link. Its focus ring is drawn on that box,
-   around the whole card, and the link's own ring is zeroed (`outline: 0 none`:
-   forced colours would revive a bare `none` as a second ring). */
-.r-marketing-media-card-link {
+/* The stretched link (MediaCard, a linked FeatureGrid item): the title's link,
+   whose ::after covers its host (the nearest positioned ancestor), so a press
+   anywhere on the host follows it. By default it covers a bordered host's border
+   too; a host without a border sets `--r-marketing-stretched-inset: 0`, or the
+   hairline past it would reach beyond a grid's edge. Its focus ring is drawn on
+   that box, around the whole host, and the link's own ring is zeroed
+   (`outline: 0 none`: forced colours would revive a bare `none` as a second ring). */
+.r-marketing-stretched-link {
   outline: 0 none;
 }
-.r-marketing-media-card-link::after {
+.r-marketing-stretched-link::after {
   content: "";
   position: absolute;
-  inset: calc(var(--BORDER-WIDTH) * -1);
+  inset: var(--r-marketing-stretched-inset, calc(var(--BORDER-WIDTH) * -1));
   border-radius: var(--RADIUS-LG);
 }
-.r-marketing-media-card-link:focus-visible {
+.r-marketing-stretched-link:focus-visible {
   outline: 0 none;
 }
-.r-marketing-media-card-link:focus-visible::after {
+.r-marketing-stretched-link:focus-visible::after {
   outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
   outline-offset: var(--FOCUS-OFFSET);
 }
-.r-marketing-media-card:hover .r-marketing-media-card-link {
+:is(.r-marketing-media-card, .r-marketing-feature):hover .r-marketing-stretched-link {
   text-decoration-line: underline;
 }
 /* The footer is an icon button tall with or without actions, so meta lines sit at
@@ -87,8 +90,13 @@
   scroll-behavior: smooth;
   padding: var(--r-marketing-carousel-ring);
   scroll-padding-inline: var(--r-marketing-carousel-ring);
-  scrollbar-width: thin;
-  scrollbar-color: var(--C-BORDER-STRONG) transparent;
+  /* Still a native scroller (swipe, trackpad, shift-wheel, arrow keys), but no bar:
+     previous / next, the peek, the status or dots are its affordances. A content
+     scroller with no other affordance keeps its bar. */
+  scrollbar-width: none;
+}
+.r-marketing-carousel-track::-webkit-scrollbar {
+  display: none;
 }
 @media (prefers-reduced-motion: reduce) {
   .r-marketing-carousel-track {
@@ -111,4 +119,421 @@
    at coarse input too; their look is utilities on the element. */
 .r-marketing-carousel-dot {
   margin-inline: calc((var(--HIT-MIN) - var(--R-SIZE-4)) / 2);
+}
+
+/* ── Pricing ────────────────────────────────────────────────────────────────
+   The plan list is capped at its plans' count of `--COLUMN-LG` columns (gaps
+   included) and centred, so two plans keep card proportions on a wide page;
+   the auto-fit floor is Grid's. */
+.r-marketing-pricing-plans {
+  max-inline-size: calc(
+    var(--r-marketing-pricing-count) * var(--COLUMN-LG) + (var(--r-marketing-pricing-count) - 1) * var(--R-SIZE-2)
+  );
+  margin-inline: auto;
+}
+
+/* The comparison table is its own scroller, capped to the viewport's height, so
+   Table's sticky head sticks inside it (a scroller is every sticky's frame, both
+   axes). A caller's `max-h-…` utility wins. */
+.r-marketing-pricing-table {
+  max-block-size: calc(100dvh - 2 * var(--R-SIZE-1));
+}
+
+/* The feature column: pinned to the inline start, at most 40% of the table (the
+   table root is the size container `cqi` reads), ruled off from the values that
+   scroll under it, on an opaque fill: the canvas a marketing section sits on by
+   default (a caller on a band or a card names its surface with
+   --r-marketing-pricing-surface; the head cell's band is a utility and wins), so
+   the row's hover wash is re-drawn here as an image over it. Body cells keep
+   `z-index: auto`: the head (`z-raised`) passes over them while the table
+   scrolls down. */
+.r-marketing-pricing-sticky {
+  position: sticky;
+  background-color: var(--r-marketing-pricing-surface, var(--C-CANVAS));
+  inset-inline-start: 0;
+  inline-size: min(var(--COLUMN-MD), calc(100cqi * 0.4));
+  min-inline-size: min(var(--COLUMN-MD), calc(100cqi * 0.4));
+  border-inline-end: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+tbody > [data-table-row]:hover > .r-marketing-pricing-sticky {
+  background-image: linear-gradient(color-mix(in oklab, var(--C-TEXT-PRIMARY) 5%, transparent) 0 0);
+}
+/* A plan column never narrows past half a short column: the table scrolls instead. */
+.r-marketing-pricing-plan-column {
+  min-inline-size: calc(var(--COLUMN-SM) / 2);
+}
+/* A group's heading spans the table; its words stay in view while it scrolls sideways. */
+.r-marketing-pricing-group > span {
+  display: inline-block;
+  position: sticky;
+  inset-inline-start: var(--R-SIZE-2);
+}
+/* A feature name that explains itself: a dotted underline says "there is more". */
+.r-marketing-pricing-term {
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--C-TEXT-MUTED);
+  text-underline-position: under;
+}
+.r-marketing-pricing-term:hover {
+  text-decoration-color: currentColor;
+}
+@media print {
+  .r-marketing-pricing-sticky {
+    position: static;
+  }
+}
+
+/* ── Testimonial ────────────────────────────────────────────────────────────
+   The quotation marks are the language's own (`quotes: auto` follows `lang`):
+   one opening before the first paragraph, one closing after the last. */
+.r-marketing-testimonial {
+  quotes: auto;
+}
+.r-marketing-testimonial-quote > :first-child::before {
+  content: open-quote;
+}
+.r-marketing-testimonial-quote > :last-child::after {
+  content: close-quote;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────
+   A social link's glyph at the icon size, whatever the caller's icon sets. */
+.r-marketing-footer-social-icon {
+  display: inline-flex;
+}
+.r-marketing-footer-social-icon > svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+
+/* ── LogoCloud ──────────────────────────────────────────────────────────────
+   Logos are display content: `--SECTION-3` tall (fluid, density-independent),
+   monochrome through a filter a theme or caller can retune, and an inline SVG in
+   `currentColor` takes the secondary ink. `:not(svg *)` skips an SVG's own parts.
+   An image logo is a file drawn for a light page: on a dark scheme its default
+   filter also inverts it (`--SCHEME-DARK` is 0 or 1), so dark ink reads light. */
+.r-marketing-logo-cloud-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--C-TEXT-SECONDARY);
+  transition: color var(--DURATION-NORMAL) var(--EASE-STANDARD);
+}
+.r-marketing-logo-cloud-logo :is(img, svg):not(svg *) {
+  display: block;
+  block-size: var(--SECTION-3);
+  inline-size: auto;
+  max-inline-size: calc(var(--SECTION-3) * 5);
+  filter: var(--r-marketing-logo-cloud-filter, grayscale(1));
+  transition: filter var(--DURATION-NORMAL) var(--EASE-STANDARD);
+}
+.r-marketing-logo-cloud-logo img:not(svg *) {
+  filter: var(--r-marketing-logo-cloud-filter, grayscale(1) invert(var(--SCHEME-DARK, 0)));
+}
+/* A logo that links is a target: at least the hit floor tall, its logo centred. */
+.r-marketing-logo-cloud-logo > a {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--HIT-MIN);
+}
+.r-marketing-logo-cloud[data-color-on-hover] .r-marketing-logo-cloud-logo:hover {
+  color: var(--C-TEXT-PRIMARY);
+}
+.r-marketing-logo-cloud[data-color-on-hover] .r-marketing-logo-cloud-logo:hover :is(img, svg):not(svg *) {
+  filter: none;
+}
+
+/* The marquee: the track holds two loops of the set and moves by one (-50% of
+   itself, toward the inline start), so the seam never shows. The viewport clips
+   (no scroller, no scrollbar) and fades over its inline padding, which is also
+   the edge a focused logo is brought inside; its block padding keeps a focus
+   ring unclipped. Each set ends in its gap, so copies abut at one pitch. */
+.r-marketing-logo-cloud-viewport {
+  overflow: clip;
+  padding: calc(var(--FOCUS-WIDTH) + var(--FOCUS-OFFSET)) var(--R-SIZE-1);
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    var(--C-CANVAS) var(--R-SIZE-1),
+    var(--C-CANVAS) calc(100% - var(--R-SIZE-1)),
+    transparent
+  );
+}
+.r-marketing-logo-cloud-track {
+  display: flex;
+  inline-size: max-content;
+  animation: r-marketing-logo-cloud-marquee var(--r-marketing-logo-cloud-duration, 0s) linear infinite;
+}
+.r-marketing-logo-cloud-set {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--SECTION-2);
+  padding-inline-end: var(--SECTION-2);
+}
+/* Held by the toggle, by focus inside the logos, and by a hovering pointer (not
+   the toggle's own hover, so "play" is seen to play). */
+.r-marketing-logo-cloud[data-marquee="paused"] .r-marketing-logo-cloud-track,
+.r-marketing-logo-cloud-viewport:focus-within .r-marketing-logo-cloud-track {
+  animation-play-state: paused;
+}
+@media (hover: hover) {
+  .r-marketing-logo-cloud-viewport:hover .r-marketing-logo-cloud-track {
+    animation-play-state: paused;
+  }
+}
+@keyframes r-marketing-logo-cloud-marquee {
+  to {
+    translate: calc(-50% * var(--MOTION-INLINE-SIGN, 1)) 0;
+  }
+}
+/* Paper: the one set, wrapped and still (the copies are `data-print="hide"`). */
+@media print {
+  .r-marketing-logo-cloud-viewport {
+    overflow: visible;
+    mask-image: none;
+  }
+  .r-marketing-logo-cloud-track {
+    animation: none;
+    inline-size: auto;
+  }
+  .r-marketing-logo-cloud-set {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-inline-end: 0;
+  }
+}
+
+/* ── FeatureGrid ────────────────────────────────────────────────────────────
+   A linked item takes the stretched link above. A plain item has no border for
+   the stretched box to cover, so the box sits on the item. */
+.r-marketing-feature[data-variant="plain"] {
+  --r-marketing-stretched-inset: 0;
+}
+
+/* ── HowItWorks ─────────────────────────────────────────────────────────────
+   One toggle, `--r-marketing-how-h` (0 a column, 1 a row), set on the list by a
+   container variant the step count picks, and every length below blends the two
+   forms with it, so nothing repeats per width. The marker is the steps group's
+   (`r-steps-marker`, sized by `--r-steps-marker` from `r-steps-stepper` on the
+   root). Column: the text beside its marker, a line from under each marker to
+   just above the next. Row: equal columns, the text under its marker, a line
+   from each marker across the gap to just before the next. */
+.r-marketing-how-list {
+  --r-marketing-how-h: 0;
+  --r-marketing-how-v: calc(1 - var(--r-marketing-how-h));
+  --r-marketing-how-gap: var(--R-SIZE-2);
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--r-marketing-how-gap);
+}
+/* A column: each step a whole line (basis 100%). A row: all share one (basis 0), and
+   a step shorter than the row keeps its lines at its top (a stretched wrap would share
+   the spare height between marker and text, so titles would not line up). */
+.r-marketing-how-step {
+  position: relative;
+  display: flex;
+  flex: 1 1 calc(var(--r-marketing-how-v) * 100%);
+  flex-wrap: wrap;
+  align-content: flex-start;
+  min-inline-size: 0;
+  column-gap: var(--R-SIZE-3);
+  row-gap: calc(var(--r-marketing-how-h) * var(--R-SIZE-3));
+  padding-block-end: calc(var(--r-marketing-how-v) * var(--r-marketing-how-gap));
+}
+.r-marketing-how-step:last-child {
+  padding-block-end: 0;
+}
+/* Beside the marker (basis 0, growing) or under it (basis 100%, wrapping). */
+.r-marketing-how-body {
+  flex: 1 1 calc(var(--r-marketing-how-h) * 100%);
+  min-inline-size: 0;
+}
+/* In a column, the title's first line centred on the marker. */
+.r-marketing-how-title {
+  padding-block-start: calc(var(--r-marketing-how-v) * (var(--r-steps-marker) - 1lh) / 2);
+}
+/* Only one edge draws (the inline-start one in a column, the block-start one in
+   a row), so the box's other extent is free. */
+.r-marketing-how-connector {
+  position: absolute;
+  pointer-events: none;
+  border: 0 solid var(--C-BORDER);
+  border-inline-start-width: calc(var(--r-marketing-how-v) * var(--BORDER-WIDTH));
+  border-block-start-width: calc(var(--r-marketing-how-h) * var(--BORDER-WIDTH));
+  inset-block-start: calc(
+    var(--r-marketing-how-v) * (var(--r-steps-marker) + var(--R-SIZE-5)) + var(--r-marketing-how-h) *
+      (var(--r-steps-marker) - var(--BORDER-WIDTH)) / 2
+  );
+  inset-block-end: calc(var(--r-marketing-how-v) * var(--R-SIZE-5));
+  inset-inline-start: calc(
+    var(--r-marketing-how-v) * (var(--r-steps-marker) - var(--BORDER-WIDTH)) / 2 + var(--r-marketing-how-h) *
+      (var(--r-steps-marker) + var(--R-SIZE-5))
+  );
+  inset-inline-end: calc(var(--r-marketing-how-h) * (var(--R-SIZE-5) - var(--r-marketing-how-gap)));
+}
+
+/* ── NavigationMenu ─────────────────────────────────────────────────────────
+   Top-level buttons and links take the quiet wash on hover and while their
+   panel is open (the chevron's turn is the open cue that survives forced
+   colours). The accent bar under a current link, or under the button whose
+   panel holds the current page, is "you are here". */
+@media (hover: hover) {
+  .r-marketing-nav-top:hover {
+    background: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+  }
+}
+.r-marketing-nav-top[aria-expanded="true"] {
+  background: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+.r-marketing-nav-top[aria-current="page"]::after,
+.r-marketing-nav-top[data-current]::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--R-SIZE-4);
+  inset-block-end: 0;
+  block-size: calc(var(--R-SIZE-6) * 0.75);
+  border-radius: var(--RADIUS-FULL);
+  background: var(--C-ACCENT);
+}
+
+/* The bridge: an invisible strip from the panel's edge back to its button,
+   `--r-marketing-nav-bridge` tall (the gap as drawn, set by the component), so
+   the pointer crossing the gap is over the panel and never closes it. It
+   reaches over the panel's own border too. */
+.r-marketing-nav-panel::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  block-size: calc(var(--r-marketing-nav-bridge) + var(--BORDER-WIDTH));
+}
+.r-marketing-nav-panel[data-side="bottom"]::before {
+  inset-block-end: 100%;
+}
+.r-marketing-nav-panel[data-side="top"]::before {
+  inset-block-start: 100%;
+}
+/* A mega panel spans its anchor (the component sets `--r-overlays-measure` to
+   the anchor's width); the shared surface cap still keeps it off the viewport's
+   edges. */
+.r-marketing-nav-panel[data-kind="mega"] {
+  inline-size: var(--r-overlays-measure, var(--MEASURE));
+}
+.r-marketing-nav-columns {
+  display: grid;
+  gap: var(--R-SIZE-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--COLUMN-SM)), 1fr));
+}
+
+/* A link row in a panel or the narrow header's menu: a row tall at least, the
+   label in primary ink over a secondary description. */
+.r-marketing-nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--R-SIZE-4);
+  min-block-size: var(--ROW-H);
+  padding: var(--R-SIZE-5) var(--R-SIZE-4);
+  border-radius: var(--RADIUS-MD);
+  color: var(--C-TEXT-SECONDARY);
+  text-decoration: none;
+  transition: background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+@media (hover: hover) {
+  .r-marketing-nav-link:hover {
+    background: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+  }
+}
+.r-marketing-nav-link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 25%;
+  inline-size: var(--R-SIZE-6);
+  border-radius: var(--RADIUS-FULL);
+  background: var(--C-ACCENT);
+}
+.r-marketing-nav-link-icon {
+  display: inline-flex;
+  flex: none;
+}
+.r-marketing-nav-link-icon > svg {
+  inline-size: var(--ICON);
+  block-size: var(--ICON);
+}
+@media (forced-colors: active) {
+  .r-marketing-nav-top[aria-current="page"]::after,
+  .r-marketing-nav-top[data-current]::after,
+  .r-marketing-nav-link[aria-current="page"]::before {
+    forced-color-adjust: none;
+    background: Highlight;
+  }
+}
+
+/* ── SiteHeader ─────────────────────────────────────────────────────────────
+   The bar's height, readable anywhere: content under a transparent header
+   clears it, and a scroller under a sticky one pads its scroll by it.
+   Re-declared at every density boundary so it re-derives there. */
+:root,
+[data-density] {
+  --r-marketing-site-header-h: calc(var(--CONTROL-H) + 2 * var(--R-SIZE-4));
+}
+.r-marketing-site-header {
+  block-size: var(--r-marketing-site-header-h);
+  background-color: var(--C-CANVAS);
+  border-block-end: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  /* Motion tokens: under reduced motion the slide and the fill change are instant. */
+  transition-property: translate, background-color, border-color;
+  transition-duration: var(--DURATION-NORMAL);
+  transition-timing-function: var(--EASE-STANDARD);
+}
+/* Sticky at the host's offset (`--r-marketing-site-header-top`, a bar the page
+   already sticks there; unset is 0), and hidden past it: its own height plus
+   the offset, so no strip of it shows under that bar. */
+.r-marketing-site-header[data-sticky] {
+  inset-block-start: var(--r-marketing-site-header-top, 0%);
+}
+.r-marketing-site-header[data-hidden] {
+  translate: 0 calc(-100% - var(--r-marketing-site-header-top, 0%));
+}
+/* Takes no room in the flow, so what follows runs under it; no fill or edge
+   until its scroller moves (the edge stays a transparent border, which forced
+   colours still draw). */
+.r-marketing-site-header[data-variant="transparent"] {
+  margin-block-end: calc(var(--r-marketing-site-header-h) * -1);
+}
+.r-marketing-site-header[data-variant="transparent"]:not([data-scrolled]) {
+  background-color: transparent;
+  border-block-end-color: transparent;
+}
+/* The skip link: off screen (still in the accessibility tree) until focused,
+   then a primary chip over the bar on the bypass layer. */
+.r-marketing-site-header-skip {
+  position: absolute;
+  inset-inline-start: var(--R-SIZE-3);
+  inset-block-start: var(--R-SIZE-5);
+  z-index: var(--LAYER-BYPASS);
+  padding: var(--R-SIZE-4) var(--R-SIZE-3);
+  border-radius: var(--RADIUS-MD);
+  background: var(--C-PRIMARY);
+  color: var(--C-TEXT-ON-PRIMARY);
+  font-weight: var(--WEIGHT-MEDIUM);
+  text-decoration: none;
+}
+.r-marketing-site-header-skip:not(:focus) {
+  clip-path: inset(50%);
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+@media (forced-colors: active) {
+  /* A primary fill written as a plain declaration: keep it and its ink. */
+  .r-marketing-site-header-skip {
+    forced-color-adjust: none;
+  }
 }

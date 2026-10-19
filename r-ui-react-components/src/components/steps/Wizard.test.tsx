@@ -165,6 +165,7 @@ describe("Wizard", () => {
     await user.clear(screen.getByRole("textbox", { name: "Email" }));
     await user.click(within(nav).getByRole("button", { name: "Team, Completed" }));
     expect(heading()).toHaveTextContent("Team");
+    expect(heading()).toHaveFocus();
   });
 
   it("waits for a field's async check within the step, busy, and blocks on its answer", async () => {

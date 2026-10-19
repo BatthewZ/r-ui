@@ -1,40 +1,40 @@
+// @covers   charts/LineChart, charts/BarChart, charts/Heatmap
+// @sections charts-linechart charts-barchart charts-heatmap charts-hostiledata
+// @tier     component
+//
 // Browser check: the charts read, respond and stay accessible on every axis.
 //
 // Run it through `bun run browser:check charts`, or by hand against a running showcase:
 //   playwright-cli -s=<session> open http://localhost:<port>/
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print charts-interaction)"
 //
-// Asserts, on the Overview's charts sections:
+// Asserts, on the charts sections opened alone:
 //   1. harness: a vertical chart's plot is exactly the root's --CHART-H-COMFORTABLE at
 //      comfortable, and the compact demo's is --CHART-H-COMPACT (shorter);
 //   2. the default theme and the first dark theme the showcase lists × comfortable /
-//      compact × fine / coarse at 1280 and 375: no console or page error, no tripped
+//      compact × fine / coarse at 1280 and 375 (a fresh load per width and for the
+//      combinations `viewMatrix` rotates in, a live switch for the rest): no console
+//      or page error, no tripped
 //      section; every line chart's plot is exactly the --CHART-H it sits under (so
 //      compact boxes and coarse input included); every axis label in every chart is
-//      at least 10px, inside its chart's box, and never overlaps its neighbour (x labels
+//      at least 10px, inside its chart's width, and never overlaps its neighbour (x labels
 //      side by side, y labels stacked, heatmap hour labels); no chart section scrolls
 //      sideways;
 //   3. hover: the crosshair snaps to the nearest x (within half a step of the pointer),
 //      the tooltip is open in the top layer and lists every series at that x with the
-//      same values as the table's row;
-//   4. keyboard: Home / ArrowRight / End move the crosshair, and the polite status
-//      announces the row's label and every series' value, as the table has them;
-//   5. touch: a tap (pointerType touch) inspects and announces; a press elsewhere clears;
-//   6. every chart has a table in the accessibility tree named like the chart; "Show as
-//      table" shows it visibly in place of the plot; the hostile-data section rendered
-//      its notes (8 of 11 series drawn) and its undrawable chart as a visible table.
+//      same values as the table's row, and a passing pointer announces nothing;
+//   4. the first chart's visually hidden table is in the accessibility tree by the
+//      chart's name, and "Show as table" draws it, visibly, in place of the plot.
+// Keys, the tap, table captions and hostile data (notes, the undrawable chart's table)
+// are charts.test.tsx's.
 async (page) => {
-  const base = page.url().split("#")[0];
-  const KEY = "r-ui-showcase:view";
   const problems = [];
   const { errors, stop: stopErrors } = collectErrors(page);
 
+  // Every charts section: the label, table and scroll claims cover them all.
+  const SECTIONS = ["charts-linechart", "charts-barchart", "charts-heatmap", "charts-hostiledata"];
   const load = async (width, view) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/overview/charts-linechart`);
-    await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [KEY, view]);
-    await page.reload();
-    await waitForShowcase(page);
+    await openSection(page, SECTIONS, { width, view });
     await page.locator("#charts-linechart [data-chart-plot]").first().waitFor();
     // Charts redraw once their box is measured; let the observers settle.
     await page.waitForTimeout(400);
@@ -151,55 +151,7 @@ async (page) => {
     await page.waitForTimeout(150);
     if ((await state()).row !== null) problems.push("pointer left: the crosshair stays");
 
-    // 4: keyboard, announced as the table has it.
-    await plot.focus();
-    const keys = [
-      ["Home", 0],
-      ["ArrowRight", 1],
-      ["End", s0.table.length - 1],
-      ["ArrowLeft", s0.table.length - 2],
-    ];
-    for (const [key, want] of keys) {
-      await page.keyboard.press(key);
-      await page.waitForTimeout(80);
-      const s = await state();
-      if (s.row !== want) problems.push(`${key}: crosshair on row ${s.row}, expected ${want}`);
-      const row = s.table[want] ?? [];
-      const names = await page.evaluate(() =>
-        [...document.querySelector("#charts-linechart figure[data-chart]").querySelectorAll("thead th")].slice(1).map((th) => th.textContent),
-      );
-      const expected = `${row[0]}: ${names.map((n, i) => `${n} ${row[i + 1]}`).join(", ")}`;
-      if (s.status !== expected) problems.push(`${key}: announced "${s.status}", expected "${expected}"`);
-      if (s.tipRows.length !== s.legend) problems.push(`${key}: tooltip lists ${s.tipRows.length} of ${s.legend} series`);
-    }
-    await page.keyboard.press("Escape");
-    if ((await state()).row !== null) problems.push("Escape: the crosshair stays");
-
-    // 5: a tap inspects and announces; a press elsewhere clears.
-    const tapped = await page.evaluate(() => {
-      const el = document.querySelector("#charts-linechart [data-chart-plot]");
-      const r = el.getBoundingClientRect();
-      el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch", clientX: r.left + r.width * 0.5, clientY: r.top + 20 }));
-      return true;
-    });
-    await page.waitForTimeout(100);
-    const afterTap = await state();
-    if (!tapped || afterTap.row === null || !afterTap.status.includes(":")) problems.push(`tap: nothing inspected or announced ("${afterTap.status}")`);
-    await page.evaluate(() => document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })));
-    await page.waitForTimeout(100);
-    if ((await state()).row !== null) problems.push("tap: a press elsewhere did not clear the inspection");
-
-    // 6: the table, for a screen reader and on request.
-    const figures = await page.locator('[id^="charts-"] figure[data-chart]').count();
-    const named = await page.evaluate(() =>
-      [...document.querySelectorAll('[id^="charts-"] figure[data-chart]')].filter((f) => {
-        const name = f.getAttribute("aria-label");
-        const table = f.querySelector("table");
-        return table && table.querySelector("caption")?.textContent === name;
-      }).length,
-    );
-    const empty = await page.locator('[id^="charts-"] [data-chart-empty]').count();
-    if (figures < 10 || named + empty !== figures) problems.push(`${named} of ${figures} charts carry a table named like the chart (${empty} empty)`);
+    // 4: the table, for a screen reader and on request.
     const tableAria = await page.getByRole("table", { name: "Requests per second by region, last 7 days" }).count();
     if (tableAria !== 1) problems.push(`the first chart's table is not in the accessibility tree (${tableAria})`);
     await page.locator("#charts-linechart figure[data-chart]").first().getByRole("button", { name: "Show as table" }).click();
@@ -209,61 +161,54 @@ async (page) => {
       return { state: t.getAttribute("data-chart-table"), height: t.getBoundingClientRect().height, plot: !!f.querySelector("[data-chart-plot]") };
     });
     if (shown.state !== "visible" || shown.height < 40 || shown.plot) problems.push(`Show as table: ${JSON.stringify(shown)}`);
-    const hostile = await page.evaluate(() => {
-      const s = document.querySelector("#charts-hostiledata");
-      return {
-        note: !!s && [...s.querySelectorAll("[data-chart-note]")].some((n) => n.textContent.includes("8 of 11 series drawn")),
-        tables: s ? s.querySelectorAll('[data-chart-table="visible"]').length : 0,
-        empty: s ? s.querySelectorAll("[data-chart-empty]").length : 0,
-      };
-    });
-    if (!hostile.note || hostile.tables < 2 || hostile.empty < 1) problems.push(`hostile data: ${JSON.stringify(hostile)}`);
     for (const e of errors) problems.push(`interactions: ${e}`);
 
-    // 2: the matrix.
+    // 2: the matrix: a fresh load per width and for the combinations `viewMatrix`
+    // rotates in, a live switch for the rest.
     const dark = await darkTheme(page);
-    for (const width of [1280, 375]) {
-      for (const theme of ["default", dark]) {
-        for (const density of ["comfortable", "compact"]) {
-          for (const input of ["fine", "coarse"]) {
-            const label = `${theme}/${density}/${input}@${width}`;
-            errors.length = 0;
-            await load(width, { theme, density, input });
-            combos++;
-            const tripped = await page.locator('[id^="charts-"] [data-section-error]').count();
-            if (tripped) problems.push(`${label}: ${tripped} charts section(s) tripped`);
-            for (const m of await measureLabels()) {
-              if (m.problem) problems.push(`${label}: ${m.problem}`);
-              else labelCount += m.count;
-            }
-            const plots = await page.evaluate(() =>
-              [...document.querySelectorAll("#charts-linechart [data-chart-plot]")].map((plot) => {
-                // --CHART-H as resolved where this plot sits (its own density boundary).
-                const probe = document.createElement("div");
-                probe.style.cssText = "position:absolute;visibility:hidden;block-size:var(--CHART-H)";
-                plot.append(probe);
-                const want = probe.getBoundingClientRect().height;
-                probe.remove();
-                return { name: plot.closest("figure")?.getAttribute("aria-label"), height: plot.getBoundingClientRect().height, want };
-              }),
-            );
-            if (plots.length < 5) problems.push(`${label}: ${plots.length} line-chart plots measured, the section draws 5`);
-            for (const p of plots) {
-              if (!(p.want > 0) || Math.abs(p.height - p.want) > 0.5) problems.push(`${label}: "${p.name}" plot is ${p.height}px, its --CHART-H is ${p.want}px`);
-            }
-            plotCount += plots.length;
-            for (const e of errors) problems.push(`${label}: ${e}`);
+    const sweep = await sweepViews(
+      page,
+      { themes: ["default", dark], widths: [1280, 375] },
+      {
+        load: async ({ width, ...view }) => {
+          errors.length = 0;
+          await load(width, view);
+        },
+        check: async (view, label) => {
+          const tripped = await page.locator('[id^="charts-"] [data-section-error]').count();
+          if (tripped) problems.push(`${label}: ${tripped} charts section(s) tripped`);
+          for (const m of await measureLabels()) {
+            if (m.problem) problems.push(`${label}: ${m.problem}`);
+            else labelCount += m.count;
           }
-        }
-      }
-    }
+          const plots = await page.evaluate(() =>
+            [...document.querySelectorAll("#charts-linechart [data-chart-plot]")].map((plot) => {
+              // --CHART-H as resolved where this plot sits (its own density boundary).
+              const probe = document.createElement("div");
+              probe.style.cssText = "position:absolute;visibility:hidden;block-size:var(--CHART-H)";
+              plot.append(probe);
+              const want = probe.getBoundingClientRect().height;
+              probe.remove();
+              return { name: plot.closest("figure")?.getAttribute("aria-label"), height: plot.getBoundingClientRect().height, want };
+            }),
+          );
+          if (plots.length < 5) problems.push(`${label}: ${plots.length} line-chart plots measured, the section draws 5`);
+          for (const p of plots) {
+            if (!(p.want > 0) || Math.abs(p.height - p.want) > 0.5) problems.push(`${label}: "${p.name}" plot is ${p.height}px, its --CHART-H is ${p.want}px`);
+          }
+          plotCount += plots.length;
+          for (const e of errors) problems.push(`${label}: ${e}`);
+          errors.length = 0;
+        },
+      },
+    );
+    combos = sweep.combos;
+    summary.fresh = sweep.fresh.length;
     if (labelCount < combos * 50) problems.push(`harness: measured only ${labelCount} axis labels over ${combos} combinations`);
   } finally {
     stopErrors();
-    await page.evaluate((key) => localStorage.removeItem(key), KEY);
-    await page.setViewportSize({ width: 1280, height: 900 });
   }
 
   if (problems.length) throw new Error(`charts-interaction FAILED (${problems.length}):\n  ${problems.slice(0, 40).join("\n  ")}`);
-  return `charts-interaction OK (plot ${summary.heights.first}px = --CHART-H, compact ${summary.heights.compactPlot}px; hover snaps and matches the table; keys and tap announce; ${plotCount} plots at their --CHART-H and ${labelCount} axis labels clear of each other over ${combos} combinations)`;
+  return `charts-interaction OK (plot ${summary.heights.first}px = --CHART-H, compact ${summary.heights.compactPlot}px; hover snaps and matches the table; the table reachable and shown on request; ${plotCount} plots at their --CHART-H and ${labelCount} axis labels clear of each other over ${combos} combinations, ${summary.fresh} loaded fresh)`;
 }

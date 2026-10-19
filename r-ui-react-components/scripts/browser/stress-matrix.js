@@ -1,11 +1,17 @@
+// @covers   *
+// @tier     sweep
+// @cost     9
+//
 // Browser check: the Stress page holds on every axis, and its known library
 // bugs still reproduce.
 //
 // For every theme the showcase lists × comfortable / compact × fine / coarse at
-// 1280 and 375 wide, it reloads the Stress page with that View and asserts:
+// 1280 and 375 wide (all 32), it measures the Stress page: a fresh load per width
+// and for the rotating combinations `viewMatrix` picks, a live switch for the rest
+// (as sweep-overview). For each it asserts:
 //   1. harness: --HIT-MIN is 24px on fine and 44px on coarse, and every panel
 //      the source declares (6) rendered with no tripped error boundary;
-//   2. no console error and no uncaught page error during the load;
+//   2. no console error and no uncaught page error during the load or the switch;
 //   3. no horizontal page scroll, no panel's demo box scrolling sideways, and
 //      (stricter than the Overview matrix) no element inside a panel with a child
 //      box or text line reaching past its own edges while it lets it show
@@ -21,108 +27,98 @@
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print stress-matrix)"
 async (page) => {
   const THEMES = (await showcaseThemes(page)).map((t) => t.name);
-  const DENSITIES = ["comfortable", "compact"];
   const INPUTS = { fine: 24, coarse: 44 };
-  const WIDTHS = [1280, 375];
   const PANELS = 6;
   // Empty: every reported case was fixed and now lives in the open, guarded by 3.
   const KNOWN_BUGS = [];
-  const base = page.url().split("#")[0];
 
   const problems = [];
   const { errors, stop: stopErrors } = collectErrors(page);
 
-  let combos = 0;
   let known = null;
+  let sweep;
   try {
-    for (const width of WIDTHS) {
-      await page.setViewportSize({ width, height: 900 });
-      for (const theme of THEMES) {
-        for (const density of DENSITIES) {
-          for (const [input, hitPx] of Object.entries(INPUTS)) {
-            const label = `${theme}/${density}/${input}@${width}`;
-            errors.length = 0;
-            await page.goto(`${base}#/stress`);
-            await page.evaluate((view) => localStorage.setItem("r-ui-showcase:view", JSON.stringify(view)), { theme, density, input });
-            await page.reload();
-            await waitForShowcase(page);
-            await page.locator("[data-stress-panel]").first().waitFor();
-            await page.waitForTimeout(300);
-
-            const m = await page.evaluate(() => {
-              const html = document.documentElement;
-              const css = getComputedStyle(html);
-              const hit = Number.parseFloat(css.getPropertyValue("--HIT-MIN")) * Number.parseFloat(css.fontSize);
-              // Child boxes, not scrollWidth: a `hit-area` pseudo-element is meant to
-              // reach past its control, and it would read as overflow there.
-              const spills = (el) => {
-                if (el.closest("[data-known-bug-box]")) return false;
-                const cs = getComputedStyle(el);
-                if (cs.overflowX !== "visible" || cs.display === "inline" || cs.display === "contents") return false;
-                const box = el.getBoundingClientRect();
-                if (box.width === 0) return false;
-                const range = document.createRange();
-                for (const child of el.childNodes) {
-                  let r;
-                  if (child.nodeType === Node.ELEMENT_NODE) {
-                    const ccs = getComputedStyle(child);
-                    if (ccs.position === "fixed" || ccs.position === "absolute" || child.matches(":popover-open, dialog")) continue;
-                    r = child.getBoundingClientRect();
-                  } else if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
-                    range.selectNodeContents(child);
-                    r = range.getBoundingClientRect();
-                  } else continue;
-                  if (r.width === 0 && r.height === 0) continue;
-                  if (r.right > box.right + 1 || r.left < box.left - 1) return `${Math.round(r.width)} wide in ${Math.round(box.width)}`;
-                }
-                return false;
-              };
-              const describe = (el, why) =>
-                `${el.tagName.toLowerCase()}${el.dataset.testid ? `[${el.dataset.testid}]` : ""}.${String(el.className).split(" ").slice(0, 3).join(".")} "${el.textContent.trim().slice(0, 24)}" (${why})`;
-              const panels = [...document.querySelectorAll("[data-stress-panel]")];
-              return {
-                hit,
-                panels: panels.length,
-                tripped: [...document.querySelectorAll("[data-section-error]")].map((e) => e.getAttribute("data-section-error")),
-                page: [html.scrollWidth, html.clientWidth],
-                demos: panels
-                  .filter((p) => {
-                    const d = p.querySelector(".sc-demo");
-                    return d.scrollWidth > d.clientWidth + 1;
-                  })
-                  .map((p) => p.id),
-                spilling: panels.flatMap((p) =>
-                  [...p.querySelectorAll(".sc-demo *")].flatMap((el) => {
-                    const why = spills(el);
-                    return why ? [`${p.id}: ${describe(el, why)}`] : [];
-                  }),
-                ),
-                known: Object.fromEntries(
-                  [...document.querySelectorAll("[data-known-bug]")].map((k) => {
-                    const box = k.querySelector("[data-known-bug-box]");
-                    return [k.getAttribute("data-known-bug"), box.scrollWidth > box.clientWidth + 1];
-                  }),
-                ),
-              };
-            });
-            combos++;
-            if (m.hit !== hitPx) problems.push(`${label}: harness --HIT-MIN ${m.hit}px, source predicts ${hitPx}px`);
-            if (m.panels !== PANELS) problems.push(`${label}: ${m.panels} panels rendered, the page declares ${PANELS}`);
-            if (m.tripped.length) problems.push(`${label}: error boundary tripped in ${m.tripped.join(", ")}`);
-            if (m.page[0] > m.page[1]) problems.push(`${label}: horizontal page scroll (${m.page[0]} > ${m.page[1]})`);
-            if (m.demos.length) problems.push(`${label}: panel scrolls sideways: ${m.demos.join(", ")}`);
-            for (const s of m.spilling.slice(0, 8)) problems.push(`${label}: content spills: ${s}`);
-            if (m.spilling.length > 8) problems.push(`${label}: …and ${m.spilling.length - 8} more spilling elements`);
-            for (const e of errors) problems.push(`${label}: ${e}`);
-            if (width === 375 && theme === "default" && density === "comfortable" && input === "fine") known = m.known;
-          }
-        }
-      }
-    }
+    sweep = await sweepViews(
+      page,
+      { themes: THEMES, widths: [1280, 375] },
+      {
+        load: async ({ width, ...view }) => {
+          errors.length = 0;
+          await openPage(page, "stress", { view, width });
+        },
+        check: async ({ theme, density, input, width }, label) => {
+          const hitPx = INPUTS[input];
+          const m = await page.evaluate(() => {
+            const html = document.documentElement;
+            const css = getComputedStyle(html);
+            const hit = Number.parseFloat(css.getPropertyValue("--HIT-MIN")) * Number.parseFloat(css.fontSize);
+            // Child boxes, not scrollWidth: a `hit-area` pseudo-element is meant to
+            // reach past its control, and it would read as overflow there.
+            const spills = (el) => {
+              if (el.closest("[data-known-bug-box]")) return false;
+              const cs = getComputedStyle(el);
+              if (cs.overflowX !== "visible" || cs.display === "inline" || cs.display === "contents") return false;
+              const box = el.getBoundingClientRect();
+              if (box.width === 0) return false;
+              const range = document.createRange();
+              for (const child of el.childNodes) {
+                let r;
+                if (child.nodeType === Node.ELEMENT_NODE) {
+                  const ccs = getComputedStyle(child);
+                  if (ccs.position === "fixed" || ccs.position === "absolute" || child.matches(":popover-open, dialog")) continue;
+                  r = child.getBoundingClientRect();
+                } else if (child.nodeType === Node.TEXT_NODE && child.textContent.trim()) {
+                  range.selectNodeContents(child);
+                  r = range.getBoundingClientRect();
+                } else continue;
+                if (r.width === 0 && r.height === 0) continue;
+                if (r.right > box.right + 1 || r.left < box.left - 1) return `${Math.round(r.width)} wide in ${Math.round(box.width)}`;
+              }
+              return false;
+            };
+            const describe = (el, why) =>
+              `${el.tagName.toLowerCase()}${el.dataset.testid ? `[${el.dataset.testid}]` : ""}.${String(el.className).split(" ").slice(0, 3).join(".")} "${el.textContent.trim().slice(0, 24)}" (${why})`;
+            const panels = [...document.querySelectorAll("[data-stress-panel]")];
+            return {
+              hit,
+              panels: panels.length,
+              tripped: [...document.querySelectorAll("[data-section-error]")].map((e) => e.getAttribute("data-section-error")),
+              page: [html.scrollWidth, html.clientWidth],
+              demos: panels
+                .filter((p) => {
+                  const d = p.querySelector(".sc-demo");
+                  return d.scrollWidth > d.clientWidth + 1;
+                })
+                .map((p) => p.id),
+              spilling: panels.flatMap((p) =>
+                [...p.querySelectorAll(".sc-demo *")].flatMap((el) => {
+                  const why = spills(el);
+                  return why ? [`${p.id}: ${describe(el, why)}`] : [];
+                }),
+              ),
+              known: Object.fromEntries(
+                [...document.querySelectorAll("[data-known-bug]")].map((k) => {
+                  const box = k.querySelector("[data-known-bug-box]");
+                  return [k.getAttribute("data-known-bug"), box.scrollWidth > box.clientWidth + 1];
+                }),
+              ),
+            };
+          });
+          if (m.hit !== hitPx) problems.push(`${label}: harness --HIT-MIN ${m.hit}px, source predicts ${hitPx}px`);
+          if (m.panels !== PANELS) problems.push(`${label}: ${m.panels} panels rendered, the page declares ${PANELS}`);
+          if (m.tripped.length) problems.push(`${label}: error boundary tripped in ${m.tripped.join(", ")}`);
+          if (m.page[0] > m.page[1]) problems.push(`${label}: horizontal page scroll (${m.page[0]} > ${m.page[1]})`);
+          if (m.demos.length) problems.push(`${label}: panel scrolls sideways: ${m.demos.join(", ")}`);
+          for (const s of m.spilling.slice(0, 8)) problems.push(`${label}: content spills: ${s}`);
+          if (m.spilling.length > 8) problems.push(`${label}: …and ${m.spilling.length - 8} more spilling elements`);
+          for (const e of errors) problems.push(`${label}: ${e}`);
+          if (width === 375 && theme === "default" && density === "comfortable" && input === "fine") known = m.known;
+          errors.length = 0;
+        },
+      },
+    );
   } finally {
     stopErrors();
-    await page.evaluate(() => localStorage.removeItem("r-ui-showcase:view"));
-    await page.setViewportSize({ width: 1280, height: 900 });
   }
 
   for (const id of KNOWN_BUGS) {
@@ -135,5 +131,5 @@ async (page) => {
 
   if (problems.length) throw new Error(`stress-matrix FAILED (${problems.length}):\n  ${problems.join("\n  ")}`);
   const knownNote = KNOWN_BUGS.length ? `known library bugs still reproduce: ${KNOWN_BUGS.join(", ")}` : "no known library bugs";
-  return `stress-matrix OK (${combos} combinations × ${PANELS} panels; no page or panel overflow, no spilling content, no console error; ${knownNote})`;
+  return `stress-matrix OK (${sweep.combos} combinations × ${PANELS} panels; no page or panel overflow, no spilling content, no console error; ${knownNote}; fresh: ${sweep.fresh.join(", ")})`;
 }

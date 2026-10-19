@@ -6,53 +6,92 @@
 
 export const PRODUCT = "Kiln";
 
-export const NAV = [
-  { anchor: "features", label: "Product" },
-  { anchor: "journal", label: "Journal" },
-  { anchor: "pricing", label: "Pricing" },
-  { anchor: "faq", label: "FAQ" },
-] as const;
+/** The three things the product does, each a row with its illustration (a file under `art/`, decorative). */
+export const ROWS: { eyebrow: string; title: string; body: string; art: "pages" | "readers" | "grid" }[] = [
+  {
+    eyebrow: "Draft",
+    title: "A first draft from the work you already merged.",
+    body: "Kiln reads the titles, descriptions and labels of merged pull requests and writes the note in plain language. Internal refactors stay out, and every line links back to the change behind it.",
+    art: "pages",
+  },
+  {
+    eyebrow: "Sort",
+    title: "Every change, under the heading of the people it affects.",
+    body: "Admins read about billing, permissions and security. Developers get API changes with the old and new shapes side by side. Everyone else learns what is easier today than yesterday.",
+    art: "readers",
+  },
+  {
+    eyebrow: "Review",
+    title: "Nothing reaches a customer until your team says so.",
+    body: "Drafts wait for an approver. Comments sit on the line they are about, and the approval is kept with the release for anyone who asks later.",
+    art: "grid",
+  },
+];
 
-export const CUSTOMERS = ["Halden Labs", "Northpine", "Corvid Health", "Tessellate", "Brightwater Freight", "Marrow & Fig"];
+/** Getting started, in the order it happens. */
+export const STEPS: { title: string; body: string }[] = [
+  {
+    title: "Connect a repository",
+    body: "GitHub or GitLab, cloud or self-managed. Kiln asks for read access to pull requests and nothing else.",
+  },
+  {
+    title: "Merge as you always do",
+    body: "Add an audience label when you remember. Titles alone are enough for a useful draft.",
+  },
+  {
+    title: "Approve and publish",
+    body: "Edit a sentence or two, approve, and the note goes to your docs, your app and your readers' inboxes.",
+  },
+];
 
-export interface Feature {
-  icon: "merge" | "audience" | "edit" | "publish" | "review" | "read";
+export interface Detail {
+  icon: "publish" | "read" | "edit" | "style" | "sso" | "import";
   title: string;
   body: string;
 }
 
-export const FEATURES: Feature[] = [
-  {
-    icon: "merge",
-    title: "Drafts from merged work",
-    body: "Kiln reads the titles, descriptions and labels of merged pull requests and writes a first draft in plain language. Internal refactors stay out.",
-  },
-  {
-    icon: "audience",
-    title: "Sorted by who it affects",
-    body: "Admins, developers and everyday users each see the changes that matter to them, under headings they recognise.",
-  },
-  {
-    icon: "edit",
-    title: "An editor, not a generator",
-    body: "Every sentence is yours to change. Kiln keeps your edits and learns your house style, one release at a time.",
-  },
-  {
-    icon: "publish",
-    title: "Publish everywhere at once",
-    body: "One release goes to your docs, an in-app panel, an RSS feed and an email digest, each formatted for where it lands.",
-  },
-  {
-    icon: "review",
-    title: "Reviewed before it ships",
-    body: "Drafts wait for an approver. Nothing reaches a customer until someone on your team says so.",
-  },
-  {
-    icon: "read",
-    title: "Know what was read",
-    body: "See which notes were opened and which links were followed, without tracking pixels in anyone's inbox.",
-  },
+/** The smaller things, one line each. */
+export const DETAILS: Detail[] = [
+  { icon: "publish", title: "Publish everywhere at once", body: "Docs, an in-app panel, RSS and an email digest, each formatted for where it lands." },
+  { icon: "read", title: "Know what was read", body: "Opens and followed links per audience, without tracking pixels in anyone's inbox." },
+  { icon: "edit", title: "An editor, not a generator", body: "Every sentence is yours to change, and Kiln keeps your edits for the next draft." },
+  { icon: "style", title: "Your house style", body: "Tense, person, dates and numbers, applied to every draft the same way." },
+  { icon: "sso", title: "Single sign-on and audit log", body: "SAML or OIDC for editors, and a year of who changed what." },
+  { icon: "import", title: "Bring your old changelog", body: "Paste its address or upload Markdown. Your history and its links stay." },
 ];
+
+/** Figures for the customers section. `percent` values are ratios. */
+export const STATS: { id: string; value: number; percent?: boolean; label: string }[] = [
+  { id: "teams", value: 1400, label: "product teams publish with Kiln" },
+  { id: "notes", value: 38200, label: "release notes published this year" },
+  { id: "tickets", value: 0.33, percent: true, label: "fewer support tickets in the week after a release" },
+];
+
+/** The regions the footer's switcher offers: each sets the page's locale (numbers, prices, dates). */
+export const REGIONS = [
+  { locale: "en-US", name: "United States" },
+  { locale: "en-GB", name: "United Kingdom" },
+  { locale: "de-DE", name: "Deutschland" },
+  { locale: "fr-FR", name: "France" },
+  { locale: "ja-JP", name: "日本" },
+] as const;
+
+export type Region = (typeof REGIONS)[number]["locale"];
+
+/** A link with an `anchor` goes to that section of this page; the rest go to its top. */
+export const FOOTER_COLUMNS: { title: string; links: { label: string; anchor?: string }[] }[] = [
+  {
+    title: "Product",
+    links: [{ label: "Features", anchor: "features" }, { label: "Pricing", anchor: "pricing" }, { label: "Changelog" }, { label: "Integrations" }],
+  },
+  {
+    title: "Resources",
+    links: [{ label: "Documentation" }, { label: "Journal", anchor: "journal" }, { label: "Questions", anchor: "faq" }, { label: "Status" }],
+  },
+  { title: "Company", links: [{ label: "About" }, { label: "Careers" }, { label: "Security" }, { label: "Contact" }] },
+];
+
+export const LEGAL = ["Privacy", "Terms", "Cookie settings"];
 
 export const SAMPLE_REPOS = [
   { value: "kiln", label: "Kiln's own repository" },
@@ -60,36 +99,6 @@ export const SAMPLE_REPOS = [
   { value: "ios", label: "A sample iOS app" },
   { value: "cli", label: "A sample command-line tool" },
 ] as const;
-
-/** A plan's price per editor per month, in US dollars; 0 is free. */
-export interface Plan {
-  id: "starter" | "team" | "business";
-  name: string;
-  price: number;
-  note: string;
-  recommended?: boolean;
-}
-
-export const PLANS: Plan[] = [
-  { id: "starter", name: "Starter", price: 0, note: "One repository" },
-  { id: "team", name: "Team", price: 12, note: "per editor / month", recommended: true },
-  { id: "business", name: "Business", price: 24, note: "per editor / month" },
-];
-
-/** `true` = included, `false` = not included, a string = included with that limit. */
-export type PlanValue = boolean | string;
-
-export const PLAN_ROWS: { feature: string; values: Record<Plan["id"], PlanValue> }[] = [
-  { feature: "Repositories", values: { starter: "1", team: "No limit", business: "No limit" } },
-  { feature: "Releases", values: { starter: "10 a month", team: "No limit", business: "No limit" } },
-  { feature: "Docs page and RSS", values: { starter: true, team: true, business: true } },
-  { feature: "In-app panel and email", values: { starter: false, team: true, business: true } },
-  { feature: "Approval before publishing", values: { starter: false, team: true, business: true } },
-  { feature: "Reader segments", values: { starter: false, team: "3", business: "No limit" } },
-  { feature: "SSO and SCIM", values: { starter: false, team: false, business: true } },
-  { feature: "Audit log", values: { starter: false, team: false, business: true } },
-  { feature: "Support", values: { starter: "Forum", team: "Email", business: "Named contact" } },
-];
 
 export interface Question {
   q: string;
@@ -129,7 +138,7 @@ export const FAQ: { id: string; label: string; questions: Question[] }[] = [
       },
       {
         q: "Is there a contract?",
-        a: "Pay monthly or yearly. Yearly plans get two months free, and you can switch at any renewal.",
+        a: "Pay monthly or yearly. Paying yearly costs less, and you can switch at any renewal.",
       },
       {
         q: "What happens if we cancel?",
@@ -156,14 +165,6 @@ export const FAQ: { id: string; label: string; questions: Question[] }[] = [
     ],
   },
 ];
-
-export const FOOTER = [
-  { title: "Product", links: ["Features", "Pricing", "Changelog", "Integrations"] },
-  { title: "Resources", links: ["Documentation", "Journal", "Field guide", "Status"] },
-  { title: "Company", links: ["About", "Careers", "Security", "Contact"] },
-];
-
-export const LEGAL = ["Privacy", "Terms", "Cookie settings"];
 
 export interface Post {
   slug: string;

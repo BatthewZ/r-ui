@@ -46,6 +46,10 @@ describe("MultiSelect", () => {
     expect(chipNames()).toEqual(["US East"]);
     expect(input()).toHaveFocus();
     expect(screen.getAllByRole("status").map((s) => s.textContent).join(" ")).toContain("Europe (Frankfurt) removed. 1 selected.");
+    await user.keyboard("{Escape}");
+    expect(input()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(chipNames()).toEqual(["US East"]);
   });
 
   it("Backspace in an empty search removes the last chip, and only then", async () => {

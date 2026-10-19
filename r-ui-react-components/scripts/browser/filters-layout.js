@@ -1,3 +1,7 @@
+// @covers   filters/FilterBar
+// @sections filters-filterbar
+// @tier     component
+//
 // Browser check: FilterBar layout by its own width, the drawer, touch floors and 375.
 //
 // Run it through `bun run browser:check filters-layout`, or by hand against a running showcase:
@@ -5,13 +9,13 @@
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print filters-layout)"
 //
 // jsdom applies no container query, opens no modal in the top layer and has no
-// pointer geometry. On the Overview's FilterBar section it asserts:
+// pointer geometry. On the FilterBar section, opened alone, it asserts:
 //   1. harness: at 1280 the dashboard bar is at least the container 2xl step
 //      (672px) wide and the narrow box's bar is under it, in the same viewport,
 //      so the fold below is the container's doing and not the viewport's;
 //   2. the narrow bar is folded: its Filters button is drawn and says
-//      "Filters (2)", none of its inline controls is drawn, its chips
-//      ("Region: eu-west", "Status: Degraded, Down") and count are;
+//      "Filters (2)", none of its inline controls is drawn, and it still holds its
+//      chips ("Region: eu-west", "Status: Degraded, Down") and its count;
 //   3. keyboard: Enter on the button opens a modal (`:modal`, in the top layer)
 //      named "Filters", in place inside the narrow box, inside the viewport,
 //      holding the same filters as the wide bar in the same order, each drawn;
@@ -23,27 +27,23 @@
 //      Filters button, the first control drawn;
 //   5. right to left: a chip's remove button is on the chip's inline end (left);
 //   6. compact density + coarse input: harness --HIT-MIN 44px and --CONTROL-H
-//      44px; every chip's remove button answers a 44 × 44 hit area (box ∪
-//      ::before) and a press at its centre reaches it; a chip line is exactly
-//      one --CONTROL-H (chip height + the row gap); Clear all and the narrow
-//      Filters button are --CONTROL-H tall;
-//   7. at 375 (coarse): the page does not scroll sideways; the dashboard bar
+//      44px; a press at the centre of every chip's remove button reaches it; a
+//      chip line is exactly one --CONTROL-H (chip height + the row gap). (The
+//      remove buttons' 44px hit areas, Clear all and the Filters button at
+//      --CONTROL-H, and the page not scrolling sideways at 375 are sweep-overview's
+//      geometry sweep, in every View);
+//   7. at 375 (coarse): the dashboard bar
 //      folds too; no bar in the section is wider than its box or reaches past
-//      the page, no chip past its bar, and the long chips truncate (text
-//      clipped inside the chip) instead; the dashboard's drawer opens inside
-//      the viewport and its content does not scroll sideways.
+//      the page, no chip past its bar, and the first long chip truncates (text
+//      clipped inside the chip) instead; the dashboard's drawer opens within
+//      the viewport's width and its content does not scroll sideways.
 async (page) => {
-  const base = page.url().split("#")[0];
   const fail = [];
   const summary = {};
   const { errors, stop: stopErrors } = collectErrors(page);
 
-  const load = async ({ density = "comfortable", input = "fine", width = 1280 } = {}) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/overview/filters-filterbar`);
-    await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [SHOWCASE_VIEW_KEY, { theme: "default", density, input }]);
-    await page.reload();
-    await waitForShowcase(page);
+  const load = async ({ density = "comfortable", input = "fine", width } = {}) => {
+    await openSection(page, "filters-filterbar", { width, view: { theme: "default", density, input } });
     await page.locator('[data-sc="filters-narrow"] [role="search"]').waitFor();
   };
   const WIDE = '[data-sc="filters-dashboard"] [role="search"]';
@@ -151,48 +151,30 @@ async (page) => {
 
   // ── 6: compact + coarse ───────────────────────────────────────────────────
   await load({ density: "compact", input: "coarse" });
-  const touch = await page.evaluate(([wideSel, narrowSel]) => {
+  const touch = await page.evaluate((wideSel) => {
     const bar = document.querySelector(wideSel);
     bar.scrollIntoView({ block: "center" });
     const css = getComputedStyle(bar);
     const px = (name) => Number.parseFloat(css.getPropertyValue(name)) * (css.getPropertyValue(name).trim().endsWith("rem") ? Number.parseFloat(getComputedStyle(document.documentElement).fontSize) : 1);
-    const hitBox = (el) => {
-      const r = el.getBoundingClientRect();
-      const before = getComputedStyle(el, "::before");
-      if (before.content === "none" || before.position !== "absolute") return { w: r.width, h: r.height };
-      const st = getComputedStyle(el);
-      const left = r.left + Number.parseFloat(st.borderLeftWidth) + Number.parseFloat(before.left);
-      const right = r.right - Number.parseFloat(st.borderRightWidth) - Number.parseFloat(before.right);
-      const top = r.top + Number.parseFloat(st.borderTopWidth) + Number.parseFloat(before.top);
-      const bottom = r.bottom - Number.parseFloat(st.borderBottomWidth) - Number.parseFloat(before.bottom);
-      return { w: Math.max(r.right, right) - Math.min(r.left, left), h: Math.max(r.bottom, bottom) - Math.min(r.top, top) };
-    };
     const summary = bar.querySelector("[data-filter-summary]");
     const removes = [...bar.querySelectorAll("[data-filter-chip] button")];
     const chip = bar.querySelector("[data-filter-chip]");
-    const clear = [...bar.querySelectorAll("button")].find((b) => b.textContent.trim() === "Clear all");
-    const narrowTrigger = document.querySelector(`${narrowSel} [data-filter-trigger]`);
     return {
       hitMin: px("--HIT-MIN"),
       controlH: px("--CONTROL-H"),
       removes: removes.length,
-      small: removes.map((b) => hitBox(b)).filter((b) => b.w < 43.5 || b.h < 43.5).map((b) => `${b.w.toFixed(1)}×${b.h.toFixed(1)}`),
       missed: removes.filter((b) => {
         const r = b.getBoundingClientRect();
         return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.closest("button") !== b;
       }).length,
       pitch: chip && summary ? chip.getBoundingClientRect().height + Number.parseFloat(getComputedStyle(summary).rowGap) : null,
-      clearH: clear?.getBoundingClientRect().height ?? null,
-      triggerH: narrowTrigger?.getBoundingClientRect().height ?? null,
     };
-  }, [WIDE, NARROW]);
+  }, WIDE);
   summary.touch = touch;
   if (touch.hitMin !== 44 || touch.controlH !== 44) fail.push(`coarse compact: harness: --HIT-MIN ${touch.hitMin}px, --CONTROL-H ${touch.controlH}px, source predicts 44 and 44`);
   if (touch.removes < 3) fail.push(`coarse compact: harness: ${touch.removes} chip remove buttons in the dashboard bar, its start has 3`);
-  if (touch.small.length) fail.push(`coarse compact: chip remove hit areas under 44px: ${touch.small.join(", ")}`);
   if (touch.missed) fail.push(`coarse compact: ${touch.missed} remove button(s) do not take a press at their centre`);
   if (touch.pitch === null || Math.abs(touch.pitch - touch.controlH) > 0.5) fail.push(`coarse compact: a chip line is ${touch.pitch}px, expected one --CONTROL-H (${touch.controlH}px)`);
-  if (Math.abs((touch.clearH ?? 0) - touch.controlH) > 0.5 || Math.abs((touch.triggerH ?? 0) - touch.controlH) > 0.5) fail.push(`coarse compact: Clear all ${touch.clearH}px, Filters ${touch.triggerH}px, expected --CONTROL-H`);
 
   // ── 7: 375 ────────────────────────────────────────────────────────────────
   await load({ input: "coarse", width: 375 });
@@ -220,7 +202,6 @@ async (page) => {
     const trigger = dashboard?.querySelector("[data-filter-trigger]");
     return {
       bars: bars.length,
-      pageSpill: document.documentElement.scrollWidth - pageWidth,
       spills,
       truncated: longText ? longText.scrollWidth > longText.clientWidth : null,
       dashboardFolded: Boolean(trigger && trigger.getClientRects().length > 0),
@@ -228,7 +209,6 @@ async (page) => {
   });
   summary.phone = { bars: phone.bars, truncated: phone.truncated };
   if (phone.bars < 7) fail.push(`375: harness: ${phone.bars} bars in the section`);
-  if (phone.pageSpill > 0) fail.push(`375: the page scrolls sideways by ${phone.pageSpill}px`);
   if (phone.spills.length) fail.push(`375: ${phone.spills.join("; ")}`);
   if (phone.truncated !== true) fail.push(`375: the long chip is not truncated (${phone.truncated})`);
   if (!phone.dashboardFolded) fail.push("375: the dashboard bar did not fold into the Filters button");

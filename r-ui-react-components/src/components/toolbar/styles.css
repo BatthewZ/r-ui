@@ -4,6 +4,13 @@
   position: relative;
   align-items: center;
 }
+/* An overflowing toolbar shrinks to whatever its container leaves, but never
+   below what cannot leave it: its pinned units and "More", as the toolbar
+   measures them (`--r-toolbar-floor`); before the first measure, the "More"
+   button alone (a ghost IconButton: the icon plus `--R-SIZE-4` each side). */
+.r-toolbar-root[data-overflow] {
+  min-inline-size: var(--r-toolbar-floor, calc(var(--ICON) + 2 * var(--R-SIZE-4)));
+}
 
 /* Touch spacing. An icon control is ICON + 2 × R-SIZE-4 square; on a coarse
    pointer its hit area overhangs it by (HIT-MIN − that) / 2 on every side. A gap

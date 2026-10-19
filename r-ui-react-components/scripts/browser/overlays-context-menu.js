@@ -1,18 +1,23 @@
+// @covers   overlays/ContextMenu, overlays/DropdownMenu
+// @sections overlays-contextmenu
+// @tier     component
+// @flags    touch
+//
 // Browser check: ContextMenu with real pointer, keys and touch, and the Dashboard's row menu.
 //
 // Run it through `bun run browser:check overlays-context`, or by hand against a running showcase:
 //   playwright-cli -s=<session> run-code "$(node scripts/browser-check.mjs --print overlays-context-menu)"
 //
 // Asserts:
-//   1. harness: at fine input the section's compact card resolves --ROW-H 30px and the
-//      page 40px, as the source predicts; no menu is open;
-//   2. a right-click in the Overview's canvas opens "Canvas actions" with its start
+//   1. harness: at fine input the page resolves --ROW-H 40px, as the source predicts; no
+//      menu is open;
+//   2. a right-click in the section's canvas opens "Canvas actions" with its start
 //      corner at the pointer (left = x, top = y + 2, within 1px), in the top layer
 //      (:popover-open), in place (the canvas's parent contains it), with focus on the
-//      menu; Escape closes it;
+//      menu (Escape closing it is ContextMenu.test.tsx's);
 //   3. Shift+F10 on the focused canvas opens it anchored to the canvas (the menu's top
 //      edge 2px below the canvas's bottom, or flipped above it) with focus on the first
-//      item; Escape closes it and focus is back on the canvas;
+//      item; Escape puts focus back on the canvas;
 //   4. keyboard identical to DropdownMenu: on a Dashboard row, the row's actions button
 //      (a DropdownMenu) and Shift+F10 on that same button (the ContextMenu) list the
 //      same items, and the same key sequence (arrows, End, Home, typeahead) walks them
@@ -20,25 +25,25 @@
 //   5. a right-click on a Dashboard row opens the menu named for that row's service,
 //      Enter on an item raises a toast naming it; a right-click on the table head opens
 //      no menu (onBeforeOpen leaves the browser's own);
-//   6. the compact card's canvas: its menu items are exactly the card's --ROW-H (30px,
-//      not the page's 40), the menu reaches past the card's clip box (below, or above
-//      when it flips) and takes a press there (elementFromPoint); at coarse input every item is the 44px floor;
-//   7. touch (CDP touch events): a touch held still for 700ms opens the menu and focus
+//      (A menu from a clipping compact card, its items at the card's --ROW-H at fine and
+//      coarse, is sweep-floating's sweep.)
+//   6. touch (CDP touch events): a touch held still for 700ms opens the menu and focus
 //      stays in it after the release; a touch that moves 40px (a scroll) and is held
 //      as long opens nothing;
-//   8. forced colours: the focused item, and only it, is the system Highlight.
+//   7. forced colours: the focused item is the system Highlight and the next item is not.
 async (page) => {
   const base = page.url().split("#")[0];
-  const KEY = "r-ui-showcase:view";
   const fail = [];
   const { errors, stop: stopErrors } = collectErrors(page);
 
-  const load = async (hash, input = "fine") => {
-    await page.goto(`${base}${hash}`);
-    await page.evaluate(([key, view]) => localStorage.setItem(key, JSON.stringify(view)), [
-      KEY,
-      { theme: "default", density: "comfortable", input },
-    ]);
+  const view = (input) => ({ theme: "default", density: "comfortable", input });
+  const open = async (input = "fine") => {
+    await openSection(page, "overlays-contextmenu", { view: view(input) });
+    await page.waitForTimeout(200);
+  };
+  const loadDashboard = async () => {
+    await page.goto(`${base}#/dashboard`);
+    await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [SHOWCASE_VIEW_KEY, view("fine")]);
     await page.reload();
     await waitForShowcase(page);
     await page.waitForTimeout(200);
@@ -66,17 +71,13 @@ async (page) => {
       };
     }, label);
 
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await load("#/overview/overlays-contextmenu");
+  await open();
   const canvas = page.locator('[data-testid="cm-canvas"]');
   await canvas.scrollIntoViewIfNeeded();
 
   // ── 1: harness ──────────────────────────────────────────────────────────
-  const harness = await page.evaluate(() => ({
-    card: Number.parseFloat(getComputedStyle(document.querySelector('[data-testid="cm-compact-card"]')).getPropertyValue("--ROW-H")),
-    page: Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ROW-H")),
-  }));
-  if (harness.card !== 30 || harness.page !== 40) fail.push(`harness: --ROW-H card ${harness.card}px, page ${harness.page}px; source predicts 30 and 40`);
+  const harness = await page.evaluate(() => ({ page: Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ROW-H")) }));
+  if (harness.page !== 40) fail.push(`harness: the page's --ROW-H is ${harness.page}px; source predicts 40`);
   if ((await openMenus()).length !== 0) fail.push("harness: a menu is open before any right-click");
 
   // ── 2: right-click at the pointer ───────────────────────────────────────
@@ -121,7 +122,7 @@ async (page) => {
   if (!(await canvas.evaluate((el) => el === document.activeElement))) fail.push("Escape did not return focus to the canvas");
 
   // ── 4 + 5: the Dashboard row: DropdownMenu vs ContextMenu, same keys ────
-  await load("#/dashboard");
+  await loadDashboard();
   const row = page.locator("[data-dashboard-services] tbody tr").nth(1);
   await row.scrollIntoViewIfNeeded();
   const service = await row.locator("[data-service]").getAttribute("data-service");
@@ -175,40 +176,8 @@ async (page) => {
   if ((await openMenus()).length !== 0) fail.push("a right-click on the table head opened a menu");
   await page.keyboard.press("Escape");
 
-  // ── 6: compact card, fine and coarse ────────────────────────────────────
-  for (const input of ["fine", "coarse"]) {
-    await load("#/overview/overlays-contextmenu", input);
-    const compact = page.locator('[data-testid="cm-compact-canvas"]');
-    await compact.scrollIntoViewIfNeeded();
-    const cb = await compact.boundingBox();
-    await page.mouse.click(cb.x + 40, cb.y + cb.height - 8, { button: "right" });
-    await settle();
-    const measured = await menuBox("Canvas actions");
-    const clip = await page.evaluate(() => {
-      const card = document.querySelector('[data-testid="cm-compact-card"]');
-      const menu = [...card.querySelectorAll("[role=menu]")].find((m) => !m.inert);
-      if (!menu) return null;
-      const c = card.getBoundingClientRect();
-      const m = menu.getBoundingClientRect();
-      // The menu may open below the card or flip above it; probe the part outside the clip.
-      const below = m.bottom - c.bottom;
-      const above = c.top - m.top;
-      const past = Math.max(below, above);
-      const y = past <= 4 ? null : below >= above ? (Math.max(m.top, c.bottom) + m.bottom) / 2 : (m.top + Math.min(m.bottom, c.top)) / 2;
-      const hit = y === null ? null : document.elementFromPoint((m.left + m.right) / 2, y);
-      return { past: Math.round(past), hit: y === null ? "none outside" : menu.contains(hit) ? "menu" : hit?.tagName };
-    });
-    const want = input === "fine" ? 30 : 44;
-    if (!measured || measured.items.length < 6 || measured.items.some((h) => Math.abs(h - want) > 0.5)) {
-      fail.push(`${input}: compact card menu items are ${JSON.stringify(measured?.items)}, expected ${want}px each`);
-    }
-    if (!clip || !(clip.past > 0) || clip.hit !== "menu") fail.push(`${input}: the compact card's menu does not escape its clip and take presses (${JSON.stringify(clip)})`);
-    await page.keyboard.press("Escape");
-    await settle();
-  }
-
-  // ── 7: touch long press vs a moving touch ───────────────────────────────
-  await load("#/overview/overlays-contextmenu");
+  // ── 6: touch long press vs a moving touch ───────────────────────────────
+  await open();
   await canvas.scrollIntoViewIfNeeded();
   const cdp = await page.context().newCDPSession(page);
   const tb = await canvas.boundingBox();
@@ -236,8 +205,8 @@ async (page) => {
   await page.keyboard.press("Escape");
   await cdp.detach();
 
-  // ── 8: forced colours ───────────────────────────────────────────────────
-  await page.emulateMedia({ forcedColors: "active" });
+  // ── 7: forced colours ───────────────────────────────────────────────────
+  await setView(page, { forced: true });
   await canvas.focus();
   await page.keyboard.press("Shift+F10");
   await settle();
@@ -255,14 +224,13 @@ async (page) => {
       : { focused: `${focused?.tagName} ${focused?.getAttribute("role")} ${focused?.textContent?.slice(0, 20)}`, other: null, highlight };
   });
   await page.keyboard.press("Escape");
-  await page.emulateMedia({ forcedColors: "none" });
+  await setView(page, { forced: false });
   if (!forced.other || forced.focused !== forced.highlight || forced.other === forced.highlight) {
     fail.push(`forced colours: the focused item is not the one Highlight row (${JSON.stringify(forced)})`);
   }
 
   stopErrors();
-  await page.evaluate((key) => localStorage.removeItem(key), KEY);
   if (errors.length > 0) fail.push(...errors.slice(0, 5));
   if (fail.length > 0) throw new Error(`overlays-context-menu: ${fail.length} problem(s)\n  ${fail.join("\n  ")}`);
-  return "overlays-context-menu: right-click at the pointer, Shift+F10 at the element, focus home; row DropdownMenu and ContextMenu walk identically; row menu acts on its row, head left alone; compact 30px / coarse 44px, past the clip; long press opens, a moving touch does not; forced-colours highlight";
+  return "overlays-context-menu: right-click at the pointer, Shift+F10 at the element, focus home; row DropdownMenu and ContextMenu walk identically; row menu acts on its row, head left alone; long press opens, a moving touch does not; forced-colours highlight";
 }

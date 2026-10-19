@@ -3,7 +3,7 @@ import { use, useEffect } from "react";
 import { loadSections } from "../registry";
 import type { PageProps } from "../shell/App";
 import { href } from "../shell/router";
-import { SectionBoundary } from "../shell/SectionBoundary";
+import { SectionFrame } from "../shell/SectionFrame";
 
 const groupTitle = (group: string) => group.charAt(0).toUpperCase() + group.slice(1);
 
@@ -70,18 +70,8 @@ export function Overview({ anchor }: PageProps) {
           {groups.map(({ group, sections: list }) => (
             <section key={group} className="sc-group" aria-labelledby={`group-${group}`}>
               <h2 id={`group-${group}`}>{groupTitle(group)}</h2>
-              {list.map(({ id, meta, Component }) => (
-                <section key={id} id={id} className="sc-section" aria-labelledby={`${id}-title`}>
-                  <header>
-                    <h3 id={`${id}-title`}>{meta.title}</h3>
-                    {meta.description && <p>{meta.description}</p>}
-                  </header>
-                  <div className="sc-demo">
-                    <SectionBoundary title={meta.title}>
-                      <Component />
-                    </SectionBoundary>
-                  </div>
-                </section>
+              {list.map((section) => (
+                <SectionFrame key={section.id} section={section} />
               ))}
             </section>
           ))}

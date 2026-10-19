@@ -1,3 +1,7 @@
+// @covers   navigation/AppShell, data/DataTable, data/Timeline, data/Sparkline, charts, filters/FilterBar, toolbar/Toolbar, feedback/Banner, feedback/ProgressRing, overlays/ToastProvider
+// @tier     page
+// @cost     22
+//
 // Browser check: the Dashboard page is a real dashboard on every axis.
 //
 // Run it through `bun run browser:check dashboard`, or by hand against a running showcase:
@@ -8,7 +12,8 @@
 //   1. harness: at fine input --HIT-MIN is 24px, so --ROW-H is the density's own
 //      named value (`--ROW-H-COMFORTABLE` / `-COMPACT`) and the comparison in 5 means something;
 //   2. every theme the showcase lists × comfortable / compact × fine / coarse
-//      at 1440 and 375: no console or page error, no horizontal scroll in the document
+//      at 1440 and 375 (a fresh load per width and for the combinations `viewMatrix`
+//      rotates in, a live switch for the rest): no console or page error, no horizontal scroll in the document
 //      or in the dashboard's own scroll frame; at 375 the SHOWCASE's bottom nav stays
 //      reachable below the frame (the frame takes no press at any link's centre);
 //   3. at 1440 the AppShell sidebar is the FULL sidebar (brand name shown, wider
@@ -20,30 +25,50 @@
 //      actions button inside it, every row
 //      in the compact card (`data-density="compact"`) is exactly ITS --ROW-H, and
 //      that is shorter than the page's;
-//   6. searching for nothing shows the table's EmptyState and "Clear search" brings
-//      the rows back; a header menu action raises a toast;
+//   6. the FilterBar's search for nothing shows the table's EmptyState and puts the
+//      search in the hash; "Clear filters" brings the rows back and empties the anchor;
+//      the header toolbar's Refresh now raises a toast once the refresh is back;
 //   7. the charts are real: Traffic is a LineChart with value and time axes (3+ labels
 //      each) and a legend of four regions, and hovering it opens one tooltip listing
 //      all four; Error responses is a stacked BarChart with a bar per class per
 //      interval; the 5xx card is a 7 × 24 Heatmap with a table, and no "Not in this
-//      release" stand-in is left. In the matrix, every Dashboard chart is drawn;
+//      release" stand-in is left. In the matrix the charts draw (169 marks or more: the
+//      heatmap's 168 cells and the others' lines and bars);
 //   8. Open incidents is a Timeline: one ordered list of the four incidents, each with
 //      a focusable `<time datetime>`, a glyph in its mark and a status word; Tab onto a
-//      <time> shows its full reading (year included) in the Tooltip that describes it.
+//      <time> shows its full reading (year included) in the Tooltip that describes it;
+//   9. the FilterBar (a `search` landmark) lays its five controls inline at 1440 and
+//      drives the page: pressing Status "Critical" leaves only critical rows, the
+//      result count says how many, the hash carries it and a reload opens on it; a
+//      region in the hash narrows Traffic to that one series; Clear all leaves every
+//      region and all retained time (an empty `time=`);
+//  10. the header is a named toolbar: at 1440 every unit is in the bar and "More" is not
+//      shown; at 375 the four actions have moved into "More", which sits inside the
+//      header and lists them; at coarse input no two of its drawn controls' hit areas
+//      overlap (every combination);
+//  11. the services DataTable's features: resize handles on the headers, the Service
+//      column pinned (sticky), the columns menu lists the hidden "Last deploy"
+//      unchecked and toggles it, a row's details open a detail row whose rollout is a
+//      segmented progressbar (3 of 5) without changing the row's height, selecting two
+//      rows shows the bulk bar ("2 selected") whose Export runs a progress bar to an
+//      "Export ready" toast, Clear selection removes it, and pages read "1–10 of 14" then
+//      "11–14 of 14"; hovering a team opens its HoverCard (who is on call), and Escape with
+//      the pointer moved away leaves it closed;
+//  12. the compact deploys card's rollout is a ProgressRing (31 of 50 hosts);
+//  13. the maintenance Banner is a region named by its title; Dismiss hides it, hands
+//      focus to the page heading, and it stays dismissed across a reload;
+//  14. in every combination no card's ErrorBoundary has tripped (`data-dashboard-error`),
+//      and at 375 (comfortable, fine) the FilterBar is folded into its Filters button.
 async (page) => {
   const base = page.url().split("#")[0];
   const KEY = "r-ui-showcase:view";
+  const BANNER_KEY = "kestrel:maintenance:2026-10-17";
   const problems = [];
   const { errors, stop: stopErrors } = collectErrors(page);
 
   const load = async (width, view) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/dashboard`);
-    await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [KEY, view]);
-    await page.reload();
-    await waitForShowcase(page);
+    await openPage(page, "dashboard", { view, width });
     await page.locator("[data-dashboard-kpis]").waitFor();
-    await page.waitForTimeout(250);
   };
 
   const shell = () =>
@@ -69,7 +94,46 @@ async (page) => {
         height: box(svg).height,
         token: tokenPx(svg.parentElement, "--SPARK-H"),
       }));
+      const toolbar = frame?.querySelector("[data-dashboard-actions]");
+      const units = [...(toolbar?.querySelectorAll(":scope > [data-toolbar-unit]") ?? [])];
+      const more = toolbar?.querySelector(":scope > [data-toolbar-more]");
+      const header = frame?.querySelector(".r-navigation-shell-header");
+      // Coarse spacing: the drawn controls' hit areas (at least --HIT-MIN wide, centred) never overlap.
+      const hit = toolbar ? tokenPx(toolbar, "--HIT-MIN") : 0;
+      const controls = toolbar
+        ? [...toolbar.querySelectorAll("button")].filter((b) => !b.closest("[data-overflowed]") && b.getClientRects().length > 0).map(box)
+        : [];
+      controls.sort((a, b) => a.left - b.left);
+      const reach = (r) => Math.max(r.width, hit) / 2;
+      const overlaps = controls
+        .slice(1)
+        .map((r, i) => {
+          const prev = controls[i];
+          const prevEnd = prev.left + prev.width / 2 + reach(prev);
+          const start = r.left + r.width / 2 - reach(r);
+          return prevEnd - start;
+        })
+        .filter((d) => d > 0.5).length;
+      const filterTrigger = frame?.querySelector("[data-dashboard-filters] [data-filter-trigger]");
       return {
+        toolbar: {
+          role: toolbar?.getAttribute("role") ?? null,
+          name: toolbar?.getAttribute("aria-label") ?? null,
+          units: units.length,
+          overflowed: units.filter((u) => u.hasAttribute("data-overflowed")).length,
+          more: !!more && !more.hasAttribute("data-overflowed"),
+          moreInHeader: (() => {
+            const button = more?.querySelector("button");
+            if (!button || !header) return false;
+            const m = box(button);
+            const h = box(header);
+            return m.width > 0 && m.left >= h.left - 0.5 && m.right <= h.right + 0.5 && m.right <= innerWidth + 0.5;
+          })(),
+          controls: controls.length,
+          overlaps,
+        },
+        filtersFolded: !!filterTrigger && filterTrigger.getClientRects().length > 0 && filterTrigger.checkVisibility(),
+        boundaryErrors: frame ? frame.querySelectorAll("[data-dashboard-error]").length : -1,
         sidebar: shown(sidebar),
         sidebarW: sidebar ? box(sidebar).width : 0,
         innerW: sidebar?.querySelector(".r-navigation-shell-sidebar-inner") ? box(sidebar.querySelector(".r-navigation-shell-sidebar-inner")).width : 0,
@@ -118,7 +182,7 @@ async (page) => {
         return v.endsWith("px") ? Number.parseFloat(v) : Number.NaN;
       };
       const measure = (scope) =>
-        [...document.querySelectorAll(`${scope} tbody tr`)].map((tr) => ({
+        [...document.querySelectorAll(`${scope} tbody tr[data-table-row]`)].map((tr) => ({
           h: tr.getBoundingClientRect().height,
           rowH: Number.parseFloat(getComputedStyle(tr).getPropertyValue("--ROW-H")),
           // The row's actions menu button, the tallest thing a services row holds.
@@ -136,7 +200,7 @@ async (page) => {
     if (!(rows.compact < rows.comfortable)) {
       problems.push(`harness: --ROW-H-COMPACT ${rows.compact}px is not below --ROW-H-COMFORTABLE ${rows.comfortable}px`);
     }
-    if (rows.page.length < 10) problems.push(`services table rendered ${rows.page.length} rows`);
+    if (rows.page.length !== 10) problems.push(`services table rendered ${rows.page.length} rows, expected a page of 10`);
     if (rows.card.length < 3) problems.push(`compact card rendered ${rows.card.length} rows`);
     const pageRowH = Math.max(rows.comfortable, rows.hit);
     const cardRowH = Math.max(rows.compact, rows.hit);
@@ -159,17 +223,22 @@ async (page) => {
     summary.card = cardH;
     if (!(cardH < pageH)) problems.push(`compact card rows (${cardH}px) are not shorter than the page's (${pageH}px)`);
 
-    // 6: a search that matches nothing shows the EmptyState, and its action clears it.
+    // 6: the FilterBar's search narrows the table to nothing: the EmptyState, the hash, and the way out.
     const services = page.locator("[data-dashboard-services]");
-    await page.getByRole("searchbox", { name: "Search services" }).fill("zzz-no-such-service");
+    const bar = page.getByRole("search", { name: "Filters" });
+    await bar.getByRole("searchbox", { name: "Search services" }).fill("zzz-no-such-service");
     const empty = services.getByText("No services match");
     if (!(await empty.isVisible())) problems.push("filtering the services table to nothing shows no EmptyState");
-    await services.getByRole("button", { name: "Clear search" }).click();
-    const restored = await services.locator("tbody tr").count();
-    if (restored !== rows.page.length) problems.push(`"Clear search" restored ${restored} rows, expected ${rows.page.length}`);
+    const searchHash = await page.evaluate(() => location.hash);
+    if (!decodeURIComponent(searchHash).includes("q=zzz-no-such-service")) problems.push(`the search is not in the URL (${searchHash})`);
+    await services.getByRole("button", { name: "Clear filters" }).click();
+    const restored = await services.locator("tbody tr[data-table-row]").count();
+    if (restored !== rows.page.length) problems.push(`"Clear filters" restored ${restored} rows, expected ${rows.page.length}`);
+    const clearedHash = await page.evaluate(() => location.hash);
+    if (clearedHash !== "#/dashboard") problems.push(`back on the default view the hash is ${clearedHash}, expected #/dashboard`);
 
-    await page.getByRole("button", { name: "Dashboard actions" }).click();
-    await page.getByRole("menuitem", { name: "Refresh now" }).click();
+    const actions = page.getByRole("toolbar", { name: "Dashboard actions" });
+    await actions.getByRole("button", { name: "Refresh now" }).click();
     const toast = page.getByText("Dashboard refreshed");
     await toast.waitFor({ timeout: 3000 }).catch(() => problems.push("the Refresh now action raised no toast"));
 
@@ -264,6 +333,171 @@ async (page) => {
     }
     await page.keyboard.press("Escape");
 
+    // 9: the FilterBar drives the table, the charts and the URL.
+    const inline = await page.evaluate(() => {
+      const root = document.querySelector("[data-dashboard-filters]");
+      const drawn = (el) => !!el && el.getClientRects().length > 0 && el.checkVisibility();
+      return {
+        landmark: root?.getAttribute("role") ?? null,
+        fields: ["time", "region", "status", "p95", "q"].filter((id) => drawn(root?.querySelector(`[data-filter="${id}"]`))),
+        trigger: drawn(root?.querySelector("[data-filter-trigger]")),
+      };
+    });
+    if (inline.landmark !== "search" || inline.fields.length !== 5 || inline.trigger) {
+      problems.push(`1440: the FilterBar is not inline with its five controls ${JSON.stringify(inline)}`);
+    }
+    const serviceRows = () =>
+      page.evaluate(() => [...document.querySelectorAll("[data-dashboard-services] tbody tr[data-table-row]")].map((tr) => tr.textContent));
+    await bar.getByRole("button", { name: "Critical", exact: true }).click();
+    await page.waitForTimeout(150);
+    const critical = await serviceRows();
+    const filtered = await page.evaluate(() => ({
+      count: document.querySelector("[data-dashboard-filters] [data-filter-results]")?.textContent ?? "",
+      hash: decodeURIComponent(location.hash),
+    }));
+    if (critical.length < 1 || critical.length >= rows.page.length || critical.some((t) => !t.includes("Critical"))) {
+      problems.push(`Status "Critical" left ${critical.length} rows, not all critical`);
+    }
+    if (!filtered.count.includes(`${critical.length} service`)) problems.push(`the result count reads "${filtered.count}" for ${critical.length} rows`);
+    if (!filtered.hash.includes("status=critical")) problems.push(`the status filter is not in the URL (${filtered.hash})`);
+    await page.reload();
+    await waitForShowcase(page);
+    await page.locator("[data-dashboard-kpis]").waitFor();
+    await page.waitForTimeout(250);
+    const reopened = await serviceRows();
+    const chip = await page.evaluate(() => document.querySelector("[data-dashboard-filters] [data-filter-chip='status']")?.textContent ?? "");
+    if (!chip.includes("Critical") || reopened.length !== critical.length) {
+      problems.push(`a reload did not open on the filtered view (chip "${chip}", ${reopened.length} rows)`);
+    }
+    const seriesDrawn = () =>
+      page.evaluate(() => document.querySelectorAll('[data-dashboard-traffic] figure[data-chart="line"] g[data-series]').length);
+    await page.goto(`${base}#/dashboard/${encodeURIComponent("region=eu-west")}`);
+    await page.waitForTimeout(250);
+    const oneRegion = await seriesDrawn();
+    const regionChip = await page.evaluate(() => document.querySelector("[data-dashboard-filters] [data-filter-chip='region']")?.textContent ?? "");
+    if (oneRegion !== 1 || !regionChip.includes("eu-west")) problems.push(`a region in the hash drew ${oneRegion} traffic series (chip "${regionChip}"), expected 1`);
+    await bar.getByRole("button", { name: "Clear all" }).click();
+    await page.waitForTimeout(150);
+    const cleared = await page.evaluate(() => ({
+      chips: document.querySelectorAll("[data-dashboard-filters] [data-filter-chip]").length,
+      hash: decodeURIComponent(location.hash),
+    }));
+    const allRegions = await seriesDrawn();
+    if (cleared.chips !== 0 || allRegions !== 4 || !cleared.hash.endsWith("time=")) {
+      problems.push(`Clear all left ${cleared.chips} chips and ${allRegions} series at ${cleared.hash}`);
+    }
+    await page.goto(`${base}#/dashboard`);
+    await page.waitForTimeout(250);
+
+    // 11: the services table's features.
+    const table = await page.evaluate(() => {
+      const card = document.querySelector("[data-dashboard-services]");
+      const nameCell = card?.querySelector("tbody tr[data-table-row] [data-service]")?.closest("td");
+      return {
+        handles: card ? card.querySelectorAll('thead [role="separator"][aria-label^="Resize "]').length : 0,
+        sticky: nameCell ? getComputedStyle(nameCell).position : "",
+        pages: card?.querySelector("[data-table-pagination]")?.textContent ?? "",
+      };
+    });
+    if (table.handles < 3) problems.push(`services table: ${table.handles} resize handles`);
+    if (table.sticky !== "sticky") problems.push(`services table: the Service column is ${table.sticky}, not pinned`);
+    if (!table.pages.includes("1–10 of 14")) problems.push(`services table: pages read "${table.pages}", expected 1–10 of 14`);
+    const deployHead = () =>
+      page.evaluate(() => [...document.querySelectorAll("[data-dashboard-services] thead th")].some((th) => th.textContent.includes("Last deploy")));
+    const hiddenAtFirst = !(await deployHead());
+    await services.getByRole("button", { name: "Columns" }).click();
+    const deployItem = page.getByRole("menuitemcheckbox", { name: "Last deploy" });
+    const before = await deployItem.getAttribute("aria-checked", { timeout: 2000 }).catch(() => null);
+    await deployItem.click({ timeout: 2000 }).catch(() => undefined);
+    await page.waitForTimeout(100);
+    const shownNow = await deployHead();
+    if (!hiddenAtFirst || before !== "false" || !shownNow) {
+      problems.push(`columns menu: "Last deploy" hidden at first ${hiddenAtFirst}, listed ${before}, shown after toggling ${shownNow}`);
+    }
+    if ((await page.locator("[role=menu]:popover-open").count()) > 0) await page.keyboard.press("Escape");
+
+    const searchRow = services.locator("tbody tr[data-table-row]", { has: page.locator("[data-service='search']") });
+    const rowH = await searchRow.evaluate((tr) => tr.getBoundingClientRect().height);
+    await services.getByRole("button", { name: "Details for search" }).click();
+    await page.waitForTimeout(150);
+    const detail = await page.evaluate(() => {
+      const d = document.querySelector("[data-dashboard-detail='search']");
+      const bar = d?.querySelector('[role="progressbar"]');
+      return {
+        inDetailRow: !!d?.closest("tr[data-table-detail]"),
+        now: bar?.getAttribute("aria-valuenow") ?? null,
+        max: bar?.getAttribute("aria-valuemax") ?? null,
+        segments: bar ? bar.querySelectorAll("[data-segment]").length : 0,
+      };
+    });
+    const rowHOpen = await searchRow.evaluate((tr) => tr.getBoundingClientRect().height);
+    if (!detail.inDetailRow || detail.now !== "3" || detail.max !== "5" || detail.segments !== 5) {
+      problems.push(`the search row's detail: ${JSON.stringify(detail)}, expected a detail row with a 5-segment rollout at 3`);
+    }
+    if (Math.abs(rowH - rowHOpen) > 0.5) problems.push(`opening a detail row changed its row from ${rowH}px to ${rowHOpen}px`);
+    await services.getByRole("button", { name: "Details for search" }).click();
+
+    await services.getByRole("checkbox", { name: "Select checkout" }).check();
+    await services.getByRole("checkbox", { name: "Select search" }).check();
+    const bulk = services.locator("[data-table-bulk]");
+    const bulkText = (await bulk.textContent({ timeout: 2000 }).catch(() => "")) ?? "";
+    if (!bulkText.includes("2 selected") || !bulkText.includes("Export") || !bulkText.includes("Restart")) problems.push(`bulk bar reads "${bulkText}"`);
+    await bulk.getByRole("button", { name: "Export" }).click({ timeout: 2000 }).catch(() => problems.push("the bulk bar has no Export"));
+    const exporting = await page.evaluate(() => document.querySelector("[data-dashboard-export] [role='progressbar']")?.getAttribute("aria-valuemax") ?? null);
+    if (exporting !== "2") problems.push(`exporting two services shows progress out of ${exporting}`);
+    await page.getByText("Export ready").waitFor({ timeout: 3000 }).catch(() => problems.push("the export never finished with a toast"));
+    if ((await services.locator("[data-dashboard-export]").count()) !== 0) problems.push("the export's progress bar outlived the export");
+    await bulk.getByRole("button", { name: "Clear selection" }).click({ timeout: 2000 }).catch(() => undefined);
+    if ((await services.locator("[data-table-bulk]").count()) !== 0) problems.push("Clear selection left the bulk bar");
+
+    await services.getByRole("button", { name: "Next page" }).click();
+    await page.waitForTimeout(100);
+    const page2 = await page.evaluate(() => ({
+      rows: document.querySelectorAll("[data-dashboard-services] tbody tr[data-table-row]").length,
+      text: document.querySelector("[data-dashboard-services] [data-table-pagination]")?.textContent ?? "",
+    }));
+    if (page2.rows !== 4 || !page2.text.includes("11–14 of 14")) problems.push(`page 2: ${JSON.stringify(page2)}, expected 4 rows, 11–14 of 14`);
+    await services.getByRole("button", { name: "Previous page" }).click();
+
+    const team = services.getByRole("link", { name: "Payments" }).first();
+    await team.scrollIntoViewIfNeeded();
+    await team.hover();
+    const card = page.locator("[data-dashboard-team='Payments']");
+    await card.first().waitFor({ state: "visible", timeout: 2000 }).catch(() => problems.push("hovering a team opened no HoverCard"));
+    const cardText = await card.first().textContent({ timeout: 1000 }).catch(() => "");
+    if (!cardText?.includes("Mia Rossi")) problems.push(`the Payments card reads "${cardText}", expected its on-call`);
+    await page.keyboard.press("Escape");
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(400);
+    if (await card.first().isVisible()) problems.push("Escape did not close the team HoverCard");
+
+    // 12: the rollout in the compact card is progress toward done.
+    const ring = await page.evaluate(() => {
+      const bars = [...document.querySelectorAll("[data-dashboard-compact] [role='progressbar']")];
+      return bars.map((b) => `${b.getAttribute("aria-valuenow")}/${b.getAttribute("aria-valuemax")}`);
+    });
+    if (ring.length !== 1 || ring[0] !== "31/50") problems.push(`deploys card progress: ${JSON.stringify(ring)}, expected one ring at 31/50`);
+
+    // 13: the maintenance banner.
+    const banner = page.getByRole("region", { name: "Scheduled maintenance" });
+    if (!(await banner.isVisible())) problems.push("the maintenance banner is not a visible region named by its title");
+    await banner.getByRole("button", { name: "Dismiss" }).click();
+    await page.waitForTimeout(100);
+    const afterDismiss = await page.evaluate(() => ({
+      gone: !document.querySelector("[data-dashboard-banner]"),
+      focus: document.activeElement?.tagName === "H1" ? document.activeElement.textContent.trim() : document.activeElement?.tagName,
+    }));
+    if (!afterDismiss.gone || afterDismiss.focus !== "Platform overview") problems.push(`dismissing the banner: ${JSON.stringify(afterDismiss)}`);
+    await page.reload();
+    await waitForShowcase(page);
+    await page.locator("[data-dashboard-kpis]").waitFor();
+    if ((await page.locator("[data-dashboard-banner]").count()) !== 0) problems.push("the dismissed banner came back after a reload");
+    await page.evaluate((key) => localStorage.removeItem(key), BANNER_KEY);
+    await page.reload();
+    await waitForShowcase(page);
+    await page.locator("[data-dashboard-kpis]").waitFor();
+    await page.waitForTimeout(250);
+
     // 3 + 4: the shell's three forms, by viewport.
     const wide = await shell();
     if (!wide.sidebar || wide.bottom) problems.push("1440: expected the sidebar and no bottom nav");
@@ -273,6 +507,10 @@ async (page) => {
     if (wide.kpis !== 6 || wide.kpiRows !== 1) problems.push(`1440: ${wide.kpis} KPI tiles over ${wide.kpiRows} row(s), expected 6 in 1`);
     if (wide.hostSidebarCovered !== true) problems.push("1440: the showcase's own sidebar shows through the dashboard frame");
     if (wide.hostNav) problems.push("1440: the showcase's bottom nav shows beside the sidebar");
+    if (wide.toolbar.role !== "toolbar" || wide.toolbar.name !== "Dashboard actions" || wide.toolbar.units !== 6) {
+      problems.push(`1440: the header toolbar ${JSON.stringify(wide.toolbar)}, expected a named toolbar of 6 units`);
+    }
+    if (wide.toolbar.overflowed !== 0 || wide.toolbar.more) problems.push(`1440: ${wide.toolbar.overflowed} toolbar units are in "More"`);
 
     await page.setViewportSize({ width: 900, height: 900 });
     await page.waitForTimeout(250);
@@ -285,6 +523,18 @@ async (page) => {
     await page.waitForTimeout(250);
     const narrow = await shell();
     if (narrow.sidebar || !narrow.bottom) problems.push("375: expected the bottom nav and no sidebar");
+    if (narrow.toolbar.overflowed < 4 || !narrow.toolbar.more || !narrow.toolbar.moreInHeader) {
+      problems.push(`375: the header toolbar ${JSON.stringify(narrow.toolbar)}, expected the four actions in a "More" inside the header`);
+    }
+    await page.getByRole("toolbar", { name: "Dashboard actions" }).getByRole("button", { name: "More" }).click();
+    const moreItems = await page.evaluate(() =>
+      [...document.querySelectorAll("[role=menu]:popover-open [role^='menuitem']")].map((i) => i.textContent.trim()),
+    );
+    for (const want of ["Refresh now", "Copy link to this view", "Export services as CSV", "Mute alerts for 1 hour"]) {
+      if (!moreItems.includes(want)) problems.push(`375: "More" lists ${JSON.stringify(moreItems)}, missing "${want}"`);
+    }
+    await page.keyboard.press("Escape");
+    if (!narrow.filtersFolded) problems.push("375: the FilterBar is not folded into its Filters button");
     const reach = (label, m) => {
       if (!m.hostNav) return problems.push(`${label}: the showcase's bottom nav is not shown`);
       if (m.hostNav.links < 4 || m.hostNav.hit !== m.hostNav.links) {
@@ -295,44 +545,54 @@ async (page) => {
     reach("375", narrow);
     for (const e of errors) problems.push(`interactions: ${e}`);
 
-    // 2: the matrix (and the KPI sparklines' --SPARK-H at each density).
+    // 2: the matrix (and the KPI sparklines' --SPARK-H at each density): a fresh load
+    // per width and for the combinations `viewMatrix` rotates in, a live switch for the rest.
     const sparkH = {};
     const themes = (await showcaseThemes(page)).map((t) => t.name);
-    for (const width of [1440, 375]) {
-      for (const theme of themes) {
-        for (const density of ["comfortable", "compact"]) {
-          for (const input of ["fine", "coarse"]) {
-            const label = `${theme}/${density}/${input}@${width}`;
-            errors.length = 0;
-            await load(width, { theme, density, input });
-            const m = await shell();
-            combos++;
-            if (m.docScroll > 0) problems.push(`${label}: document scrolls sideways by ${m.docScroll}px`);
-            if (!(m.frameScroll <= 0)) problems.push(`${label}: the dashboard frame scrolls sideways by ${m.frameScroll}px`);
-            if (width === 375) reach(label, m);
-            const drawn = await page.evaluate(
-              () => document.querySelectorAll("[data-dashboard-frame] figure[data-chart] svg.r-charts-svg, [data-dashboard-frame] [data-cell]").length,
-            );
-            if (drawn < 169) problems.push(`${label}: the Dashboard's charts are not drawn (${drawn} plot parts)`);
-            if (m.sparks.length < 3) problems.push(`${label}: harness: ${m.sparks.length} KPI sparklines`);
-            for (const sp of m.sparks) {
-              if (!(sp.token > 0) || Math.abs(sp.height - sp.token) > 0.5) problems.push(`${label}: a KPI sparkline is ${sp.height}px tall, --SPARK-H is ${sp.token}px`);
-            }
-            (sparkH[density] ??= new Set()).add(m.sparks[0]?.height);
-            for (const e of errors) problems.push(`${label}: ${e}`);
+    const sweep = await sweepViews(
+      page,
+      { themes, widths: [1440, 375] },
+      {
+        load: async ({ width, ...view }) => {
+          errors.length = 0;
+          await load(width, view);
+        },
+        check: async ({ density, input, width }, label) => {
+          const m = await shell();
+          if (m.docScroll > 0) problems.push(`${label}: document scrolls sideways by ${m.docScroll}px`);
+          if (!(m.frameScroll <= 0)) problems.push(`${label}: the dashboard frame scrolls sideways by ${m.frameScroll}px`);
+          if (width === 375) reach(label, m);
+          if (m.boundaryErrors !== 0) problems.push(`${label}: ${m.boundaryErrors} card(s) fell back to their ErrorBoundary`);
+          if (m.toolbar.controls < 1) problems.push(`${label}: harness: no header toolbar controls drawn`);
+          if (input === "coarse" && m.toolbar.overlaps > 0) problems.push(`${label}: ${m.toolbar.overlaps} header toolbar hit areas overlap`);
+          const drawn = await page.evaluate(
+            () => document.querySelectorAll("[data-dashboard-frame] figure[data-chart] svg.r-charts-svg, [data-dashboard-frame] [data-cell]").length,
+          );
+          if (drawn < 169) problems.push(`${label}: the Dashboard's charts are not drawn (${drawn} plot parts)`);
+          if (m.sparks.length < 3) problems.push(`${label}: harness: ${m.sparks.length} KPI sparklines`);
+          for (const sp of m.sparks) {
+            if (!(sp.token > 0) || Math.abs(sp.height - sp.token) > 0.5) problems.push(`${label}: a KPI sparkline is ${sp.height}px tall, --SPARK-H is ${sp.token}px`);
           }
-        }
-      }
-    }
+          (sparkH[density] ??= new Set()).add(m.sparks[0]?.height);
+          for (const e of errors) problems.push(`${label}: ${e}`);
+          errors.length = 0;
+        },
+      },
+    );
+    combos = sweep.combos;
+    summary.fresh = sweep.fresh.length;
     const [comfy, compact] = [sparkH.comfortable, sparkH.compact].map((set) => Math.min(...(set ?? [])));
     if (!(compact < comfy)) problems.push(`sparklines: ${compact}px at compact, ${comfy}px at comfortable; compact must be shorter`);
     summary.sparks = `${comfy}/${compact}px`;
   } finally {
     stopErrors();
-    await page.evaluate((key) => localStorage.removeItem(key), KEY);
+    await page.evaluate(([key, banner]) => {
+      localStorage.removeItem(key);
+      localStorage.removeItem(banner);
+    }, [KEY, BANNER_KEY]);
     await page.setViewportSize({ width: 1280, height: 900 });
   }
 
   if (problems.length) throw new Error(`dashboard-layout FAILED (${problems.length}):\n  ${problems.join("\n  ")}`);
-  return `dashboard-layout OK (rows: page ${summary.page}px, compact card ${summary.card}px; incidents timeline: ${summary.incidents} events; shell full/rail/bottom nav at 1440/900/375; showcase nav reachable at 375; charts: ${summary.charts}; sparklines ${summary.sparks} at comfortable/compact; sidebar --COLUMN-MD; ${combos} combinations clean)`;
+  return `dashboard-layout OK (rows: page ${summary.page}px, compact card ${summary.card}px; incidents timeline: ${summary.incidents} events; shell full/rail/bottom nav at 1440/900/375; showcase nav reachable at 375; charts: ${summary.charts}; sparklines ${summary.sparks} at comfortable/compact; sidebar --COLUMN-MD; FilterBar ↔ table, charts and URL; toolbar overflow and coarse spacing; table features, rollout progress, banner, HoverCard; ${combos} combinations clean (${summary.fresh} loaded fresh), no boundary tripped)`;
 }

@@ -18,9 +18,18 @@ apart: **build in parallel batches, then integrate in one sequential gate.**
    typecheck at the end, and never start a browser, a dev server, the full test
    suite or `browser:check`.
 3. **Gate: one agent, alone.** Reconciles what the batch did blind to itself,
-   fixes cross-cutting problems, runs everything (`check`, `test`, `build`,
-   `showcase:build`, `browser:check`), and looks at screenshots across every
-   axis. Nothing else runs during a gate.
+   fixes cross-cutting problems, runs `check`, `test`, `build` and
+   `showcase:build`, and looks at screenshots across every axis. Nothing else
+   runs during a gate. **Browser checks in a gate are targeted**: the scripts
+   for what the batch touched (`bun run browser:check --changed`, or `--group`
+   per area) plus the cross-cutting sweeps (`--tier sweep`: the Overview,
+   forced-colour, print, floating and hit-area sweeps and the Stress page's;
+   `--changed` adds them by itself). A check that is not a sweep (the
+   virtualized table's, the Dashboard's) is reached by its group or page, not
+   by the sweep tier. The full `browser:check` runs once per round, at the
+   end, not after every batch: per-gate full runs cost the wall-clock nothing
+   else can run underneath. How to run them: "Running the browser checks"
+   below.
 4. **The orchestrator verifies the gate's claims itself** before starting the
    next batch: re-runs the suite and spot-checks screenshots. Agent reports are
    claims, not evidence.
@@ -33,6 +42,30 @@ a moving target. They also cost memory: each full run is a Vitest worker per
 core plus, for browser checks, a dev server and a headless Chrome. Five to
 seven agents doing that at once exhausted a 20 GB WSL VM. Run the suite and
 the browsers once, in the gate, with nothing else running.
+
+## Running the browser checks
+
+`bun run browser:check` (r-ui-react-components) builds the showcase in development
+mode, serves it with `vite preview`, and runs its scripts in parallel sessions.
+
+- **Targeted in a gate:** `--changed` (or `--group a,b`, `--tier sweep`, name
+  filters). The full suite once per round.
+- **Preview, not the dev server.** The default target is a fresh build (about a
+  second, every run, so never stale): no hot reload under a running check, React's
+  development warnings still collected, one static server shared by every session.
+  `--production` runs the same scripts on the production build. `--dev` is for
+  debugging against live source and runs one session by default: a cold dev server
+  compiles on first request, and parallel sessions against it time out (four checks
+  failed that way, then passed alone).
+- **Shards.** The runner picks N from free memory (a session that runs an Overview
+  sweep peaks near 2.2 GB, a solo-section one near 1 GB), at most 4, at most 3 with
+  a sweep in the set, and prints the budget. Timing-flagged scripts run alone after
+  the shards. A failure is re-run alone; one that then passes is FLAKY and fails the
+  run. Nothing else heavy (Vitest, builders) runs during a sharded run.
+- **Wall clock, 57 scripts (Oct 2026, 7 cores, 19 GB):** one session on preview
+  ~545 s; 3 shards ~255 s (each shard ~175 s, then the ~78 s timing tail); the
+  production build ~242 s. Before the migration the same coverage took ~39 min in one
+  session on the dev server.
 
 ## Structure that makes parallel work safe
 
@@ -203,3 +236,23 @@ A **round** is a few batches with a gate after each. Shape that has worked:
   regions, a transition read mid-turn) and half on the code (a spill that scrolled the whole
   page, a selection lost in the browser but kept by jsdom, a tree row taller than
   `--ROW-H`). Fix the harness first, then believe the failures that remain.
+- **A harness error in a callback kills the whole session.** playwright-cli's `run-code`
+  scope has no `setTimeout` (nor `URL`); a `page.route` handler that called it threw outside
+  the script's own `try`, the daemon died and every later command said "Session closed".
+  Wait with `page.waitForTimeout` in Node-side callbacks. Likewise a probe that turns on CDP
+  touch emulation leaves `(hover: hover)` false for the rest of the session: reopen it
+  before trusting the next check.
+- **A check whose demo cannot differ proves nothing.** Pricing's rows "lined up" because
+  every card's parts were equally tall; subgrid was in fact disabled (the card was a size
+  container) and the break stayed green. Make the check create the difference it guards
+  against (lengthen one card), then break the code again.
+- **A fix can make a neighbouring check vacuous.** Gate E4 moved a hidden site header fully
+  past the host's bar; the older "it paints under that bar" assertion could then never fail
+  (nothing overlapped), and breaking `isolate` stayed green. Re-break the assertions next to
+  every fix, not only the new ones, and make the check create the overlap itself.
+- **Builders' workarounds are the gate's fix list.** A page agent that cannot edit the
+  library works around its gaps and says so; the gate fixes each at the source, removes the
+  workaround and proves it with an assertion that goes red without the fix. Leaving the
+  workaround in place teaches the next consumer the workaround.
+- **A gate never touches the git index.** `git rm` stages the deletion; delete with `rm` and
+  leave staging to whoever commits.

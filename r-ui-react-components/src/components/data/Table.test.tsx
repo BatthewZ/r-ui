@@ -219,4 +219,23 @@ describe("Table", () => {
     expect(head()).toHaveClass("sticky", "top-0");
     expect(th()).toHaveClass("bg-surface-1");
   });
+
+  it("bands only the pinned head's cells, never a body row header", () => {
+    render(
+      <Table aria-label="Plans" variant="rules" stickyHeader>
+        <Table.Head>
+          <Table.Row>
+            <Table.HeaderCell>Feature</Table.HeaderCell>
+          </Table.Row>
+        </Table.Head>
+        <Table.Body>
+          <Table.Row>
+            <Table.HeaderCell scope="row">Seats</Table.HeaderCell>
+          </Table.Row>
+        </Table.Body>
+      </Table>,
+    );
+    expect(screen.getByRole("columnheader", { name: "Feature" })).toHaveClass("bg-surface-1");
+    expect(screen.getByRole("rowheader", { name: "Seats" })).not.toHaveClass("bg-surface-1");
+  });
 });

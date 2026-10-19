@@ -9,6 +9,7 @@ import {
   formatPercent,
   formatUnit,
   isPresent,
+  listFormatter,
   MISSING,
   relativeTimeFormatter,
 } from "./format";
@@ -145,6 +146,16 @@ describe("formatBytes", () => {
     // Just below the rounding edge stays in the smaller unit.
     expect(plain(formatBytes(1023 * 1024, en))).toBe("1,023 kB");
     expect(plain(formatBytes(1024 ** 2 - 1, { ...en, maximumFractionDigits: 3 }))).toBe("1,023.999 kB");
+  });
+});
+
+describe("listFormatter", () => {
+  it("joins in the locale's own words, shares one instance, and survives a malformed locale", () => {
+    expect(listFormatter("en", { type: "conjunction" }).format(["A", "B", "C"])).toBe("A, B, and C");
+    expect(listFormatter("de", { type: "conjunction" }).format(["A", "B", "C"])).toBe("A, B und C");
+    expect(listFormatter("en", { type: "unit" })).toBe(listFormatter("en", { type: "unit" }));
+    expect(() => new Intl.ListFormat("not a locale!")).toThrow(RangeError);
+    expect(listFormatter("not a locale!").format(["A", "B"])).toMatch(/A.*B/);
   });
 });
 

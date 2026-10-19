@@ -44,4 +44,4 @@ announcer, hidden inputs) and `selection-filter.ts` (matching).
 - **user-event submits on Enter only with a submit button or a single input**; hidden inputs
   count, so a form test of a named MultiSelect needs a submit button.
 
-Enforced by the vitest suites and `scripts/browser/selection-inputs.js`.
+Enforced by the vitest suites and `scripts/browser/form-selection.js`.

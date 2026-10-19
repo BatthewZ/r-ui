@@ -1,69 +1,100 @@
-import { ArrowRight, Flame } from "lucide-react";
+import { ArrowRight, Github, Linkedin, Rss, Youtube } from "lucide-react";
 
-import { Button, Container, Grid, Inline, Link, NavList, Section } from "../../../src";
+import { Button, CallToAction, EmailCapture, Footer, Select } from "../../../src";
+import { brandMark } from "../../sections/marketing/parts/site-nav";
 import { href } from "../../shell/router";
-import { FOOTER, LEGAL, PRODUCT } from "./content";
+import { FOOTER_COLUMNS, LEGAL, PRODUCT, type Region, REGIONS } from "./content";
 
-/** The final call to action: one band, one heading, the same two choices as the hero. */
-export function CtaBand() {
+const sendGuide = () => new Promise<void>((resolve) => setTimeout(resolve, 600));
+
+/**
+ * The final call to action: the one main action, and under it the field guide
+ * for anyone not ready to connect. One column, read top to bottom, so the
+ * action sits on the form's start edge rather than at the band's end.
+ */
+export function ClosingCta() {
   return (
-    <Section variant="band" aria-labelledby="mkt-cta-title">
-      <Container className="text-center">
-        <h2 id="mkt-cta-title" className="mx-auto max-w-measure text-balance text-display-2 text-fg-primary">
-          Your next release is already merged. Let it explain itself.
-        </h2>
-        <p className="mx-auto mt-[var(--PROSE-FLOW)] max-w-measure text-pretty text-prose-1 text-fg-secondary">
-          Connect a repository and {PRODUCT} drafts your first release note in about a minute. Free for one
-          repository, no card needed.
-        </p>
-        <Inline gap="r4" justify="center" className="mt-section-3">
-          <Button iconEnd={<ArrowRight />}>Start free</Button>
-          <Button variant="secondary">Book a demo</Button>
-        </Inline>
-      </Container>
-    </Section>
+    <CallToAction
+      layout="split"
+      title="Your next release is already merged. Let it explain itself."
+      body={`Connect a repository and ${PRODUCT} drafts your first release note in about a minute. Free for one repository, no card needed.`}
+      actions={<Button iconEnd={<ArrowRight />}>Start free</Button>}
+      classNames={{ actions: "gap-section-3 @4xl:justify-items-start" }}
+    >
+      <EmailCapture
+        onSubmit={sendGuide}
+        description="Not ready to connect a repository? Our field guide to release notes, in one email and nothing after it."
+        labels={{
+          email: "Get the field guide",
+          submit: "Send me the guide",
+          successTitle: "The guide is on its way",
+          successMessage: (email) => `Look for it at ${email} in a minute or two.`,
+        }}
+      />
+    </CallToAction>
   );
 }
 
-export function SiteFooter() {
+interface SiteFooterProps {
+  region: Region;
+  onRegionChange: (region: Region) => void;
+}
+
+const isRegion = (value: string): value is Region => REGIONS.some((r) => r.locale === value);
+
+/** Arrays, not components: the footer puts each element it is given in its own list item. */
+export function SiteFooter({ region, onRegionChange }: SiteFooterProps) {
   return (
-    <Section as="footer" padding="section-2" aria-label={`${PRODUCT} site`}>
-      <Container>
-        <Grid columns={{ base: 2, "@2xl": 4 }} gap="r1">
-          <div className="col-span-2 min-w-0 @2xl:col-span-1">
-            <p className="inline-flex items-center gap-r5 text-h3 text-fg-primary">
-              <Flame aria-hidden className="size-icon" />
-              {PRODUCT}
-            </p>
-            <p className="mt-r4 max-w-measure text-body-2 text-fg-secondary">
-              Release notes from the work you already did. Made by a small team in Rotterdam and Montréal.
-            </p>
-          </div>
-          {FOOTER.map(({ title, links }) => (
-            <NavList key={title} label={title}>
-              <NavList.Section title={title}>
-                {links.map((link) => (
-                  <NavList.Item key={link} href={href("marketing")}>
-                    {link}
-                  </NavList.Item>
-                ))}
-              </NavList.Section>
-            </NavList>
+    <Footer
+      aria-label={`${PRODUCT} site`}
+      // The closing band above already draws an edge here.
+      className="border-t-0"
+      brand={
+        <>
+          {brandMark(href("marketing"), PRODUCT)}
+          <p className="mt-r4 max-w-measure">
+            Release notes from the work you already did. Made by a small team in Rotterdam and Montréal.
+          </p>
+        </>
+      }
+      copyright={`${PRODUCT} Software B.V.`}
+      year={2026}
+      legal={LEGAL.map((label) => (
+        <Footer.Link key={label} href={href("marketing")}>
+          {label}
+        </Footer.Link>
+      ))}
+      social={[
+        <Footer.SocialLink key="github" href="https://github.com/" label="GitHub" icon={<Github />} />,
+        <Footer.SocialLink key="linkedin" href="https://www.linkedin.com/" label="LinkedIn" icon={<Linkedin />} />,
+        <Footer.SocialLink key="youtube" href="https://www.youtube.com/" label="YouTube" icon={<Youtube />} />,
+        <Footer.SocialLink key="rss" href={href("marketing", "journal")} label="Journal RSS feed" icon={<Rss />} />,
+      ]}
+      localeSwitcher={
+        <Select
+          aria-label="Region"
+          value={region}
+          onValueChange={(value) => isRegion(value) && onRegionChange(value)}
+          className="w-column-sm max-w-full"
+          data-mkt="region"
+        >
+          {REGIONS.map(({ locale, name }) => (
+            <option key={locale} value={locale} lang={locale}>
+              {name}
+            </option>
           ))}
-        </Grid>
-        <div className="mt-section-2 flex flex-wrap justify-between gap-r3 border-t border-border pt-r2 text-body-3 text-fg-muted">
-          <p>© 2026 {PRODUCT} Software B.V.</p>
-          <ul className="flex flex-wrap gap-x-r2 gap-y-r4" aria-label="Legal">
-            {LEGAL.map((label) => (
-              <li key={label}>
-                <Link variant="inherit" href={href("marketing")}>
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </Container>
-    </Section>
+        </Select>
+      }
+    >
+      {FOOTER_COLUMNS.map(({ title, links }) => (
+        <Footer.Column key={title} title={title}>
+          {links.map(({ label, anchor }) => (
+            <Footer.Link key={label} href={href("marketing", anchor)}>
+              {label}
+            </Footer.Link>
+          ))}
+        </Footer.Column>
+      ))}
+    </Footer>
   );
 }
