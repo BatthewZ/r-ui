@@ -218,6 +218,11 @@
   gap: var(--R-SIZE-2);
   block-size: var(--r-navigation-shell-viewport, 100dvh);
   padding: var(--R-SIZE-3);
+  /* Full or rail, more links than the height scroll, so the end section (the
+     collapse toggle) is always reachable. Never sideways: the rail's bubbles are fixed. */
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .r-navigation-shell-brand {
@@ -297,11 +302,14 @@
 }
 /* The label is the link's accessible name at all times; on hover or keyboard
    focus it also shows, as a bubble beside the icon. Clipped, not
-   `visibility: hidden`, so it never leaves the accessibility tree. */
+   `visibility: hidden`, so it never leaves the accessibility tree. Fixed, not
+   absolute: the rail scrolls, and its clip would cut an absolute bubble off. The
+   Sidebar sets the offsets as a link is hovered or focused (`placeRailLabel`). */
 .r-navigation-shell-sidebar .r-navigation-link-label {
-  position: absolute;
-  inset-block-start: 50%;
-  inset-inline-start: calc(100% + var(--R-SIZE-3));
+  position: fixed;
+  inset-block-start: var(--r-navigation-rail-label-y, 0);
+  inset-inline-start: var(--r-navigation-rail-label-x, 0);
+  margin-inline-start: var(--R-SIZE-3);
   translate: 0 -50%;
   padding: var(--R-SIZE-5) var(--R-SIZE-4);
   border-radius: var(--RADIUS-MD);
@@ -341,8 +349,6 @@
       /* One auto-fit column: the width a card or field column gets. */
       inline-size: var(--COLUMN-MD);
       align-items: stretch;
-      overflow-y: auto;
-      scrollbar-width: thin;
     }
     & .r-navigation-shell-brand {
       padding-inline: var(--R-SIZE-6);
@@ -370,6 +376,7 @@
     & .r-navigation-shell-sidebar .r-navigation-link-label {
       position: static;
       translate: none;
+      margin: 0;
       padding: 0;
       background: none;
       color: inherit;

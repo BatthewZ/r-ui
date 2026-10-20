@@ -4,7 +4,9 @@ import {
   type ComponentPropsWithRef,
   createContext,
   type ElementType,
+  type FocusEvent,
   type MouseEvent,
+  type PointerEvent,
   type ReactNode,
   type Ref,
   useContext,
@@ -13,6 +15,7 @@ import {
 } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
+import { composeEventHandlers } from "../../util/merge-props";
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useLinkElement } from "../../util/router";
 import { cn } from "../../util/style";
@@ -123,12 +126,56 @@ export type AppShellSidebarProps = {
   label?: string;
 } & ComponentPropsWithRef<"nav">;
 
+/**
+ * Places a rail link's label bubble beside it. In the rail the label is `position:
+ * fixed`, since the rail scrolls and would clip an absolute one, so its offsets come
+ * from here. They are measured from where the label lands at zero: its containing
+ * block is the viewport only when no ancestor is contained (a `container-type` box).
+ * Does nothing where the label is not a bubble (the full sidebar).
+ */
+function placeRailLabel(link: Element | null | undefined) {
+  const label = link?.querySelector<HTMLElement>(":scope > .r-navigation-link-label");
+  if (!link || !label) return;
+  const cs = getComputedStyle(label);
+  if (cs.position !== "fixed") return;
+  label.style.setProperty("--r-navigation-rail-label-x", "0px");
+  label.style.setProperty("--r-navigation-rail-label-y", "0px");
+  const zero = label.getBoundingClientRect();
+  const at = link.getBoundingClientRect();
+  const gap = Number.parseFloat(cs.marginInlineStart) || 0;
+  const x = cs.direction === "rtl" ? zero.right + gap - at.left : at.right - zero.left + gap;
+  const y = (at.top + at.bottom) / 2 - (zero.top + zero.bottom) / 2;
+  label.style.setProperty("--r-navigation-rail-label-x", `${x}px`);
+  label.style.setProperty("--r-navigation-rail-label-y", `${y}px`);
+}
+
+const railLinkOf = (target: EventTarget | null, within: Element) => {
+  const link = target instanceof Element ? target.closest(".r-navigation-link") : null;
+  return link && within.contains(link) ? link : null;
+};
+
 /** The primary navigation: a full sidebar, an icon rail, or hidden behind the bottom nav. */
-function Sidebar({ label = "Primary", className, children, ...props }: AppShellSidebarProps) {
+function Sidebar({ label = "Primary", className, children, onPointerOver, onFocus, onScroll, ...props }: AppShellSidebarProps) {
   const { sidebarId } = useAppShell("Sidebar");
   return (
     <div className="r-navigation-shell-sidebar" id={sidebarId}>
-      <nav aria-label={label} className={cn("r-navigation-shell-sidebar-inner", className)} {...props}>
+      <nav
+        aria-label={label}
+        className={cn("r-navigation-shell-sidebar-inner", className)}
+        {...props}
+        onPointerOver={composeEventHandlers(onPointerOver, (event: PointerEvent<HTMLElement>) =>
+          placeRailLabel(railLinkOf(event.target, event.currentTarget)),
+        )}
+        onFocus={composeEventHandlers(onFocus, (event: FocusEvent<HTMLElement>) =>
+          placeRailLabel(railLinkOf(event.target, event.currentTarget)),
+        )}
+        // A scrolled rail moves its links under a shown bubble: follow the hovered and focused ones.
+        onScroll={composeEventHandlers(onScroll, (event) => {
+          const nav = event.currentTarget;
+          placeRailLabel(nav.querySelector(".r-navigation-link:hover"));
+          placeRailLabel(railLinkOf(document.activeElement, nav));
+        })}
+      >
         {children}
       </nav>
     </div>

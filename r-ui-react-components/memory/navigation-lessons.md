@@ -34,3 +34,10 @@
 - **State as a `data-*` attribute plus an attribute selector** keeps a class list free of
   conditions. (It was first reached for to dodge a `verify:utilities-exist` false positive on
   `position === "end" && "…"`; the gate no longer follows comparisons, but the pattern stands.)
+
+- **A rail that cannot scroll strands whatever is below the fold.** The rail was left
+  unscrolled so its hover bubbles (absolute, outside it) were not clipped; once a shell
+  had more links than the screen, the collapsed rail hid its own expand toggle. A scroller
+  clips absolute descendants on both axes, so the bubbles became `position: fixed` and the
+  Sidebar places them on hover, focus and scroll, measuring the label at zero first (its
+  containing block is a contained ancestor, not the viewport, inside a `container-type` box).

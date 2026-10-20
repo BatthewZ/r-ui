@@ -272,7 +272,7 @@ function StepperStep({
     ) : position === "complete" ? (
       <Check aria-hidden className="size-icon" />
     ) : (
-      index + 1
+      <span className="r-steps-marker-number">{index + 1}</span>
     );
   // The current step says so through `aria-current`; a status is said by the visible meta line.
   const hiddenWord = status === undefined && position !== "current" ? labels[position] : undefined;

@@ -117,7 +117,7 @@ function HowItWorksStep({ title, media, children, className, classNames, ...prop
           classNames?.marker,
         )}
       >
-        {index + 1}
+        <span className="r-steps-marker-number">{index + 1}</span>
       </span>
       <div className={cn("r-marketing-how-body", classNames?.body)}>
         <Heading className={cn("r-marketing-how-title break-words text-pretty text-display-4 text-fg-primary", classNames?.title)}>

@@ -43,3 +43,8 @@
   grid column is sized at least to its items' min-content, and `overflow-wrap: break-word`
   does not lower min-content, so an unbroken word widened the track and spilled out. Give
   the grid `minmax(0, 1fr)` columns.
+- **A digit centred by its line box sits high.** The line box keeps room below the baseline
+  for descenders that digits never have, so a number "centred" in a circle sat about 2px
+  above the middle (an icon, centred by its own box, did not). `text-box: trim-both cap
+  alphabetic` on a block-level number trims the box to the digit. Measure the ink at a
+  high device scale, not the box: the box was centred all along.

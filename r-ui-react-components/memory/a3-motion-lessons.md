@@ -45,3 +45,16 @@
 - **`useEffectEvent` needs React 19.2**; the peer range is 19.0, so latest-callback refs it is.
 - **Do not name a generic `div`.** `aria-labelledby` on an accordion root without a role is
   prohibited; the topic heading before it already does the job.
+- **A view transition's own styles must outlive `updateCallbackDone`.** The library hook
+  settles once the update applied; a choreography keyed on a kind (a direction, a press
+  point) needs its marker until `finished`, and a newer transition owns the marker after
+  it. Give each demo's elements a `view-transition-name` only while its own kind runs,
+  or one demo's elements are swept into (and animated by) another's transition.
+- **Stopping the page's cross-fade needs `mix-blend-mode: normal`.** Old and new snapshots
+  blend with `plus-lighter`; with their animations off, two opaque pages add up and wash
+  out. And `:not()` cannot take a pseudo-element: `::view-transition-old(*):not(...)`
+  is an invalid selector and the whole rule drops; reset the root by name instead.
+- **Stage the fades of a roll or slide.** Old gone by halfway, new from halfway: a plain
+  cross-fade shows both mid-flight. Inspect a transition by pausing its animations at a
+  fraction and screenshotting, never by scrolling while it is paused (the snapshots are
+  pinned to the viewport).

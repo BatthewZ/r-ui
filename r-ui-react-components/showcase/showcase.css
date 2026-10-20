@@ -283,3 +283,140 @@
     block-size: 100dvh;
   }
 }
+
+/* ── View-transition choreographies (the motion demos) ─────────────────────
+   Outside @layer: the contract's own `::view-transition-*(root)` rules are
+   unlayered, and a layered rule would lose to them. Each demo's transition runs
+   with `<html data-sc-vt="<kind>">` (runTransition); its elements carry their name
+   in `--sc-vt-name` and take it only while their kind runs, so one demo never
+   captures another's elements. Durations and distances are the motion tokens. */
+:root[data-sc-vt="drill"] .sc-vt-kpi,
+:root[data-sc-vt="roll"] .sc-vt-price,
+:root[data-sc-vt="tour"] .sc-vt-tour {
+  view-transition-name: var(--sc-vt-name);
+}
+/* The layout demo (the library's hook, no kind) names its cards inline, always: keep
+   them out of every choreographed transition, or a price roll would roll them too. */
+:root[data-sc-vt] .sc-vt-layout-item {
+  view-transition-name: none !important;
+}
+
+/* Drill-down: the tile's box grows into the panel's; the snapshots keep their own
+   size, pinned top-left inside the clipped, rounded box, and cross-fade. */
+:root[data-sc-vt="drill"]::view-transition-group(*) {
+  animation-duration: var(--DURATION-SLOW);
+  animation-timing-function: var(--EASE-STANDARD);
+}
+:root[data-sc-vt="drill"]::view-transition-image-pair(*) {
+  overflow: clip;
+  border-radius: var(--RADIUS-LG);
+}
+/* The page's own snapshot is the viewport: no rounded corners on it. And it swaps at
+   once rather than cross-fading: the panel is taller than the tiles, so what follows
+   moves, and a fade would show it twice while the panel morphs over it. */
+:root[data-sc-vt="drill"]::view-transition-image-pair(root) {
+  border-radius: 0;
+}
+:root[data-sc-vt="drill"]::view-transition-old(root),
+:root[data-sc-vt="drill"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* Natural size for every snapshot (the page's is already the viewport's). */
+:root[data-sc-vt="drill"]::view-transition-old(*),
+:root[data-sc-vt="drill"]::view-transition-new(*) {
+  block-size: auto;
+  inline-size: auto;
+  object-fit: none;
+  object-position: left top;
+}
+
+/* Price roll: the old figure leaves up (to yearly) or down, the new one arrives from
+   the other side, inside the price's own box. */
+:root[data-sc-vt="roll"]::view-transition-image-pair(*) {
+  overflow: clip;
+}
+:root[data-sc-vt="roll"]::view-transition-old(*) {
+  animation: var(--DURATION-NORMAL) var(--EASE-EXIT) both sc-vt-roll-out;
+}
+:root[data-sc-vt="roll"]::view-transition-new(*) {
+  animation: var(--DURATION-NORMAL) var(--EASE-ENTER) both sc-vt-roll-in;
+}
+/* The page itself does not fade; two opaque snapshots must not add up (the default
+   cross-fade blends them with plus-lighter). */
+:root[data-sc-vt="roll"]::view-transition-old(root),
+:root[data-sc-vt="roll"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+/* Staged, not cross-faded: the old figure is gone by halfway and the new one shows
+   only after, so the two never read on top of each other. */
+@keyframes sc-vt-roll-out {
+  50%,
+  to {
+    opacity: 0;
+  }
+  to {
+    translate: 0 calc(var(--sc-vt-roll, 1) * -100%);
+  }
+}
+@keyframes sc-vt-roll-in {
+  from,
+  50% {
+    opacity: 0;
+  }
+  from {
+    translate: 0 calc(var(--sc-vt-roll, 1) * 100%);
+  }
+}
+
+/* Feature tour: the old step leaves toward the side you came from, the new one
+   arrives from the side you are heading to; --MOTION-INLINE-SIGN mirrors it in RTL. */
+:root[data-sc-vt="tour"]::view-transition-image-pair(sc-vt-tour) {
+  overflow: clip;
+  border-radius: var(--RADIUS-LG);
+}
+:root[data-sc-vt="tour"]::view-transition-old(sc-vt-tour) {
+  animation: var(--DURATION-SLOW) var(--EASE-EXIT) both sc-vt-slide-out;
+}
+:root[data-sc-vt="tour"]::view-transition-new(sc-vt-tour) {
+  animation: var(--DURATION-SLOW) var(--EASE-ENTER) both sc-vt-slide-in;
+}
+/* Staged like the price roll: the steps never overlap mid-slide. */
+@keyframes sc-vt-slide-out {
+  50%,
+  to {
+    opacity: 0;
+  }
+  to {
+    translate: calc(var(--sc-vt-dir, 1) * var(--MOTION-INLINE-SIGN, 1) * -4 * var(--MOTION-DISTANCE-LG)) 0;
+  }
+}
+@keyframes sc-vt-slide-in {
+  from,
+  50% {
+    opacity: 0;
+  }
+  from {
+    translate: calc(var(--sc-vt-dir, 1) * var(--MOTION-INLINE-SIGN, 1) * 4 * var(--MOTION-DISTANCE-LG)) 0;
+  }
+}
+
+/* Theme reveal: the old page stays put, the new one is uncovered by a circle that
+   grows from the press to the farthest corner. */
+:root[data-sc-vt="reveal"]::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+:root[data-sc-vt="reveal"]::view-transition-new(root) {
+  animation: var(--DURATION-SLOW) var(--EASE-STANDARD) both sc-vt-reveal;
+  mix-blend-mode: normal;
+}
+@keyframes sc-vt-reveal {
+  from {
+    clip-path: circle(0 at var(--sc-vt-x) var(--sc-vt-y));
+  }
+  to {
+    clip-path: circle(var(--sc-vt-r) at var(--sc-vt-x) var(--sc-vt-y));
+  }
+}

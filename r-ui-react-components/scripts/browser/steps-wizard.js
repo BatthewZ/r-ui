@@ -29,6 +29,9 @@
 //      --r-steps-pad before the next (within 1px; mirrored in RTL); the ends are
 //      inset (the first marker centred in its step); no step's text spills out of
 //      its step (the unbroken word breaks);
+//   7. a marker's number is trimmed to its cap height (its box shorter than its line
+//      height) and centred in the circle (±0.5px), so the digit, not a line box with
+//      room for descenders, is what sits in the middle;
 //   6. focus on arrival draws no ring: Next pressed with the mouse (after typing in
 //      the step's fields) and then with Enter both move focus to the new step's
 //      heading ("Step 2 of 4: People"), whose outline style is none;
@@ -178,6 +181,27 @@ async (page) => {
       });
     }
 
+    // 7. Marker numbers: trimmed to the cap height, centred.
+    await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
+    const numbers = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-sc="stepper-vertical"] .r-steps-marker-number')].map((n) => {
+        const m = n.parentElement.getBoundingClientRect();
+        const r = n.getBoundingClientRect();
+        return {
+          text: n.textContent,
+          height: r.height,
+          lineHeight: Number.parseFloat(getComputedStyle(n).lineHeight),
+          dy: (r.top + r.bottom) / 2 - (m.top + m.bottom) / 2,
+          dx: (r.left + r.right) / 2 - (m.left + m.right) / 2,
+        };
+      }),
+    );
+    if (numbers.length < 2) fail.push(`numbers: harness: ${numbers.length} numbered markers`);
+    for (const n of numbers) {
+      if (!(n.height < n.lineHeight * 0.85)) fail.push(`numbers: "${n.text}" is a ${n.height}px box in a ${n.lineHeight}px line, not trimmed to its cap height`);
+      if (Math.abs(n.dy) > 0.5 || Math.abs(n.dx) > 0.5) fail.push(`numbers: "${n.text}" is ${n.dx.toFixed(2)} / ${n.dy.toFixed(2)}px off its circle's centre`);
+    }
+
     // 6. Focus on arrival: the heading takes focus with no ring, by mouse and by key.
     {
       const invite = await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
@@ -249,5 +273,5 @@ async (page) => {
   }
 
   if (fail.length) throw new Error(`steps-wizard:\n  ${fail.join("\n  ")}`);
-  return "marker = --ICON + 2 × --R-SIZE-5, Next = --CONTROL-H, horizontal labels under markers and lines marker to marker (states, compact, long, RTL), narrow collapses, the arrival heading takes focus with no ring, compact markers, compact Wizard collapses at 375, forced-colour states distinct";
+  return "marker = --ICON + 2 × --R-SIZE-5, Next = --CONTROL-H, horizontal labels under markers and lines marker to marker (states, compact, long, RTL), narrow collapses, the arrival heading takes focus with no ring, marker numbers trimmed and centred, compact markers, compact Wizard collapses at 375, forced-colour states distinct";
 }

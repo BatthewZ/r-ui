@@ -20,6 +20,14 @@
 .r-steps-marker[data-ring="dashed"] {
   border-style: dashed;
 }
+/* A number centred by its line box sits high: the box keeps room below the baseline
+   for descenders that digits never use. Trimmed to cap height over the baseline, the
+   box is the digit, so centring centres it. (Where `text-box` is unsupported, the
+   line box centres as before.) */
+.r-steps-marker-number {
+  display: block;
+  text-box: trim-both cap alphabetic;
+}
 
 /* A column that can shrink below its longest word, so `break-words` gets to break it. */
 .r-steps-text {
