@@ -4,7 +4,7 @@
 /**
  * Waits until the showcase page the URL hash names has committed everything it
  * suspends on: the shell sets `<html data-showcase-ready="<page>">` once the
- * page's chunk (and, for the Overview, every section's) has rendered. A cold dev
+ * page's chunk (and every section it shows) has rendered. A cold dev
  * server compiles a page's modules on its first visit, far past an action's
  * default timeout, so every check waits here after a load or a page change
  * instead of on an element of its own with a timeout of its own.
@@ -201,17 +201,16 @@ async function setView(page, { theme, density, input, dir, width, height, reduce
 }
 
 /**
- * Opens Overview sections by themselves, on a fresh document: `#/solo/<ids>`
- * renders only those sections (the Overview's exact markup, their chunks only),
- * where the Overview would load and lay out every section. `ids` is one id or a
- * list (`<group>-<file>`, as in `#/overview/<id>`). Before the load it sets
+ * Opens showcase sections by themselves, on a fresh document: `#/solo/<ids>`
+ * renders only those sections (a group page's exact markup, their chunks only).
+ * `ids` is one id or a list (`<group>-<file>`, as in `#/overview/<id>`). Before the load it sets
  * the viewport (`width`, `height`: 1280 × 900 unless given), reduced motion
  * and forced colours, and stores `view`
  * (theme, density, input) so the pre-paint script mounts the sections under it;
  * `view.dir` is applied live after. `runway` puts a viewport of page above and
  * below (a section that must start below the fold, or scroll away). `route:
- * "overview"` opens the same ids on the Overview instead (also forced for a
- * whole run by `browser:check --overview`, to prove a check equal on both).
+ * "all"` opens the same ids among every other section (`#/all`) instead (also
+ * forced for a whole run by `browser:check --all`, to prove a check equal on both).
  * Throws if any id rendered no section, or a section tripped its boundary.
  * Then settles (`settle` is its `until`). Returns the first section's locator.
  */
@@ -226,7 +225,7 @@ async function openSection(
   const { dir, ...stored } = view;
   await page.setViewportSize({ width: width ?? SHOWCASE_VIEWPORT.width, height: height ?? SHOWCASE_VIEWPORT.height });
   await page.emulateMedia({ reducedMotion: reduced ? "reduce" : null, forcedColors: forced ? "active" : null });
-  const hash = route === "overview" ? `#/overview/${list[0]}` : `#/solo/${list.join(",")}${runway ? "?runway" : ""}`;
+  const hash = route === "all" ? `#/all/${list[0]}` : `#/solo/${list.join(",")}${runway ? "?runway" : ""}`;
   await page.goto(`${base}${hash}`);
   await page.evaluate(
     ({ key, stored }) => (Object.keys(stored).length ? localStorage.setItem(key, JSON.stringify(stored)) : localStorage.removeItem(key)),
@@ -234,7 +233,7 @@ async function openSection(
   );
   await page.reload();
   await waitForShowcase(page);
-  if (route !== "overview") await page.waitForFunction((want) => document.documentElement.dataset.showcaseSolo === want, list.join(","));
+  if (route !== "all") await page.waitForFunction((want) => document.documentElement.dataset.showcaseSolo === want, list.join(","));
   const problems = await page.evaluate((list) => {
     const missing = list.filter((id) => !document.querySelector(`section.sc-section[id="${id}"]`));
     const tripped = list.filter((id) => document.querySelector(`section.sc-section[id="${id}"] [data-section-error]`));
@@ -272,7 +271,7 @@ async function withClock(page, fn, { viewport = SHOWCASE_VIEWPORT, hasTouch = fa
 }
 
 /**
- * Opens a whole showcase page (`overview`, `dashboard`, `marketing`, `stress`, with
+ * Opens a whole showcase page (`overview`, `all`, `dashboard`, `marketing`, `stress`, with
  * an optional `/anchor`) on a fresh document under `view` (theme, density, input;
  * `dir` applied live after) at `width` × `height` (1280 × 900 unless given), then
  * settles. The View is stored first and the document left for `about:blank`, so the

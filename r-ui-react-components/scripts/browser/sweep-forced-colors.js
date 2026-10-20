@@ -60,7 +60,7 @@ async (page) => {
 
   const load = async (theme, width) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(`${base}#/overview`);
+    await page.goto(`${base}#/all`);
     await page.evaluate((v) => localStorage.setItem("r-ui-showcase:view", JSON.stringify(v)), {
       theme,
       density: "comfortable",

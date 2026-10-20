@@ -2,6 +2,7 @@ import { use, useEffect } from "react";
 
 import { loadSomeSections } from "../registry";
 import type { PageProps } from "../shell/App";
+import { InvalidSections } from "../shell/InvalidSections";
 import { parseSoloAnchor } from "../shell/router";
 import { SectionFrame } from "../shell/SectionFrame";
 
@@ -29,24 +30,13 @@ export function Solo({ anchor }: PageProps) {
   return (
     <div className="sc-page">
       {runway && <div className="sc-solo-runway" aria-hidden />}
-      {(missing.length > 0 || invalid.length > 0 || ids.length === 0) && (
-        <div className="sc-invalid" role="alert">
-          <h2>Sections that could not load</h2>
-          <ul>
-            {ids.length === 0 && <li>No section named: use #/solo/&lt;group&gt;-&lt;file&gt;</li>}
-            {missing.map((id) => (
-              <li key={id}>
-                <code>{id}</code>: no such section
-              </li>
-            ))}
-            {invalid.map((i) => (
-              <li key={i.path}>
-                <code>{i.path}</code>: {i.reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <InvalidSections
+        invalid={invalid}
+        notes={[
+          ...(ids.length === 0 ? [{ key: "none", text: "No section named: use #/solo/<group>-<file>" }] : []),
+          ...missing.map((id) => ({ key: id, text: <><code>{id}</code>: no such section</> })),
+        ]}
+      />
       {ids.map((id) => {
         const section = byId.get(id);
         return section ? <SectionFrame key={id} section={section} /> : null;

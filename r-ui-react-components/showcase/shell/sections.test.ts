@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { collectSections, loadModules, sectionIdOf } from "./sections";
+import { collectSections, indexSections, loadModules, resolveOverview, sectionIdOf } from "./sections";
 
 const Demo = () => null;
 const mod = (meta: unknown, component: unknown = Demo) => ({ meta, default: component });
@@ -53,6 +53,40 @@ describe("sectionIdOf", () => {
     expect(sectionIdOf("./sections/data/DataTable.tsx")).toBe("data-datatable");
     expect(sectionIdOf("./sections/form/OTPInput.tsx")).toBe("form-otpinput");
     expect(sectionIdOf("./sections/form/parts/demo.ts")).toBeNull();
+  });
+});
+
+describe("indexSections", () => {
+  it("lists each group's section ids from the paths alone, groups in reading order", () => {
+    const index = indexSections([
+      "./sections/form/Input.tsx",
+      "./sections/zeta/Thing.tsx",
+      "./sections/primitives/Button.tsx",
+      "./sections/form/Checkbox.tsx",
+      "./sections/form/parts/demo.ts",
+    ]);
+    expect(index).toEqual([
+      { group: "primitives", ids: ["primitives-button"] },
+      { group: "form", ids: ["form-input", "form-checkbox"] },
+      { group: "zeta", ids: ["zeta-thing"] },
+    ]);
+  });
+});
+
+describe("resolveOverview", () => {
+  const index = [
+    { group: "primitives", ids: ["primitives-button"] },
+    { group: "form", ids: ["form-input", "form-checkbox"] },
+  ];
+
+  it("shows the index with no anchor, a group's page for a group, and its group's page at a section id", () => {
+    expect(resolveOverview(index, null)).toEqual({ kind: "index" });
+    expect(resolveOverview(index, "form")).toEqual({ kind: "group", group: "form", section: null });
+    expect(resolveOverview(index, "form-checkbox")).toEqual({ kind: "group", group: "form", section: "form-checkbox" });
+  });
+
+  it("names an anchor that is neither, instead of showing an empty page", () => {
+    expect(resolveOverview(index, "form-nothing")).toEqual({ kind: "unknown", anchor: "form-nothing" });
   });
 });
 

@@ -27,8 +27,8 @@ import { dependants } from "./group-graph.mjs";
 export const TIERS = ["sweep", "page", "component"];
 export const FLAGS = ["timing", "touch"];
 const TAGS = ["covers", "sections", "tier", "flags", "cost"];
-/** The showcase's pages a script can visit by hash; `solo` and `overview` both render sections. */
-const PAGES = ["overview", "solo", "dashboard", "marketing", "stress"];
+/** The showcase's pages a script can visit by hash; `overview` (a group's page), `solo` and `all` render sections. */
+const PAGES = ["overview", "all", "solo", "dashboard", "marketing", "stress"];
 
 /**
  * A script's tags, from the comment lines before its `async (page) =>`, plus
@@ -188,7 +188,8 @@ export function selectForChanges(paths, scripts, graph) {
       else pickWhere((s) => s.tags.sections.some((x) => x.startsWith(`${slug(m[1])}-`)), path);
     } else if ((m = /^showcase\/pages\/([A-Za-z]+)/.exec(path))) {
       const page = m[1].toLowerCase();
-      if (page === "overview") pickWhere((s) => s.tags.sections.length > 0 || s.tags.pages.includes("overview"), path);
+      // `browser:check --all` opens every section script's sections on the all-sections page.
+      if (page === "all") pickWhere((s) => s.tags.sections.length > 0 || s.tags.pages.includes("all"), path);
       else pickWhere((s) => s.tags.pages.includes(page), path);
     } else {
       notes.add(`${path} maps to no script: the sweep tier covers it`);

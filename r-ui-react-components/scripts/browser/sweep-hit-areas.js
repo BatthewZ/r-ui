@@ -6,7 +6,7 @@
 // Browser check: the contract's `hit-area` utility, as the components use it.
 //
 // jsdom computes no geometry and no hit testing; this measures both with
-// `elementFromPoint` and real pointer presses on the Overview.
+// `elementFromPoint` and real pointer presses on their groups' pages.
 //
 // At coarse input (comfortable density) it asserts:
 //   1. harness: --HIT-MIN reads 44px, and an IconButton is ICON + 2 × R-SIZE-4

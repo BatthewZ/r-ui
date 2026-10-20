@@ -29,7 +29,7 @@
 // needs a browser (`playwright-cli install-browser`).
 //
 // Usage: bun run browser:check [name-filter…] [--group g,…] [--tier t,…] [--changed[=<ref>]] [--list]
-//                              [--dev | --production] [--shards n] [--shuffle seed] [--profile] [--overview] [--seed n]
+//                              [--dev | --production] [--shards n] [--shuffle seed] [--profile] [--all] [--seed n]
 //   name filters      scripts whose file name contains any of them
 //   --group g,…       scripts whose `@covers` names one of the groups
 //   --tier t,…        scripts of a tier (sweep | page | component)
@@ -42,8 +42,8 @@
 //   --shuffle seed    a seeded order inside every session (proves no script leans on another)
 //   --profile         per-load time and requests, per-block time, reset, memory
 //                     (--profile and --dev run one session unless --shards says otherwise)
-//   --overview        every `openSection` opens its sections on the Overview instead
-//                     of the solo route (to prove a converted check equal on both)
+//   --all             every `openSection` opens its sections among all the others
+//                     (`#/all`) instead of alone (to prove a converted check equal on both)
 //   --seed n          which View combinations the sweeps load fresh (`viewMatrix` in
 //                     the prelude); by default it changes once a day, and is printed
 // Criteria of different kinds narrow each other; values within one kind widen.
@@ -78,7 +78,7 @@ function parseArgs(argv) {
     changed: null,
     list: false,
     profile: false,
-    overview: false,
+    all: false,
     print: null,
     seed: null,
     target: "development",
@@ -99,7 +99,7 @@ function parseArgs(argv) {
     else if (flag === "--changed") opts.changed = inline || "HEAD";
     else if (flag === "--list") opts.list = true;
     else if (flag === "--profile") opts.profile = true;
-    else if (flag === "--overview") opts.overview = true;
+    else if (flag === "--all") opts.all = true;
     else if (flag === "--print") opts.print = value();
     else if (flag === "--seed") opts.seed = whole(flag, value(), 0);
     else if (flag === "--shards") opts.shards = whole(flag, value(), 1);
@@ -205,13 +205,13 @@ const prelude = readFileSync(join(PKG, "scripts/lib/browser-prelude.js"), "utf8"
  * fails after a passing check fails it; after a failing one, the check's own
  * error is the one reported.
  */
-const wrap = (file, { profile = false, overview = false, seed = 0, target = "development" } = {}) => {
+const wrap = (file, { profile = false, all = false, seed = 0, target = "development" } = {}) => {
   const source = readFileSync(file, "utf8").trim().replace(/;$/, "");
   const script = profile ? markBlocks(source) : source;
   return [
     "async (page) => {",
     `const BROWSER_CHECK_PROFILE = ${profile};`,
-    `const BROWSER_CHECK_ROUTE = ${JSON.stringify(overview ? "overview" : "solo")};`,
+    `const BROWSER_CHECK_ROUTE = ${JSON.stringify(all ? "all" : "solo")};`,
     `const BROWSER_CHECK_SEED = ${seed};`,
     `const BROWSER_CHECK_BUILT = ${target !== "dev"};`,
     // playwright-cli's page waits for a navigation without limit: a load event that never comes would hang the run.
@@ -270,7 +270,7 @@ if (opts.print) {
     console.error(`browser:check --print — "${opts.print}" matches ${chosen.length} scripts; name exactly one`);
     process.exit(1);
   }
-  process.stdout.write(wrap(chosen[0].file, { overview: opts.overview, seed, target: opts.target }));
+  process.stdout.write(wrap(chosen[0].file, { all: opts.all, seed, target: opts.target }));
   process.exit(0);
 }
 
@@ -443,7 +443,7 @@ async function runScript(session, script) {
   const started = Date.now();
   const watch = profiling ? watchMemory(session) : null;
   const limit = Math.max(180, 4 * costOf(script, durations));
-  const { out, timedOut } = await exec("playwright-cli", [`-s=${session}`, "run-code", wrap(file, { profile: profiling, overview: opts.overview, seed, target })], {
+  const { out, timedOut } = await exec("playwright-cli", [`-s=${session}`, "run-code", wrap(file, { profile: profiling, all: opts.all, seed, target })], {
     timeout: limit * 1000,
   });
   const peak = watch?.stop();

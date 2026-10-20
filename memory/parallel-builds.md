@@ -22,7 +22,7 @@ apart: **build in parallel batches, then integrate in one sequential gate.**
    `showcase:build`, and looks at screenshots across every axis. Nothing else
    runs during a gate. **Browser checks in a gate are targeted**: the scripts
    for what the batch touched (`bun run browser:check --changed`, or `--group`
-   per area) plus the cross-cutting sweeps (`--tier sweep`: the Overview,
+   per area) plus the cross-cutting sweeps (`--tier sweep`: the all-sections,
    forced-colour, print, floating and hit-area sweeps and the Stress page's;
    `--changed` adds them by itself). A check that is not a sweep (the
    virtualized table's, the Dashboard's) is reached by its group or page, not
@@ -57,7 +57,7 @@ mode, serves it with `vite preview`, and runs its scripts in parallel sessions.
   debugging against live source and runs one session by default: a cold dev server
   compiles on first request, and parallel sessions against it time out (four checks
   failed that way, then passed alone).
-- **Shards.** The runner picks N from free memory (a session that runs an Overview
+- **Shards.** The runner picks N from free memory (a session that runs an all-sections
   sweep peaks near 2.2 GB, a solo-section one near 1 GB), at most 4, at most 3 with
   a sweep in the set, and prints the budget. Timing-flagged scripts run alone after
   the shards. A failure is re-run alone; one that then passes is FLAKY and fails the

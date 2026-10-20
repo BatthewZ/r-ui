@@ -9,7 +9,7 @@ import type { ComponentType } from "react";
  *
  * `group` is the component group (the folder name, by convention); `order`
  * sorts within the group (ties break on title). A later agent adds a file and
- * nothing else: the Overview page and its TOC pick it up.
+ * nothing else: the Overview's index, the group's page and the sidebar pick it up.
  */
 export interface SectionMeta {
   title: string;
@@ -112,6 +112,56 @@ function validate(path: string, mod: unknown): Section | InvalidSection {
   };
 }
 
+const rank = (g: string) => {
+  const i = GROUP_ORDER.indexOf(g);
+  return i === -1 ? GROUP_ORDER.length : i;
+};
+const byGroupOrder = (a: string, b: string) => rank(a) - rank(b) || a.localeCompare(b);
+
+/** "form" → "Form": a group's name as a heading. */
+export const groupTitle = (group: string) => group.charAt(0).toUpperCase() + group.slice(1);
+
+/** A group and its sections' ids, known from the paths alone. */
+export interface GroupIndex {
+  group: string;
+  ids: string[];
+}
+
+/**
+ * Every group and its section ids, in reading order, from the glob's paths
+ * alone: the Overview's index, the sidebar and a group page's pick of which
+ * sections to load all come from it without loading any section.
+ */
+export function indexSections(paths: readonly string[]): GroupIndex[] {
+  const byGroup = new Map<string, string[]>();
+  for (const path of paths) {
+    const group = PATH.exec(path)?.[1];
+    const id = sectionIdOf(path);
+    if (!group || !id) continue;
+    byGroup.set(group, [...(byGroup.get(group) ?? []), id]);
+  }
+  return [...byGroup.entries()].sort(([a], [b]) => byGroupOrder(a, b)).map(([group, ids]) => ({ group, ids }));
+}
+
+/** What `#/overview/<anchor>` shows: the index, a group's page (at one of its sections), or nothing known. */
+export type OverviewTarget =
+  | { kind: "index" }
+  | { kind: "group"; group: string; section: string | null }
+  | { kind: "unknown"; anchor: string };
+
+/**
+ * Reads the Overview's anchor: a group name opens that group's page, a section
+ * id opens its group's page at that section, so a link to a section keeps
+ * working however the sections are paged.
+ */
+export function resolveOverview(index: readonly GroupIndex[], anchor: string | null): OverviewTarget {
+  if (!anchor) return { kind: "index" };
+  const group = index.find((g) => g.group === anchor);
+  if (group) return { kind: "group", group: group.group, section: null };
+  const holder = index.find((g) => g.ids.includes(anchor));
+  return holder ? { kind: "group", group: holder.group, section: anchor } : { kind: "unknown", anchor };
+}
+
 /** Group, sort and validate a glob result. Pure, so it is tested without the glob. */
 export function collectSections(modules: Record<string, unknown>): {
   groups: SectionGroup[];
@@ -129,12 +179,8 @@ export function collectSections(modules: Record<string, unknown>): {
     list.push(result);
     byGroup.set(result.meta.group, list);
   }
-  const rank = (g: string) => {
-    const i = GROUP_ORDER.indexOf(g);
-    return i === -1 ? GROUP_ORDER.length : i;
-  };
   const groups = [...byGroup.entries()]
-    .sort(([a], [b]) => rank(a) - rank(b) || a.localeCompare(b))
+    .sort(([a], [b]) => byGroupOrder(a, b))
     .map(([group, sections]) => ({
       group,
       sections: sections.sort(

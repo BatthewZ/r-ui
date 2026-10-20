@@ -274,7 +274,7 @@ bun run build           # dist/ (ESM, preserveModules, .d.ts)
 ```
 
 The showcase loads the example themes and their web faces the way an app would (its CSS
-entry imports them; a theme file only names its faces). It has four pages: **Overview** (every component, every state, one section each),
+entry imports them; a theme file only names its faces). It has four pages: **Overview** (every component, every state, one section each, a component group to a page with an "On this page" rail; the sidebar lists the groups),
 **Dashboard** (an operations dashboard in an `AppShell`), **Marketing** (a landing page on the
 fluid display and section scales, UI components inside it at UI scale) and **Stress** (nested
 density, clipped floating panels, 10,000 rows, extreme and translated content, RTL). Each page

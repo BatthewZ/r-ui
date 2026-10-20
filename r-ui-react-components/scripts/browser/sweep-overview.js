@@ -2,10 +2,10 @@
 // @tier     sweep
 // @cost     100
 //
-// Browser check: the whole Overview page renders cleanly on every axis.
+// Browser check: every section, all on one page (`#/all`), renders cleanly on every axis.
 //
 // For every theme the showcase lists × comfortable / compact × fine / coarse at
-// 1280 and 375 wide (all 32 combinations) it measures the Overview. Each width opens
+// 1280 and 375 wide (all 32 combinations) it measures that page. Each width opens
 // on a fresh load, and so do a few combinations chosen so that every theme and both
 // values of density, input and width mount fresh (`viewMatrix`, rotated by the run's
 // seed); every other combination is switched to live (`setView`), as a user switches.
@@ -244,7 +244,7 @@ async (page) => {
       {
         load: async ({ width, ...view }) => {
           errors.length = 0;
-          await openPage(page, "overview", { view, width });
+          await openPage(page, "all", { view, width });
         },
         check: async ({ density, input }, label) => {
           const hitPx = INPUTS[input];

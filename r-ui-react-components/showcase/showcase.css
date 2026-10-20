@@ -86,6 +86,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
   .sc-page {
+    /* Clears the shell's sticky header: where a section link lands and the rail sticks. */
+    --sc-header-clearance: calc(var(--CONTROL-H) + 2 * var(--R-SIZE-3) + var(--R-SIZE-2));
     display: grid;
     gap: var(--R-SIZE-1);
   }
@@ -118,7 +120,113 @@
     font-family: var(--FONT-MONO);
   }
 
-  /* ── Overview ──────────────────────────────────────────────────────────── */
+  /* ── Overview: the index of groups ────────────────────────────────────── */
+  .sc-group-index {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--COLUMN-SM)), 1fr));
+    gap: var(--R-SIZE-3);
+  }
+  .sc-group-card {
+    display: grid;
+    gap: var(--R-SIZE-6);
+    min-block-size: var(--HIT-MIN);
+    padding: var(--R-SIZE-3);
+    border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+    border-radius: var(--RADIUS-LG);
+    background: var(--C-SURFACE-0);
+    color: var(--C-TEXT-PRIMARY);
+    text-decoration: none;
+    transition: border-color var(--DURATION-FAST) var(--EASE-STANDARD);
+  }
+  @media (hover: hover) {
+    .sc-group-card:hover {
+      border-color: var(--C-BORDER-STRONG);
+    }
+  }
+  .sc-group-card-title {
+    font-weight: var(--WEIGHT-SEMIBOLD);
+  }
+  .sc-group-card-count {
+    color: var(--C-TEXT-MUTED);
+    font-size: var(--BodyText-2);
+    line-height: var(--BodyText-2-line-height);
+  }
+
+  /* ── A group's page ──────────────────────────────────────────────────── */
+  .sc-crumb a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--HIT-MIN);
+    color: var(--C-TEXT-ACCENT);
+    text-decoration: var(--LINK-DECORATION);
+  }
+  .sc-group-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--R-SIZE-1);
+    align-items: start;
+  }
+  /* Narrow: the contents wrap above the sections. Wide (the container query
+     below): a column beside them that stays in view as they scroll. */
+  .sc-rail ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--R-SIZE-2);
+    padding: var(--R-SIZE-3);
+    border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+    border-radius: var(--RADIUS-LG);
+    background: var(--C-SURFACE-1);
+  }
+  .sc-rail a {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: var(--HIT-MIN);
+    color: var(--C-TEXT-ACCENT);
+    text-decoration: var(--LINK-DECORATION);
+  }
+  .sc-rail a[aria-current] {
+    color: var(--C-TEXT-PRIMARY);
+    font-weight: var(--WEIGHT-SEMIBOLD);
+  }
+  @container (width >= --theme(--container-4xl)) {
+    .sc-rail {
+      position: sticky;
+      inset-block-start: var(--sc-header-clearance);
+      max-block-size: calc(100dvh - var(--sc-header-clearance) - var(--R-SIZE-2));
+      overflow-y: auto;
+    }
+    .sc-rail ul {
+      flex-direction: column;
+      flex-wrap: nowrap;
+    }
+  }
+  .sc-pager {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--R-SIZE-3);
+    padding-block-start: var(--R-SIZE-2);
+    border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  }
+  .sc-pager a {
+    display: grid;
+    min-block-size: var(--HIT-MIN);
+    color: var(--C-TEXT-ACCENT);
+    font-weight: var(--WEIGHT-MEDIUM);
+    text-decoration: var(--LINK-DECORATION);
+  }
+  .sc-pager-next {
+    margin-inline-start: auto;
+    text-align: end;
+  }
+  .sc-pager-hint {
+    color: var(--C-TEXT-MUTED);
+    font-size: var(--BodyText-3);
+    line-height: var(--BodyText-3-line-height);
+    font-weight: var(--WEIGHT-NORMAL);
+  }
+
+  /* ── In-page contents (the Stress page) ──────────────────────────────── */
   .sc-toc {
     display: flex;
     flex-wrap: wrap;
@@ -149,7 +257,7 @@
   .sc-section {
     display: grid;
     gap: var(--R-SIZE-4);
-    scroll-margin-block-start: calc(var(--CONTROL-H) + 2 * var(--R-SIZE-3) + var(--R-SIZE-2));
+    scroll-margin-block-start: var(--sc-header-clearance);
   }
   .sc-section > header p {
     color: var(--C-TEXT-SECONDARY);

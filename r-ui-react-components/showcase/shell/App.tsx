@@ -4,24 +4,28 @@ import { type ComponentType, lazy, type ReactNode, Suspense, useCallback, useEff
 import { AppShell, RouterProvider } from "../../src/components/navigation";
 import { ToastProvider } from "../../src/components/overlays";
 import { DocumentTitleProvider, useDocumentTitle } from "../../src/hooks/use-document-title";
+import { sectionIndex } from "../registry";
 import { CommandMenu } from "./CommandMenu";
+import { groupIcon } from "./group-icons";
 import { href, useHashRoute } from "./router";
+import { groupTitle, resolveOverview } from "./sections";
 import { ViewBridge } from "./ViewBridge";
 import { ViewPanel } from "./ViewPanel";
 
 export interface PageProps {
-  /** The in-page anchor from the hash (`#/overview/<anchor>`), if any. */
+  /** The hash's second segment (`#/overview/<anchor>`), if any: a group, a section, a list, as the page reads it. */
   anchor: string | null;
 }
 
-// Each page is its own chunk: a first visit to the Dashboard does not load the
-// Overview's sixty demos, nor the other way round.
+// Each page is its own chunk: a first visit to the Dashboard does not load a
+// group's demos, nor the other way round.
 const Overview = lazy(() => import("../pages/Overview").then((m) => ({ default: m.Overview })));
 const Dashboard = lazy(() => import("../pages/Dashboard").then((m) => ({ default: m.Dashboard })));
 const Marketing = lazy(() => import("../pages/Marketing").then((m) => ({ default: m.Marketing })));
 const Stress = lazy(() => import("../pages/Stress").then((m) => ({ default: m.Stress })));
 
 const Solo = lazy(() => import("../pages/Solo").then((m) => ({ default: m.Solo })));
+const All = lazy(() => import("../pages/All").then((m) => ({ default: m.All })));
 
 interface PageRoute {
   page: string;
@@ -38,11 +42,12 @@ const ROUTES: (PageRoute & { Icon: ComponentType<{ className?: string }> })[] = 
 
 /**
  * Pages outside the navigation, for the browser checks: chosen sections alone
- * (`#/solo/<id>,…`), and an empty page a check resets to, which costs no
- * section's load.
+ * (`#/solo/<id>,…`), every section on one page (`#/all`, for the sweeps), and an
+ * empty page a check resets to, which costs no section's load.
  */
 const HIDDEN_ROUTES: PageRoute[] = [
   { page: "solo", label: "Solo", Page: Solo },
+  { page: "all", label: "All sections", Page: All },
   { page: "blank", label: "Blank", Page: () => null },
 ];
 
@@ -63,6 +68,11 @@ export function App() {
     if (!anchor) window.scrollTo({ top: 0 });
   }, [route.page, anchor]);
 
+  // On a group's page (`#/overview/<group or section>`), the group is what is current.
+  const target = route.page === "overview" ? resolveOverview(sectionIndex, anchor) : null;
+  const group = target?.kind === "group" ? target.group : null;
+  const current = group ? href("overview", group) : href(route.page);
+
   const { Page } = route;
   // The app root owns the toast stack, as a consumer app's would: any page or
   // demo calls `useToast()`, and no section depends on another for a provider.
@@ -71,12 +81,13 @@ export function App() {
       <ViewBridge />
       <ToastProvider>
         <AppShell>
-          <ShellNav current={route.page}>
+          <ShellNav current={current}>
             <AppShell.Sidebar label="Showcase">
               <AppShell.Brand href={href(FALLBACK)} mark={<span className="font-mono">r</span>}>
                 r-ui <span className="font-normal text-fg-muted">showcase</span>
               </AppShell.Brand>
               <AppShell.SidebarSection title="Pages">{navItems}</AppShell.SidebarSection>
+              <AppShell.SidebarSection title="Components">{groupItems}</AppShell.SidebarSection>
               <AppShell.SidebarSection position="end">
                 <AppShell.SidebarToggle />
               </AppShell.SidebarSection>
@@ -94,13 +105,13 @@ export function App() {
           </AppShell.Header>
           {/* The padding steps the Marketing page cancels to run its bands edge to edge. */}
           <AppShell.Main className="px-r2 py-r1 md:p-r1">
-            <PageTitle label={route.label} />
+            <PageTitle label={group ? groupTitle(group) : route.label} />
             <Suspense fallback={<p className="text-body-2 text-fg-muted">Loading…</p>}>
               <Page anchor={anchor} />
               <PageReady page={route.page} />
             </Suspense>
           </AppShell.Main>
-          <ShellNav current={route.page}>
+          <ShellNav current={current}>
             <AppShell.BottomNav label="Showcase" data-showcase-bottomnav="">
               {navItems}
             </AppShell.BottomNav>
@@ -117,19 +128,30 @@ const navItems = ROUTES.map(({ page, label, Icon }) => (
   </AppShell.NavItem>
 ));
 
+/** Each component group's page, in reading order; on phones the Overview's index reaches them. */
+const groupItems = sectionIndex.map(({ group }) => {
+  const Icon = groupIcon(group);
+  return (
+    <AppShell.NavItem key={group} href={href("overview", group)} icon={<Icon aria-hidden />}>
+      {groupTitle(group)}
+    </AppShell.NavItem>
+  );
+});
+
 /**
- * The router configuration for the shell's own navigation. Scoped to it, not the
- * whole app: the pages are specimens whose placeholder links point back at the
- * page they sit on, and a real router would rightly call those current.
+ * The router configuration for the shell's own navigation, `current` being the
+ * href that is current. Scoped to it, not the whole app: the pages are specimens
+ * whose placeholder links point back at the page they sit on, and a real router
+ * would rightly call those current.
  */
 function ShellNav({ current, children }: { current: string; children: ReactNode }) {
-  const isCurrent = useCallback((target: string) => target === href(current), [current]);
+  const isCurrent = useCallback((target: string) => target === current, [current]);
   return <RouterProvider isCurrent={isCurrent}>{children}</RouterProvider>;
 }
 
 /**
  * `<html data-showcase-ready="<page>">` once the page and everything it suspends
- * on (its chunk, the Overview's sections) have committed. The browser checks
+ * on (its chunk, a group's sections) have committed. The browser checks
  * wait for it rather than for an element that a slow first load may not have
  * rendered yet.
  */

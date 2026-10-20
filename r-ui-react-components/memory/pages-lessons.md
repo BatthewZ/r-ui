@@ -37,3 +37,13 @@ an app would. They are consumers: what they had to work around is a library find
   `series="total"`; `w-auto whitespace-normal` on pricing cells became `wrap`; a gate renamed
   around (`ERROR_CLASSES`) was a gate bug. Fix the library or the gate, then delete the
   workaround.
+- **A page of every section outgrew its use; page by the reader's unit.** One Overview of
+  125 demos loaded every chunk and sent readers back to the top for its contents. Paged a
+  group to a page, the index and sidebar come from the glob's paths alone (no section
+  loads), a group's page loads only its own chunks, and `#/overview/<section id>` still
+  lands on the section, so no deep link changed. The sweeps that measure every section
+  together keep a hidden `#/all` route rather than walking every group page per view.
+- **A first visit's Suspense fallback resets the scroll by itself.** A group page that
+  "starts at the top" passed until a check revisited a loaded group: no fallback, no
+  shrink, and the old scroll stayed. Scroll on purpose, and make the check visit the
+  target first so the fallback cannot do the work.

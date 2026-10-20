@@ -2,7 +2,7 @@
 // @tier     sweep
 // @cost     15
 //
-// Browser check: the Dashboard, Marketing and Overview pages print as ink on paper
+// Browser check: the Dashboard, Marketing and all-sections (`#/all`) pages print as ink on paper
 // from a dark theme (the first the showcase lists).
 //
 // Run it through `bun run browser:check sweep-print`, or by hand against a running showcase:
@@ -225,7 +225,7 @@ async (page) => {
     }, { gone: GONE, HEADER, TAB_ROWS });
 
   await page.emulateMedia({ media: null });
-  for (const p of ["dashboard", "marketing", "overview"]) {
+  for (const p of ["dashboard", "marketing", "all"]) {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`${base}#/${p}`);
     await page.evaluate(([key, v]) => localStorage.setItem(key, JSON.stringify(v)), [KEY, { theme: dark }]);
