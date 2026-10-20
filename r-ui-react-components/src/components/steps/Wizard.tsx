@@ -284,11 +284,13 @@ function WizardRoot<TValues, TOutput>({
       aria-labelledby={headingId}
       className={cn("grid min-w-0 animate-fade-in gap-r3", classNames?.panel)}
     >
+      {/* Focused by script to announce the step and start Tab there; not a control, so no
+          ring (a press keeps focus in a text field, which would carry :focus-visible here). */}
       <Heading
         ref={headingRef}
         id={headingId}
         tabIndex={-1}
-        className={cn("min-w-0 break-words text-h4", classNames?.heading)}
+        className={cn("min-w-0 break-words text-h4 outline-none", classNames?.heading)}
       >
         <span className="sr-only">{words.position(index + 1, total)}: </span>
         {active.props.label}

@@ -22,6 +22,16 @@
 //      comfortable formula, and at 375 the compact Wizard collapses (the steps' and
 //      Next's 44px floor and the page not scrolling sideways are sweep-overview's
 //      geometry sweep);
+//   5. horizontal geometry, comfortable at 1280, on every state, compact density,
+//      long labels and RTL: steps share the row equally; each label sits under its
+//      marker (centres within 1px, label top below the marker); each line is level
+//      with the markers' centres and runs from --r-steps-pad past one marker to
+//      --r-steps-pad before the next (within 1px; mirrored in RTL); the ends are
+//      inset (the first marker centred in its step); no step's text spills out of
+//      its step (the unbroken word breaks);
+//   6. focus on arrival draws no ring: Next pressed with the mouse (after typing in
+//      the step's fields) and then with Enter both move focus to the new step's
+//      heading ("Step 2 of 4: People"), whose outline style is none;
 //   4. forced colours: the five marker states (complete, skipped, current,
 //      error, upcoming) differ pairwise in what survives forcing (border
 //      style, width and colour, kept fill, glyph), and the current step is
@@ -113,6 +123,88 @@ async (page) => {
     });
     if (!phone.collapsed) fail.push("375: the compact Wizard's Stepper did not collapse");
 
+    // 5. Horizontal geometry: labels under markers, lines marker to marker.
+    await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
+    const rows = await page.evaluate(() =>
+      ["stepper-states", "stepper-compact", "stepper-long", "stepper-rtl"].map((sc) => {
+        const host = document.querySelector(`[data-sc="${sc}"]`);
+        const root = host.matches(".r-steps-stepper") ? host : host.querySelector(".r-steps-stepper");
+        const list = root.querySelector(".r-steps-list");
+        const probe = document.createElement("div");
+        probe.style.inlineSize = "var(--r-steps-pad)";
+        list.append(probe);
+        const pad = probe.getBoundingClientRect().width;
+        probe.remove();
+        const steps = [...list.children].map((li) => {
+          const box = li.getBoundingClientRect();
+          const m = li.querySelector(".r-steps-marker").getBoundingClientRect();
+          const text = li.querySelector(".r-steps-text");
+          const t = text.getBoundingClientRect();
+          const label = text.firstElementChild.getBoundingClientRect();
+          const c = li.querySelector(".r-steps-connector")?.getBoundingClientRect();
+          return {
+            box: { left: box.left, right: box.right, width: box.width },
+            marker: { left: m.left, right: m.right, x: (m.left + m.right) / 2, y: (m.top + m.bottom) / 2, bottom: m.bottom },
+            text: { left: t.left, right: t.right, scroll: text.scrollWidth - text.clientWidth },
+            label: { x: (label.left + label.right) / 2, top: label.top },
+            line: c && { left: c.left, right: c.right, y: (c.top + c.bottom) / 2 },
+          };
+        });
+        return { sc, rtl: getComputedStyle(list).direction === "rtl", pad, steps };
+      }),
+    );
+    for (const { sc, rtl, pad, steps } of rows) {
+      if (steps.length < 3) fail.push(`horizontal ${sc}: harness: ${steps.length} steps`);
+      if (!(pad > 0)) fail.push(`horizontal ${sc}: harness: --r-steps-pad reads ${pad}px`);
+      const widths = steps.map((s) => s.box.width);
+      if (Math.max(...widths) - Math.min(...widths) > 1) fail.push(`horizontal ${sc}: steps are not equal widths ${JSON.stringify(widths)}`);
+      const first = steps[0];
+      if (Math.abs(first.marker.x - (first.box.left + first.box.right) / 2) > 1) fail.push(`horizontal ${sc}: the first marker is not centred in its step (ends inset)`);
+      steps.forEach((s, i) => {
+        const at = `horizontal ${sc} step ${i + 1}`;
+        if (Math.abs(s.label.x - s.marker.x) > 1) fail.push(`${at}: label centre ${s.label.x.toFixed(1)} is not under the marker's ${s.marker.x.toFixed(1)}`);
+        if (s.label.top < s.marker.bottom) fail.push(`${at}: the label (top ${s.label.top}) is not below the marker (bottom ${s.marker.bottom})`);
+        if (s.text.left < s.box.left - 1 || s.text.right > s.box.right + 1 || s.text.scroll > 0) fail.push(`${at}: its text spills out of its step ${JSON.stringify({ text: s.text, box: s.box })}`);
+        const next = steps[i + 1];
+        if (!next) {
+          if (s.line) fail.push(`${at}: the last step draws a line`);
+          return;
+        }
+        if (!s.line) return fail.push(`${at}: no line to the next step`);
+        if (Math.abs(s.line.y - s.marker.y) > 1) fail.push(`${at}: the line (y ${s.line.y.toFixed(1)}) is not level with the marker (y ${s.marker.y.toFixed(1)})`);
+        const [from, to] = rtl ? [s.marker.left - s.line.right, s.line.left - next.marker.right] : [s.line.left - s.marker.right, next.marker.left - s.line.right];
+        if (Math.abs(from - pad) > 1 || Math.abs(to - pad) > 1)
+          fail.push(`${at}: the line stops ${from.toFixed(1)}px from its marker and ${to.toFixed(1)}px from the next, expected ${pad}px both`);
+      });
+    }
+
+    // 6. Focus on arrival: the heading takes focus with no ring, by mouse and by key.
+    {
+      const invite = await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
+      const arrived = () =>
+        page.evaluate(() => {
+          const a = document.activeElement;
+          return { tag: a.tagName, text: a.textContent.replace(/\s+/g, " ").trim(), outline: getComputedStyle(a).outlineStyle };
+        });
+      await invite.getByLabel("Team name").click();
+      await page.keyboard.type("Acme");
+      await invite.getByLabel("Workspace URL").click();
+      await page.keyboard.type("acme");
+      await invite.getByRole("button", { name: "Next" }).click();
+      await page.waitForTimeout(150);
+      const byMouse = await arrived();
+      await invite.getByRole("button", { name: "Back" }).click();
+      await page.waitForTimeout(150);
+      await invite.getByRole("button", { name: "Next" }).focus();
+      await page.keyboard.press("Enter");
+      await page.waitForTimeout(150);
+      const byKey = await arrived();
+      for (const [how, at] of [["mouse", byMouse], ["Enter", byKey]]) {
+        if (!/^H[1-6]$/.test(at.tag) || at.text !== "Step 2 of 4: People") fail.push(`arrival (${how}): focus is on ${at.tag} "${at.text}", expected the "Step 2 of 4: People" heading`);
+        if (at.outline !== "none") fail.push(`arrival (${how}): the focused heading draws a ring (outline-style ${at.outline})`);
+      }
+    }
+
     // 4. Forced colours: every marker state stays distinguishable.
     await open({ theme: "default", density: "comfortable", input: "fine" }, 1280);
     await page.emulateMedia({ forcedColors: "active" });
@@ -157,5 +249,5 @@ async (page) => {
   }
 
   if (fail.length) throw new Error(`steps-wizard:\n  ${fail.join("\n  ")}`);
-  return "marker = --ICON + 2 × --R-SIZE-5, Next = --CONTROL-H, narrow collapses, compact markers, compact Wizard collapses at 375, forced-colour states distinct";
+  return "marker = --ICON + 2 × --R-SIZE-5, Next = --CONTROL-H, horizontal labels under markers and lines marker to marker (states, compact, long, RTL), narrow collapses, the arrival heading takes focus with no ring, compact markers, compact Wizard collapses at 375, forced-colour states distinct";
 }

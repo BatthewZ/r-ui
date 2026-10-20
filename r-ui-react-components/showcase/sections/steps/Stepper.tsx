@@ -91,7 +91,7 @@ export default function StepperSection() {
         </div>
       </Row>
       <Row label="Long labels wrap; an unbroken word breaks">
-        <Stepper current={1}>
+        <Stepper current={1} data-sc="stepper-long">
           {LONG.map((label) => (
             <Stepper.Step key={label} label={label} />
           ))}

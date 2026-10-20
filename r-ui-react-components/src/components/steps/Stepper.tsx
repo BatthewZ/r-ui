@@ -105,7 +105,11 @@ const positionOf = (index: number, current: number): StepPosition =>
 export interface StepperProps extends Omit<ComponentPropsWithRef<"div">, "children"> {
   /** The current step's index. `>=` the step count means every step is complete. */
   current: number;
-  /** `horizontal` (default) collapses to "Step 2 of 5 · Name" when its own container is narrow. */
+  /**
+   * `horizontal` (default): equal steps in a row, each label under its marker and a line from
+   * marker to marker; collapses to "Step 2 of 5 · Name" when its own container is narrow.
+   * `vertical`: each label beside its marker.
+   */
   orientation?: StepperOrientation;
   /** The list's name (the `nav` landmark's when steps can be selected). Default `labels.progress`. */
   label?: string;
@@ -153,7 +157,7 @@ function StepperRoot({
       data-orientation={orientation}
       className={cn(
         "r-steps-list flex min-w-0",
-        orientation === "horizontal" ? "items-start gap-r4" : "flex-col",
+        orientation === "horizontal" ? "items-start" : "flex-col",
         collapse?.list,
         classNames?.list,
       )}
@@ -312,8 +316,10 @@ function StepperStep({
     </>
   );
 
+  // Horizontal: the label under its marker, centred. Vertical: beside it.
   const targetClass = cn(
-    "flex min-w-0 items-start gap-r4 rounded-md p-(--r-steps-pad) text-start",
+    "flex min-w-0 rounded-md p-(--r-steps-pad)",
+    orientation === "horizontal" ? "flex-col items-center gap-r5 text-center" : "items-start gap-r4 text-start",
     canSelect && "min-h-hit cursor-pointer transition-colors hover:bg-fg-primary/8 active:bg-fg-primary/12",
     classNames?.target,
   );
@@ -322,7 +328,7 @@ function StepperStep({
     <li
       className={cn(
         "r-steps-step min-w-0",
-        orientation === "horizontal" ? "flex flex-1 items-start gap-r4 last:flex-initial" : "relative pb-r4 last:pb-0",
+        orientation === "horizontal" ? "relative flex flex-1 justify-center" : "relative pb-r4 last:pb-0",
         className,
       )}
       data-position={position}

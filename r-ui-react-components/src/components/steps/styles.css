@@ -21,9 +21,18 @@
   border-style: dashed;
 }
 
-/* The text's first line centred on the marker, at any leading. */
+/* A column that can shrink below its longest word, so `break-words` gets to break it. */
 .r-steps-text {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* Vertical: the text's first line centred on the marker beside it, at any leading. */
+.r-steps-list[data-orientation="vertical"] .r-steps-text {
   padding-block-start: calc((var(--r-steps-marker) - var(--BodyText-1-line-height)) / 2);
+}
+/* Horizontal: the text under its marker never wider than its step, so an
+   unbroken word breaks there instead of spilling into the next. */
+.r-steps-list[data-orientation="horizontal"] .r-steps-text {
+  max-inline-size: 100%;
 }
 
 /* The line joining a step to the next: firmer once the step is behind you. */
@@ -33,10 +42,14 @@
 .r-steps-step[data-position="complete"] > .r-steps-connector {
   border-color: var(--C-BORDER-STRONG);
 }
+/* Horizontal steps share the row equally (no gap between them) with the marker
+   centred in each, so the next marker's centre is one step width on: the line
+   runs from just past this marker to just before that one. */
 .r-steps-list[data-orientation="horizontal"] > .r-steps-step > .r-steps-connector {
-  flex: 1 1 0;
-  min-inline-size: var(--R-SIZE-3);
-  margin-block-start: calc(var(--r-steps-pad) + var(--r-steps-marker) / 2);
+  position: absolute;
+  inset-block-start: calc(var(--r-steps-pad) + (var(--r-steps-marker) - var(--BORDER-WIDTH)) / 2);
+  inset-inline-start: calc(50% + var(--r-steps-marker) / 2 + var(--r-steps-pad));
+  inset-inline-end: calc(-50% + var(--r-steps-marker) / 2 + var(--r-steps-pad));
   border-block-start-width: var(--BORDER-WIDTH);
 }
 .r-steps-list[data-orientation="vertical"] > .r-steps-step > .r-steps-connector {

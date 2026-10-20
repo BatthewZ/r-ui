@@ -20,6 +20,11 @@
 - **Focus on arrival, not on mount.** The heading is focused when the shown index changes
   (a ref of the last shown index), never on mount, so StrictMode's double effects and a
   wizard that starts mid-flow steal nothing.
+- **A script-focused heading inherits `:focus-visible` from the field a press left.** The
+  press never takes focus (FormActions), a text field always matches `:focus-visible`, and
+  the browser carries that to the next scripted focus, so mouse users saw a ring on a
+  heading. The heading is not a control: `outline-none`, and the base forced-colours rule
+  still restores a ring there.
 - **A container query cannot count**, so the collapse width for a horizontal Stepper is a
   literal container variant chosen by step count (about 9rem a step). Both forms are in
   the DOM; the hidden one is `display: none`, so assistive tech reads only the visible one.
@@ -28,3 +33,13 @@
 - **States survive forced colours by edge, not fill.** Complete keeps its `bg-primary`
   (the utility opts out); current and error are a double-weight ring (Highlight vs
   CanvasText), skipped is dashed, upcoming single; each also has its own glyph and word.
+- **Horizontal labels go under the marker, so the line can join marker to marker.** With the
+  label beside its marker the line could only start where the text ended, and long labels
+  squeezed it to a stub. Equal steps (`flex: 1 1 0`, no gap between them) with the marker
+  centred put the next marker's centre one step width on, so an absolute line can be
+  inset in percentages (`50% + marker / 2 + gap`, `-50% + marker / 2 + gap`) with no
+  measuring.
+- **`break-words` cannot break what a grid's `auto` track will not shrink.** An implicit
+  grid column is sized at least to its items' min-content, and `overflow-wrap: break-word`
+  does not lower min-content, so an unbroken word widened the track and spilled out. Give
+  the grid `minmax(0, 1fr)` columns.

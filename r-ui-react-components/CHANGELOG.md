@@ -16,6 +16,8 @@ tokens or the public surface are versioned events and are recorded here.
 
 ### Fixed
 
+- Steps: the `Wizard`'s step heading, focused on every step change, draws no focus ring (forced colours still show one). A press on Next keeps focus in the text field it left, so the browser carried `:focus-visible` to the heading and drew the ring for mouse users too; the heading is not a control.
+- Steps: a horizontal `Stepper` (and so a horizontal `Wizard`) puts each label, with its status and description, under its marker, centred, in steps that share the row equally; the line runs from marker to marker, a `--R-SIZE-5` gap from each, instead of from the end of the label. The ends are inset by half a step. An unbroken word in a label or description breaks inside its step (in either orientation) instead of spilling out.
 - Marketing: a `NavigationMenu` panel link's icon (and so a `SiteHeader` dropdown's and its mobile menu's) sits level with the label's first line instead of centred on the label and description together; a label-only row still centres in its row height.
 - Feedback: `ProgressBar`'s indeterminate sweep animates `translate` instead of `inset-inline-start`, so it runs off the main thread with no layout or paint per frame; it mirrors under `dir="rtl"` through `--MOTION-INLINE-SIGN`.
 - Overlays: under reduced motion every closed surface with an exit (dialogs and the Lightbox, popovers, menus, tooltips, hover cards, toasts, selection lists, navigation panels, chart tooltips) unmounts its content at once. The collapsed 0.01ms exits were still waited on, which kept the content mounted a frame or two after the close.

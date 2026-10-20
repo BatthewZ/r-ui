@@ -47,6 +47,7 @@ The theme checks live in r-ui-css and run under its `check` script. Read a check
 8. Save lessons for future agents in `<package>/memory/`, and keep `<package>/memory/README.md` as its index. Principles and guidance only: no TODOs, upcoming tasks, line numbers or file references.
 9. For browser work, run `playwright-cli -h`.
 10. Before writing tests, read [guides/tests.md](./guides/tests.md).
+11. Work and commit on the current branch, `main` included; no feature branches unless asked.
 
 ## Where a fact goes
 
