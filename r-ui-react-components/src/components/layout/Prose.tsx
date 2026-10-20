@@ -13,9 +13,10 @@ export type ProseProps<C extends ElementType = "div"> = PolymorphicProps<
 
 /**
  * A long-form region: its paragraphs, lists, headings, quotes and code take the
- * fluid prose/display scale with reading leading (r-ui-css's `.prose`). Controls
- * inside it keep the UI scale: the region sets no font size of its own, and a
- * subtree can opt out entirely with `data-not-prose`.
+ * fluid prose/display scale with reading leading (r-ui-css's `.prose`). The region
+ * takes the body prose size, so its measure counts body characters. Controls inside
+ * it keep the UI scale (each sets its own), and a subtree can opt out entirely with
+ * `data-not-prose`.
  */
 export function Prose<C extends ElementType = "div">({
   as,

@@ -53,7 +53,8 @@ export default function TypographySection() {
       </Row>
 
       <Row label="Prose sizes · text-prose-1 (lead), text-prose-2 (body), text-prose-3 (small print) · fluid, reading leading, at --MEASURE">
-        <div className="grid max-w-measure gap-r2">
+        {/* At the body prose size, so the measure counts body characters, as in a Prose region. */}
+        <div className="grid max-w-measure gap-r2 text-prose-2">
           <TypeSample name="text-prose-1" width className="text-prose-1 text-fg-primary">
             {BODY}
           </TypeSample>

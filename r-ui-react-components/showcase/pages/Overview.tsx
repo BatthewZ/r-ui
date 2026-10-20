@@ -1,4 +1,7 @@
-import { use, useEffect } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
+
+import { useActiveSection } from "../../src/hooks/use-active-section";
+import { usePrefersReducedMotion } from "../../src/hooks/use-reduced-motion";
 
 import { loadGroupSections, sectionIndex } from "../registry";
 import type { PageProps } from "../shell/App";
@@ -68,17 +71,98 @@ function Index({ unknown }: { unknown: string | null }) {
 }
 
 /**
+ * Which section the reader is in: the first one in the band from under the sticky
+ * header to 40% down the viewport. At the page's end, where short last sections can
+ * never reach that band, the last one on screen. Before any reading, `fallback`.
+ */
+function useReadingSection(ids: readonly string[], fallback: string | null): string | null {
+  // The observer takes px, never a var(): read the header's clearance once, as rendered.
+  const [clearance, setClearance] = useState<number | null>(null);
+  useEffect(() => {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;visibility:hidden;block-size:var(--sc-header-clearance)";
+    (document.querySelector(".sc-page") ?? document.body).append(probe);
+    setClearance(probe.getBoundingClientRect().height);
+    probe.remove();
+  }, []);
+  const inBand = useActiveSection(clearance === null ? [] : ids, { rootMargin: `-${clearance ?? 0}px 0px -60% 0px` });
+
+  const [atEnd, setAtEnd] = useState<string | null>(null);
+  useEffect(() => {
+    const read = () => {
+      const root = document.documentElement;
+      if (root.scrollHeight - window.innerHeight - window.scrollY > 2) return setAtEnd(null);
+      const onScreen = ids.filter((id) => {
+        const r = document.getElementById(id)?.getBoundingClientRect();
+        return r !== undefined && r.top < window.innerHeight && r.bottom > 0;
+      });
+      setAtEnd(onScreen.at(-1) ?? null);
+    };
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
+    return () => {
+      window.removeEventListener("scroll", read);
+      window.removeEventListener("resize", read);
+    };
+  }, [ids]);
+
+  return atEnd ?? inBand ?? fallback;
+}
+
+/**
  * One group's sections, and only theirs loaded. The contents rail comes first
- * in reading order and, on a wide page, stays beside the sections as they scroll.
+ * in reading order and, on a wide page, stays beside the sections as they scroll,
+ * marking the one being read and keeping it in its own view.
  */
 function GroupPage({ group, section }: { group: string; section: string | null }) {
   const { groups, invalid } = use(loadGroupSections(group));
   const sections = groups[0]?.sections ?? [];
+  const ids = useMemo(() => sections.map((s) => s.id), [sections]);
+  const reading = useReadingSection(ids, section);
+  const rail = useRef<HTMLElement>(null);
+  // Read when a link changes, not a reason to scroll again when the preference does.
+  const reduced = useRef(false);
+  reduced.current = usePrefersReducedMotion();
+  // While a press glides the page to its section, the rail holds that section
+  // rather than marking each one the page passes on the way.
+  const [gliding, setGliding] = useState<string | null>(null);
+  const shown = useRef<{ group: string; section: string | null } | null>(null);
 
-  // A group starts at its top; a section link lands on that section.
+  // Keep the current entry inside the rail when the rail scrolls (a long group,
+  // wide): move the rail only, never the page.
   useEffect(() => {
-    if (section) document.getElementById(section)?.scrollIntoView({ block: "start" });
-    else window.scrollTo({ top: 0 });
+    const box = rail.current;
+    const entry = box?.querySelector<HTMLElement>('a[aria-current="location"]');
+    if (!box || !entry || box.scrollHeight <= box.clientHeight) return;
+    const b = box.getBoundingClientRect();
+    const e = entry.getBoundingClientRect();
+    if (e.top < b.top) box.scrollTop -= b.top - e.top;
+    else if (e.bottom > b.bottom) box.scrollTop += e.bottom - b.bottom;
+  }, [reading, gliding]);
+
+  // A group starts at its top; a section link lands on that section, gliding there
+  // when it was pressed on this group's page (not on arriving, not under reduced motion).
+  useEffect(() => {
+    const before = shown.current;
+    shown.current = { group, section };
+    const target = section ? document.getElementById(section) : null;
+    if (!target) {
+      window.scrollTo({ top: 0 });
+      return;
+    }
+    const glide = before?.group === group && !reduced.current;
+    target.scrollIntoView({ block: "start", behavior: glide ? "smooth" : "instant" });
+    if (!glide) return;
+    setGliding(section);
+    const done = () => setGliding(null);
+    // `scrollend` where it exists; a timer where it does not, or where nothing moved.
+    window.addEventListener("scrollend", done, { once: true });
+    const fallback = window.setTimeout(done, 1500);
+    return () => {
+      window.removeEventListener("scrollend", done);
+      window.clearTimeout(fallback);
+    };
   }, [group, section]);
 
   const at = sectionIndex.findIndex((g) => g.group === group);
@@ -98,11 +182,11 @@ function GroupPage({ group, section }: { group: string; section: string | null }
 
       <div className="@container min-w-0">
         <div className="sc-group-layout @4xl:grid-cols-[minmax(0,1fr)_var(--COLUMN-SM)]">
-          <nav className="sc-rail @4xl:col-start-2 @4xl:row-start-1" aria-label="On this page">
+          <nav ref={rail} className="sc-rail @4xl:col-start-2 @4xl:row-start-1" aria-label="On this page">
             <ul>
               {sections.map((s) => (
                 <li key={s.id}>
-                  <a href={href("overview", s.id)} aria-current={s.id === section ? "location" : undefined}>
+                  <a href={href("overview", s.id)} aria-current={s.id === (gliding ?? reading) ? "location" : undefined}>
                     {s.meta.title}
                   </a>
                 </li>

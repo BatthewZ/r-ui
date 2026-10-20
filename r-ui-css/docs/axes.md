@@ -83,7 +83,7 @@ Two type and spacing scales, chosen by **role**, never by viewport.
 </article>
 ```
 
-Inside a prose region, `p`, lists, headings, `blockquote`, `figcaption`, `code`, `pre`, `hr`, media and class-less links take the prose scale. The region sets no font size on itself, so a button, menu, table or form inside it keeps the UI scale, its control height and UI leading. Lists with a `role` and links with a `class` are skipped. Utilities always win over region styles.
+Inside a prose region, `p`, lists, headings, `blockquote`, `figcaption`, `code`, `pre`, `hr`, media and class-less links take the prose scale. The region itself takes the body prose size and leading, so a measure set on it (`max-w-measure`, in `ch`) counts characters of the text being read, not of the UI font. A button, menu, table or form inside it still keeps the UI scale, its control height and UI leading: each sets its own size, and a bare form control is reset. Lists with a `role` and links with a `class` are skipped. Utilities always win over region styles.
 
 ### Marketing layout
 

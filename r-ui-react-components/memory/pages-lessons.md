@@ -47,3 +47,14 @@ an app would. They are consumers: what they had to work around is a library find
   "starts at the top" passed until a check revisited a loaded group: no fallback, no
   shrink, and the old scroll stayed. Scroll on purpose, and make the check visit the
   target first so the fallback cannot do the work.
+- **A scroll spy needs two rules the observer cannot give.** `useActiveSection` marks the
+  first section in a band under the header; at the page's end, short last sections never
+  reach that band, so the last one on screen takes the mark there. And a long contents
+  rail that scrolls must move itself (never the page) to keep the mark in view. A check
+  proves each only where it can fail: a tall window so the last section sits below the
+  band, a short one so the marked entry starts below the rail's fold.
+- **A glide to a section must hold the spy.** A smooth scroll passes every section between,
+  and the spy marked each in turn (eight flickers to one press). Pin the pressed section
+  until `scrollend` (a timer where it is missing), glide only on a press within the page
+  (a link opened from elsewhere jumps), and jump under reduced motion; read the motion
+  preference through a ref, or a change to it scrolls the page again.

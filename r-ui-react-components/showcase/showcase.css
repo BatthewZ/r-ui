@@ -199,6 +199,14 @@
       flex-direction: column;
       flex-wrap: nowrap;
     }
+    /* A track down the list; the section being read takes the accent on it. */
+    .sc-rail a {
+      padding-inline-start: var(--R-SIZE-4);
+      border-inline-start: calc(2 * var(--BORDER-WIDTH)) solid var(--C-BORDER);
+    }
+    .sc-rail a[aria-current] {
+      border-inline-start-color: var(--C-ACCENT);
+    }
   }
   .sc-pager {
     display: flex;

@@ -74,7 +74,7 @@ text-prose-1  text-prose-2  text-prose-3    lead, running prose, caption
 max-w-measure                      reading line length
 ```
 
-Mark a long-form region with `class="prose"` or `data-prose`. Its `p`, lists, headings, `blockquote`, `code`, `pre`, `hr`, links and figures take the prose scale. **Controls inside it keep the UI scale**: the region sets no font size of its own, role-bearing lists and links with a class are skipped, and `.not-prose` / `data-not-prose` excludes a subtree. Utilities override region styles (`<p class="text-prose-1">` is a lead). Do not combine with a third-party `.prose` plugin.
+Mark a long-form region with `class="prose"` or `data-prose`. Its `p`, lists, headings, `blockquote`, `code`, `pre`, `hr`, links and figures take the prose scale. The region takes the body prose size, so `max-w-measure` on it counts body characters. **Controls inside it keep the UI scale**: each sets its own size, a bare form control is reset, role-bearing lists and links with a class are skipped, and `.not-prose` / `data-not-prose` excludes a subtree. Utilities override region styles (`<p class="text-prose-1">` is a lead). Do not combine with a third-party `.prose` plugin.
 
 ### Spacing and sizing
 

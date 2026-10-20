@@ -17,3 +17,10 @@
   tall (36 / 28 / 44 across comfortable, compact, compact + coarse) at UI text size while the
   paragraph beside it ran 17.4px on 28.7px leading. The region sets no font size; the control
   sets its own.
+- **A `ch` measure counts the font of the element it is set on.** `max-w-measure` sat on
+  the Prose region, which kept the UI font at the UI size, so "68 characters" was 68 UI
+  zeros: an article's width followed density and the theme's UI face (606px at 14px,
+  513px in a rounded face), and its 17px body fit about 64 a line. Set the measure where
+  the body size is (r-ui-css's prose region now carries it). Compare widths across
+  densities in body ems, not pixels: fluid text follows a container whose padding is
+  density-driven.

@@ -122,7 +122,7 @@
   --ProseText-3: clamp(0.875rem, 0.851rem + 0.109cqi, 0.9375rem); /* captions, code blocks */
   --ProseText-3-line-height: 1.55;
   --PROSE-FLOW: 1.1em; /* space between blocks in a prose region */
-  --MEASURE: 68ch; /* reading line length */
+  --MEASURE: 75ch; /* reading line length */
   --SECTION-1: clamp(3rem, 1.435rem + 6.957cqi, 7rem); /* between major page sections */
   --SECTION-2: clamp(2rem, 1.022rem + 4.348cqi, 4.5rem); /* between blocks in a section */
   --SECTION-3: clamp(1.5rem, 1.109rem + 1.739cqi, 2.5rem); /* heading group to content */

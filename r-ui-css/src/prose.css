@@ -1,17 +1,24 @@
 /* Prose regions: mark long-form or marketing content with `.prose` or [data-prose]
    and its semantic children take the fluid prose/display scale with reading leading.
 
-   UI inside prose stays UI. Only text elements are styled; the region itself sets no
-   font size, so a button, menu, table or form inside it keeps the UI scale (and
-   --CONTROL-H). Lists with a role (menus, listboxes, nav lists) and links that carry
-   a class (button-links, nav items) are left alone. Anything inside `.not-prose` /
-   [data-not-prose] is out of scope entirely.
+   The region itself takes the body prose size and leading, so a measure set on it
+   (`max-w-measure`: --MEASURE is in `ch`) counts characters of the text being read,
+   whatever the density or the UI face. UI inside prose stays UI: every control sets
+   its own size, a bare form control is reset below, lists with a role (menus,
+   listboxes, nav lists) and links that carry a class (button-links, nav items) are
+   left alone, and anything inside `.not-prose` / [data-not-prose] is out of scope
+   entirely (back to UI text).
 
    @layer components, so utilities override any of it: `<p class="text-prose-1">` is a
    lead paragraph. Do not combine with a third-party `.prose` typography plugin. */
 
 @layer components {
   @scope (.prose, [data-prose]) to (.not-prose, [data-not-prose]) {
+    :scope {
+      font-size: var(--ProseText-2);
+      line-height: var(--ProseText-2-line-height);
+    }
+
     p,
     li,
     dt,
