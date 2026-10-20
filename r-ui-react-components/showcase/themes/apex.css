@@ -1,0 +1,108 @@
+/* Apex: a DARK luxury-automotive theme. Carbon-black neutrals, a white primary,
+   one racing-yellow signal, an extended display face and uppercase headings,
+   razor-sharp corners, deep shadows, and slow, precise motion. Warning moves to
+   orange so it never reads as the brand. Faces load in showcase/fonts.css. */
+
+:root[data-theme="apex"] {
+  color-scheme: dark;
+  --SCHEME-DARK: 1;
+
+  /* Neutrals: carbon. */
+  --C-CANVAS: oklch(0.16 0.003 260);
+  --C-SURFACE-0: oklch(0.225 0.004 260);
+  --C-SURFACE-1: oklch(0.195 0.004 260);
+  --C-SURFACE-2: oklch(0.135 0.003 260);
+  --C-SURFACE-3: oklch(0.11 0.003 260);
+  --C-TEXT-PRIMARY: oklch(0.96 0.002 260);
+  --C-TEXT-SECONDARY: oklch(0.78 0.004 260);
+  --C-TEXT-MUTED: oklch(0.67 0.005 260);
+  --C-TEXT-INVERSE: oklch(0.16 0.003 260);
+  --C-BORDER: oklch(1 0 0 / 0.1);
+  --C-BORDER-STRONG: oklch(0.55 0.005 260);
+  --C-SCRIM: oklch(0.05 0 0 / 0.75);
+
+  /* Primary: white, the plainest statement. */
+  --C-PRIMARY: oklch(0.97 0.002 260);
+  --C-PRIMARY-HOVER: oklch(0.88 0.003 260);
+  --C-PRIMARY-ACTIVE: oklch(0.8 0.003 260);
+  --C-TEXT-ON-PRIMARY: oklch(0.14 0.003 260);
+
+  /* Accent: racing yellow, a bright fill with dark ink. */
+  --C-ACCENT: oklch(0.88 0.17 100);
+  --C-ACCENT-HOVER: oklch(0.92 0.15 100);
+  --C-TEXT-ON-ACCENT: oklch(0.18 0.03 100);
+  --C-TEXT-ACCENT: oklch(0.89 0.16 100);
+  --C-SELECTION: oklch(0.37 0.06 98);
+  --C-TEXT-ON-SELECTION: oklch(0.97 0.002 260);
+  --LINK-DECORATION: none;
+
+  --C-FOCUS: oklch(0.9 0.17 100);
+
+  --C-STATUS-ERROR: oklch(0.66 0.2 25);
+  --C-TEXT-ERROR: oklch(0.79 0.12 25);
+  --C-STATUS-ERROR-BG: oklch(0.28 0.07 25);
+  --C-TEXT-ON-ERROR: oklch(0.16 0.02 25);
+  --C-STATUS-SUCCESS: oklch(0.72 0.15 152);
+  --C-TEXT-SUCCESS: oklch(0.81 0.12 152);
+  --C-STATUS-SUCCESS-BG: oklch(0.27 0.05 152);
+  --C-TEXT-ON-SUCCESS: oklch(0.16 0.02 152);
+  --C-STATUS-WARNING: oklch(0.74 0.16 52);
+  --C-TEXT-WARNING: oklch(0.81 0.12 58);
+  --C-STATUS-WARNING-BG: oklch(0.28 0.06 52);
+  --C-TEXT-ON-WARNING: oklch(0.16 0.02 52);
+  --C-STATUS-INFO: oklch(0.72 0.12 245);
+  --C-TEXT-INFO: oklch(0.81 0.09 245);
+  --C-STATUS-INFO-BG: oklch(0.27 0.05 245);
+  --C-TEXT-ON-INFO: oklch(0.16 0.02 245);
+
+  /* Typography: an instrument-panel grotesk; an extended face for display;
+     every heading uppercase and spaced. */
+  --FONT-UI: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --FONT-DISPLAY: "Michroma", "Barlow", system-ui, sans-serif;
+  --HEADING-WEIGHT: 600;
+  --HEADING-TRACKING: 0.06em;
+  --HEADING-CASE: uppercase;
+  --DISPLAY-WEIGHT: 400;
+  --DISPLAY-1-tracking: 0.01em;
+  --DISPLAY-2-tracking: 0.02em;
+  --DISPLAY-3-tracking: 0.04em;
+  --DISPLAY-4-tracking: 0.06em;
+
+  /* Display: the extended face is very wide, so a lower floor and a longer climb. */
+  --DISPLAY-1: clamp(1.75rem, 1.05rem + 3.1cqi, 3.75rem);
+  --DISPLAY-1-line-height: 1.12;
+  --DISPLAY-2: clamp(1.375rem, 1rem + 1.65cqi, 2.5rem);
+  --DISPLAY-2-line-height: 1.2;
+  --DISPLAY-3: clamp(1.125rem, 0.98rem + 0.65cqi, 1.5rem);
+  --DISPLAY-3-line-height: 1.3;
+  --DISPLAY-4: clamp(1rem, 0.95rem + 0.22cqi, 1.125rem);
+  --DISPLAY-4-line-height: 1.4;
+
+  /* Shape: razor. */
+  --RADIUS-SM: 0.0625rem;
+  --RADIUS-MD: 0.125rem;
+  --RADIUS-LG: 0.125rem;
+  --RADIUS-XL: 0.25rem;
+
+  /* Depth: a hairline of light and a long, deep shadow. */
+  --SHADOW-SM: 0 0 0 1px oklch(1 0 0 / 0.06), 0 2px 8px oklch(0 0 0 / 0.5);
+  --SHADOW-MD: 0 0 0 1px oklch(1 0 0 / 0.07), 0 16px 32px -10px oklch(0 0 0 / 0.7);
+  --SHADOW-LG: 0 0 0 1px oklch(1 0 0 / 0.08), 0 40px 80px -20px oklch(0 0 0 / 0.85);
+
+  /* Motion: slow, precise, an expo glide in. */
+  --DURATION-FAST: 140ms;
+  --DURATION-NORMAL: 200ms;
+  --DURATION-SLOW: 480ms;
+  --EASE-STANDARD: cubic-bezier(0.65, 0, 0.35, 1);
+  --EASE-ENTER: cubic-bezier(0.16, 1, 0.3, 1);
+  --EASE-EXIT: cubic-bezier(0.7, 0, 0.84, 0);
+  --MOTION-DISTANCE-LG: 2.5rem;
+  --MOTION-SCALE-FROM: 0.985;
+
+  /* Density: a roomier comfortable. */
+  --R-SIZE-1-COMFORTABLE: 2rem;
+  --R-SIZE-2-COMFORTABLE: 1.25rem;
+  --R-SIZE-3-COMFORTABLE: 0.875rem;
+  --CONTROL-H-COMFORTABLE: 2.5rem;
+  --ROW-H-COMFORTABLE: 2.75rem;
+}

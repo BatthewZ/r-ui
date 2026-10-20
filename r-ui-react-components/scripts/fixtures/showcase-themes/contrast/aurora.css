@@ -1,0 +1,6 @@
+/* Fixture: muted text too pale to read on the canvas. */
+:root[data-theme="aurora"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+  --C-TEXT-MUTED: oklch(0.8 0.008 85);
+}

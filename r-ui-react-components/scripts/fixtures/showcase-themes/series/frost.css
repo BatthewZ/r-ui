@@ -1,0 +1,6 @@
+/* Fixture: series 2 folded onto series 1. */
+:root[data-theme="frost"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+  --C-SERIES-2-LIGHT: oklch(0.575 0.163 255.5);
+}

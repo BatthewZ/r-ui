@@ -1,0 +1,99 @@
+/* Ocean: a DARK deep-water theme. Navy neutrals, a bioluminescent seafoam
+   primary, an azure accent, a serif display over a soft geometric UI face, round
+   shapes, glowing depth and slow, fluid motion. Faces load in showcase/fonts.css. */
+
+:root[data-theme="ocean"] {
+  color-scheme: dark;
+  --SCHEME-DARK: 1;
+
+  /* Neutrals: deep navy, darkening toward the abyss. */
+  --C-CANVAS: oklch(0.2 0.035 245);
+  --C-SURFACE-0: oklch(0.265 0.04 243);
+  --C-SURFACE-1: oklch(0.235 0.038 244);
+  --C-SURFACE-2: oklch(0.175 0.032 246);
+  --C-SURFACE-3: oklch(0.15 0.028 248);
+  --C-TEXT-PRIMARY: oklch(0.95 0.012 215);
+  --C-TEXT-SECONDARY: oklch(0.81 0.025 222);
+  --C-TEXT-MUTED: oklch(0.7 0.03 226);
+  --C-TEXT-INVERSE: oklch(0.2 0.035 245);
+  --C-BORDER: oklch(0.88 0.05 205 / 0.12);
+  --C-BORDER-STRONG: oklch(0.6 0.045 228);
+  --C-SCRIM: oklch(0.1 0.03 250 / 0.66);
+
+  /* Primary: a glowing seafoam fill with deep-sea ink. */
+  --C-PRIMARY: oklch(0.84 0.11 178);
+  --C-PRIMARY-HOVER: oklch(0.88 0.095 178);
+  --C-PRIMARY-ACTIVE: oklch(0.79 0.11 180);
+  --C-TEXT-ON-PRIMARY: oklch(0.2 0.035 220);
+
+  /* Accent: azure, the same water at a different depth. */
+  --C-ACCENT: oklch(0.75 0.12 235);
+  --C-ACCENT-HOVER: oklch(0.81 0.1 235);
+  --C-TEXT-ON-ACCENT: oklch(0.18 0.04 245);
+  --C-TEXT-ACCENT: oklch(0.81 0.1 230);
+  --C-SELECTION: oklch(0.37 0.065 222);
+  --C-TEXT-ON-SELECTION: oklch(0.97 0.01 215);
+
+  --C-FOCUS: oklch(0.84 0.12 182);
+  --FOCUS-OFFSET: 3px;
+
+  --C-STATUS-ERROR: oklch(0.7 0.17 22);
+  --C-TEXT-ERROR: oklch(0.81 0.1 22);
+  --C-STATUS-ERROR-BG: oklch(0.29 0.06 22);
+  --C-TEXT-ON-ERROR: oklch(0.18 0.03 22);
+  --C-STATUS-SUCCESS: oklch(0.74 0.15 150);
+  --C-TEXT-SUCCESS: oklch(0.82 0.12 150);
+  --C-STATUS-SUCCESS-BG: oklch(0.29 0.05 160);
+  --C-TEXT-ON-SUCCESS: oklch(0.18 0.03 150);
+  --C-STATUS-WARNING: oklch(0.8 0.14 75);
+  --C-TEXT-WARNING: oklch(0.86 0.11 80);
+  --C-STATUS-WARNING-BG: oklch(0.3 0.05 70);
+  --C-TEXT-ON-WARNING: oklch(0.18 0.03 75);
+  --C-STATUS-INFO: oklch(0.75 0.11 250);
+  --C-TEXT-INFO: oklch(0.83 0.08 250);
+  --C-STATUS-INFO-BG: oklch(0.3 0.06 252);
+  --C-TEXT-ON-INFO: oklch(0.18 0.03 250);
+
+  /* Typography: a soft geometric UI face; a high-contrast serif for display. */
+  --FONT-UI: "Manrope Variable", "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --FONT-DISPLAY: "Instrument Serif", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --HEADING-WEIGHT: 650;
+  --HEADING-TRACKING: -0.012em;
+  --DISPLAY-WEIGHT: 400;
+  --DISPLAY-1-tracking: -0.02em;
+  --DISPLAY-2-tracking: -0.015em;
+  --DISPLAY-3-tracking: -0.01em;
+  --DISPLAY-4-tracking: -0.005em;
+
+  /* Shape: water-worn. */
+  --RADIUS-SM: 0.5rem;
+  --RADIUS-MD: 0.75rem;
+  --RADIUS-LG: 1rem;
+  --RADIUS-XL: 1.5rem;
+
+  /* Depth: a faint ring, a deep shadow, and a seafoam glow on the larger layers. */
+  --SHADOW-SM: 0 0 0 1px oklch(0.88 0.06 200 / 0.08), 0 4px 12px oklch(0.08 0.04 250 / 0.5);
+  --SHADOW-MD: 0 0 0 1px oklch(0.88 0.06 200 / 0.1), 0 14px 32px -8px oklch(0.06 0.04 250 / 0.65),
+    0 0 40px -12px oklch(0.84 0.11 178 / 0.16);
+  --SHADOW-LG: 0 0 0 1px oklch(0.88 0.06 200 / 0.12), 0 32px 72px -16px oklch(0.05 0.04 250 / 0.75),
+    0 0 72px -20px oklch(0.84 0.11 178 / 0.2);
+
+  /* Motion: slow and fluid, with a long glide in. */
+  --DURATION-FAST: 160ms;
+  --DURATION-NORMAL: 200ms;
+  --DURATION-SLOW: 420ms;
+  --EASE-STANDARD: cubic-bezier(0.4, 0, 0.2, 1);
+  --EASE-ENTER: cubic-bezier(0.22, 1, 0.36, 1);
+  --MOTION-DISTANCE-MD: 0.75rem;
+  --MOTION-DISTANCE-LG: 2rem;
+  --MOTION-SCALE-FROM: 0.94;
+  --MOTION-STAGGER: 60ms;
+
+  /* Density: a roomier comfortable. */
+  --R-SIZE-1-COMFORTABLE: 2rem;
+  --R-SIZE-2-COMFORTABLE: 1.25rem;
+  --R-SIZE-3-COMFORTABLE: 0.875rem;
+  --CONTROL-H-COMFORTABLE: 2.5rem;
+  --ROW-H-COMFORTABLE: 2.75rem;
+}

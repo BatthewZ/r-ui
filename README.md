@@ -26,8 +26,9 @@ bun run showcase:dev    # open the printed URL
 bun run browser:check   # every real-browser check against a fresh showcase (needs playwright-cli)
 ```
 
-Four pages, switched from the top bar, each viewable in any theme (default, nightfall,
-harbour, atelier), density and input from the **View** panel:
+Four pages, switched from the top bar, each viewable in any theme (the default and the CSS
+package's examples, nightfall, harbour and atelier, plus the showcase's own reskins in
+`r-ui-react-components/showcase/themes/`), density and input from the **View** panel:
 
 - **Overview**: every component, every state, one section each.
 - **Dashboard**: an operations dashboard built from library components only, in an `AppShell`

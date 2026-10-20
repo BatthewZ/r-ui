@@ -1,0 +1,85 @@
+/* Marquee: a LIGHT events theme with a poster-pop look. Cream paper, ink-black
+   control edges and 2px lines, an electric-violet primary, a raspberry accent, a
+   highlighter-yellow selection, a wide heavy display face, hard offset shadows
+   and a bouncy entrance. Faces load in showcase/fonts.css. */
+
+:root[data-theme="marquee"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+
+  /* Neutrals: poster cream, violet-black ink. */
+  --C-CANVAS: oklch(0.962 0.016 95);
+  --C-SURFACE-0: oklch(0.995 0.006 95);
+  --C-SURFACE-1: oklch(0.982 0.01 95);
+  --C-SURFACE-2: oklch(0.935 0.02 95);
+  --C-SURFACE-3: oklch(0.9 0.025 95);
+  --C-TEXT-PRIMARY: oklch(0.19 0.025 290);
+  --C-TEXT-SECONDARY: oklch(0.38 0.03 290);
+  --C-TEXT-MUTED: oklch(0.47 0.03 290);
+  --C-TEXT-INVERSE: oklch(0.982 0.01 95);
+  --C-BORDER: oklch(0.19 0.025 290 / 0.2);
+  --C-BORDER-STRONG: oklch(0.25 0.025 290);
+  --C-SCRIM: oklch(0.19 0.025 290 / 0.5);
+
+  /* Primary: electric violet. */
+  --C-PRIMARY: oklch(0.5 0.24 290);
+  --C-PRIMARY-HOVER: oklch(0.45 0.23 290);
+  --C-PRIMARY-ACTIVE: oklch(0.41 0.21 290);
+  --C-TEXT-ON-PRIMARY: oklch(0.99 0.004 95);
+
+  /* Accent: raspberry, deep enough to mark and to carry white text. */
+  --C-ACCENT: oklch(0.52 0.21 0);
+  --C-ACCENT-HOVER: oklch(0.47 0.19 0);
+  --C-TEXT-ON-ACCENT: oklch(0.99 0.004 95);
+  --C-TEXT-ACCENT: oklch(0.5 0.2 0);
+
+  /* Selection: a highlighter pen. */
+  --C-SELECTION: oklch(0.93 0.13 105);
+  --C-TEXT-ON-SELECTION: oklch(0.19 0.025 290);
+
+  --C-FOCUS: oklch(0.45 0.22 290);
+  --FOCUS-WIDTH: 3px;
+
+  /* Typography: a wide, heavy poster face for headings; a clean grotesk for the UI. */
+  --FONT-UI: "DM Sans Variable", "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --FONT-HEADING: "Unbounded Variable", "Unbounded", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --HEADING-WEIGHT: 600;
+  --HEADING-TRACKING: -0.01em;
+  --DISPLAY-WEIGHT: 800;
+  --DISPLAY-1-tracking: -0.03em;
+  --DISPLAY-2-tracking: -0.025em;
+  --DISPLAY-3-tracking: -0.015em;
+  --DISPLAY-4-tracking: -0.01em;
+
+  /* Display: a larger top end, same floor (the face is wide). */
+  --DISPLAY-1: clamp(2.25rem, 1.4rem + 3.8cqi, 4.5rem);
+  --DISPLAY-1-line-height: 1;
+  --DISPLAY-2: clamp(1.75rem, 1.25rem + 2.2cqi, 3.25rem);
+  --DISPLAY-2-line-height: 1.08;
+  --DISPLAY-3: clamp(1.375rem, 1.15rem + 1cqi, 2rem);
+  --DISPLAY-3-line-height: 1.18;
+  --DISPLAY-4: clamp(1.125rem, 1.03rem + 0.45cqi, 1.375rem);
+  --DISPLAY-4-line-height: 1.3;
+
+  /* Shape: friendly, not soft. */
+  --RADIUS-SM: 0.375rem;
+  --RADIUS-MD: 0.625rem;
+  --RADIUS-LG: 0.875rem;
+  --RADIUS-XL: 1.25rem;
+
+  /* Depth: hard, offset, ink-black. Bold 2px lines. */
+  --BORDER-WIDTH: 2px;
+  --SHADOW-SM: 2px 2px 0 oklch(0.19 0.025 290);
+  --SHADOW-MD: 4px 4px 0 oklch(0.19 0.025 290);
+  --SHADOW-LG: 8px 8px 0 oklch(0.19 0.025 290);
+
+  /* Motion: snappy, with a bounce on arrival. */
+  --DURATION-FAST: 100ms;
+  --DURATION-NORMAL: 180ms;
+  --DURATION-SLOW: 280ms;
+  --EASE-ENTER: cubic-bezier(0.2, 1.4, 0.4, 1);
+  --MOTION-DISTANCE-MD: 0.625rem;
+  --MOTION-SCALE-FROM: 0.92;
+  --MOTION-STAGGER: 45ms;
+}

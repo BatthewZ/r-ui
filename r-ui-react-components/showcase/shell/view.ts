@@ -5,8 +5,9 @@
  * `useInputMode` (through the switchers) and restored before first paint by
  * `themeScript`, which the Vite config inlines into index.html.
  *
- * The example theme names are listed here because the showcase is a consumer
- * app that chose to import those theme files. The library itself never names them.
+ * The theme names are listed here because the showcase is a consumer app that
+ * chose to import those theme files: the CSS package's examples, then its own
+ * (showcase/themes/). The library itself never names them.
  *
  * No React in this module, and its imports carry extensions: vite.config.ts imports it.
  */
@@ -23,6 +24,15 @@ export const THEMES = [
   { value: "nightfall", label: "Nightfall" },
   { value: "harbour", label: "Harbour" },
   { value: "atelier", label: "Atelier" },
+  { value: "meridian", label: "Meridian" },
+  { value: "ops", label: "Ops" },
+  { value: "ocean", label: "Ocean" },
+  { value: "meadow", label: "Meadow" },
+  { value: "sandstone", label: "Sandstone" },
+  { value: "neon", label: "Neon" },
+  { value: "marquee", label: "Marquee" },
+  { value: "apex", label: "Apex" },
+  { value: "cinder", label: "Cinder" },
 ] as const;
 
 /** What the hooks, the switchers and the pre-paint script all receive. */

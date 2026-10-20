@@ -63,8 +63,9 @@ describe("verify:no-raw-tailwind", { timeout: 30_000 }, () => {
       [CSS, 26, "raw length -0.15em in `vertical-align: -0.15em;`"],
       [CSS, 27, "raw length 100vw in `inline-size: min( calc(100vw - var(--R-SIZE-2) * 2) );`"],
       [CSS, 31, "raw length 20em in `@container (inline-size > 20em)`"],
-      // The examples exemption is the showcase's alone.
+      // The examples and themes exemptions are the showcase's alone.
       ["src/components/demo/palette.examples.ts", 2, "raw hex colour"],
+      ["src/themes/aurora.css", 3, "raw colour function in `--C-CANVAS: oklch(0.97 0.01 85);`"],
       // A look outside components/ (util, a shared stylesheet, a hook) is scanned too.
       ["src/util/look.tsx", 2, "spacing default `p-4`"], ["src/print.css", 2, "raw length 12px"],
       ["src/hooks/use-margin.ts", 2, "raw length -80px in `-80px`"],
@@ -87,12 +88,12 @@ describe("verify:no-raw-tailwind", { timeout: 30_000 }, () => {
     expect(out).not.toMatch(/demo\/words\.tsx:2 /);
   });
 
-  it("passes the good fixture: tokens, 0, px, full, fractions, keywords, var() values, unit lengths, the layer scale, words in data, showcase example data, the token file and the allowance", () => {
+  it("passes the good fixture: tokens, 0, px, full, fractions, keywords, var() values, unit lengths, the layer scale, words in data, showcase example data and themes, the token file and the allowance", () => {
     const result = run(join(HERE, "fixtures/raw-tailwind/good"));
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    // Good.tsx, the word list, both stylesheets, the hook and the showcase page: the token file and the example
-    // data are out of scope, and the overlays stylesheet holds the one allowance, exactly.
+    // Good.tsx, the word list, both stylesheets, the hook and the showcase page: the token file, the example
+    // data and the showcase's themes are out of scope, and the overlays stylesheet holds the one allowance, exactly.
     expect(result.stdout).toMatch(/OK \(6 file\(s\)/);
   });
 

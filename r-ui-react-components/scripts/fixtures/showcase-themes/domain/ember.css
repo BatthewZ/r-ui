@@ -1,0 +1,6 @@
+/* Fixture: a stale-text override too pale for the surfaces (a domain pair, by name). */
+:root[data-theme="ember"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+  --C-TEXT-STALE-LIGHT: oklch(0.8 0.01 90);
+}

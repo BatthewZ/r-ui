@@ -11,27 +11,31 @@ export const meta = {
   group: "preferences",
   order: 10,
   description:
-    "Live: each one sets its attribute on <html> for the whole page and saves it, so the View panel, these and a reload (ThemeScript) all agree. Themes are the app's own list; the first is the default. Segmented or a native select.",
+    "Live: each one sets its attribute on <html> for the whole page and saves it, so the View panel, these and a reload (ThemeScript) all agree. Themes are the app's own list; the first is the default. Segmented for a handful (all visible), or a native select for any count.",
 };
 
-const ICONS = {
+/* Segments are all visible, so they suit a handful of themes; the app lists more, so the
+   segmented demo takes the default and the CSS package's examples, and the select takes all. */
+const SEGMENTED_ICONS = {
   default: <Sun aria-hidden />,
   nightfall: <Moon aria-hidden />,
   harbour: <Waves aria-hidden />,
   atelier: <Feather aria-hidden />,
 };
-const WITH_ICONS = THEMES.map((t) => ({ ...t, icon: ICONS[t.value] }));
+const isSegmented = (value: string): value is keyof typeof SEGMENTED_ICONS => value in SEGMENTED_ICONS;
+const SEGMENTED = THEMES.flatMap((t) => (isSegmented(t.value) ? [{ ...t, icon: SEGMENTED_ICONS[t.value] }] : []));
+const SEGMENTED_PLAIN = SEGMENTED.map(({ value, label }) => ({ value, label }));
 
 export default function SwitchersSection() {
   const { storageKey } = PREFERENCES;
   return (
     <Stack gap="r1">
-      <Row label="Segmented, with a visible Field label">
-        {/* The theme list grows with the app's themes, so it gets a row of its own. */}
+      <Row label="Segmented (a handful of themes), with a visible Field label">
+        {/* Even a handful of themes needs the width, so they get a row of their own. */}
         <Grid columns={{ base: 1, "@3xl": 2 }} gap="r2">
           <Field className="@3xl:col-span-2">
             <Field.Label>Theme</Field.Label>
-            <ThemeSwitcher themes={WITH_ICONS} storageKey={storageKey} />
+            <ThemeSwitcher themes={SEGMENTED} storageKey={storageKey} />
           </Field>
           <Field>
             <Field.Label>Density</Field.Label>
@@ -61,7 +65,7 @@ export default function SwitchersSection() {
       <Row label="In a compact region · disabled">
         <div data-density="compact" className="flex flex-wrap items-center gap-r3">
           <DensitySwitcher storageKey={storageKey} aria-label="Density (compact region)" />
-          <ThemeSwitcher themes={THEMES} storageKey={storageKey} aria-label="Theme (disabled)" disabled />
+          <ThemeSwitcher themes={SEGMENTED_PLAIN} storageKey={storageKey} aria-label="Theme (disabled)" disabled />
         </div>
       </Row>
     </Stack>

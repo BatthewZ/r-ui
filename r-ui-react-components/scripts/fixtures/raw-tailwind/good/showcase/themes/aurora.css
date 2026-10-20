@@ -1,0 +1,4 @@
+/* A consumer theme in the showcase: raw values are its job (out of scope). */
+:root[data-theme="aurora"] {
+  --C-CANVAS: oklch(0.97 0.01 85);
+}

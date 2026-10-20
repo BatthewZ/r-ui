@@ -1,0 +1,6 @@
+/* Fixture: a theme that selects a density name, which only [data-density] may do. */
+:root[data-theme="dawn"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+  --R-SIZE-3: 1rem;
+}

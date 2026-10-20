@@ -1,0 +1,67 @@
+/* Meridian: a LIGHT, professional theme. Cool slate neutrals, a navy primary, a
+   deep-teal accent, IBM Plex throughout, crisp small radii and quiet,
+   border-led depth. Brisk motion, default densities. Faces load in
+   showcase/fonts.css. */
+
+:root[data-theme="meridian"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+
+  /* Neutrals: cool slate, navy-black ink. */
+  --C-CANVAS: oklch(0.967 0.006 255);
+  --C-SURFACE-0: oklch(0.995 0.0015 255);
+  --C-SURFACE-1: oklch(0.984 0.004 255);
+  --C-SURFACE-2: oklch(0.945 0.008 255);
+  --C-SURFACE-3: oklch(0.915 0.011 255);
+  --C-TEXT-PRIMARY: oklch(0.24 0.03 262);
+  --C-TEXT-SECONDARY: oklch(0.42 0.025 260);
+  --C-TEXT-MUTED: oklch(0.5 0.02 258);
+  --C-TEXT-INVERSE: oklch(0.984 0.004 255);
+  --C-BORDER: oklch(0.3 0.03 260 / 0.14);
+  --C-BORDER-STRONG: oklch(0.59 0.015 258);
+  --C-SCRIM: oklch(0.22 0.03 262 / 0.45);
+
+  /* Primary: navy; hover lifts it. */
+  --C-PRIMARY: oklch(0.33 0.09 262);
+  --C-PRIMARY-HOVER: oklch(0.39 0.1 262);
+  --C-PRIMARY-ACTIVE: oklch(0.28 0.08 262);
+  --C-TEXT-ON-PRIMARY: oklch(0.99 0.002 255);
+
+  /* Accent: deep teal. */
+  --C-ACCENT: oklch(0.5 0.085 200);
+  --C-ACCENT-HOVER: oklch(0.45 0.075 200);
+  --C-TEXT-ON-ACCENT: oklch(0.99 0.002 255);
+  --C-TEXT-ACCENT: oklch(0.47 0.08 205);
+  --C-SELECTION: oklch(0.92 0.035 205);
+  --C-TEXT-ON-SELECTION: oklch(0.24 0.03 262);
+
+  --C-FOCUS: oklch(0.52 0.14 255);
+
+  /* Typography: one superfamily, sans and mono. */
+  --FONT-UI: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --FONT-MONO: "IBM Plex Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --HEADING-WEIGHT: 600;
+  --HEADING-TRACKING: -0.008em;
+  --DISPLAY-WEIGHT: 600;
+  --DISPLAY-1-tracking: -0.026em;
+  --DISPLAY-2-tracking: -0.02em;
+  --DISPLAY-3-tracking: -0.014em;
+  --DISPLAY-4-tracking: -0.008em;
+
+  /* Shape: crisp. */
+  --RADIUS-SM: 0.1875rem;
+  --RADIUS-MD: 0.25rem;
+  --RADIUS-LG: 0.375rem;
+  --RADIUS-XL: 0.5rem;
+
+  /* Depth: border-led; floating layers get a hairline and a short, cool shadow. */
+  --SHADOW-SM: 0 0 0 1px oklch(0.3 0.03 260 / 0.08), 0 1px 3px oklch(0.3 0.03 260 / 0.08);
+  --SHADOW-MD: 0 0 0 1px oklch(0.3 0.03 260 / 0.08), 0 4px 12px -2px oklch(0.3 0.03 260 / 0.12);
+  --SHADOW-LG: 0 0 0 1px oklch(0.3 0.03 260 / 0.08), 0 16px 40px -12px oklch(0.3 0.03 260 / 0.22);
+
+  /* Motion: brisk. */
+  --DURATION-FAST: 100ms;
+  --DURATION-NORMAL: 160ms;
+  --DURATION-SLOW: 220ms;
+}

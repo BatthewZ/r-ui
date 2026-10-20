@@ -1,11 +1,20 @@
 /* The showcase is a consumer app, so its CSS entry is exactly an app's: the
    web faces it loads (first: `@import` must precede every other rule), the CSS
-   package, the example themes it opts into, then the library. */
+   package, the example themes it opts into, its own themes, then the library. */
 @import "./fonts.css";
 @import "@batthewz/r-ui-css";
 @import "@batthewz/r-ui-css/examples/themes/nightfall";
 @import "@batthewz/r-ui-css/examples/themes/harbour";
 @import "@batthewz/r-ui-css/examples/themes/atelier";
+@import "./themes/meridian.css";
+@import "./themes/ops.css";
+@import "./themes/ocean.css";
+@import "./themes/meadow.css";
+@import "./themes/sandstone.css";
+@import "./themes/neon.css";
+@import "./themes/marquee.css";
+@import "./themes/apex.css";
+@import "./themes/cinder.css";
 @import "../src/styles.css";
 
 /* The showcase's own files use utilities too. */

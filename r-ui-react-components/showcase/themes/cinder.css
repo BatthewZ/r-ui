@@ -1,0 +1,95 @@
+/* Cinder: a DARK grim-dark fantasy theme. Scorched-stone neutrals, parchment
+   text, an antique-gold primary, an arcane-violet accent, carved Roman capitals
+   for headings, 2px gilded edges, near-square corners, a hellfire glow behind
+   dialogs and heavy, deliberate motion. Warning moves to orange so it never
+   reads as the gold. Faces load in showcase/fonts.css. */
+
+:root[data-theme="cinder"] {
+  color-scheme: dark;
+  --SCHEME-DARK: 1;
+
+  /* Neutrals: scorched umber stone, parchment ink. */
+  --C-CANVAS: oklch(0.19 0.012 40);
+  --C-SURFACE-0: oklch(0.25 0.015 45);
+  --C-SURFACE-1: oklch(0.22 0.013 42);
+  --C-SURFACE-2: oklch(0.165 0.01 38);
+  --C-SURFACE-3: oklch(0.14 0.009 35);
+  --C-TEXT-PRIMARY: oklch(0.92 0.025 82);
+  --C-TEXT-SECONDARY: oklch(0.79 0.03 78);
+  --C-TEXT-MUTED: oklch(0.69 0.03 72);
+  --C-TEXT-INVERSE: oklch(0.19 0.012 40);
+  --C-BORDER: oklch(0.75 0.07 78 / 0.18);
+  --C-BORDER-STRONG: oklch(0.58 0.05 70);
+  --C-SCRIM: oklch(0.06 0.02 30 / 0.75);
+
+  /* Primary: antique gold with black ink. */
+  --C-PRIMARY: oklch(0.76 0.115 80);
+  --C-PRIMARY-HOVER: oklch(0.82 0.11 84);
+  --C-PRIMARY-ACTIVE: oklch(0.7 0.11 76);
+  --C-TEXT-ON-PRIMARY: oklch(0.17 0.02 50);
+
+  /* Accent: arcane violet. */
+  --C-ACCENT: oklch(0.68 0.15 305);
+  --C-ACCENT-HOVER: oklch(0.74 0.13 305);
+  --C-TEXT-ON-ACCENT: oklch(0.15 0.03 305);
+  --C-TEXT-ACCENT: oklch(0.77 0.12 305);
+  --C-SELECTION: oklch(0.34 0.07 305);
+  --C-TEXT-ON-SELECTION: oklch(0.94 0.02 82);
+
+  --C-FOCUS: oklch(0.8 0.13 82);
+
+  /* Status: blood-red errors; warning pushed to orange, away from the gold. */
+  --C-STATUS-ERROR: oklch(0.65 0.2 27);
+  --C-TEXT-ERROR: oklch(0.78 0.12 27);
+  --C-STATUS-ERROR-BG: oklch(0.29 0.07 27);
+  --C-TEXT-ON-ERROR: oklch(0.15 0.02 27);
+  --C-STATUS-SUCCESS: oklch(0.7 0.14 150);
+  --C-TEXT-SUCCESS: oklch(0.8 0.11 150);
+  --C-STATUS-SUCCESS-BG: oklch(0.28 0.05 150);
+  --C-TEXT-ON-SUCCESS: oklch(0.15 0.02 150);
+  --C-STATUS-WARNING: oklch(0.74 0.16 55);
+  --C-TEXT-WARNING: oklch(0.81 0.12 58);
+  --C-STATUS-WARNING-BG: oklch(0.29 0.06 52);
+  --C-TEXT-ON-WARNING: oklch(0.15 0.02 55);
+  --C-STATUS-INFO: oklch(0.72 0.11 240);
+  --C-TEXT-INFO: oklch(0.81 0.08 240);
+  --C-STATUS-INFO-BG: oklch(0.28 0.05 240);
+  --C-TEXT-ON-INFO: oklch(0.15 0.02 240);
+
+  /* Typography: carved Roman capitals for headings; a humanist sans for reading. */
+  --FONT-UI: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --FONT-HEADING: "Cinzel Variable", "Cinzel", "Trajan Pro", Georgia, "Times New Roman", serif;
+  --WEIGHT-SEMIBOLD: 700;
+  --HEADING-WEIGHT: 700;
+  --HEADING-TRACKING: 0.03em;
+  --DISPLAY-WEIGHT: 800;
+  --DISPLAY-1-tracking: 0.01em;
+  --DISPLAY-2-tracking: 0.015em;
+  --DISPLAY-3-tracking: 0.02em;
+  --DISPLAY-4-tracking: 0.03em;
+  /* The UI face's default figures are old-style: data asks for lining ones; lore keeps them. */
+  --NUMERALS-DATA: lining-nums tabular-nums;
+  --NUMERALS-PROSE: oldstyle-nums proportional-nums;
+
+  /* Shape: hewn. */
+  --RADIUS-SM: 0.0625rem;
+  --RADIUS-MD: 0.125rem;
+  --RADIUS-LG: 0.125rem;
+  --RADIUS-XL: 0.25rem;
+
+  /* Depth: gilded edges, heavy shadow, and embers behind the largest layers. */
+  --BORDER-WIDTH: 2px;
+  --SHADOW-SM: 0 0 0 1px oklch(0.75 0.09 78 / 0.2), 0 2px 6px oklch(0.05 0.01 30 / 0.6);
+  --SHADOW-MD: 0 0 0 1px oklch(0.75 0.09 78 / 0.24), 0 10px 28px -6px oklch(0.04 0.01 30 / 0.75);
+  --SHADOW-LG: 0 0 0 1px oklch(0.75 0.09 78 / 0.28), 0 28px 64px -16px oklch(0.03 0.01 30 / 0.85),
+    0 0 80px -24px oklch(0.58 0.2 32 / 0.45);
+
+  /* Motion: heavy and deliberate. */
+  --DURATION-FAST: 150ms;
+  --DURATION-NORMAL: 200ms;
+  --DURATION-SLOW: 420ms;
+  --EASE-STANDARD: cubic-bezier(0.5, 0, 0.2, 1);
+  --EASE-ENTER: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --MOTION-DISTANCE-LG: 1.25rem;
+  --MOTION-SCALE-FROM: 0.97;
+}

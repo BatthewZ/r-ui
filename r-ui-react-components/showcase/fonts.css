@@ -1,9 +1,42 @@
-/* Web faces for the example themes that name them. A theme file only NAMES
-   families (`--FONT-UI: "Inter Variable", …`); loading a face is the app's job, so
-   it lives here, in the app's CSS, and every theme falls back to a system face of
-   the same kind until (or unless) these arrive.
+/* Web faces for the themes that name them. A theme file only NAMES families
+   (`--FONT-UI: "Inter Variable", …`); loading a face is the app's job, so it
+   lives here, in the app's CSS, and every theme falls back to a system face of
+   the same kind until (or unless) these arrive. A face downloads only when
+   something renders in it, so a theme pays for its own faces and no others.
 
-   Fraunces loads with its optical-size axis: headings run from label size to
-   hero size, and the face redraws itself for each (font-optical-sizing: auto). */
+   Fraunces and Bricolage Grotesque load with their optical-size axis: headings
+   run from label size to hero size, and the face redraws itself for each
+   (font-optical-sizing: auto). Static families load only the weights their
+   theme's weight tokens name, plus 700 where prose bold reaches it. */
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/fraunces/opsz.css";
+
+/* The showcase's own themes (showcase/themes/). */
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/manrope";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource-variable/figtree";
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource/chakra-petch/600.css";
+@import "@fontsource/chakra-petch/700.css";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/instrument-sans";
+@import "@fontsource-variable/syne";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
+@import "@fontsource-variable/dm-sans";
+@import "@fontsource-variable/unbounded";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow/700.css";
+@import "@fontsource/michroma/400.css";
+@import "@fontsource/alegreya-sans/400.css";
+@import "@fontsource/alegreya-sans/400-italic.css";
+@import "@fontsource/alegreya-sans/500.css";
+@import "@fontsource/alegreya-sans/700.css";
+@import "@fontsource-variable/cinzel";

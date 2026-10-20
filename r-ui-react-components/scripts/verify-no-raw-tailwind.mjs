@@ -5,13 +5,15 @@
 // proves each goes red on a fixture.
 //
 // Scope: `src/**` and `showcase/**`, `.ts`/`.tsx`/`.css`, minus tests
-// (`*.test.*`), `src/tokens.css` (it declares the raw values tokens stand for)
-// and the showcase's example data (`showcase/**/*.examples.*`: a user's brand
-// palette is values, not styling). Everything else under `src/` is scanned like
-// a component: `util`'s error line and tones, the shared stylesheets, and the
-// hooks (a geometry default such as an observer's margin is a raw value too; a
-// hook takes it as a parameter instead). The examples exemption stops at the
-// showcase: under `src/` an `.examples.` file is scanned like any other.
+// (`*.test.*`), `src/tokens.css` (it declares the raw values tokens stand for),
+// the showcase's own themes (`showcase/themes/`: the same, for a consumer; held
+// to the theme gates by verify:showcase-themes) and the showcase's example data
+// (`showcase/**/*.examples.*`: a user's brand palette is values, not styling).
+// Everything else under `src/` is scanned like a component: `util`'s error line
+// and tones, the shared stylesheets, and the hooks (a geometry default such as
+// an observer's margin is a raw value too; a hook takes it as a parameter
+// instead). Both exemptions stop at the showcase: under `src/` an `.examples.`
+// file or a `themes/` stylesheet is scanned like any other.
 // Strings are read with the TypeScript scanner, so comments and JSX text never
 // count.
 //
@@ -56,7 +58,7 @@ const allowed = (file, problem) => ALLOWANCES.some((a) => a.file === file && a.p
 
 const scopes = [
   ["src", ["tokens.css"]],
-  ["showcase", ["**/*.examples.*"]],
+  ["showcase", ["**/*.examples.*", "themes/**"]],
 ]
   .map(([d, extra]) => [join(ROOT, d), extra])
   .filter(([d]) => existsSync(d));

@@ -1,0 +1,77 @@
+/* Sandstone: a LIGHT, sun-baked architectural theme. Warm sand neutrals, a
+   canyon-rust primary, a dusk-indigo accent, a wide geometric display face over
+   a crisp grotesk, carved round corners and shadows cast from a low sun at the
+   top left. Faces load in showcase/fonts.css. */
+
+:root[data-theme="sandstone"] {
+  color-scheme: light;
+  --SCHEME-DARK: 0;
+
+  /* Neutrals: sand that deepens toward ochre, umber ink. */
+  --C-CANVAS: oklch(0.945 0.025 75);
+  --C-SURFACE-0: oklch(0.985 0.012 80);
+  --C-SURFACE-1: oklch(0.966 0.019 78);
+  --C-SURFACE-2: oklch(0.918 0.03 72);
+  --C-SURFACE-3: oklch(0.892 0.034 68);
+  --C-TEXT-PRIMARY: oklch(0.27 0.04 45);
+  --C-TEXT-SECONDARY: oklch(0.4 0.045 45);
+  --C-TEXT-MUTED: oklch(0.465 0.045 48);
+  --C-TEXT-INVERSE: oklch(0.966 0.019 78);
+  --C-BORDER: oklch(0.35 0.06 45 / 0.15);
+  --C-BORDER-STRONG: oklch(0.55 0.05 50);
+  --C-SCRIM: oklch(0.25 0.04 45 / 0.45);
+
+  /* Primary: canyon rust. */
+  --C-PRIMARY: oklch(0.5 0.13 42);
+  --C-PRIMARY-HOVER: oklch(0.45 0.12 42);
+  --C-PRIMARY-ACTIVE: oklch(0.41 0.11 42);
+  --C-TEXT-ON-PRIMARY: oklch(0.985 0.012 80);
+
+  /* Accent: the indigo of the sky after sunset. */
+  --C-ACCENT: oklch(0.45 0.12 272);
+  --C-ACCENT-HOVER: oklch(0.4 0.11 272);
+  --C-TEXT-ON-ACCENT: oklch(0.985 0.012 80);
+  --C-TEXT-ACCENT: oklch(0.44 0.12 272);
+  --C-SELECTION: oklch(0.9 0.04 268);
+  --C-TEXT-ON-SELECTION: oklch(0.27 0.04 45);
+
+  --C-FOCUS: oklch(0.48 0.15 270);
+
+  /* Status: error leans crimson to stay apart from the rust primary; warning's
+     subtle background is warmer than the sand so it still reads as its own. */
+  --C-STATUS-ERROR: oklch(0.53 0.19 22);
+  --C-TEXT-ERROR: oklch(0.46 0.17 22);
+  --C-STATUS-ERROR-BG: oklch(0.95 0.02 22);
+  --C-STATUS-WARNING: oklch(0.58 0.125 62);
+  --C-TEXT-WARNING: oklch(0.45 0.1 62);
+  --C-STATUS-WARNING-BG: oklch(0.95 0.055 88);
+  --C-TEXT-ON-WARNING: oklch(0.1 0.01 60);
+
+  /* Typography: a wide geometric face for headings; a crisp grotesk for the rest. */
+  --FONT-UI: "Instrument Sans Variable", "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --FONT-HEADING: "Syne Variable", "Syne", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --HEADING-WEIGHT: 700;
+  --HEADING-TRACKING: -0.01em;
+  --DISPLAY-WEIGHT: 800;
+  --DISPLAY-1-tracking: -0.035em;
+  --DISPLAY-2-tracking: -0.025em;
+  --DISPLAY-3-tracking: -0.015em;
+  --DISPLAY-4-tracking: -0.01em;
+
+  /* Shape: carved. */
+  --RADIUS-SM: 0.375rem;
+  --RADIUS-MD: 0.625rem;
+  --RADIUS-LG: 1rem;
+  --RADIUS-XL: 2rem;
+
+  /* Depth: warm, long shadows cast down and to the right. */
+  --SHADOW-SM: 1px 2px 3px oklch(0.35 0.06 45 / 0.1), 2px 4px 10px -2px oklch(0.4 0.08 45 / 0.08);
+  --SHADOW-MD: 1px 2px 3px oklch(0.35 0.06 45 / 0.06), 6px 14px 28px -8px oklch(0.4 0.08 45 / 0.24);
+  --SHADOW-LG: 2px 4px 8px oklch(0.35 0.06 45 / 0.06), 14px 32px 64px -20px oklch(0.4 0.08 45 / 0.34);
+
+  /* Motion: unhurried. */
+  --DURATION-NORMAL: 200ms;
+  --DURATION-SLOW: 340ms;
+  --EASE-ENTER: cubic-bezier(0.25, 1, 0.5, 1);
+}

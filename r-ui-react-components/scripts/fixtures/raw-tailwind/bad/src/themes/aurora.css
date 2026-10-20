@@ -1,0 +1,4 @@
+/* The same file under src/ is scanned: the themes exemption is the showcase's alone. */
+:root[data-theme="aurora"] {
+  --C-CANVAS: oklch(0.97 0.01 85);
+}

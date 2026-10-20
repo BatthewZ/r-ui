@@ -1,0 +1,104 @@
+/* Ops: a DARK control-room theme. Graphite neutrals, a light-ink primary, one
+   indigo signal, mono headings and slashed-zero figures, small radii, quick
+   motion, and a comfortable density nearly as dense as the default's compact.
+   Faces load in showcase/fonts.css. */
+
+:root[data-theme="ops"] {
+  color-scheme: dark;
+  --SCHEME-DARK: 1;
+
+  /* Neutrals: graphite with a trace of blue. */
+  --C-CANVAS: oklch(0.185 0.006 260);
+  --C-SURFACE-0: oklch(0.245 0.008 260);
+  --C-SURFACE-1: oklch(0.215 0.007 260);
+  --C-SURFACE-2: oklch(0.163 0.006 260);
+  --C-SURFACE-3: oklch(0.14 0.005 260);
+  --C-TEXT-PRIMARY: oklch(0.95 0.004 260);
+  --C-TEXT-SECONDARY: oklch(0.79 0.008 260);
+  --C-TEXT-MUTED: oklch(0.68 0.01 260);
+  --C-TEXT-INVERSE: oklch(0.185 0.006 260);
+  --C-BORDER: oklch(0.95 0.005 260 / 0.09);
+  --C-BORDER-STRONG: oklch(0.56 0.01 260);
+  --C-SCRIM: oklch(0.08 0.006 260 / 0.7);
+
+  /* Primary: light ink. */
+  --C-PRIMARY: oklch(0.93 0.005 260);
+  --C-PRIMARY-HOVER: oklch(0.86 0.006 260);
+  --C-PRIMARY-ACTIVE: oklch(0.8 0.006 260);
+  --C-TEXT-ON-PRIMARY: oklch(0.18 0.006 260);
+
+  /* Accent: one indigo signal. */
+  --C-ACCENT: oklch(0.7 0.15 282);
+  --C-ACCENT-HOVER: oklch(0.76 0.125 282);
+  --C-TEXT-ON-ACCENT: oklch(0.16 0.03 282);
+  --C-TEXT-ACCENT: oklch(0.79 0.105 282);
+  --C-SELECTION: oklch(0.34 0.07 282);
+  --C-TEXT-ON-SELECTION: oklch(0.97 0.004 260);
+  --LINK-DECORATION: none;
+
+  --C-FOCUS: oklch(0.74 0.135 282);
+  --FOCUS-OFFSET: 1px;
+
+  /* Status: bright marks, lifted text, deep low-chroma backgrounds. */
+  --C-STATUS-ERROR: oklch(0.68 0.18 25);
+  --C-TEXT-ERROR: oklch(0.8 0.11 25);
+  --C-STATUS-ERROR-BG: oklch(0.28 0.06 25);
+  --C-TEXT-ON-ERROR: oklch(0.17 0.02 25);
+  --C-STATUS-SUCCESS: oklch(0.72 0.15 150);
+  --C-TEXT-SUCCESS: oklch(0.81 0.12 150);
+  --C-STATUS-SUCCESS-BG: oklch(0.27 0.05 150);
+  --C-TEXT-ON-SUCCESS: oklch(0.17 0.02 150);
+  --C-STATUS-WARNING: oklch(0.79 0.14 75);
+  --C-TEXT-WARNING: oklch(0.85 0.11 80);
+  --C-STATUS-WARNING-BG: oklch(0.28 0.05 75);
+  --C-TEXT-ON-WARNING: oklch(0.17 0.02 75);
+  --C-STATUS-INFO: oklch(0.72 0.12 240);
+  --C-TEXT-INFO: oklch(0.81 0.09 240);
+  --C-STATUS-INFO-BG: oklch(0.27 0.05 240);
+  --C-TEXT-ON-INFO: oklch(0.17 0.02 240);
+
+  /* Typography: a grotesk for the UI, its mono for headings and code. */
+  --FONT-UI: "Geist Variable", "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+  --FONT-MONO: "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
+    monospace;
+  --FONT-HEADING: "Geist Mono Variable", "Geist Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
+    monospace;
+  --HEADING-WEIGHT: 550;
+  --HEADING-TRACKING: -0.01em;
+  --DISPLAY-WEIGHT: 600;
+  --DISPLAY-1-tracking: -0.04em;
+  --DISPLAY-2-tracking: -0.03em;
+  --DISPLAY-3-tracking: -0.02em;
+  --DISPLAY-4-tracking: -0.01em;
+  --NUMERALS-DATA: tabular-nums slashed-zero;
+
+  /* Shape: nearly square. */
+  --RADIUS-SM: 0.1875rem;
+  --RADIUS-MD: 0.25rem;
+  --RADIUS-LG: 0.375rem;
+  --RADIUS-XL: 0.5rem;
+
+  /* Depth: a light ring defines the edge; the shadow only lifts. */
+  --SHADOW-SM: 0 0 0 1px oklch(1 0 0 / 0.07), 0 2px 6px oklch(0 0 0 / 0.45);
+  --SHADOW-MD: 0 0 0 1px oklch(1 0 0 / 0.08), 0 8px 20px -6px oklch(0 0 0 / 0.6);
+  --SHADOW-LG: 0 0 0 1px oklch(1 0 0 / 0.09), 0 20px 48px -12px oklch(0 0 0 / 0.7);
+
+  /* Motion: quick and exact. */
+  --DURATION-FAST: 80ms;
+  --DURATION-NORMAL: 120ms;
+  --DURATION-SLOW: 180ms;
+  --EASE-STANDARD: cubic-bezier(0.3, 0, 0, 1);
+  --MOTION-DISTANCE-MD: 0.25rem;
+  --MOTION-DISTANCE-LG: 0.75rem;
+  --MOTION-SCALE-FROM: 0.98;
+  --MOTION-STAGGER: 20ms;
+
+  /* Density: comfortable packs nearly as tight as the default's compact; compact keeps the
+     default's (tighter still, a coarse hit area at a scroller's edge overhangs into it). */
+  --R-SIZE-1-COMFORTABLE: 1.25rem;
+  --R-SIZE-2-COMFORTABLE: 0.875rem;
+  --R-SIZE-3-COMFORTABLE: 0.625rem;
+  --CONTROL-H-COMFORTABLE: 2rem;
+  --ROW-H-COMFORTABLE: 2.25rem;
+}
