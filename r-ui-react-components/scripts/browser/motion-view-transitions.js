@@ -22,7 +22,14 @@
 //   5. each lands where it says: the panel open with Back focused, then the tile
 //      focused again; "$290 / year"; "Step 2 of 3"; the next theme;
 //   6. under emulated reduced motion (reloaded), a press applies at once: no
-//      transition runs and `data-sc-vt` is never set.
+//      transition runs and `data-sc-vt` is on `<html>` at no frame (the helper sets it
+//      before the library decides to skip, and clears it when `finished` settles right
+//      after the update; positive control: the same per-frame sampler sees it during
+//      the full-motion presses).
+//
+// Suggested break: have `startViewTransition` (src/components/motion/view-transition.ts)
+// return the update's promise as `finished` too: every marker and variable is gone
+// before the animations it shapes start (3 and 4 fail).
 async (page) => {
   const fail = [];
   const { errors, stop: stopErrors } = collectErrors(page);
@@ -70,9 +77,20 @@ async (page) => {
     if (got.leftover.length) fail.push(`${label}: left ${got.leftover.join(", ")} on <html>`);
   };
   const ran = (got, key) => got.runs[key] ?? [];
+  // Whether `<html data-sc-vt>` is there at any frame from now on (until the page reloads).
+  const sampleMarker = () =>
+    page.evaluate(() => {
+      window.__scVtSeen = false;
+      const tick = () => {
+        if (document.documentElement.dataset.scVt) window.__scVtSeen = true;
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
 
   try {
     const section = await openSection(page, "motion-viewtransition", { view });
+    await sampleMarker();
     const centre = (loc) => loc.evaluate((e) => e.scrollIntoView({ block: "center" }));
 
     // 1. The library hook: the six layout cards.
@@ -136,25 +154,25 @@ async (page) => {
     const now = await page.evaluate(() => document.documentElement.dataset.theme);
     if (now === before || now !== target) fail.push(`reveal: the theme is "${now}", expected "${target}" (was "${before}")`);
 
+    if (!(await page.evaluate(() => window.__scVtSeen))) fail.push("harness: the per-frame sampler never saw data-sc-vt during the full-motion presses");
+
     // 6. Reduced motion: every press applies at once.
     const still = await openSection(page, "motion-viewtransition", { view, reduced: true });
-    await page.evaluate(() => {
-      window.__scVtSeen = false;
-      new window.MutationObserver(() => {
-        if (document.documentElement.dataset.scVt) window.__scVtSeen = true;
-      }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-sc-vt"] });
-    });
+    await sampleMarker();
     const quiet = still.locator('[data-kpi="latency"]');
     await centre(quiet);
     await quiet.click();
     await still.locator("label", { hasText: "Yearly" }).click();
+    // Two frames for the sampler; not `settle`, which would wait out a transition that ran.
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
     const reduced = await page.evaluate(() => ({
+      marker: document.documentElement.dataset.scVt ?? null,
       seen: window.__scVtSeen,
       running: document.getAnimations().filter((a) => a.effect?.pseudoElement?.startsWith("::view-transition")).length,
       panel: !!document.querySelector('[data-sc="vt-kpi-detail"]'),
       price: document.querySelector('[data-price="team"]')?.textContent.replace(/\s+/g, " ").trim(),
     }));
-    if (reduced.seen || reduced.running) fail.push(`reduced motion: a transition ran (${JSON.stringify(reduced)})`);
+    if (reduced.seen || reduced.marker !== null || reduced.running) fail.push(`reduced motion: a transition ran (${JSON.stringify(reduced)})`);
     if (!reduced.panel || reduced.price !== "$290 / year") fail.push(`reduced motion: the presses did not apply (${JSON.stringify(reduced)})`);
 
     if (errors.length) fail.push(...errors.slice(0, 5));

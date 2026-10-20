@@ -31,14 +31,18 @@
 //      clears (clearable); a hovering mouse previews (fills) without changing the value;
 //      posting with no rating focuses it, invalid, with the Field error; RTL ArrowLeft
 //      raises; the cards' read-only ratings are images named "4.5 out of 5", "4.8 out of 5",
-//      "No rating", none focusable, the half star filled to half its glyph;
+//      "No rating", none focusable, the half star filled to half its glyph; the filled star
+//      paints the rating colour (`--C-RATING-*` blended by the scheme), not the accent, in
+//      the default (light) theme and in a dark one, and the two schemes differ;
 //   9. density and input: the compact demo's thumb is smaller than the comfortable one;
 //      at coarse input and 375px a slider thumb (and a range thumb) answers a press 20px
 //      from its centre on both axes and its hit box is at least 44px (a slider's control
 //      strip too), the review's Overall rating icons are at least 44 × 44, and no section
 //      scrolls sideways;
 //  10. forced colours: the fill is the system Highlight, the thumb edge CanvasText, the
-//      track keeps a CanvasText edge, and a read-only star's fill is CanvasText.
+//      track keeps a CanvasText edge; a read-only star's fill is CanvasText while an empty
+//      star stays an outline (no fill, CanvasText edge); a disabled rating's filled star is
+//      GrayText.
 async (page) => {
   const fail = [];
   const { errors, stop: stopErrors } = collectErrors(page);
@@ -250,6 +254,36 @@ async (page) => {
     if (JSON.stringify(cards.map((c) => c.name)) !== JSON.stringify(["4.5 out of 5", "4.8 out of 5", "No rating"])) fail.push(`rating cards: names ${JSON.stringify(cards.map((c) => c.name))}`);
     if (cards.some((c) => c.tabIndex >= 0)) fail.push("rating cards: a read-only rating is focusable");
     if (!(cards[0]?.glyph > 0) || !near(cards[0].fill, cards[0].glyph / 2)) fail.push(`rating cards: the half star fills ${cards[0]?.fill} of ${cards[0]?.glyph}`);
+    // A rating is data: its fill is the domain pair, never the accent.
+    const starColour = () =>
+      page
+        .locator('[data-sc="rating-cards"] [role="img"]')
+        .first()
+        .evaluate((img) => {
+          const probe = (color) => {
+            const p = document.createElement("span");
+            p.style.color = color;
+            img.append(p);
+            const value = getComputedStyle(p).color;
+            p.remove();
+            return value;
+          };
+          return {
+            fill: getComputedStyle(img.querySelector(".r-form-rating-fill > svg")).fill,
+            rating: probe("color-mix(in oklch, var(--C-RATING-LIGHT), var(--C-RATING-DARK) calc(var(--SCHEME-DARK) * 100%))"),
+            accents: [probe("var(--C-ACCENT)"), probe("var(--C-TEXT-ACCENT)")],
+            scheme: getComputedStyle(document.documentElement).getPropertyValue("--SCHEME-DARK").trim(),
+          };
+        });
+    const lightStar = await starColour();
+    await setView(page, { theme: await darkTheme(page) });
+    const darkStar = await starColour();
+    await setView(page, { theme: "default" });
+    for (const [label, star, scheme] of [["light", lightStar, "0"], ["dark", darkStar, "1"]]) {
+      if (star.scheme !== scheme) fail.push(`rating colour harness: the ${label} theme has --SCHEME-DARK ${star.scheme}`);
+      if (star.fill !== star.rating || star.accents.includes(star.fill)) fail.push(`rating colour (${label}): ${JSON.stringify(star)}`);
+    }
+    if (lightStar.fill === darkStar.fill) fail.push(`rating colour: the light and dark themes paint the same ${lightStar.fill}`);
 
     // ── 9b: coarse at 375 ───────────────────────────────────────────────────
     const answersAround = (thumb) =>
@@ -327,14 +361,44 @@ async (page) => {
     await open("form-rating");
     await setView(page, { forced: true });
     const forcedStar = await page.locator('[data-sc="rating-cards"] [role="img"]').first().evaluate((img) => {
-      const p = document.createElement("div");
-      p.style.cssText = "forced-color-adjust: none; color: CanvasText";
-      document.body.append(p);
-      const canvasText = getComputedStyle(p).color;
-      p.remove();
-      return { canvasText, fill: getComputedStyle(img.querySelector(".r-form-rating-fill > svg")).fill };
+      const probe = (color) => {
+        const p = document.createElement("div");
+        p.style.cssText = `forced-color-adjust: none; color: ${color}`;
+        document.body.append(p);
+        const value = getComputedStyle(p).color;
+        p.remove();
+        return value;
+      };
+      // The fill is the rating pair's blend of two CanvasTexts (serialised in oklch), so
+      // colours compare as painted pixels, not as strings.
+      const ctx = Object.assign(document.createElement("canvas"), { width: 1, height: 1 }).getContext("2d", { willReadFrequently: true });
+      const pixel = (color) => {
+        if (color === "none") return color;
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, 1, 1);
+        return ctx.getImageData(0, 0, 1, 1).data.join();
+      };
+      const base = getComputedStyle(img.querySelectorAll(".r-form-rating-item")[4].querySelector(".r-form-rating-base > svg"));
+      return {
+        canvasText: pixel(probe("CanvasText")),
+        fill: pixel(getComputedStyle(img.querySelector(".r-form-rating-fill > svg")).fill),
+        emptyFill: base.fill,
+        emptyEdge: pixel(base.stroke),
+      };
     });
-    if (forcedStar.fill !== forcedStar.canvasText) fail.push(`forced colours: read-only star fill ${JSON.stringify(forcedStar)}`);
+    if (forcedStar.fill !== forcedStar.canvasText || forcedStar.emptyFill !== "none" || forcedStar.emptyEdge !== forcedStar.canvasText) {
+      fail.push(`forced colours: read-only star fill vs outline ${JSON.stringify(forcedStar)}`);
+    }
+    const forcedDisabled = await page.getByRole("slider", { name: "Locked after 30 days" }).evaluate((el) => {
+      const p = document.createElement("div");
+      p.style.cssText = "forced-color-adjust: none; color: GrayText";
+      document.body.append(p);
+      const grayText = getComputedStyle(p).color;
+      p.remove();
+      return { grayText, fill: getComputedStyle(el.querySelector(".r-form-rating-fill > svg")).fill };
+    });
+    if (forcedDisabled.fill !== forcedDisabled.grayText) fail.push(`forced colours: disabled star fill ${JSON.stringify(forcedDisabled)}`);
   } finally {
     stopErrors();
   }

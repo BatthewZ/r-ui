@@ -39,7 +39,7 @@ function ContextMenuRoot({ open, defaultOpen, onOpenChange, children }: ContextM
     onOpenChange,
     // The panel's start corner sits on the point, as a native context menu's does.
     placement: "bottom-start",
-    offsetPx: 2,
+    offset: "--R-SIZE-6",
     returnFocusRef,
   });
   return <MenuProvider value={menu}>{children}</MenuProvider>;

@@ -2,6 +2,24 @@
    src/styles.css inside `@layer components`, so a caller's utility (`className`)
    always beats these rules. Plain rules, tokens only. */
 
+/* ── Hero ───────────────────────────────────────────────────────────────────
+   The backdrop covers the hero's padding box under its content (the content is
+   positioned after it, so paint order alone puts it above). `overflow: clip`, not
+   `hidden`: a hidden box is a scroll container, and a view timeline inside (a
+   Parallax) would follow it instead of the page and never move. Forced colours
+   drop the decoration so nothing competes with the forced text. */
+.r-marketing-hero-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  pointer-events: none;
+}
+@media (forced-colors: active) {
+  .r-marketing-hero-backdrop {
+    display: none;
+  }
+}
+
 /* ── MediaCard ──────────────────────────────────────────────────────────────
    Hover lifts the card by a motion distance over a motion duration, so reduced
    motion (both tokens collapse) keeps it still; the edge firms as well, so the

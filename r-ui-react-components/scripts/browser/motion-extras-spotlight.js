@@ -13,11 +13,13 @@
 // On the Spotlight section (`#motion-spotlight`), opened alone, first card
 // (`[data-sc="spotlight-card"]`):
 //   1. harness: `(hover: hover) and (pointer: fine)` matches; at rest the card's computed
-//      `background-image` is `none`;
+//      `background-image` is `none`; `--r-motion-spotlight-x/-y` are registered: at rest the
+//      card computes their initial value, 0.5 (unregistered, they compute to nothing);
 //   2. a real mouse at 25% × 40% of the card, then at 75% × 60%: two frames on, the card is
-//      `data-spotlight="on"`, `--r-motion-spotlight-x/-y` are those shares (±0.01) and the
-//      computed `background-image` is a radial gradient centred there (±1%); leaving puts it
-//      out (`none`);
+//      `data-spotlight="on"`, `--r-motion-spotlight-x/-y` are those shares (±0.01) inline and
+//      computed, the computed `background-image` is a radial gradient centred there (±1%),
+//      and every element inside the card still computes 0.5 for both (they do not inherit,
+//      so a move restyles the card alone); leaving puts it out (`none`);
 //   3. contrast, in every listed theme: each text in the card that sits on the card's own
 //      fill (not on a button's) reads at 4.5:1 or better over the card's background with the
 //      gradient's centre colour composited on it (both resolved by a canvas, so any colour
@@ -34,8 +36,10 @@
 //   8. no console or page error.
 //
 // Suggested break: drop `(prefers-reduced-motion: no-preference)` from the stylesheet's
-// query AND the `reduced` early return in Spotlight (6 fails), or raise the wash to 12%
-// (3 fails on a muted line in a dark theme).
+// query AND the `reduced` early return in Spotlight (6 fails), raise the wash to 12%
+// (3 fails on a muted line in a dark theme), or set `inherits: true` on the two
+// `@property` rules (2 fails: the card's children read the pointer's shares; deleting the
+// rules fails 1 as well).
 async (page) => {
   const base = page.url().split("#")[0];
   const fail = [];
@@ -60,10 +64,15 @@ async (page) => {
       await frame();
       const card = document.querySelector(sel);
       const css = getComputedStyle(card);
+      const computed = (el) => ["x", "y"].map((a) => getComputedStyle(el).getPropertyValue(`--r-motion-spotlight-${a}`).trim());
+      const inside = [...card.querySelectorAll("*")];
       return {
         on: card.getAttribute("data-spotlight"),
         x: Number(card.style.getPropertyValue("--r-motion-spotlight-x")),
         y: Number(card.style.getPropertyValue("--r-motion-spotlight-y")),
+        computed: computed(card),
+        descendants: inside.length,
+        inherited: inside.map(computed).filter((v) => v.some((n) => n === "" || Number(n) !== 0.5)).slice(0, 3),
         image: css.backgroundImage,
       };
     }, CARD);
@@ -73,12 +82,17 @@ async (page) => {
   };
 
   await load();
-  const harness = await page.evaluate((sel) => ({
-    fine: matchMedia("(hover: hover) and (pointer: fine)").matches,
-    image: getComputedStyle(document.querySelector(sel)).backgroundImage,
-  }), CARD);
+  const harness = await page.evaluate((sel) => {
+    const css = getComputedStyle(document.querySelector(sel));
+    return {
+      fine: matchMedia("(hover: hover) and (pointer: fine)").matches,
+      image: css.backgroundImage,
+      rest: ["x", "y"].map((a) => css.getPropertyValue(`--r-motion-spotlight-${a}`).trim()),
+    };
+  }, CARD);
   if (!harness.fine) fail.push("harness: the session's pointer is not fine and hovering");
   if (harness.image !== "none") fail.push(`at rest the card paints ${harness.image}`);
+  if (harness.rest.some((v) => v === "" || Number(v) !== 0.5)) fail.push(`at rest the card computes --r-motion-spotlight-x/-y as ${JSON.stringify(harness.rest)}, expected the registered initial value 0.5`);
 
   const first = await hover(0.25, 0.4);
   const second = await hover(0.75, 0.6);
@@ -87,6 +101,10 @@ async (page) => {
     if (s.on !== "on" || !/radial-gradient/.test(s.image)) fail.push(`mouse at ${fx}% × ${fy}%: ${JSON.stringify(s)}`);
     if (Math.abs(s.x * 100 - fx) > 1 || Math.abs(s.y * 100 - fy) > 1) fail.push(`mouse at ${fx}% × ${fy}%: the properties say ${s.x} × ${s.y}`);
     if (!c || Math.abs(c[0] - fx) > 1 || Math.abs(c[1] - fy) > 1) fail.push(`mouse at ${fx}% × ${fy}%: the gradient is centred at ${c}`);
+    const [cx, cy] = s.computed.map(Number);
+    if (s.computed.includes("") || Math.abs(cx * 100 - fx) > 1 || Math.abs(cy * 100 - fy) > 1) fail.push(`mouse at ${fx}% × ${fy}%: the card computes ${JSON.stringify(s.computed)}`);
+    if (s.descendants < 3) fail.push(`harness: the card holds ${s.descendants} element(s), expected its title, description and note`);
+    if (s.inherited.length) fail.push(`mouse at ${fx}% × ${fy}%: elements inside the card compute ${JSON.stringify(s.inherited)}, expected 0.5 (the properties inherit)`);
   }
   await page.mouse.move(1, 1);
   const out = await read();

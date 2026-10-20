@@ -21,6 +21,7 @@ import { formatNumber } from "../../util/format";
 import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
 import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
+import { resolveLength } from "../../util/resolve-length";
 import { cn, type SlotClassNames } from "../../util/style";
 import { Checkbox } from "../form";
 import { Button, Skeleton } from "../primitives";
@@ -56,7 +57,7 @@ import {
 } from "./data-table-parts";
 import { EmptyState } from "./EmptyState";
 import { Table, type TableProps } from "./Table";
-import { type ColumnBounds, resolveLength, useColumnGeometry } from "./use-column-geometry";
+import { type ColumnBounds, useColumnGeometry } from "./use-column-geometry";
 
 export interface DataTableProps<Row>
   extends SortParams,

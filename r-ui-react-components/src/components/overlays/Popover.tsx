@@ -66,7 +66,7 @@ function PopoverRoot({ open: openProp, defaultOpen = false, onOpenChange, placem
   const panelRef = useRef<HTMLDivElement>(null);
   const present = useExitPresence(open, panelRef, topLayerExit);
   // Positioned and promoted for as long as it is on screen, exit included.
-  const floating = useFloating({ placement, offsetPx: 8, arrowRef, open: present, onOpenChange: setOpen });
+  const floating = useFloating({ placement, arrowRef, open: present, onOpenChange: setOpen });
 
   // No `useClick`: it toggles from floating-ui's `open`, which stays true through
   // the exit, so a press on the trigger mid-exit would close instead of reopen.

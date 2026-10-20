@@ -218,8 +218,10 @@
 .r-overlays-toast-region[data-position^="top"] {
   inset-block-start: var(--R-SIZE-2);
 }
+/* A docked bottom nav publishes the height it covers; the stack clears it. The
+   fallback carries a unit: a unitless 0 would void the sum. */
 .r-overlays-toast-region[data-position^="bottom"] {
-  inset-block-end: var(--R-SIZE-2);
+  inset-block-end: calc(var(--R-SIZE-2) + var(--r-navigation-shell-bottom-inset, 0px));
 }
 .r-overlays-toast-region[data-position$="start"] {
   inset-inline-start: var(--R-SIZE-2);

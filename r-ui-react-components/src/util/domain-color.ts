@@ -38,6 +38,7 @@ export const DOMAIN_COLORS = [
   "TEXT-ON-STALE",
   "CHART-GRID",
   "CHART-AXIS",
+  "RATING",
   "CODE-KEYWORD",
   "CODE-STRING",
   "CODE-NUMBER",

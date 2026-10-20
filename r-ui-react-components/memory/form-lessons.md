@@ -35,3 +35,7 @@
 - **The `Write`/editor path can turn ` `-style escapes into literal characters** in source;
   invisible NBSPs in a regex are unreviewable. Write such escapes through a script and grep
   `-P '[^\x00-\x7F]'` afterwards.
+- **A colour set by a utility on the root outranks the component layer.** Rating's
+  `text-rating` sits in the utilities layer, so a component rule recolouring the root
+  (forced colours, disabled) loses to it. A state override targets the part that paints
+  (the fill's `svg`), not the root.

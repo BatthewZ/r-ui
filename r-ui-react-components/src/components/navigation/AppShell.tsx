@@ -11,11 +11,14 @@ import {
   type Ref,
   useContext,
   useId,
+  useLayoutEffect,
   useMemo,
+  useRef,
 } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { composeEventHandlers } from "../../util/merge-props";
+import { mergeRefs } from "../../util/merge-refs";
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useLinkElement } from "../../util/router";
 import { cn } from "../../util/style";
@@ -317,14 +320,57 @@ export type AppShellBottomNavProps = {
   label?: string;
 } & ComponentPropsWithRef<"nav">;
 
+/** Published on `:root` while a bottom nav is shown: what fixed content (a toast stack) must clear. */
+const BOTTOM_INSET = "--r-navigation-shell-bottom-inset";
+/** Each mounted bottom nav's block size; 0 while it is not shown. */
+const bottomNavSizes = new Map<HTMLElement, number>();
+
+/**
+ * Writes the shown bottom navs' total block size as `--r-navigation-shell-bottom-inset`
+ * on `<html>`, or removes it when none is shown. A total, because a shell nested in a
+ * window that ends at the outer shell's bottom nav stacks its own nav on top of it.
+ */
+function publishBottomInset() {
+  let total = 0;
+  for (const size of bottomNavSizes.values()) total += size;
+  const root = document.documentElement.style;
+  if (total > 0) root.setProperty(BOTTOM_INSET, `${total}px`);
+  else root.removeProperty(BOTTOM_INSET);
+}
+
+/** Keeps `nav`'s block size in the published inset while it is mounted. */
+function useBottomInset(navRef: { current: HTMLElement | null }) {
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    // Hidden (wider layouts: `display: none`) measures 0, so it adds nothing.
+    const measure = () => {
+      bottomNavSizes.set(nav, nav.getBoundingClientRect().height);
+      publishBottomInset();
+    };
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(nav);
+    return () => {
+      observer?.disconnect();
+      bottomNavSizes.delete(nav);
+      publishBottomInset();
+    };
+  }, [navRef]);
+}
+
 /**
  * The phone navigation: up to five `NavItem`s, icon above label, pinned to the
- * bottom of the screen. Rendered only on narrow viewports.
+ * bottom of the screen. Rendered only on narrow viewports. While shown it
+ * publishes its block size on `:root` as `--r-navigation-shell-bottom-inset`, which
+ * fixed content pinned to the viewport's bottom edge adds to its offset to clear it.
  */
-function BottomNav({ label = "Primary", className, children, ...props }: AppShellBottomNavProps) {
+function BottomNav({ label = "Primary", className, children, ref, ...props }: AppShellBottomNavProps) {
   useAppShell("BottomNav");
+  const navRef = useRef<HTMLElement>(null);
+  useBottomInset(navRef);
   return (
-    <nav aria-label={label} className={cn("r-navigation-shell-bottomnav", className)} {...props}>
+    <nav ref={mergeRefs(ref, navRef)} aria-label={label} className={cn("r-navigation-shell-bottomnav", className)} {...props}>
       <ul className="r-navigation-shell-bottomnav-list">{children}</ul>
     </nav>
   );

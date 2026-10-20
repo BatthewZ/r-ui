@@ -1,30 +1,13 @@
 "use client";
 import { type RefObject, useLayoutEffect, useState } from "react";
 
+import { resolveLength } from "../../util/resolve-length";
+
 /** A header cell's drawn width and, for a resizable column, its resolved bounds, in px. */
 export interface ColumnGeometry {
   width: number;
   min: number;
   max: number;
-}
-
-/**
- * A CSS length (`var(--MEASURE)`, `calc(var(--CONTROL-H) * 2)`) in px, as it
- * resolves where `host` is drawn, so density and theme move it. A hidden,
- * absolutely positioned probe takes no part in layout. Zero where nothing lays
- * out (jsdom).
- */
-export function resolveLength(host: Element, css: string): number {
-  const probe = document.createElement("span");
-  probe.setAttribute("aria-hidden", "true");
-  probe.dataset.columnProbe = css;
-  probe.style.position = "absolute";
-  probe.style.visibility = "hidden";
-  probe.style.setProperty("inline-size", css);
-  host.append(probe);
-  const width = probe.getBoundingClientRect().width;
-  probe.remove();
-  return width;
 }
 
 export interface ColumnBounds {

@@ -12,11 +12,12 @@
 //   1. harness: at fine input the page resolves --ROW-H 40px, as the source predicts; no
 //      menu is open;
 //   2. a right-click in the section's canvas opens "Canvas actions" with its start
-//      corner at the pointer (left = x, top = y + 2, within 1px), in the top layer
+//      corner at the pointer (left = x, top = y + the menu's gap `--R-SIZE-6`, resolved at
+//      the canvas, within 1px), in the top layer
 //      (:popover-open), in place (the canvas's parent contains it), with focus on the
 //      menu (Escape closing it is ContextMenu.test.tsx's);
 //   3. Shift+F10 on the focused canvas opens it anchored to the canvas (the menu's top
-//      edge 2px below the canvas's bottom, or flipped above it) with focus on the first
+//      edge the gap below the canvas's bottom, or flipped above it) with focus on the first
 //      item; Escape puts focus back on the canvas;
 //   4. keyboard identical to DropdownMenu: on a Dashboard row, the row's actions button
 //      (a DropdownMenu) and Shift+F10 on that same button (the ContextMenu) list the
@@ -78,6 +79,16 @@ async (page) => {
   // ── 1: harness ──────────────────────────────────────────────────────────
   const harness = await page.evaluate(() => ({ page: Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ROW-H")) }));
   if (harness.page !== 40) fail.push(`harness: the page's --ROW-H is ${harness.page}px; source predicts 40`);
+  // The menu's gap is a token, read where the menu's anchor is.
+  const gap = await canvas.evaluate((el) => {
+    const probe = document.createElement("span");
+    probe.style.cssText = "position: absolute; visibility: hidden; inline-size: var(--R-SIZE-6)";
+    el.append(probe);
+    const px = probe.getBoundingClientRect().width;
+    probe.remove();
+    return px;
+  });
+  if (!(gap > 0)) fail.push(`harness: --R-SIZE-6 resolves to ${gap}px at the canvas`);
   if ((await openMenus()).length !== 0) fail.push("harness: a menu is open before any right-click");
 
   // ── 2: right-click at the pointer ───────────────────────────────────────
@@ -88,8 +99,8 @@ async (page) => {
   const atPointer = await menuBox("Canvas actions");
   if (!atPointer) fail.push("a right-click in the canvas opened no Canvas actions menu");
   else {
-    if (Math.abs(atPointer.left - point.x) > 1 || Math.abs(atPointer.top - (point.y + 2)) > 1) {
-      fail.push(`the menu opened at ${atPointer.left},${atPointer.top}; the pointer was at ${point.x},${point.y} (expected its corner 2px below)`);
+    if (Math.abs(atPointer.left - point.x) > 1 || Math.abs(atPointer.top - (point.y + gap)) > 1) {
+      fail.push(`the menu opened at ${atPointer.left},${atPointer.top}; the pointer was at ${point.x},${point.y} (expected its corner ${gap}px below)`);
     }
     if (!atPointer.topLayer) fail.push("the context menu is not in the top layer");
     if (!atPointer.focused) fail.push("a pointer open did not focus the menu itself");
@@ -112,8 +123,8 @@ async (page) => {
   const firstItem = await focusedText();
   if (!atElement) fail.push("Shift+F10 on the focused canvas opened no menu");
   else {
-    const below = Math.abs(atElement.top - (canvasBox.y + canvasBox.height + 2)) <= 1;
-    const above = Math.abs(atElement.bottom - (canvasBox.y - 2)) <= 1;
+    const below = Math.abs(atElement.top - (canvasBox.y + canvasBox.height + gap)) <= 1;
+    const above = Math.abs(atElement.bottom - (canvasBox.y - gap)) <= 1;
     if (!below && !above) fail.push(`Shift+F10 opened the menu at top ${atElement.top}; the canvas spans ${canvasBox.y}–${canvasBox.y + canvasBox.height}`);
     if (firstItem !== "Cut⌘X") fail.push(`Shift+F10 focused ${JSON.stringify(firstItem)}, expected the first item "Cut"`);
   }

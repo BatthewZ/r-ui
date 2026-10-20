@@ -117,7 +117,7 @@ function FilterInput({ def, value, onValueChange, disabled, anyLabel, locale, no
           min={def.min}
           max={def.max}
           locale={locale}
-          className="flex"
+          variant="field"
         />
       );
     case "toggle": {

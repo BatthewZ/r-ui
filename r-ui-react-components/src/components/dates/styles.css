@@ -109,6 +109,12 @@
   border-radius: var(--RADIUS-FULL);
 }
 
+/* `variant="field"`: the range trigger is a form field's box (`r-form-frame`),
+   so it points like ColorPicker's; the frame's disabled rule outranks this. */
+.r-dates-range-trigger {
+  cursor: pointer;
+}
+
 /* A date popup is as wide as its months (and the range popup's preset
    column): it lifts the overlay surface's reading-measure cap to that width
    and keeps the surface's viewport cap. */

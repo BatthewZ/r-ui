@@ -219,6 +219,66 @@ describe("DateRangePicker", () => {
     expect(button).toBe(trigger);
   });
 
+  it('variant="field": a field\'s box with the value first and the calendar last, named, opening, a slot, invalid and disabled like a field', async () => {
+    const user = userEvent.setup();
+    let button: HTMLButtonElement | null = null;
+    const { container } = render(
+      <>
+        <Field invalid>
+          <Field.Label>Window</Field.Label>
+          <DateRangePicker
+            variant="field"
+            locale="en-US"
+            defaultValue={{ start: day(10, 1), end: day(10, 7) }}
+            classNames={{ trigger: "trigger-slot" }}
+            data-testid="field-trigger"
+            ref={(el) => {
+              button = el;
+            }}
+          />
+        </Field>
+        <Field disabled>
+          <Field.Label>Locked</Field.Label>
+          <DateRangePicker variant="field" locale="en-US" />
+        </Field>
+      </>,
+    );
+    const trigger = screen.getByRole("button", { name: /^Window Oct 1\s–\s7, 2026$/ });
+    expect(trigger).toHaveClass("r-form-frame", "h-control", "w-full", "text-start", "trigger-slot");
+    expect(trigger).toHaveAttribute("data-testid", "field-trigger");
+    expect(button).toBe(trigger);
+    expect(trigger).toHaveAttribute("type", "button");
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(trigger).toHaveAttribute("data-invalid", "");
+    // Value text first, the calendar icon last; no chevron and no leading icon.
+    const [value, icon, ...rest] = [...trigger.children];
+    expect(value).toHaveTextContent(/^Oct 1\s–\s7, 2026$/);
+    expect(icon?.tagName.toLowerCase()).toBe("svg");
+    expect(icon).toHaveClass("lucide-calendar-range");
+    expect(rest).toEqual([]);
+    expect(container.querySelector(".lucide-chevron-down")).toBeNull();
+    // The root fills its row, unlike the button look's inline root.
+    expect(trigger.closest("div")).toHaveClass("flex");
+    expect(trigger.closest("div")).not.toHaveClass("inline-flex");
+
+    const locked = screen.getByRole("button", { name: /^Locked Select dates$/ });
+    expect(locked).toBeDisabled();
+    expect(locked).toHaveAttribute("data-disabled", "");
+    expect(within(locked).getByText("Select dates")).toHaveClass("text-fg-muted");
+
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("dialog", { name: "Choose a date range" })).toBeInTheDocument();
+  });
+
+  it("the default button look keeps its leading calendar and trailing chevron", () => {
+    render(<DateRangePicker aria-label="Time range" locale="en-US" />);
+    const trigger = screen.getByRole("button", { name: "Time range Select dates" });
+    expect(trigger).not.toHaveClass("r-form-frame");
+    expect(trigger.querySelector(".lucide-calendar-range")).not.toBeNull();
+    expect(trigger.querySelector(".lucide-chevron-down")).not.toBeNull();
+  });
+
   describe("withTime", () => {
     const form = () => new FormData(screen.getByRole("form", { name: "form" }) as HTMLFormElement).get("window");
     const at = (v: DateRange<Date>) => [v.start.toString(), v.end.toString()];

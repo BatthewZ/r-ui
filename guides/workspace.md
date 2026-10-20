@@ -1,6 +1,6 @@
 # Workspace
 
-One bun workspace at the repo root. `package.json` lists `r-ui-css`, `r-ui-tw-merge` and `r-ui-react-components`. Internal dependencies use `"workspace:*"`.
+One bun workspace at the repo root. `package.json` lists `r-ui-css`, `r-ui-tw-merge` and `r-ui-react-components`. Internal dependencies use `"workspace:^"`, which packs as a `^x.y.z` range (`workspace:*` would pack an exact pin).
 
 ## Commands
 

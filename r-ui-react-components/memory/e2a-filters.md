@@ -30,3 +30,7 @@
   frame). The gate made `Chip` a primitive that owns its height; the selection inputs and
   the bar render it, and the bar's rows keep the chip field's pitch (one `--CONTROL-H` per
   line) so a coarse hit area never reaches the next line.
+- **A control among fields takes the field's frame through a look prop on the control.**
+  The time range was a secondary Button stretched by the bar and read as a button among
+  inputs; `DateRangePicker variant="field"` renders `r-form-frame` itself, so the bar asks
+  for the look instead of restyling a Button from outside.

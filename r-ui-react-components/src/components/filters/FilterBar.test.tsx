@@ -268,6 +268,9 @@ describe("FilterBar: words and states", () => {
     render(<FilterBar filters={[time]} collapse="never" locale="en-US" now={now} onValueChange={onValueChange} />);
     const trigger = screen.getByRole("button", { name: /^Time/ });
     expect(trigger).toHaveTextContent("All time");
+    // It reads like the bar's other fields: a field's box, not a Button.
+    expect(trigger).toHaveClass("r-form-frame", "text-start");
+    expect(trigger.lastElementChild).toHaveClass("lucide-calendar-range");
     await user.click(trigger);
     await user.click(screen.getByRole("button", { name: "Last 24 hours" }));
     const value = onValueChange.mock.lastCall![0] as FilterValues;

@@ -147,6 +147,12 @@ export interface DateRangePickerProps
   invalid?: boolean;
   /** Trigger text with no value. Default `labels.placeholder`. */
   placeholder?: string;
+  /**
+   * The trigger's look. `button` (default): a secondary Button at its own width,
+   * for a toolbar or a dashboard header. `field`: a form field's box filling its
+   * row, the value at the start and the calendar at the end, beside other fields.
+   */
+  variant?: "button" | "field";
   /** @default "bottom-start" */
   placement?: Placement;
   labels?: LabelsProp<DateRangePickerLabels>;
@@ -206,8 +212,9 @@ const wireOf = (value: DateRange<Date>, withTime: boolean) =>
 
 /**
  * The dashboard's time-range control: a trigger at `h-control` that shows the
- * range compactly ("Last 7 days", "Oct 1 – 7, 2026"), and a popup with quick
- * ranges beside typed start and end fields and a `RangeCalendar`.
+ * range compactly ("Last 7 days", "Oct 1 – 7, 2026"), a Button or, with
+ * `variant="field"`, a field's box, and a popup with quick ranges beside typed
+ * start and end fields and a `RangeCalendar`.
  *
  * - A preset applies and closes at once. A custom range is a draft until Apply;
  *   Cancel, Escape or a press outside discard it. Clear empties the range.
@@ -239,6 +246,7 @@ export function DateRangePicker({
   isDateUnavailable,
   invalid,
   placeholder,
+  variant = "button",
   placement = "bottom-start",
   open: openProp,
   defaultOpen = false,
@@ -300,34 +308,60 @@ export function DateRangePicker({
   // A named trigger keeps its value in the name: "Time range, Last 7 days".
   const labelledBy = field.labelId ?? (ariaLabel ? nameId : undefined);
 
+  const valueText = (
+    <span id={valueId} className={cn(variant === "field" && "min-w-0 flex-1 truncate", !committed && "text-fg-muted")}>
+      {text}
+    </span>
+  );
+
   return (
-    <div className={cn("inline-flex min-w-0 max-w-full", className)}>
+    <div className={cn(variant === "field" ? "flex min-w-0" : "inline-flex min-w-0 max-w-full", className)}>
       <Popover open={open} onOpenChange={setOpen} placement={placement}>
-        <Popover.Trigger
-          {...props}
-          id={field.id}
-          disabled={field.disabled}
-          {...field.ariaProps}
-          aria-labelledby={labelledBy ? `${labelledBy} ${valueId}` : undefined}
-          variant="secondary"
-          iconStart={<CalendarRange />}
-          iconEnd={<ChevronDown />}
-          // Stretched (a form row, a filter bar) it reads as a field: the value at the
-          // start, the chevron at the end. At its own width nothing moves.
-          classNames={{ label: "flex-1 text-start" }}
-          className={cn(
-            // `*:flex-1`: the button's content row fills it, so the label can push the chevron out.
-            "min-w-0 flex-1 *:flex-1",
-            // Invalid loses its red in forced colors: a doubled edge is the second cue, as on every field.
-            field.invalid &&
-              "border-status-error hover:border-status-error forced-colors:border-[length:calc(var(--BORDER-WIDTH)*2)]",
-            classNames?.trigger,
-          )}
-        >
-          <span id={valueId} className={cn(!committed && "text-fg-muted")}>
-            {text}
-          </span>
-        </Popover.Trigger>
+        {variant === "field" ? (
+          <Popover.Trigger asChild>
+            <button
+              {...props}
+              type="button"
+              id={field.id}
+              disabled={field.disabled}
+              {...field.ariaProps}
+              aria-labelledby={labelledBy ? `${labelledBy} ${valueId}` : undefined}
+              data-invalid={field.invalid ? "" : undefined}
+              data-disabled={field.disabled ? "" : undefined}
+              className={cn(
+                "r-form-frame r-dates-range-trigger flex h-control w-full min-w-0 items-center gap-r4 px-r3 text-start text-body-1 text-fg-primary",
+                classNames?.trigger,
+              )}
+            >
+              {valueText}
+              <CalendarRange aria-hidden className="size-icon shrink-0 text-fg-muted" />
+            </button>
+          </Popover.Trigger>
+        ) : (
+          <Popover.Trigger
+            {...props}
+            id={field.id}
+            disabled={field.disabled}
+            {...field.ariaProps}
+            aria-labelledby={labelledBy ? `${labelledBy} ${valueId}` : undefined}
+            variant="secondary"
+            iconStart={<CalendarRange />}
+            iconEnd={<ChevronDown />}
+            // Stretched, the value sits at the start and the chevron at the end; at its
+            // own width nothing moves. Beside other fields, `variant="field"`.
+            classNames={{ label: "flex-1 text-start" }}
+            className={cn(
+              // `*:flex-1`: the button's content row fills it, so the label can push the chevron out.
+              "min-w-0 flex-1 *:flex-1",
+              // Invalid loses its red in forced colors: a doubled edge is the second cue, as on every field.
+              field.invalid &&
+                "border-status-error hover:border-status-error forced-colors:border-[length:calc(var(--BORDER-WIDTH)*2)]",
+              classNames?.trigger,
+            )}
+          >
+            {valueText}
+          </Popover.Trigger>
+        )}
         <Popover.Content
           aria-label={labels.dialog}
           className={cn(

@@ -16,6 +16,8 @@ tokens or the public surface are versioned events and are recorded here.
 
 ### Fixed
 
+- Overlays, navigation: on a phone, a bottom toast stack sits above an `AppShell` bottom nav instead of covering it. The region adds `--r-navigation-shell-bottom-inset` (published by the shown bottom nav, see Added) to its `--R-SIZE-2` offset; with no bottom nav, or at wider layouts, it is where it was. Browser check `overlays-toast-bottomnav`.
+- Content: `Markdown` nests at most 8 containers and keeps a ninth level as text, as its comment said; the cap allowed 9.
 - Layout: a `Prose` region's measure counts body characters: r-ui-css's prose region now carries the body prose size, so `max-w-measure` is a count of the text being read, and r-ui-css widens it to 75ch: 75 body characters (about 823px in the default theme at 1280, up from 606px), the same at both densities and in any UI face. Controls inside keep the UI scale. Browser check `layout-prose`.
 - Steps, marketing: a `Stepper` (and `Wizard`) marker's number and a `HowItWorks` step number sit in the middle of their circle; they sat about 2px high, centred by a line box that keeps room for descenders. The number is trimmed to its cap height (`text-box: trim-both cap alphabetic`; unchanged where unsupported).
 - Navigation: an `AppShell` rail (medium widths, or the sidebar collapsed) with more links than the screen is tall scrolls, like the full sidebar, so its last links and its expand toggle stay reachable; collapsed past the fold, the sidebar could not be reopened. The rail's label bubbles are `position: fixed`, placed beside their link on hover, focus and scroll, so the scroll does not clip them.
@@ -158,6 +160,14 @@ Round 5:
 - `PricingTable`'s pinned feature column paints the canvas by default (a marketing section's
   surface), not `--C-SURFACE-0`. A comparison on a card or a band names its surface with
   `--r-marketing-pricing-surface` (`[--r-marketing-pricing-surface:var(--C-SURFACE-0)]`).
+- `useFloating`'s `offsetPx?: number` is replaced by `` offset?: `--${string}` ``: the custom
+  property naming the gap between reference and panel (default `--R-SIZE-4`), read at the
+  reference each time the position computes, so the gap follows the density written there.
+  A caller that passed a number names a token instead. The library's panels keep token gaps
+  (comfortable / compact): menus, context menus and selection popups `--R-SIZE-6` (4 / 2px;
+  ContextMenu was 2px), tooltips `--R-SIZE-5` (6 / 4px) and `--R-SIZE-3` with an arrow
+  (12 / 8px, was 10), chart readouts `--R-SIZE-3` (was 12px), popovers and hover cards the
+  default (8 / 6px, was 8).
 
 ### Added
 
@@ -715,6 +725,43 @@ Additive (the PricingTable surface is under Breaking).
   under the showcase's bar, anchors clearing both bars, a picture flush inside prose and the
   essay's reading bar; `dashboard-layout` proves the FilterBar, Toolbar, table features,
   progress, Banner and per-card boundaries; `toolbar-layout` proves the toolbar's floor.
+
+#### Bottom-nav inset, hero backdrop, view-transition runs, rating colour
+
+Additive (the `useFloating` gap is under Breaking).
+
+- **Navigation.** `AppShell.BottomNav` publishes its block size on `:root` as
+  `--r-navigation-shell-bottom-inset` while it is shown (measured, so it follows content,
+  density and a `className`; nested shells' shown navs add up; removed when none is shown
+  and on unmount), so fixed content pinned to the viewport's bottom adds it to clear the
+  nav. A forwarded `ref` still reaches the nav.
+- **Marketing.** `Hero` takes `backdrop`: a decorative layer behind its content that covers
+  the hero (its band fill too) and is clipped to it, painted under the text, `aria-hidden`,
+  `inert`, taking no pointer, not printed and hidden under forced colours. It clips without
+  being a scroll container, so a view timeline inside (a `Parallax`) follows the page.
+  `classNames.backdrop` reaches the layer.
+- **Motion.** `startViewTransition` and the function `useViewTransition()` returns return a
+  `ViewTransitionRun` (exported): still a promise that settles once the update has applied,
+  plus `finished`, which settles when the animation ends, or right after the update when the
+  transition is skipped (no API, reduced motion, a newer transition). A skip rejects
+  neither; an update that throws rejects the run, never `finished`.
+- **Domain token** pair `--C-RATING-LIGHT` / `--C-RATING-DARK` (a warm amber, held to 3:1 as
+  a mark on every surface by `verify:domain-contrast`; both halves CanvasText under forced
+  colours) and the utility `*-rating`.
+- **Dates.** `DateRangePicker variant="field"`: the trigger is a form field's box filling its
+  row, the value at the start and the calendar icon at the end, for a range beside other
+  fields; `button` (the default) is unchanged.
+- **Changed.** `Rating` fills with `text-rating`, not the accent (a rating is data; the
+  accent means interactive); a `text-*` colour class on the root still retints it.
+  `FilterBar`'s time range is a field (`variant="field"`) like its other controls.
+  `Spotlight` registers `--r-motion-spotlight-x` / `-y` (`<number>`, not inherited, `0.5`),
+  so a pointer move restyles the card alone, not its subtree.
+- **Showcase.** A Hero with a `Parallax` backdrop; a DateRangePicker field-look row; a
+  Rating row under Domain tokens. The motion demos' transition helper is the library's
+  `startViewTransition` and its `finished`.
+- Checks: new browser checks `overlays-toast-bottomnav` and `marketing-hero-backdrop`;
+  `motion-extras-spotlight` proves the shares do not inherit, `form-sliders` the rating
+  colour (light, dark, forced), `filters-layout` the time range's field frame.
 
 ### Known gaps
 

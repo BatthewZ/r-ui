@@ -44,6 +44,13 @@ describe("verify:domain-contrast — code roles", { timeout: 30_000 }, () => {
     expect(result.stderr).toMatch(/code role code-keyword \(--C-CODE-KEYWORD-LIGHT\) on --C-CANVAS/);
   });
 
+  it("holds the rating fill to the mark floor, so a pale light half goes red", () => {
+    const result = runWith((css) => css.replace(/(--C-RATING-LIGHT: )oklch\([^)]*\)/, "$1oklch(0.780 0.150 80)"));
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/--C-RATING-LIGHT on --C-CANVAS: \d\.\d\d:1 < 3:1/);
+    expect(result.stderr).not.toMatch(/--C-RATING-DARK/);
+  });
+
   it("measures an alias role through the theme, so aliasing a fill goes red", () => {
     const result = runWith((css) => css.replace("--color-code-comment: var(--C-TEXT-MUTED);", "--color-code-comment: var(--C-SURFACE-2);"));
     expect(result.status).toBe(1);

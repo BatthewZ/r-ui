@@ -41,3 +41,10 @@
   clips absolute descendants on both axes, so the bubbles became `position: fixed` and the
   Sidebar places them on hover, focus and scroll, measuring the label at zero first (its
   containing block is a contained ancestor, not the viewport, inside a `container-type` box).
+
+- **A size that fixed content must clear is measured where it comes from and published from
+  there.** The bottom nav's height depends on content, density, the safe area and a caller's
+  class, so `AppShell.BottomNav` observes itself and writes the total on `<html>`; nested
+  shells stack their navs, so the sizes add. A reader adds it with a fallback, and a
+  `var()` fallback inside `calc()` needs a unit (`0px`): a unitless `0` in a length sum
+  voids the whole declaration.

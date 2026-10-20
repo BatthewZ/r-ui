@@ -72,14 +72,14 @@ describe("ContextMenu", () => {
       ({ x: 100, y: 50, left: 100, top: 50, right: 500, bottom: 350, width: 400, height: 300 }) as DOMRect;
     await user.pointer({ keys: "[MouseRight]", target: region, coords: { clientX: 220, clientY: 130 } });
     const menu = screen.getByRole("menu");
-    // bottom-start of a zero-size point, 2px below it.
-    await waitFor(() => expect(menu.style.transform).toBe("translate(220px, 132px)"));
+    // bottom-start of a zero-size point. The gap is a token jsdom cannot resolve, so 0.
+    await waitFor(() => expect(menu.style.transform).toBe("translate(220px, 130px)"));
 
     // The region scrolls by 40px: the anchor moves with it.
     region.getBoundingClientRect = () =>
       ({ x: 100, y: 10, left: 100, top: 10, right: 500, bottom: 310, width: 400, height: 300 }) as DOMRect;
     fireEvent.scroll(window);
-    await waitFor(() => expect(menu.style.transform).toBe("translate(220px, 92px)"));
+    await waitFor(() => expect(menu.style.transform).toBe("translate(220px, 90px)"));
     for (const prop of ["clientWidth", "clientHeight"]) {
       delete (document.documentElement as unknown as Record<string, unknown>)[prop];
     }

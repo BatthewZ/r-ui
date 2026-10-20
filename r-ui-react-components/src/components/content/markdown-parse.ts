@@ -669,10 +669,11 @@ function startsBlock(line: string, next: string | undefined): boolean {
 }
 
 /**
- * How deep blockquote-in-list-in-blockquote may go before the content is kept
- * as plain text. Real documents nest two or three levels; 2000 `>` on one line
- * is not a document, and before this cap it was a `RangeError` in V8 — or, for
- * a deeply nested list, a hard process exit that no error boundary can catch.
+ * How many containers (blockquotes and lists, in any mix) may nest: the
+ * content of the eighth is kept as plain text, so a ninth never opens. Real
+ * documents nest two or three levels; 2000 `>` on one line is not a document,
+ * and before this cap it was a `RangeError` in V8 — or, for a deeply nested
+ * list, a hard process exit that no error boundary can catch.
  *
  * Eight, not the 32 that only guarded the stack: every level is an indent
  * (a quote's bar and padding, a list's gutter), and measured in the showcase 32
@@ -855,7 +856,7 @@ function readBlock(lines: readonly string[], start: number, depth: number): Bloc
 }
 
 export function parseBlocks(src: string, depth = 0): BlockNode[] {
-  if (depth > MAX_BLOCK_DEPTH) {
+  if (depth >= MAX_BLOCK_DEPTH) {
     return src.trim() ? [{ type: "paragraph", children: [{ type: "text", value: src }] }] : [];
   }
   const lines = normalise(src).split("\n");

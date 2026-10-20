@@ -1,7 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { type ComponentPropsWithRef, useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { type ComponentPropsWithRef, createRef, useState } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppShell } from "./AppShell";
 
@@ -205,6 +205,104 @@ describe("AppShell", () => {
       </AppShell>,
     );
     expect(screen.getByRole("link", { name: "A" })).toHaveAttribute("aria-current", "location");
+  });
+
+  describe("bottom inset", () => {
+    const INSET = "--r-navigation-shell-bottom-inset";
+    const inset = () => document.documentElement.style.getPropertyValue(INSET);
+    /** jsdom has no layout and no ResizeObserver: each bottom nav is as tall as `heights` says, re-read when `resize()` runs the observers. */
+    function stubLayout(heights: Map<string, number>) {
+      const observers = new Set<() => void>();
+      vi.stubGlobal(
+        "ResizeObserver",
+        class {
+          constructor(private readonly callback: () => void) {}
+          observe() {
+            observers.add(this.callback);
+          }
+          disconnect() {
+            observers.delete(this.callback);
+          }
+        },
+      );
+      vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
+        const height = heights.get(this.getAttribute("aria-label") ?? "") ?? 0;
+        return { left: 0, right: 0, width: 0, top: 0, bottom: height, height, x: 0, y: 0, toJSON: () => ({}) };
+      });
+      return { resize: () => act(() => observers.forEach((run) => run())) };
+    }
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    });
+
+    it("publishes the shown nav's block size on <html>, follows its resizes, and removes it on unmount", () => {
+      const heights = new Map([["Primary (phone)", 56]]);
+      const { resize } = stubLayout(heights);
+      const { unmount } = render(<Shell />);
+      expect(inset()).toBe("56px");
+      heights.set("Primary (phone)", 64.5);
+      resize();
+      expect(inset()).toBe("64.5px");
+      unmount();
+      expect(inset()).toBe("");
+    });
+
+    it("publishes nothing while the nav is not shown (a wider layout measures 0)", () => {
+      const heights = new Map([["Primary (phone)", 56]]);
+      const { resize } = stubLayout(heights);
+      render(<Shell />);
+      expect(inset()).toBe("56px");
+      heights.set("Primary (phone)", 0);
+      resize();
+      expect(inset()).toBe("");
+    });
+
+    it("stacks the navs of a shell nested above another's: the sizes add up, and each leaves with its own", () => {
+      const heights = new Map([
+        ["Outer", 56],
+        ["Inner", 48],
+      ]);
+      stubLayout(heights);
+      function Nested({ inner }: { inner: boolean }) {
+        return (
+          <AppShell>
+            <AppShell.Main>
+              {inner && (
+                <AppShell>
+                  <AppShell.Main as="div" />
+                  <AppShell.BottomNav label="Inner" />
+                </AppShell>
+              )}
+            </AppShell.Main>
+            <AppShell.BottomNav label="Outer" />
+          </AppShell>
+        );
+      }
+      const { rerender } = render(<Nested inner />);
+      expect(inset()).toBe("104px");
+      rerender(<Nested inner={false} />);
+      expect(inset()).toBe("56px");
+    });
+
+    it("a shell with no bottom nav publishes nothing", () => {
+      stubLayout(new Map([["Primary (phone)", 56]]));
+      render(<Shell withBottomNav={false} />);
+      expect(screen.getByRole("navigation", { name: "Primary" })).toBeInTheDocument();
+      expect(inset()).toBe("");
+    });
+
+    it("a caller's ref still reaches the nav", () => {
+      stubLayout(new Map([["Phone", 56]]));
+      const ref = createRef<HTMLElement>();
+      render(
+        <AppShell>
+          <AppShell.BottomNav ref={ref} label="Phone" />
+        </AppShell>,
+      );
+      expect(ref.current).toBe(screen.getByRole("navigation", { name: "Phone" }));
+      expect(inset()).toBe("56px");
+    });
   });
 
   it("throws a named error when a part is used outside AppShell", () => {

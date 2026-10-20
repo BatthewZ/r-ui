@@ -121,6 +121,12 @@
   --C-CHART-AXIS-LIGHT: oklch(0.700 0.012 100);
   --C-CHART-AXIS-DARK: oklch(0.480 0.010 105);
 
+  /* ── Rating: a Rating's filled icons. A rating is data, so not the accent
+     (which means "interactive / you are here"). Warm amber in both schemes,
+     held as a mark (≥ 3:1 on every surface); the outline beside it is line ink. */
+  --C-RATING-LIGHT: oklch(0.590 0.135 62);
+  --C-RATING-DARK: oklch(0.800 0.140 78);
+
   /* ── Density-dependent domain sizes: the NAMED values themes may override. */
   --CHART-H-COMFORTABLE: 13.5rem;
   --CHART-H-COMPACT: 10.5rem;
@@ -137,14 +143,15 @@
 }
 
 /* ── Forced colors (Windows High Contrast), the contract's rules applied to the
-   domain. Status, trend and chart chrome become system colours, both halves, so
-   the blend resolves to one whatever the scheme (`!important` outranks a theme
-   that retunes a pair). Series and sequential steps are NOT mapped: there the
-   colour is the information, and every series also differs by label (and, in a
-   chart, by shape). Their `bg-` fills opt out of repainting below, as the
-   meaning-bearing fills do; SVG strokes and fills are never forced. Their blend
-   still reads `--SCHEME-DARK`, which the contract sets from the FORCED palette
-   here, so a dark theme on a light high-contrast Canvas takes the light steps. */
+   domain. Status, trend, chart chrome and the rating fill become system
+   colours, both halves, so the blend resolves to one whatever the scheme
+   (`!important` outranks a theme that retunes a pair). Series and sequential
+   steps are NOT mapped: there the colour is the information, and every series
+   also differs by label (and, in a chart, by shape). Their `bg-` fills opt out
+   of repainting below, as the meaning-bearing fills do; SVG strokes and fills
+   are never forced. Their blend still reads `--SCHEME-DARK`, which the contract
+   sets from the FORCED palette here, so a dark theme on a light high-contrast
+   Canvas takes the light steps. */
 @media (forced-colors: active) {
   :root {
     --C-TREND-GOOD-LIGHT: CanvasText !important;
@@ -171,6 +178,8 @@
     --C-CHART-GRID-DARK: GrayText !important;
     --C-CHART-AXIS-LIGHT: CanvasText !important;
     --C-CHART-AXIS-DARK: CanvasText !important;
+    --C-RATING-LIGHT: CanvasText !important;
+    --C-RATING-DARK: CanvasText !important;
   }
 }
 
@@ -365,6 +374,8 @@
 
   --color-chart-grid: color-mix(in oklch, var(--C-CHART-GRID-LIGHT), var(--C-CHART-GRID-DARK) calc(var(--SCHEME-DARK) * 100%));
   --color-chart-axis: color-mix(in oklch, var(--C-CHART-AXIS-LIGHT), var(--C-CHART-AXIS-DARK) calc(var(--SCHEME-DARK) * 100%));
+
+  --color-rating: color-mix(in oklch, var(--C-RATING-LIGHT), var(--C-RATING-DARK) calc(var(--SCHEME-DARK) * 100%));
 
   /* Sizes: `h-chart`, `h-bar` / `w-bar`, `size-heat-cell`, `h-spark`, `text-kpi`. */
   --spacing-chart: var(--CHART-H);

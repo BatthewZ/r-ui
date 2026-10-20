@@ -10,4 +10,4 @@ export { REVEAL_ANIMATION_CLASSES, type RevealAnimation, ScrollReveal, type Scro
 export { Spotlight, type SpotlightProps } from "./Spotlight";
 export { Stagger, STAGGER_MAX_INDEX, type StaggerProps } from "./Stagger";
 export { type RevealOptions, type RevealState } from "./use-reveal";
-export { startViewTransition, useViewTransition } from "./view-transition";
+export { startViewTransition, useViewTransition, type ViewTransitionRun } from "./view-transition";

@@ -249,7 +249,7 @@ reduced motion and print zero it whatever the theme sets).
 
 A theme you write gets the same checks the example themes do. The CSS package's scripts
 measure the contract's pairs and enforce the theme rules; this package's script measures its
-domain colours (trend, serious and stale status, code roles) against your surfaces, and
+domain colours (trend, serious and stale status, the rating fill, code roles) against your surfaces, and
 fails a theme that sets a domain size's selected name (`--CHART-H`) instead of its
 per-density names (`--CHART-H-COMFORTABLE`, `--CHART-H-COMPACT`):
 

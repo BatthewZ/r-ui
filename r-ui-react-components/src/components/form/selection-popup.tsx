@@ -140,7 +140,7 @@ export function useSelectionPopup({ items, open: openProp, defaultOpen = false, 
     [setOpenState],
   );
   // Positioned and promoted for as long as it is on screen, exit included.
-  const floating = useFloating({ placement: "bottom-start", offsetPx: 4, open: present, onOpenChange: setOpen });
+  const floating = useFloating({ placement: "bottom-start", offset: "--R-SIZE-6", open: present, onOpenChange: setOpen });
   // Pointer light dismiss only; every key is handled on the input.
   const { getFloatingProps } = useInteractions([useDismiss(floating.context, { escapeKey: false })]);
   const listboxId = useId();

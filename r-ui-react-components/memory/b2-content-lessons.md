@@ -45,3 +45,6 @@
   old parser as a scratch copy outside the package, generate many inputs from the syntax's
   own markers, and compare the trees. Each difference is a bug or a deliberate fix: fix the
   first, record the second with a test, then delete the copy.
+- **A cap's comparison is part of what it promises.** Markdown's "8 nested containers" cap
+  compared with `>` and let a ninth level through behind a correct comment. Pin both sides
+  in tests (N nests, N + 1 falls back), so an off-by-one cannot ship either way.

@@ -134,12 +134,24 @@
    negative z-index, and over the box's background colour. 4% at the centre,
    fading out: muted text keeps 4.5:1 on surfaces 0–2 in every shipped theme
    (8%, the hover wash, would not). Fine hovering pointers only; none on touch,
-   a forced coarse input, reduced motion, forced colours or paper. */
+   a forced coarse input, reduced motion, forced colours or paper.
+   The pointer's shares are registered as non-inheriting, so a pointer move
+   restyles the card alone, never its subtree. */
+@property --r-motion-spotlight-x {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.5;
+}
+@property --r-motion-spotlight-y {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0.5;
+}
 @media screen and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none) {
   .r-motion-spotlight[data-spotlight="on"] {
     background-image: radial-gradient(
-      circle var(--COLUMN-SM) at calc(var(--r-motion-spotlight-x, 0.5) * 100%)
-        calc(var(--r-motion-spotlight-y, 0.5) * 100%),
+      circle var(--COLUMN-SM) at calc(var(--r-motion-spotlight-x) * 100%)
+        calc(var(--r-motion-spotlight-y) * 100%),
       color-mix(in oklab, var(--C-TEXT-PRIMARY) 4%, transparent),
       transparent
     );

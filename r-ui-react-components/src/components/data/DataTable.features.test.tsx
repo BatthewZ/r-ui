@@ -74,7 +74,7 @@ const headers = () =>
  */
 function stubLayout({ th = 200 }: { th?: number } = {}) {
   return vi.spyOn(Element.prototype, "getBoundingClientRect").mockImplementation(function (this: Element) {
-    const probe = this instanceof HTMLElement ? this.dataset.columnProbe : undefined;
+    const probe = this instanceof HTMLElement ? this.dataset.lengthProbe : undefined;
     const width =
       probe === DEFAULT_COLUMN_MIN
         ? 64

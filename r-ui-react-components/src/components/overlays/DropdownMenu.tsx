@@ -35,7 +35,7 @@ function DropdownMenuRoot({ open, defaultOpen, onOpenChange, placement = "bottom
     defaultOpen,
     onOpenChange,
     placement,
-    offsetPx: 4,
+    offset: "--R-SIZE-6",
     labelledBy: triggerId,
     returnFocusRef: triggerRef,
   });

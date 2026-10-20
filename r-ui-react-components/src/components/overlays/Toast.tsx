@@ -110,7 +110,9 @@ const toastSelector = (id: string) => `li[data-toast-id="${CSS.escape(id)}"]`;
  * existing region to be announced): `error` and `serious` go to the assertive
  * one, everything else to the polite one. It is promoted to the top layer, so it paints over
  * modals opened before it. Unlike every other floating surface here it is not
- * anchored to anything, so it renders where the provider is.
+ * anchored to anything, so it renders where the provider is. A bottom stack
+ * sits `--r-navigation-shell-bottom-inset` higher (an AppShell's shown bottom nav
+ * publishes it on `:root`), so it never covers that nav.
  *
  * A toast that leaves while focus is in it (its own Dismiss or action, or
  * `dismiss(id)`) hands focus to the next toast's Dismiss, else back to where

@@ -17,6 +17,7 @@ import { elementChildren } from "../../util/children";
 import { isRtl } from "../../util/direction";
 import { type LabelsProp, useLabels } from "../../util/locale";
 import { mergeRefs } from "../../util/merge-refs";
+import { resolveLength } from "../../util/resolve-length";
 import { cn, type SlotClassNames } from "../../util/style";
 import {
   dragTarget,
@@ -119,17 +120,8 @@ function measure(root: HTMLElement, horizontal: boolean, lengths: readonly strin
     return total + (horizontal ? rect.width : rect.height);
   }, 0);
   const resolved: Record<string, number> = {};
-  for (const length of lengths) {
-    // Inside the root, so the length follows the density written there. Removed at once:
-    // a hidden box still counts toward scrollable overflow.
-    const probe = root.ownerDocument.createElement("span");
-    probe.setAttribute("data-splitter-probe", "");
-    probe.style.cssText = "position: absolute; visibility: hidden; block-size: 0";
-    probe.style.inlineSize = length;
-    root.append(probe);
-    resolved[length] = probe.getBoundingClientRect().width;
-    probe.remove();
-  }
+  // Inside the root, so each length follows the density written there.
+  for (const length of lengths) resolved[length] = resolveLength(root, length);
   return { available, lengths: resolved };
 }
 

@@ -414,7 +414,7 @@ export function ChartReadout({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const present = useExitPresence(open && (anchor !== null || !!anchorElement), panel, topLayerExit);
-  const { refs, floatingStyles, update } = useFloating({ placement, offsetPx: 12, open: present });
+  const { refs, floatingStyles, update } = useFloating({ placement, offset: "--R-SIZE-3", open: present });
   const last = useRef(anchor);
   if (anchor) last.current = anchor;
   const at = anchor ?? last.current;

@@ -77,6 +77,42 @@ describe("Hero", () => {
     expect(hero).not.toHaveClass("py-section-1");
   });
 
+  it("puts a backdrop in a hidden, inert, unprinted layer under the content", () => {
+    render(
+      <Hero
+        title="Layered"
+        actions={<Button>Start free</Button>}
+        backdrop={<img alt="Contours" src="x.svg" />}
+        classNames={{ backdrop: "sc-x-backdrop" }}
+        data-testid="hero"
+      />,
+    );
+    const hero = screen.getByTestId("hero");
+    const layer = hero.querySelector(".r-marketing-hero-backdrop")!;
+    expect(layer).toHaveAttribute("aria-hidden", "true");
+    expect(layer).toHaveAttribute("inert");
+    expect(layer).toHaveAttribute("data-print", "hide");
+    expect(layer).toHaveClass("sc-x-backdrop");
+    // Out of the accessibility tree: the picture is not an image to assistive tech.
+    expect(screen.queryByRole("img", { name: "Contours" })).toBeNull();
+    expect(layer.querySelector("img")).toBeInTheDocument();
+    // The layer comes first and the hero positions it; the content after it is positioned
+    // too, so paint order lifts it over the layer. The region keeps its name and its button.
+    expect(hero.firstElementChild).toBe(layer);
+    expect(hero).toHaveClass("relative");
+    expect(layer.nextElementSibling).toHaveClass("relative");
+    expect(screen.getByRole("region", { name: "Layered" })).toBe(hero);
+    expect(screen.getByRole("button", { name: "Start free" })).toBeInTheDocument();
+  });
+
+  it("without a backdrop renders no layer and positions nothing", () => {
+    render(<Hero title="Flat" data-testid="hero" />);
+    const hero = screen.getByTestId("hero");
+    expect(hero.querySelector(".r-marketing-hero-backdrop")).toBeNull();
+    expect(hero).not.toHaveClass("relative");
+    expect(hero.firstElementChild).not.toHaveClass("relative");
+  });
+
   it("reaches every internal through classNames", () => {
     render(
       <Hero

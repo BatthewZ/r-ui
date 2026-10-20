@@ -485,6 +485,52 @@ describe("pathological input", () => {
   });
 });
 
+/** How many containers (blockquotes, lists) nest at the deepest point of a tree. */
+const containerDepth = (blocks: BlockNode[]): number =>
+  Math.max(
+    0,
+    ...blocks.map((b) => {
+      if (b.type === "blockquote") return 1 + containerDepth(b.children);
+      if (b.type === "list") return 1 + Math.max(0, ...b.items.map((item) => containerDepth(item.children)));
+      return 0;
+    })
+  );
+
+/** The innermost blocks, following the last block of each container (a sub-list ends its item). */
+const innermost = (blocks: BlockNode[]): BlockNode[] => {
+  const last = blocks.at(-1);
+  if (last?.type === "blockquote") return innermost(last.children);
+  if (last?.type === "list") return innermost(last.items.at(-1)?.children ?? []);
+  return blocks;
+};
+
+const quotes = (n: number) => ">".repeat(n) + " deep";
+const bullets = (n: number) => Array.from({ length: n }, (_, k) => " ".repeat(k * 2) + "- deep").join("\n");
+// Quote and list alternating: `> - > - …`, one container per marker.
+const mixed = (n: number) => Array.from({ length: n }, (_, k) => (k % 2 ? "- " : "> ")).join("") + "deep";
+
+describe("the nesting cap: exactly eight containers", () => {
+  it.each([
+    ["blockquotes", quotes],
+    ["lists", bullets],
+    ["quotes and lists mixed", mixed],
+  ])("opens all eight nested %s and parses the innermost content", (_, build) => {
+    const blocks = parseBlocks(build(8));
+    expect(containerDepth(blocks)).toBe(8);
+    expect(innermost(blocks)).toEqual([{ type: "paragraph", children: [{ type: "text", value: "deep" }] }]);
+  });
+
+  it.each([
+    ["blockquotes", quotes, "> deep"],
+    ["lists", bullets, "deep\n- deep"],
+    ["quotes and lists mixed", mixed, "> deep"],
+  ])("keeps a ninth level of %s as text inside the eighth", (_, build, text) => {
+    const blocks = parseBlocks(build(9));
+    expect(containerDepth(blocks)).toBe(8);
+    expect(innermost(blocks)).toEqual([{ type: "paragraph", children: [{ type: "text", value: text }] }]);
+  });
+});
+
 describe("destinations reach safeUrl unwrapped", () => {
   it("judges an angle-wrapped destination rather than letting it through unread", () => {
     // The brackets used to ride into the href, which both broke the link and

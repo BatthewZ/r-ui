@@ -1,5 +1,6 @@
 import { CircleAlert, Clock, TrendingDown, TrendingUp } from "lucide-react";
 
+import { Rating } from "../../../src/components/form";
 import { formatCompact, formatDelta, formatPercent } from "../../../src/util/format";
 
 export const meta = {
@@ -7,7 +8,7 @@ export const meta = {
   group: "tokens",
   order: 0,
   description:
-    "This package's own tokens: series, sequential, trend, domain status, chart chrome and KPI sizing, each blended for the theme's scheme.",
+    "This package's own tokens: series, sequential, trend, domain status, chart chrome, the rating fill and KPI sizing, each blended for the theme's scheme.",
 };
 
 // Literal class lists, so Tailwind's scanner sees every utility.
@@ -82,6 +83,11 @@ export default function DomainTokens() {
             vectorEffect="non-scaling-stroke"
           />
         </svg>
+      </Row>
+
+      <Row label="Rating fill">
+        {/* `text-rating`, Rating's default ink: data, never the accent. */}
+        <Rating value={3.5} readOnly />
       </Row>
 
       <Row label="KPI value (container-sized)">

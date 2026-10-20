@@ -8,8 +8,9 @@ A pure-CSS token contract. Tailwind v4, CSS-first (no `tailwind.config.js`). Tok
 
 ```css
 @import "@batthewz/r-ui-css"; /* Tailwind + tokens + animations + base + prose */
-@source "./src/**/*.{html,tsx}"; /* your sources, self-relative */
 ```
+
+Tailwind scans the project's own markup by itself. Add `@source` only for markup it skips (a package that ships templates, a folder outside the project), relative to the CSS file that declares it.
 
 | Subpath | When |
 | --- | --- |

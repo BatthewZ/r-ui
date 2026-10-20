@@ -16,6 +16,12 @@
 //   2. the narrow bar is folded: its Filters button is drawn and says
 //      "Filters (2)", none of its inline controls is drawn, and it still holds its
 //      chips ("Region: eu-west", "Status: Degraded, Down") and its count;
+//   2b. the wide bar's time range (Deployed) reads like its other fields: its
+//      trigger has the search field's frame (border colour and width, radius,
+//      fill, height), its value text ("Last 30 days") starts at the frame's
+//      inline-start padding and its one icon, the calendar, ends at the frame's
+//      inline-end padding (a Button would lead with the calendar and end on a
+//      chevron, on a hairline);
 //   3. keyboard: Enter on the button opens a modal (`:modal`, in the top layer)
 //      named "Filters", in place inside the narrow box, inside the viewport,
 //      holding the same filters as the wide bar in the same order, each drawn;
@@ -81,6 +87,45 @@ async (page) => {
   if (narrow.ids.length === 0 || narrow.drawnFields !== 0) fail.push(`narrow: ${narrow.drawnFields} of ${narrow.ids.length} inline controls drawn, expected none`);
   if (JSON.stringify(narrow.chips) !== JSON.stringify(["Region: eu-west", "Status: Degraded, Down"])) fail.push(`narrow: chips ${JSON.stringify(narrow.chips)}`);
   if (!/^\d[\d,]* results?$/.test(narrow.count ?? "")) fail.push(`narrow: count ${JSON.stringify(narrow.count)}`);
+
+  // ── 2b: the time range is a field among fields ────────────────────────────
+  await page.mouse.move(0, 0);
+  const look = await page.evaluate((sel) => {
+    const b = document.querySelector(sel);
+    const trigger = b.querySelector('[data-filter="deployed"] button[aria-haspopup]');
+    const peer = b.querySelector('[data-filter="q"] .r-form-frame');
+    if (!trigger || !peer) return { missing: { trigger: Boolean(trigger), peer: Boolean(peer) } };
+    const frame = (el) => {
+      const s = getComputedStyle(el);
+      return [s.borderTopColor, s.borderTopWidth, s.borderTopLeftRadius, s.backgroundColor, Math.round(el.getBoundingClientRect().height)].join(" | ");
+    };
+    const s = getComputedStyle(trigger);
+    const t = trigger.getBoundingClientRect();
+    const walker = document.createTreeWalker(trigger, NodeFilter.SHOW_TEXT, { acceptNode: (n) => (n.textContent.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) });
+    const textNode = walker.nextNode();
+    const range = document.createRange();
+    if (textNode) range.selectNodeContents(textNode);
+    const icons = [...trigger.querySelectorAll("svg")];
+    const icon = icons.at(-1);
+    return {
+      frame: frame(trigger),
+      peer: frame(peer),
+      text: textNode?.textContent.trim() ?? null,
+      // Gaps from the frame's content edges: 0 when the text starts and the icon ends there.
+      textStart: textNode ? range.getBoundingClientRect().left - (t.left + Number.parseFloat(s.borderLeftWidth) + Number.parseFloat(s.paddingLeft)) : null,
+      iconEnd: icon ? t.right - Number.parseFloat(s.borderRightWidth) - Number.parseFloat(s.paddingRight) - icon.getBoundingClientRect().right : null,
+      icons: icons.map((i) => [...i.classList].find((c) => c.startsWith("lucide-")) ?? i.getAttribute("class")),
+    };
+  }, WIDE);
+  summary.dateTrigger = look;
+  if (look.missing) fail.push(`time range: no Deployed trigger or search frame in the wide bar ${JSON.stringify(look.missing)}`);
+  else {
+    if (look.frame !== look.peer) fail.push(`time range: its frame is ${look.frame}, the search field's ${look.peer}`);
+    if (look.text !== "Last 30 days" || !(Math.abs(look.textStart) <= 1.5)) fail.push(`time range: "${look.text}" starts ${look.textStart}px from the frame's content start, expected 0`);
+    if (JSON.stringify(look.icons) !== JSON.stringify(["lucide-calendar-range"]) || !(Math.abs(look.iconEnd) <= 1.5)) {
+      fail.push(`time range: icons ${JSON.stringify(look.icons)}, the last ending ${look.iconEnd}px before the content end; expected the calendar alone, at the end`);
+    }
+  }
 
   // ── 3: the drawer, by keyboard ────────────────────────────────────────────
   const narrowBar = page.locator(NARROW);

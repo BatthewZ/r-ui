@@ -21,7 +21,7 @@ function layOut(available: number, lengths: Record<string, number> = {}) {
       const length = (Number(this.style.flexGrow) / 100) * available;
       return DOMRect.fromRect({ width: length, height: length });
     }
-    if (this.hasAttribute("data-splitter-probe")) return DOMRect.fromRect({ width: lengths[this.style.inlineSize] ?? 0, height: 0 });
+    if (this.hasAttribute("data-length-probe")) return DOMRect.fromRect({ width: lengths[this.style.inlineSize] ?? 0, height: 0 });
     return real.call(this);
   });
 }

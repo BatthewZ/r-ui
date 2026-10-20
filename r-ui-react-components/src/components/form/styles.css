@@ -1109,9 +1109,10 @@
 
 /* ── Rating ────────────────────────────────────────────────────────────────
    Each icon is drawn twice: an outline in line ink, and a filled copy in
-   `currentColor` clipped to the fraction from the inline start (so RTL fills
-   from the right). As a control each icon's cell is at least the hit floor;
-   as a display the icons sit at text size. */
+   `currentColor` (the root's `text-rating`, a domain colour) clipped to the
+   fraction from the inline start (so RTL fills from the right). As a control
+   each icon's cell is at least the hit floor; as a display the icons sit at
+   text size. */
 .r-form-rating {
   --r-form-rating-size: var(--ICON);
   display: inline-flex;
@@ -1120,7 +1121,6 @@
   max-inline-size: 100%;
   vertical-align: middle;
   border-radius: var(--RADIUS-SM);
-  color: var(--C-TEXT-ACCENT);
 }
 .r-form-rating[role="slider"] {
   --r-form-rating-size: calc(var(--ICON) * 1.25);
@@ -1178,7 +1178,8 @@
 /* Forced colours: the fill is a Highlight band (the contract maps --C-ACCENT
    to Highlight, a system colour forcing keeps; thumb and ticks in system
    colours on it), the track a CanvasText edge; an invalid thumb's edge
-   doubles. Rating icons keep their two looks in one ink: outline vs solid. */
+   doubles. Rating icons keep their two looks in one ink, outline vs solid:
+   the rating pair maps to CanvasText in tokens.css. */
 @media (forced-colors: active) {
   .r-form-slider-track {
     border-color: CanvasText;
@@ -1207,13 +1208,13 @@
   }
   .r-form-rating {
     forced-color-adjust: none;
-    color: CanvasText;
   }
   .r-form-rating-base > svg {
     stroke: CanvasText;
   }
-  .r-form-rating[data-disabled] {
-    color: GrayText;
+  .r-form-rating[data-disabled] .r-form-rating-fill > svg {
+    fill: GrayText;
+    stroke: GrayText;
   }
   .r-form-rating[data-disabled] .r-form-rating-base > svg {
     stroke: GrayText;

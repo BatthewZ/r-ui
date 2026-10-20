@@ -4,13 +4,16 @@ import {
   autoUpdate,
   flip,
   hide,
-  offset,
+  offset as offsetBy,
   type Placement,
   shift,
   useFloating as useFloatingUI,
   type UseFloatingReturn as FloatingUIReturn,
+  type VirtualElement,
 } from "@floating-ui/react";
 import { type CSSProperties, type RefObject, useLayoutEffect, useState } from "react";
+
+import { resolveLength } from "../util/resolve-length";
 
 export type { Placement };
 
@@ -98,7 +101,12 @@ function useTopLayer(floating: HTMLElement | null, enabled: boolean): void {
 
 interface UseFloatingConfig {
   placement?: Placement;
-  offsetPx?: number;
+  /**
+   * The custom property naming the gap between the reference and the panel
+   * (`"--R-SIZE-4"` by default). Read at the reference each time the position
+   * computes, so the gap follows the density written there.
+   */
+  offset?: `--${string}`;
   /**
    * The pointer triangle to position, if the surface renders one. Typed
    * `Element | null` because that is what `useRef<HTMLDivElement>(null)` produces
@@ -170,23 +178,26 @@ export type UseFloatingReturn = FloatingUIReturn & {
  * The gap a panel keeps from the viewport's edges: its own `--R-SIZE-2`, the gap
  * the surface's width cap leaves on each side (`.r-overlays-surface`), so a panel
  * as wide as the cap still fits between them. Read inside the panel, so it
- * follows the density written there, and resolved by layout, since a theme may
- * write the token in any unit.
+ * follows the density written there.
  */
-function edgeGap(floating: HTMLElement): number {
-  const probe = floating.ownerDocument.createElement("span");
-  probe.style.cssText = "position: absolute; visibility: hidden; inline-size: var(--R-SIZE-2)";
-  floating.append(probe);
-  const gap = probe.getBoundingClientRect().width;
-  probe.remove();
-  return gap;
+const edgeGap = (floating: HTMLElement): number => resolveLength(floating, "var(--R-SIZE-2)");
+
+/**
+ * The gap named by `property`, read at the reference (or a virtual reference's
+ * `contextElement`). An input cannot hold a probe, so the computed value is read
+ * there and resolved inside the panel; an unset property is no gap.
+ */
+function referenceGap(reference: Element | VirtualElement, floating: HTMLElement, property: string): number {
+  const at = "nodeType" in reference ? reference : (reference.contextElement ?? floating);
+  const value = getComputedStyle(at).getPropertyValue(property).trim();
+  return value ? resolveLength(floating, value) : 0;
 }
 
 export function useFloating(config: UseFloatingConfig = {}): UseFloatingReturn {
-  const { placement = "bottom", offsetPx = 8, arrowRef, open, onOpenChange } = config;
+  const { placement = "bottom", offset = "--R-SIZE-4", arrowRef, open, onOpenChange } = config;
 
   const middleware = [
-    offset(offsetPx),
+    offsetBy(({ elements }) => referenceGap(elements.reference, elements.floating, offset)),
     flip(),
     shift(({ elements }) => ({ padding: edgeGap(elements.floating) })),
     ...(arrowRef ? [arrow({ element: arrowRef })] : []),

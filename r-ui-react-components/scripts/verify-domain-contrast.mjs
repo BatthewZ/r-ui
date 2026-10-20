@@ -7,7 +7,7 @@
 // measurement for the domain half:
 //   - text-safe colours (trend good/bad, fg-serious, fg-stale) >= 4.5:1 on the
 //     canvas and every surface 0..3;
-//   - status marks (status-serious, status-stale) >= 3:1 on the same;
+//   - marks (status-serious, status-stale, the rating fill) >= 3:1 on the same;
 //   - each status text on its own subtle BG >= 4.5:1;
 //   - each on-fill text (fg-on-serious, fg-on-stale) on its own MARK >= 4.5:1,
 //     the mark used as a solid fill (a badge, a selected chip);
@@ -68,7 +68,7 @@ const densitySizes = [...own.keys()].filter((n) => n.endsWith("-COMFORTABLE")).m
 
 const SURFACES = ["--C-CANVAS", "--C-SURFACE-0", "--C-SURFACE-1", "--C-SURFACE-2", "--C-SURFACE-3"];
 const TEXT = ["TREND-GOOD", "TREND-BAD", "TEXT-SERIOUS", "TEXT-STALE"];
-const MARKS = ["STATUS-SERIOUS", "STATUS-STALE"];
+const MARKS = ["STATUS-SERIOUS", "STATUS-STALE", "RATING"];
 const ON_BG = [
   ["TEXT-SERIOUS", "STATUS-SERIOUS-BG"],
   ["TEXT-STALE", "STATUS-STALE-BG"],

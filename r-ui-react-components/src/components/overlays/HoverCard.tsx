@@ -168,7 +168,6 @@ function HoverCardRoot({
 
   const floating = useFloating({
     placement,
-    offsetPx: 8,
     // Positioned and promoted for as long as it is on screen, exit included.
     open: present,
     onOpenChange: (next: boolean, _event?: Event, reason?: string) => {

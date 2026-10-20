@@ -60,8 +60,8 @@ export function useMenu(part: string) {
 
 export interface MenuRootOptions extends OpenStateProps {
   placement: Placement;
-  /** The gap between the anchor and the panel. */
-  offsetPx: number;
+  /** The custom property naming the gap between the anchor and the panel. */
+  offset: `--${string}`;
   labelledBy?: string;
   returnFocusRef: RefObject<HTMLElement | null>;
 }
@@ -72,7 +72,7 @@ export function useMenuRoot({
   defaultOpen = false,
   onOpenChange,
   placement,
-  offsetPx,
+  offset,
   labelledBy,
   returnFocusRef,
 }: MenuRootOptions): MenuContextValue {
@@ -82,7 +82,7 @@ export function useMenuRoot({
   const panelRef = useRef<HTMLDivElement>(null);
   const present = useExitPresence(open, panelRef, topLayerExit);
   // Positioned and promoted for as long as it is on screen, exit included.
-  const floating = useFloating({ placement, offsetPx, open: present, onOpenChange: setOpen });
+  const floating = useFloating({ placement, offset, open: present, onOpenChange: setOpen });
   // Pointer light dismiss only; every key is handled by the menu itself.
   const { getFloatingProps } = useInteractions([useDismiss(floating.context, { escapeKey: false })]);
 

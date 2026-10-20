@@ -28,3 +28,8 @@
   utilities), so a row that fits has no stub at its end.
 - **A broken-image demo must not log.** A 404 `src` is a console error, which fails the
   Overview matrix; an undecodable `data:` URI fails the image silently.
+- **A decorative layer clips with `overflow: clip`, never `hidden`.** A `hidden` box is the
+  nearest scroll container, so a view timeline inside (a Parallax) follows it instead of the
+  page and never moves. The same holds for every frame between the layer and the page (the
+  showcase's demo frames clip too). Paint order, not z-index, puts the content above: the
+  layer comes first and the content after it is positioned.

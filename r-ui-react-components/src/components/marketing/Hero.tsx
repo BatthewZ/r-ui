@@ -27,6 +27,16 @@ export type HeroProps = {
   /** Social proof under everything: customer names, a rating, a figure. */
   proof?: ReactNode;
   /**
+   * A decorative layer behind everything (a pattern, a picture, a `Parallax`):
+   * it covers the hero (its band fill too) and is clipped to it, painted under
+   * the text, `aria-hidden` and `inert`, and takes no pointer. Decoration only:
+   * text or a control in it is unreadable and unreachable. Size its root to fill
+   * the layer (`size-full`); give an image `alt=""`. Not printed, and hidden under
+   * forced colours. The layer clips without being a scroll container, so a view
+   * timeline inside still follows the page.
+   */
+  backdrop?: ReactNode;
+  /**
    * - `stacked` (default): centred, the media under the text.
    * - `split`: text on the start side and media on the end side when the HERO
    *   is wide (`@4xl`, a 56rem container), stacked when it is narrow, whatever
@@ -38,7 +48,7 @@ export type HeroProps = {
   headingLevel?: HeroHeadingLevel;
   /** Anything else for the text column, after the actions (a sign-up form, a note). */
   children?: ReactNode;
-  classNames?: SlotClassNames<"container" | "text" | "eyebrow" | "title" | "lead" | "actions" | "media" | "proof">;
+  classNames?: SlotClassNames<"backdrop" | "container" | "text" | "eyebrow" | "title" | "lead" | "actions" | "media" | "proof">;
 } & Omit<ComponentPropsWithRef<"section">, "title" | "children">;
 
 /**
@@ -62,6 +72,7 @@ export function Hero({
   actions,
   media,
   proof,
+  backdrop,
   layout = "stacked",
   variant = "plain",
   headingLevel = 1,
@@ -73,16 +84,23 @@ export function Hero({
   const titleId = `${useId()}-title`;
   const Heading = `h${headingLevel}` as const;
   const stacked = layout === "stacked";
+  const layered = Boolean(backdrop);
 
   return (
     <Section
       aria-labelledby={titleId}
       data-layout={layout}
       variant={variant}
-      className={cn("@container", className)}
+      className={cn("@container", layered && "relative", className)}
       {...props}
     >
-      <Container className={classNames?.container}>
+      {layered && (
+        <div aria-hidden="true" inert data-print="hide" className={cn("r-marketing-hero-backdrop", classNames?.backdrop)}>
+          {backdrop}
+        </div>
+      )}
+      {/* Positioned after the backdrop, so it paints above it with no z-index. */}
+      <Container className={cn(layered && "relative", classNames?.container)}>
         <div className={stacked ? "flex flex-col items-center" : "grid items-center gap-section-2 @4xl:grid-cols-2"}>
           <div className={cn("flex min-w-0 flex-col", stacked ? "items-center text-center" : "items-start", classNames?.text)}>
             {eyebrow && (

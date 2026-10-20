@@ -138,6 +138,21 @@ describe("Rating", () => {
     expect(container.querySelectorAll("[data-heart]")).toHaveLength(6);
   });
 
+  it("fills in the rating colour, not the accent, and a caller's text colour replaces it", () => {
+    render(
+      <>
+        <Rating aria-label="Plain" defaultValue={2} />
+        <Rating readOnly aria-label="Shown" value={4} />
+        <Rating aria-label="Tinted" defaultValue={2} className="text-series-2 text-body-2" />
+      </>,
+    );
+    expect(screen.getByRole("slider", { name: "Plain" })).toHaveClass("text-rating");
+    expect(screen.getByRole("img", { name: "Shown" })).toHaveClass("text-rating");
+    const tinted = screen.getByRole("slider", { name: "Tinted" });
+    expect(tinted).toHaveClass("text-series-2", "text-body-2");
+    expect(tinted).not.toHaveClass("text-rating");
+  });
+
   it("disabled: out of the tab order and deaf to keys and presses", () => {
     const onValueChange = vi.fn();
     const { container } = render(<Rating aria-label="Stay" defaultValue={2} disabled onValueChange={onValueChange} />);

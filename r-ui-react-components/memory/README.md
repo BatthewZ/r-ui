@@ -2,8 +2,7 @@
 
 Short, dated entries an agent should know before changing things here. Each entry: what
 happened, what it means, where it is enforced. Newest first. Lessons inherited from the
-previous generation (`~/coding/@batthewz/response-ui-react-components/memory/traps.md`)
-are summarised where they still apply; read the original for the full story.
+previous generation are summarised where they still apply.
 
 ## Inherited (still true)
 
@@ -29,16 +28,16 @@ pages. Read the group's file before changing its components.
 | File | Covers |
 |---|---|
 | [primitives-lessons.md](./primitives-lessons.md) | Looping animations under reduced motion, fills without an on-ink, hover by ink-at-alpha, the hit-area inset maths, boxed vs chrome-less controls, accessible names with new-tab hints, card headers that wrap by content (not a grid), control sides that follow the hit floor |
-| [form-lessons.md](./form-lessons.md) | Read-only native checks, hit areas behind the control and stacked rows, scoping "is this interactive?", component rules vs utilities, labelling groups, native select quirks, horizontal-field alignment |
+| [form-lessons.md](./form-lessons.md) | Read-only native checks, hit areas behind the control and stacked rows, scoping "is this interactive?", component rules vs utilities, labelling groups, native select quirks, horizontal-field alignment, state overrides against a root utility |
 | [overlays-lessons.md](./overlays-lessons.md) | In place + top layer and density, Escape ownership, Tab out of menus, the popover API in jsdom, CSS scroll lock, shared statics, clipped focus rings, hiding anchored panels, toasts under a modal, a hit area that scrolls its modal sideways |
 | [data-lessons.md](./data-lessons.md) | Auto vs fixed table layout, dropped columns, virtualizing on `--ROW-H` and re-measuring through a probe, clamping the window, unbroken words in every text slot, wrapping cells, on-ink for domain fills |
-| [navigation-lessons.md](./navigation-lessons.md) | The AppShell as the one viewport reader, rail as the base mode, clipped rail labels, sticky bottom nav, badge spacing in names, focus after disabling, global class names, a rail that scrolls with fixed label bubbles |
+| [navigation-lessons.md](./navigation-lessons.md) | The AppShell as the one viewport reader, rail as the base mode, clipped rail labels, sticky bottom nav, badge spacing in names, focus after disabling, global class names, a rail that scrolls with fixed label bubbles, publishing a measured inset for fixed content |
 | [layout-lessons.md](./layout-lessons.md) | Page width and column floors as contract tokens, Grid's container wrapper, content-box caps, UI inside prose, a `ch` measure set where the body size is |
 | [pages-lessons.md](./pages-lessons.md) | The showcase pages as consumers: an AppShell given the window, one `<main>`, edge-to-edge bands inside a padded shell, the known-bug box and its regression loop, workarounds that name a missing API, paging the Overview by group, a Suspense fallback that scrolls by accident |
 | [a2-preferences-router.md](./a2-preferences-router.md) | Preferences, the router config and the showcase shell: one serialised implementation for the pre-paint script and the hooks, client-created scripts never run, `<html>` as the store, memoising array options, scoping `isCurrent`, checks that find the wrong AppShell, shrinkable grid tracks |
-| [a3-motion-lessons.md](./a3-motion-lessons.md) | Motion, disclosure and overlay exits: exits in CSS with script only waiting, `@starting-style` vs promoted panels, floating-ui's `open` through an exit, focus return, fade-only panels, counting frames in checks, `0fr`→`1fr` height, reveals that never hide what is on screen, staggering by cloning, view-transition choreographies that outlive the update, plus-lighter and staged fades |
+| [a3-motion-lessons.md](./a3-motion-lessons.md) | Motion, disclosure and overlay exits: exits in CSS with script only waiting, `@starting-style` vs promoted panels, floating-ui's `open` through an exit, focus return, fade-only panels, counting frames in checks, `0fr`→`1fr` height, reveals that never hide what is on screen, staggering by cloning, view-transition choreographies kept until `finished`, plus-lighter and staged fades, non-inheriting pointer properties |
 | [b1-charts.md](./b1-charts.md) | Charts: pure planning vs drawing, drawing at the real size through probes, measured label thinning, calendar-aligned time ticks, hostile input, colour pinned to the entity, the table as the accessible rendering, the readout cursor as one hook, forced colours for data |
-| [b2-content-lessons.md](./b2-content-lessons.md) | CodeBlock, CopyButton, Markdown: what a dynamic import keeps in its chunk, flat highlighter runs, code colour under forced colours, UI islands in prose, nesting caps as width caps, re-announcing a repeated status, the copy fallback inside a modal, fuzzing a refactored parser against the old one |
+| [b2-content-lessons.md](./b2-content-lessons.md) | CodeBlock, CopyButton, Markdown: what a dynamic import keeps in its chunk, flat highlighter runs, code colour under forced colours, UI islands in prose, nesting caps as width caps, re-announcing a repeated status, the copy fallback inside a modal, fuzzing a refactored parser against the old one, pinning both sides of a cap |
 | [b3-selection-lessons.md](./b3-selection-lessons.md) | Combobox, MultiSelect, TagInput: memoised merged refs, container variants need literal sizes, diacritic-folded highlighting, virtualising an `aria-activedescendant` list, focus that never leaves the input, the APG Escape order, `required` without a visible value, chip-row pitch |
 | [b4-dates.md](./b4-dates.md) | Calendar dates vs instants, months by used grid tracks (not a breakpoint), `auto` tracks and auto-fill min-content, shrink-to-fit popups vs size containment, keying paged views by position, a control's own error beside the Field's |
 | [b5-form-state.md](./b5-form-state.md) | Form state: controls consume the binding, message slots as lists, describing in the commit the error appears, aborted checks that settle, stale schema runs, keyed array errors, DOM-order first invalid, sticky inside a scroller |
@@ -46,7 +45,7 @@ pages. Read the group's file before changing its components.
 | [c1-commands.md](./c1-commands.md) | CommandPalette and ContextMenu: one shared menu, a virtual anchor that follows its region, keyboard-made contextmenu events, long-press slop and swallowed release events, nested regions, running a command after the dialog closes, cached loaders |
 | [c2-steps.md](./c2-steps.md) | Stepper and Wizard: validating a subset of the form, the lost click under a blur-time error, unmounted steps, focus on arrival, counting steps in a container query, states by edge under forced colours, horizontal labels under the marker with lines marker to marker, `break-words` in a grid track |
 | [c3-timeline.md](./c3-timeline.md) | Timeline: instants vs calendar dates, connectors as borders, marks sized from `--ICON`, opt-in scrollers, opaque sticky bands, focus after "Show more", scoping a check's error capture |
-| [c4-marketing.md](./c4-marketing.md) | Hero, MediaCard, Carousel: `overflow-wrap: anywhere` in content-sized tracks, `cqi` moving with a new container, stretched links and paint order, carousel geometry in reading order, peeking only when there is more, silent broken images |
+| [c4-marketing.md](./c4-marketing.md) | Hero, MediaCard, Carousel: `overflow-wrap: anywhere` in content-sized tracks, `cqi` moving with a new container, stretched links and paint order, carousel geometry in reading order, peeking only when there is more, silent broken images, decorative layers that clip without scrolling |
 | [c5-uploads.md](./c5-uploads.md) | FileUpload and OTPInput: one field under N boxes, selection as the editing model, refused changes, async results onto the latest value, focus across swapped buttons, file inputs that submit |
 | [c6-colour.md](./c6-colour.md) | ColorPicker: editing in OKLCH inside sRGB, rounding chroma down, trusting the last edit, spectra as data, out-of-gamut pixels, hit areas on absolute thumbs, resolving a theme colour at render |
 | [c7-print.md](./c7-print.md) | Printing components: adapting by rendered classes and attributes, every scroller is a print question, virtualised content, truncation without a tooltip, proving contrast on the painted result |
@@ -60,7 +59,7 @@ pages. Read the group's file before changing its components.
 | [e1c-time.md](./e1c-time.md) | TimeField, TimePicker, date-times: wall-clock vs instants and DST, segments as the source of what shows, refused times as `null`, editable segments for touch keyboards, ICU drift, typeahead by prefix, a band under forced colours, centring a promoted list |
 | [e1d-datatable-features.md](./e1d-datatable-features.md) | DataTable features and the Timeline thread: washes on pinned cells, sticky vs `relative`, forced colours and transparent borders, a sticky layer order, controls in auto-layout cells, live regions mounted early, measured lengths into CSS, what a virtual window holds, measuring a thread from the drawn mark |
 | [e1e-toolbar.md](./e1e-toolbar.md) | Toolbar and ToggleGroup: roving over children a caller writes, `inert` gaps, keys a control owns, a part rendered twice, menu items and portals, measuring what you hide, lifting the hit-area sibling rule |
-| [e2a-filters.md](./e2a-filters.md) | FilterBar: controlled from the first render, "not applied" as an absent key, focus on the drawn form of a folded bar, a count shown at once and spoken when settled, one value shape bridging to DataTable, units once in a range, a borrowed look that became `Chip` |
+| [e2a-filters.md](./e2a-filters.md) | FilterBar: controlled from the first render, "not applied" as an absent key, focus on the drawn form of a folded bar, a count shown at once and spoken when settled, one value shape bridging to DataTable, units once in a range, a borrowed look that became `Chip`, a field's look by a prop on the control |
 | [e2b-tree-guards.md](./e2b-tree-guards.md) | TreeView and RequireAuth: one flat row list windowed or not, where focus is really lost, tri-state by inheritance, links and row actions inside a tree item, what a tree owns, gates that fail closed, narrow lint globals |
 | [e2c-hovercard-splitter.md](./e2c-hovercard-splitter.md) | HoverCard and Splitter: a hover card as an in-place disclosure, touch toggles, floating-ui close reasons, `:focus-visible` in jsdom, cell text rules leaking into panels, flex shares from a zero basis, stored vs drawn sizes, re-measured token bounds, a gutter's hit area off the scrollbar |
 | [e2d-form-inputs.md](./e2d-form-inputs.md) | Password, masked, currency and avatar inputs: reading a masked edit from texts and caret, literal deletions, selection across a type swap, toggles that keep their name, `blob:` sources, nested Fields, sizing a part a utility sized, the shared number draft, gate false positives fixed in the gate |
@@ -78,6 +77,23 @@ pages. Read the group's file before changing its components.
 | [t4-converts.md](./t4-converts.md) | Moving a browser check into a unit test: a green break is a finding (the fault masked by a fallback, or a test too weak), two-item roving tests cannot prove direction, a jsdom MutationObserver sees a one-commit flash only through a non-discrete update, `dir` vs inline `direction` in jsdom, what stays in the browser, a group left with no component script; the gate after: headers that drift from their bodies, order claims on the first pair only, readouts matched by shape, merges proved by their summaries |
 | [showcase-themes.md](./showcase-themes.md) | Trial themes as the showcase's own consumer files, an exemption paired with a replacement gate, deeper tinted ramps and domain marks, the warning trap on a deeper ramp, old-style default figures in data, faces that load only where painted, clipping chroma not lightness, findings a face or density moves, demos that draw every theme, durations that race demo timers, moving status away from the brand |
 | [t5-preview-and-shards.md](./t5-preview-and-shards.md) | Browser checks on a development build under `vite preview` and in parallel sessions: building every run, React's warnings in a development build, source maps and chunk names for module claims, a limit on every wait, frame windows timed from the event, per-run folders, the dev server's cold compile, timing readouts across runs |
+
+## 2026-10-20 — integration gate F (bottom-nav inset, hero backdrop, view-transition runs, token gaps, rating colour)
+
+- **A colour compared as a string fails on a blend.** Under forced colours the rating fill is
+  the pair's `color-mix()` of two CanvasTexts and serialises as `oklch(0 0 none)`, while a
+  CanvasText probe reads `rgb(0, 0, 0)`: the same paint. Compare painted pixels (a 1×1
+  canvas), and keep a break that makes the colours really differ.
+- **A gap that becomes a token moves the checks that pinned its old number.** Turning
+  ContextMenu's 2px into `--R-SIZE-6` failed the context-menu check, which hard-coded 2;
+  a check reads the token where the panel reads it and asserts the panel follows it.
+- **The same probe, written a third time.** The floating hook's new token resolver, the
+  DataTable's column bounds and the Splitter's pane limits each appended a hidden span to
+  turn a CSS length into px. One shared resolver now, with one test hook
+  (`data-length-probe`).
+- **A browser check reads its script when it runs.** An edit to a check during a run made
+  its retry pass on the new text and report the first failure as flaky; edit between
+  runs.
 
 ## 2026-10-19 — integration gate E4 (motion extras, the Marketing and Dashboard pages)
 

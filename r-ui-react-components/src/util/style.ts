@@ -4,9 +4,10 @@
  * The universal token list (the contract's spacing, colour roles, text scale)
  * lives in `@batthewz/r-ui-tw-merge` so it can be used without React. This
  * package owns its DOMAIN utilities (series, sequential, trend, domain status,
- * chart chrome, chart/bar/heat-cell sizes, the KPI text size), declared in
- * `../tokens.css`, so `cn` is built with `createCn` to teach tailwind-merge
- * that `bg-series-1 bg-series-2` conflict and `h-chart h-control` conflict.
+ * chart chrome, the rating fill, chart/bar/heat-cell sizes, the KPI text
+ * size), declared in `../tokens.css`, so `cn` is built with `createCn` to teach
+ * tailwind-merge that `bg-series-1 bg-series-2` conflict and `h-chart
+ * h-control` conflict.
  *
  * The list below is a hand mirror of the `@theme` names in `../tokens.css`;
  * `scripts/verify-token-mirror.mjs` asserts both directions. Keep it ONE
@@ -48,6 +49,7 @@ export const cn = createCn({
       "fg-on-stale",
       "chart-grid",
       "chart-axis",
+      "rating",
       "code-keyword",
       "code-string",
       "code-number",

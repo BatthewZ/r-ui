@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { Badge, Button, cn, Hero } from "../../../src";
+import { Badge, Button, cn, Hero, Parallax } from "../../../src";
 import kiln from "../../pages/marketing/art/kiln.svg";
 import { Row, Stack } from "../overlays/parts/demo";
 
@@ -10,7 +10,8 @@ export const meta = {
   group: "marketing",
   order: 10,
   description:
-    "Eyebrow, display title (fluid scale, display face), prose lead, actions, media and a proof row. Stacked and centred, or split beside its media when the HERO is wide; an optional band; any heading level. The actions stay UI-sized at every density.",
+    "Eyebrow, display title (fluid scale, display face), prose lead, actions, media and a proof row. Stacked and centred, or split beside its media when the HERO is wide; an optional band; any heading level; a decorative backdrop behind it all (here a Parallax). The actions stay UI-sized at every density. Its frame is not a scroller, so a view timeline in a backdrop follows the page.",
+  frame: "open",
 };
 
 const Proof = () => (
@@ -36,9 +37,23 @@ const Art = ({ className }: { className?: string }) => (
   />
 );
 
-/** A frame around each demo so the hero's own edges (and its band) show. */
+/** Contour rings in the accent ink, faint enough to sit under text; `slice` crops them to any hero's ratio. */
+const Contours = () => (
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" className="size-full text-fg-accent" fill="none" stroke="currentColor">
+    {[1, 2, 3, 4, 5, 6, 7].map((ring) => (
+      <g key={ring} strokeOpacity={0.3 - ring * 0.03} strokeWidth={2}>
+        <circle cx={160} cy={140} r={ring * 70} />
+        <circle cx={1460} cy={780} r={ring * 80} />
+      </g>
+    ))}
+    <circle cx={1300} cy={160} r={36} fill="currentColor" fillOpacity={0.12} stroke="none" />
+    <circle cx={320} cy={760} r={22} fill="currentColor" fillOpacity={0.12} stroke="none" />
+  </svg>
+);
+
+/** A frame around each demo so the hero's own edges (and its band) show. It clips without scrolling, so a backdrop's view timeline reaches the page. */
 const Frame = ({ children, ...props }: { children: ReactNode } & Record<string, unknown>) => (
-  <div className="overflow-hidden rounded-lg border border-border" {...props}>
+  <div className="overflow-clip rounded-lg border border-border" {...props}>
     {children}
   </div>
 );
@@ -55,6 +70,23 @@ export default function HeroSection() {
             lead="Drafted from the pull requests you already merged, sorted by who each change affects, and published everywhere at once."
             actions={<Actions />}
             media={<Art className="mx-auto max-w-measure" />}
+            proof={<Proof />}
+          />
+        </Frame>
+      </Row>
+      <Row label="Backdrop · a Parallax of contour rings behind the content: hidden, inert and pressed through, drifting as the page scrolls (still under reduced motion)">
+        <Frame data-sc="hero-backdrop">
+          <Hero
+            headingLevel={2}
+            eyebrow="Field notes"
+            title="Maps for teams that move."
+            lead="The rings behind this text trail the page as you scroll; the text and its buttons never move, and every press lands on them."
+            actions={<Actions />}
+            backdrop={
+              <Parallax className="size-full">
+                <Contours />
+              </Parallax>
+            }
             proof={<Proof />}
           />
         </Frame>

@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ScrollReveal } from "./ScrollReveal";
 import { Stagger, STAGGER_MAX_INDEX } from "./Stagger";
-import { startViewTransition, useViewTransition } from "./view-transition";
+import { startViewTransition, useViewTransition, type ViewTransitionRun } from "./view-transition";
 
 /**
  * A controllable IntersectionObserver, installed per test (its absence is a
@@ -247,68 +247,133 @@ describe("Stagger", () => {
   });
 });
 
+/**
+ * A stand-in for `document.startViewTransition`, shaped as the browser runs it: the
+ * update after the old view is captured (a microtask here), `finished` once the
+ * animation ends (`end()`), or right after the update when the browser skips it.
+ */
+function stubTransitionApi({ skip = false } = {}) {
+  let end = () => {};
+  const ended = new Promise<void>((resolve) => (end = resolve));
+  const start = vi.fn((update: () => void | Promise<void>) => {
+    const updateCallbackDone = Promise.resolve().then(update);
+    return {
+      ready: skip ? Promise.reject(new DOMException("Skipped", "AbortError")) : updateCallbackDone,
+      updateCallbackDone,
+      finished: skip ? updateCallbackDone : updateCallbackDone.then(() => ended),
+    };
+  });
+  Object.assign(document, { startViewTransition: start });
+  return { start, end: () => end() };
+}
+
+/** Whether a promise has settled, read after the microtasks queued so far have run. */
+function track(promise: Promise<unknown>) {
+  const state = { settled: false, rejected: false };
+  promise.then(
+    () => (state.settled = true),
+    () => Object.assign(state, { settled: true, rejected: true })
+  );
+  return state;
+}
+const flushMicrotasks = () => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe("view transitions", () => {
-  it("runs the update directly where the API is missing", async () => {
+  afterEach(() => {
+    delete (document as unknown as Record<string, unknown>).startViewTransition;
+  });
+
+  it("runs the update at once where the API is missing, and finishes right after it", async () => {
     const update = vi.fn();
-    await startViewTransition(update);
+    const run = startViewTransition(update);
     expect(update).toHaveBeenCalledTimes(1);
+    expect(run.finished).toBeInstanceOf(Promise);
+    await expect(run).resolves.toBeUndefined();
+    await expect(run.finished).resolves.toBeUndefined();
   });
 
-  it("wraps the update in document.startViewTransition where it exists", async () => {
-    const update = vi.fn();
-    const start = vi.fn((cb: () => void) => {
-      cb();
-      return { ready: Promise.reject(new Error("skipped")), updateCallbackDone: Promise.resolve(), finished: Promise.resolve() };
-    });
-    Object.assign(document, { startViewTransition: start });
-    try {
-      await startViewTransition(update);
-      expect(start).toHaveBeenCalledTimes(1);
-      expect(update).toHaveBeenCalledTimes(1);
-    } finally {
-      delete (document as unknown as Record<string, unknown>).startViewTransition;
-    }
-  });
-
-  it("skips the transition under reduced motion but still applies the update", async () => {
+  it("skips the transition under reduced motion: the update applies at once and it finishes right after", async () => {
     stubReducedMotion(true);
-    const start = vi.fn();
-    Object.assign(document, { startViewTransition: start });
-    try {
-      const update = vi.fn();
-      await startViewTransition(update);
-      expect(start).toHaveBeenCalledTimes(0);
-      expect(update).toHaveBeenCalledTimes(1);
-    } finally {
-      delete (document as unknown as Record<string, unknown>).startViewTransition;
-    }
+    const { start } = stubTransitionApi();
+    const update = vi.fn();
+    const run = startViewTransition(update);
+    expect(start).toHaveBeenCalledTimes(0);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(run.finished).toBeInstanceOf(Promise);
+    await expect(run.finished).resolves.toBeUndefined();
   });
 
-  it("the hook flushes a React update inside the transition, so the new view is rendered when it snapshots", async () => {
+  it("wraps the update in document.startViewTransition; the run settles on the update, finished on the animation's end", async () => {
+    const { start, end } = stubTransitionApi();
+    const update = vi.fn();
+    const run = startViewTransition(update);
+    const finished = track(run.finished);
+    expect(start).toHaveBeenCalledTimes(1);
+    await run;
+    expect(update).toHaveBeenCalledTimes(1);
+    await flushMicrotasks();
+    expect(finished.settled).toBe(false);
+    end();
+    await expect(run.finished).resolves.toBeUndefined();
+  });
+
+  it("a transition the browser skips still applies the update, and neither promise rejects", async () => {
+    stubTransitionApi({ skip: true });
+    const update = vi.fn();
+    const run = startViewTransition(update);
+    const applied = track(run);
+    const finished = track(run.finished);
+    await flushMicrotasks();
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(applied).toEqual({ settled: true, rejected: false });
+    expect(finished).toEqual({ settled: true, rejected: false });
+  });
+
+  it("an update that throws rejects the run with its error, while finished still settles", async () => {
+    const boom = () => {
+      throw new Error("boom");
+    };
+    stubTransitionApi();
+    const native = startViewTransition(boom);
+    await expect(native).rejects.toThrow("boom");
+    await expect(native.finished).resolves.toBeUndefined();
+
+    delete (document as unknown as Record<string, unknown>).startViewTransition;
+    const direct = startViewTransition(boom);
+    await expect(direct).rejects.toThrow("boom");
+    await expect(direct.finished).resolves.toBeUndefined();
+  });
+
+  it("the hook flushes a React update inside the transition, so the new view is rendered when it snapshots, and reports the animation's end", async () => {
     let renderedInside: string | null = null;
+    let end = () => {};
+    const ended = new Promise<void>((resolve) => (end = resolve));
     Object.assign(document, {
       startViewTransition: (cb: () => void) => {
         cb();
         renderedInside = screen.getByRole("status").textContent;
-        return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: Promise.resolve() };
+        return { ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), finished: ended };
       },
     });
+    let run: ViewTransitionRun | undefined;
     function Layout() {
       const [layout, setLayout] = useState("list");
       const transition = useViewTransition();
       return (
         <>
           <output>{layout}</output>
-          <button onClick={() => void transition(() => setLayout("grid"))}>Grid</button>
+          <button onClick={() => (run = transition(() => setLayout("grid")))}>Grid</button>
         </>
       );
     }
-    try {
-      render(<Layout />);
-      await act(async () => screen.getByRole("button").click());
-      expect(renderedInside).toBe("grid");
-    } finally {
-      delete (document as unknown as Record<string, unknown>).startViewTransition;
-    }
+    render(<Layout />);
+    await act(async () => screen.getByRole("button").click());
+    expect(renderedInside).toBe("grid");
+    expect(run).toBeInstanceOf(Promise);
+    const finished = track(run!.finished);
+    await flushMicrotasks();
+    expect(finished.settled).toBe(false);
+    end();
+    await expect(run!.finished).resolves.toBeUndefined();
   });
 });

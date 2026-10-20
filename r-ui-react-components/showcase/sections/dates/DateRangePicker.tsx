@@ -2,17 +2,17 @@ import { RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 import { type DateRange, DateRangePicker, type DateRangePreset, toISODate, toISODateTime } from "../../../src/components/dates";
-import { Field } from "../../../src/components/form";
+import { Field, Input, Select } from "../../../src/components/form";
 import { Card, IconButton } from "../../../src/components/primitives";
 import { LocaleProvider } from "../../../src/util/locale";
-import { day, Grid, Row, Stack } from "./parts/demo";
+import { Cells, day, Grid, Row, Stack } from "./parts/demo";
 
 export const meta = {
   title: "DateRangePicker",
   group: "dates",
   order: 30,
   description:
-    "The dashboard time range: a toolbar control at h-control showing the range compactly, quick ranges beside typed start/end fields and a RangeCalendar. A preset applies at once; a custom range on Apply. `withTime` adds a TimeField beside each end.",
+    "The dashboard time range: a toolbar control at h-control showing the range compactly (or, with variant=\"field\", a field's box beside other fields), quick ranges beside typed start/end fields and a RangeCalendar. A preset applies at once; a custom range on Apply. `withTime` adds a TimeField beside each end.",
 };
 
 const shown = (v: DateRange<Date> | null) =>
@@ -118,6 +118,42 @@ export default function DateRangePickerSection() {
           <DateRangePicker aria-label="Invalid range" invalid defaultValue={{ start: day(10, 1), end: day(10, 7) }} locale="en-US" />
           <DateRangePicker aria-label="Locked" disabled defaultValue={{ start: day(10, 1), end: day(10, 7), preset: "last-7-days" }} locale="en-US" />
         </div>
+      </Row>
+
+      <Row
+        label={'As a field (variant="field") beside other fields: a field\'s box, the value at the start, the calendar at the end · empty · invalid · disabled'}
+        data-sc="range-field-look"
+      >
+        <Cells>
+          <Field>
+            <Field.Label>Service</Field.Label>
+            <Input placeholder="checkout-api" />
+          </Field>
+          <Field>
+            <Field.Label>Environment</Field.Label>
+            <Select defaultValue="production">
+              <option value="production">Production</option>
+              <option value="staging">Staging</option>
+            </Select>
+          </Field>
+          <Field>
+            <Field.Label>Incident window</Field.Label>
+            <DateRangePicker variant="field" defaultValue={{ start: day(10, 1), end: day(10, 7) }} locale="en-US" />
+          </Field>
+          <Field>
+            <Field.Label>Billing period</Field.Label>
+            <DateRangePicker variant="field" placeholder="Any time" locale="en-US" />
+          </Field>
+          <Field invalid>
+            <Field.Label>Audit range</Field.Label>
+            <DateRangePicker variant="field" defaultValue={{ start: day(10, 1), end: day(10, 7) }} locale="en-US" />
+            <Field.Error>Pick a range inside the retention window.</Field.Error>
+          </Field>
+          <Field disabled>
+            <Field.Label>Archived range</Field.Label>
+            <DateRangePicker variant="field" defaultValue={{ start: day(9, 1), end: day(9, 30) }} locale="en-US" />
+          </Field>
+        </Cells>
       </Row>
     </Stack>
   );

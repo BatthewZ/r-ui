@@ -72,8 +72,9 @@ export interface RatingProps extends Omit<ComponentPropsWithRef<"div">, "default
  * digits jump. One slider rather than a radio group because half steps would
  * double the radios, and "no rating" is a value the slider can say, where a
  * radio group would need an uncheckable radio. A press on an icon picks it;
- * a mouse hovering previews. The icons fill with `currentColor`, the text-safe
- * accent by default: a `text-*` class on the root retints them.
+ * a mouse hovering previews. The icons fill with `currentColor`, the domain's
+ * rating colour (`text-rating`) by default, not the accent: a rating is data.
+ * A `text-*` colour class on the root retints them.
  */
 export function Rating({
   value,
@@ -241,7 +242,7 @@ export function Rating({
           aria-label={ariaLabel ?? text}
           aria-labelledby={ariaLabelledBy}
           {...props}
-          className={cn("r-form-rating", className)}
+          className={cn("r-form-rating text-rating", className)}
           data-readonly=""
           data-disabled={disabled ? "" : undefined}
           onKeyDown={onKeyDown}
@@ -270,7 +271,7 @@ export function Rating({
         aria-disabled={disabled || undefined}
         {...field.ariaProps}
         {...props}
-        className={cn("r-form-rating", className)}
+        className={cn("r-form-rating text-rating", className)}
         data-disabled={disabled ? "" : undefined}
         data-invalid={field.invalid ? "" : undefined}
         onKeyDown={composeEventHandlers(onKeyDown, handleKeyDown)}

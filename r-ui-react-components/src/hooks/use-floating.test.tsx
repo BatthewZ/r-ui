@@ -28,6 +28,17 @@ beforeEach(() => {
   }
 });
 
+/**
+ * jsdom resolves no length, so a probe measures nothing. This one measures what
+ * the probe was given, in px, which is all the offset maths needs.
+ */
+beforeEach(() => {
+  vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+    const width = /^([\d.]+)px$/.exec(this.style.inlineSize)?.[1];
+    return DOMRect.fromRect({ width: width ? Number(width) : 0 });
+  });
+});
+
 afterEach(() => {
   for (const prop of ["clientWidth", "clientHeight"]) {
     delete (document.documentElement as unknown as Record<string, unknown>)[prop];
@@ -61,9 +72,13 @@ function spawn(rect?: typeof REFERENCE_RECT) {
   return el;
 }
 
-/** Renders the hook with both elements attached, so floating-ui actually positions. */
+/**
+ * Renders the hook with both elements attached, so floating-ui actually positions.
+ * The reference carries the default offset's token as a theme would: 8px.
+ */
 function renderFloating(config: FloatingConfig = {}) {
   const reference = spawn(REFERENCE_RECT);
+  reference.style.setProperty("--R-SIZE-4", "8px");
   const floating = spawn();
 
   const utils = renderHook(() => {
@@ -88,7 +103,7 @@ describe("useFloating", () => {
     expect(result.current.refs.floating.current).toBe(floating);
   });
 
-  it("positions the floating element below the reference by the default 8px offset", async () => {
+  it("positions the floating element below the reference by the default --R-SIZE-4 offset", async () => {
     const { result } = renderFloating();
 
     await waitFor(() => expect(result.current.isPositioned).toBe(true));
@@ -143,17 +158,62 @@ describe("useFloating", () => {
     expect(result.current.floatingStyles.transform).toBe("translate(100px, 92px)");
   });
 
-  it("offsetPx sets the gap between reference and floating element", async () => {
-    const { result } = renderFloating({ offsetPx: 16 });
+  it("offset names the custom property that sets the gap", async () => {
+    const { result, reference } = renderFloating({ offset: "--R-SIZE-2" });
+    reference.style.setProperty("--R-SIZE-2", "16px");
+    await act(async () => {
+      result.current.update();
+    });
 
     await waitFor(() => expect(result.current.isPositioned).toBe(true));
 
-    // 8px further from the reference bottom than the default offset of 8.
+    // 8px further from the reference bottom than the default --R-SIZE-4 of 8.
     expect(result.current.floatingStyles.transform).toBe("translate(125px, 136px)");
+  });
+
+  it("re-reads the gap at the reference each time the position computes, so it follows density", async () => {
+    const { result, reference } = renderFloating();
+    await waitFor(() => expect(result.current.floatingStyles.transform).toBe("translate(125px, 128px)"));
+
+    // A compact density re-declares the token where the trigger sits.
+    reference.style.setProperty("--R-SIZE-4", "6px");
+    await act(async () => {
+      result.current.update();
+    });
+
+    expect(result.current.floatingStyles.transform).toBe("translate(125px, 126px)");
+  });
+
+  it("reads a virtual reference's gap at its contextElement", async () => {
+    const context = spawn();
+    context.style.setProperty("--R-SIZE-4", "4px");
+    const floating = spawn();
+    const { result } = renderHook(() => {
+      const floatingResult = useFloating();
+      useLayoutEffect(() => {
+        floatingResult.refs.setPositionReference({
+          contextElement: context,
+          getBoundingClientRect: () => DOMRect.fromRect(REFERENCE_RECT),
+        });
+        floatingResult.refs.setFloating(floating);
+      }, [floatingResult.refs]);
+      return floatingResult;
+    });
+
+    await waitFor(() => expect(result.current.floatingStyles.transform).toBe("translate(125px, 124px)"));
+  });
+
+  it("keeps no gap when the named property is unset", async () => {
+    const { result } = renderFloating({ offset: "--r-test-unset-gap" });
+
+    await waitFor(() => expect(result.current.isPositioned).toBe(true));
+
+    expect(result.current.floatingStyles.transform).toBe("translate(125px, 120px)");
   });
 
   it("isPositioned stays false until both elements are attached", async () => {
     const reference = spawn(REFERENCE_RECT);
+    reference.style.setProperty("--R-SIZE-4", "8px");
     const floating = spawn();
     const { result } = renderHook(() => useFloating());
 

@@ -87,7 +87,8 @@ export function Tooltip({
 
   const { refs, floatingStyles, context, placement: resolved, middlewareData } = useFloating({
     placement,
-    offsetPx: arrow ? 10 : 6,
+    // The arrow tip stands about half its diagonal proud of the bubble.
+    offset: arrow ? "--R-SIZE-3" : "--R-SIZE-5",
     arrowRef,
     // Positioned and promoted for as long as it is on screen, exit included.
     open: present,

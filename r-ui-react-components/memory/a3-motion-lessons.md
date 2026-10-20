@@ -45,10 +45,12 @@
 - **`useEffectEvent` needs React 19.2**; the peer range is 19.0, so latest-callback refs it is.
 - **Do not name a generic `div`.** `aria-labelledby` on an accordion root without a role is
   prohibited; the topic heading before it already does the job.
-- **A view transition's own styles must outlive `updateCallbackDone`.** The library hook
-  settles once the update applied; a choreography keyed on a kind (a direction, a press
-  point) needs its marker until `finished`, and a newer transition owns the marker after
-  it. Give each demo's elements a `view-transition-name` only while its own kind runs,
+- **A choreography's marker goes on before the run and comes off on the run's `finished`.**
+  The run itself settles once the update applied; a choreography keyed on a kind (a
+  direction, a press point) needs its marker until the library's `finished`, and a newer
+  transition owns the marker after it. A skipped run (no API, reduced motion) finishes
+  right after its update, so the marker never paints a frame: a check samples per frame,
+  with a positive control, rather than watching mutations. Give each demo's elements a `view-transition-name` only while its own kind runs,
   or one demo's elements are swept into (and animated by) another's transition.
 - **Stopping the page's cross-fade needs `mix-blend-mode: normal`.** Old and new snapshots
   blend with `plus-lighter`; with their animations off, two opaque pages add up and wash
@@ -58,3 +60,7 @@
   cross-fade shows both mid-flight. Inspect a transition by pausing its animations at a
   fraction and screenshotting, never by scrolling while it is paused (the snapshots are
   pinned to the viewport).
+- **A custom property written on every pointer move is registered `inherits: false`.** An
+  unregistered one inherits, so each write restyles the whole subtree under it; registered
+  (`@property`, a syntax and an initial value) only the element that paints with it
+  recomputes, and the initial value replaces every use-site fallback.
