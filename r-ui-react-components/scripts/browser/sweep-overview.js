@@ -11,7 +11,8 @@
 // seed); every other combination is switched to live (`setView`), as a user switches.
 // For each it asserts:
 //   1. the harness reads what the source predicts: --HIT-MIN is 24px on fine and
-//      44px on coarse, and --CONTROL-H is max(the theme's named value for the
+//      44px on coarse, --CONTROL-PAD is the density's step 3 plus half of what the
+//      floor adds to its named control height, and --CONTROL-H is max(the theme's named value for the
 //      density, --HIT-MIN) (a theme may retune what a density means);
 //   2. every discovered section rendered, and no section's error boundary tripped
 //      (`[data-section-error]`), so one broken demo cannot hide behind the rest;
@@ -37,7 +38,9 @@
 //      still be found (a fix removes it);
 //   6. every `.h-control` in a demo is exactly the --CONTROL-H resolved at its parent (a
 //      probe there, so a nested density boundary counts), every `.size-control` exactly
-//      that on both axes, and every `.r-form-frame` and `.min-h-control` at least that.
+//      that on both axes, and every `.r-form-frame` and `.min-h-control` at least that;
+//      and every text control padded by the contract (`.px-control-pad`) has exactly the
+//      --CONTROL-PAD resolved at its parent on both sides.
 //
 // Run it through `bun run browser:check`, or by hand against a running showcase:
 //   playwright-cli -s=<session> open http://localhost:<port>/
@@ -53,10 +56,7 @@ async (page) => {
     // Components.
     { match: /<button \.r-form-stepper>/, short: "both", finding: "NumberInput's steppers are 40px inside the 44px frame" },
     { match: /<button \.r-form-icon-button> "Show options"/, short: "pitch", finding: "Combobox's toggle owns 29px from the field's input (its hit area does not grow toward it)" },
-    { match: /<button( role=radio)? \.r-primitives-button> /, short: "width", finding: "a Button with a short label is narrower than --HIT-MIN (it sets its height, not a minimum width): ToggleGroup and Toolbar items too" },
-    { match: /<button role=tab> /, short: "width", finding: "a Tab with a short label is narrower than --HIT-MIN" },
     { match: /^form-radiogroup: <input \.r-form-radio-input>/, short: "width", finding: "a Radio with a short label is narrower than --HIT-MIN" },
-    { match: /^form-segmentedcontrol: <input>/, short: "pitch", finding: "a SegmentedControl segment with a short label is narrower than --HIT-MIN" },
     { match: /^(content-codeblock|content-markdown): <button[^>]*icon-button> "Copy code"/, short: "pitch", finding: "CodeBlock's header actions sit under --HIT-MIN apart" },
     { match: /^marketing-mediacard: <button[^>]*icon-button> "Share"/, short: "pitch", finding: "MediaCard's actions sit under --HIT-MIN apart" },
     { match: /<div role=separator \.r-data-table-resize>/, short: "width", finding: "DataTable's resize handles are half the floor wide by design (data-datatable asserts it)" },
@@ -228,7 +228,29 @@ async (page) => {
         frames.push(`${el.closest(".sc-section").id}: ${describe(el)} is ${square ? `${width}×` : ""}${height}px, --CONTROL-H ${token}px${exact ? "" : " at least"}`);
       }
     }
-    return { measured, exempt, under, framesMeasured, frames };
+    // --CONTROL-PAD: a text control's inline padding is exactly the token where it sits.
+    const padded = [...document.querySelectorAll(".sc-section .sc-demo .px-control-pad")].filter((el) =>
+      el.checkVisibility({ visibilityProperty: true }),
+    );
+    const padProbes = new Map();
+    for (const parent of new Set(padded.map((el) => el.parentElement))) {
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:absolute;visibility:hidden;inline-size:var(--CONTROL-PAD);block-size:0";
+      parent.append(probe);
+      padProbes.set(parent, probe);
+    }
+    const wantPad = new Map([...padProbes].map(([parent, probe]) => [parent, probe.getBoundingClientRect().width]));
+    for (const probe of padProbes.values()) probe.remove();
+    const pads = [];
+    for (const el of padded) {
+      const token = wantPad.get(el.parentElement);
+      const cs = getComputedStyle(el);
+      const start = Number.parseFloat(cs.paddingInlineStart);
+      const end = Number.parseFloat(cs.paddingInlineEnd);
+      if (Math.abs(start - token) > 0.5 || Math.abs(end - token) > 0.5)
+        pads.push(`${el.closest(".sc-section").id}: ${describe(el)} pads ${start}/${end}px, --CONTROL-PAD ${token}px`);
+    }
+    return { measured, exempt, under, framesMeasured, frames, padsMeasured: padded.length, pads };
   };
 
   const problems = [];
@@ -259,6 +281,8 @@ async (page) => {
             return {
               hit: px("--HIT-MIN"),
               named: px(`--CONTROL-H-${density.toUpperCase()}`),
+              step3: px(`--R-SIZE-3-${density.toUpperCase()}`),
+              pad: Number.parseFloat(css.getPropertyValue("--CONTROL-PAD")),
               control: Number.parseFloat(css.getPropertyValue("--CONTROL-H")),
               sections: document.querySelectorAll(".sc-section").length,
               demos: [...document.querySelectorAll(".sc-section .sc-demo")].filter((d) => d.childElementCount > 0).length,
@@ -287,6 +311,9 @@ async (page) => {
           if (m.control !== Math.max(m.named, hitPx)) {
             problems.push(`${label}: --CONTROL-H ${m.control}px, expected max(${m.named}, ${hitPx})`);
           }
+          if (!(m.step3 > 0) || Math.abs(m.pad - (m.step3 + Math.max(0, hitPx - m.named) / 2)) > 0.01) {
+            problems.push(`${label}: --CONTROL-PAD ${m.pad}px, expected ${m.step3} + max(0, ${hitPx} - ${m.named}) / 2`);
+          }
           if (m.sections === 0) problems.push(`${label}: no sections rendered`);
           if (sectionCount === null) sectionCount = m.sections;
           else if (m.sections !== sectionCount) problems.push(`${label}: ${m.sections} sections, first load had ${sectionCount}`);
@@ -305,6 +332,8 @@ async (page) => {
           if (!(g.framesMeasured > 100)) problems.push(`${label}: harness: only ${g.framesMeasured} controls measured for --CONTROL-H`);
           if (input === "coarse" && !(g.measured > 1000)) problems.push(`${label}: harness: only ${g.measured} pointer targets measured`);
           for (const f of g.frames) problems.push(`${label}: ${f}`);
+          if (!(g.padsMeasured > 50)) problems.push(`${label}: harness: only ${g.padsMeasured} text controls measured for --CONTROL-PAD`);
+          for (const p of g.pads) problems.push(`${label}: ${p}`);
           const floor = INPUTS[input] - 0.5;
           for (const u of g.under) {
             // A known finding covers only the shortfall it names: the same target short on its other axis is new.

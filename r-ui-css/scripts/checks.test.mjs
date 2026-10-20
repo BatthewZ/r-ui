@@ -133,7 +133,7 @@ describe("theme rules check", () => {
 
   test("forbidden names cover every selected density name and the axis tokens", () => {
     const f = forbiddenNames(loadDefaults(PKG));
-    for (const n of ["--R-SIZE-3", "--H1", "--H1-line-height", "--BodyText-1", "--ICON", "--CONTROL-H", "--ROW-H", "--HIT-MIN", "--LAYER-STICKY"]) {
+    for (const n of ["--R-SIZE-3", "--H1", "--H1-line-height", "--BodyText-1", "--ICON", "--CONTROL-H", "--CONTROL-PAD", "--ROW-H", "--HIT-MIN", "--LAYER-STICKY"]) {
       assert.ok(f.has(n), n);
     }
     assert.ok(!f.has("--R-SIZE-3-COMPACT"));
@@ -142,6 +142,7 @@ describe("theme rules check", () => {
   const cases = [
     ["a theme sets a selected density name", "--SCHEME-DARK: 0; color-scheme: light; --R-SIZE-3: 1rem;", /sets --R-SIZE-3: set --R-SIZE-3-COMFORTABLE/],
     ["a theme sets a derived axis token", "--SCHEME-DARK: 0; color-scheme: light; --CONTROL-H: 3rem;", /sets --CONTROL-H/],
+    ["a theme sets the derived control padding", "--SCHEME-DARK: 0; color-scheme: light; --CONTROL-PAD: 1rem;", /sets --CONTROL-PAD: it belongs to an axis/],
     ["a theme sets a layer token", "--SCHEME-DARK: 0; color-scheme: light; --LAYER-STICKY: 50;", /sets --LAYER-STICKY: stacking is structure/],
     ["a theme omits --SCHEME-DARK", "color-scheme: light;", /missing --SCHEME-DARK/],
     ["a theme omits color-scheme", "--SCHEME-DARK: 0;", /missing color-scheme/],

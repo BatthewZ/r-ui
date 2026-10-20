@@ -53,7 +53,7 @@ describe("Button", () => {
     expect(screen.getByRole("button", { name: "Delete" })).toHaveClass("bg-status-error", "text-fg-on-error");
     const wide = screen.getByRole("button", { name: "Wide" });
     expect(wide).toHaveClass("px-r1");
-    expect(wide).not.toHaveClass("px-r3");
+    expect(wide).not.toHaveClass("px-control-pad");
   });
 
   it("works as a toggle through aria-pressed, painted like a pressed IconButton", () => {

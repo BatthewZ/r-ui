@@ -40,3 +40,9 @@
   `isText = shape === "text"` to the parameter default `"text"` and called it a dead class; the
   workaround (a literal class map) was fine code, but the fix belonged in the extractor, which
   now skips everything that can only be a boolean (comparisons, conditions, the left of `&&`).
+- **When the input axis raises a control's height, its sides must follow.** At coarse the
+  hit floor took a compact button from 28px to 44px tall with 8px sides, and short labels
+  went square. Text controls read the contract's `--CONTROL-PAD` (`px-control-pad`) and keep
+  `min-w-hit`; icon buttons and numeral cells stay square on purpose. A control that cannot
+  wrap (a segmented track) takes the minimum width only: wider sides pushed a four-option
+  control past a phone's column.

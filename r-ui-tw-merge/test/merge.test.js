@@ -59,6 +59,8 @@ describe("conflicting pairs collapse to the last", () => {
     ["text-h1", "text-h2"],
     ["rounded-sm", "rounded-lg"],
     ["h-control", "h-row"],
+    ["px-r3", "px-control-pad"],
+    ["px-control-pad", "px-control"],
     ["text-display-1", "text-prose-2"],
     ["text-body-1", "text-h6"],
     ["gap-r1", "gap-r6"],

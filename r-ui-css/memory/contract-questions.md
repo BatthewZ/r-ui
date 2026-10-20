@@ -25,6 +25,14 @@ Each entry ran the three-criteria test (standalone-meaningful, cross-cutting, do
   any UI link a consumer writes. A literal `0.18em` had been copied into a component library's
   link, so a theme could move the prose underline but not the UI one. `em`, so it follows the
   text it underlines.
+- **`--CONTROL-PAD`** (`px-control-pad`). At coarse input the hit floor raised a control's
+  height but not its sides, so a short label went square (compact: 28px to 44px tall, 8px
+  sides). Any plain-HTML button sized `h-control` has the problem; buttons and tabs read
+  it (a segmented control's segments, parts of one wide track that cannot wrap, meet the
+  floor by a minimum width instead); and only the contract can compute it, since it needs the density's
+  unfloored height that only `[data-density]` selects. Derived (half the floor's added
+  height to each side), not a new per-density lever: no theme needed to decouple control
+  padding from step 3, and a lever can be added later without a break.
 
 ## Out
 

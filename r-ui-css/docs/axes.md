@@ -5,8 +5,8 @@ Every size and colour a component reads is decided by four independent axes. **T
 | Axis | Set by | Drives |
 | --- | --- | --- |
 | Theme | `<html data-theme="name">` (root only) | Colour, faces, weights, radius, shadows, motion, what each density means |
-| Density | `data-density="comfortable" \| "compact"` on **any** element | `--R-SIZE-*`, `--H*`, `--BodyText-*`, `--ICON`, the density side of `--CONTROL-H` / `--ROW-H` |
-| Input | `@media (pointer: coarse)`, or `html[data-input="fine" \| "coarse"]` | `--HIT-MIN`, and through it `--CONTROL-H` / `--ROW-H` |
+| Density | `data-density="comfortable" \| "compact"` on **any** element | `--R-SIZE-*`, `--H*`, `--BodyText-*`, `--ICON`, the density side of `--CONTROL-H` / `--CONTROL-PAD` / `--ROW-H` |
+| Input | `@media (pointer: coarse)`, or `html[data-input="fine" \| "coarse"]` | `--HIT-MIN`, and through it `--CONTROL-H` / `--CONTROL-PAD` / `--ROW-H` |
 | Container | the component's own width | `@container` rules and `cqi` units, including the fluid prose scale |
 
 ## 1. Theme
@@ -44,11 +44,12 @@ The UI scale is **flat across viewports**: a wider screen gets more columns, not
 `pointer` (the primary pointer), not `any-pointer`: a laptop with a touch screen keeps fine targets.
 
 ```
---CONTROL-H = max(density's control height, --HIT-MIN)
---ROW-H     = max(density's row height,     --HIT-MIN)
+--CONTROL-H   = max(density's control height, --HIT-MIN)
+--ROW-H       = max(density's row height,     --HIT-MIN)
+--CONTROL-PAD = --R-SIZE-3 + max(0, --HIT-MIN - density's control height) / 2
 ```
 
-So compact + touch shrinks the text but keeps 44px rows. Both are registered with `@property … syntax: "<length>"`, so `getComputedStyle(el).getPropertyValue("--ROW-H")` returns px: useful for virtualised lists that need a row height in script.
+So compact + touch shrinks the text but keeps 44px rows. `--CONTROL-PAD` (`px-control-pad`) is a text control's inline padding: unchanged at fine input, and when the floor makes a control taller it widens by half the added height on each side, so a short label ("OK") stays a button and does not become a square. All three are registered with `@property … syntax: "<length>"`, so `getComputedStyle(el).getPropertyValue("--ROW-H")` returns px: useful for virtualised lists that need a row height in script.
 
 Visually small controls (checkbox, switch, icon button) meet the floor with the `hit-area` utility, an invisible pseudo-element sized by `--HIT-MIN`, not by growing. In a row of sibling small targets the later hit area does not grow back over its neighbour; small targets that are not siblings, or that stack vertically, need `--HIT-MIN` between their centres.
 
@@ -63,7 +64,7 @@ Two type and spacing scales, chosen by **role**, never by viewport.
 | | UI scale | Prose / display scale |
 | --- | --- | --- |
 | For | Everything in an app; every control anywhere | Long-form text and marketing layout |
-| Tokens | `--R-SIZE-1..6`, `--H1..H6`, `--BodyText-1..3`, `--CONTROL-H`, `--ROW-H`, `--ICON` | `--DISPLAY-1..4`, `--ProseText-1..3`, `--SECTION-1..3`, `--GUTTER`, `--MEASURE`, `--PROSE-FLOW` |
+| Tokens | `--R-SIZE-1..6`, `--H1..H6`, `--BodyText-1..3`, `--CONTROL-H`, `--CONTROL-PAD`, `--ROW-H`, `--ICON` | `--DISPLAY-1..4`, `--ProseText-1..3`, `--SECTION-1..3`, `--GUTTER`, `--MEASURE`, `--PROSE-FLOW` |
 | Utilities | `p-r3`, `text-h2`, `text-body-1`, `h-control`, `h-row`, `size-icon` | `text-display-1`, `text-prose-2`, `py-section-1`, `px-gutter`, `max-w-measure` |
 | Driven by | Density (and input, for heights) | Container width: one continuous `clamp()` from 360 to 1280px, in `cqi` |
 | Leading | Tight, fixed per size | Reading leading, unitless so it tracks the size |

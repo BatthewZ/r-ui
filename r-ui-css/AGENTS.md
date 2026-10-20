@@ -81,6 +81,7 @@ Mark a long-form region with `class="prose"` or `data-prose`. Its `p`, lists, he
 ```
 p-r1 … p-r6   (every spacing utility: m-, gap-, space-, inset-, top-, w-, h-, size-…)
 h-control  size-control    buttons, inputs, selects: max(density, hit floor)
+px-control-pad             a text control's inline padding (step 3, widened with the hit floor); not px-control
 h-row                      table rows, list and menu items: max(density, hit floor)
 size-icon                  inline icons
 min-h-hit  size-hit        the input axis hit floor (24px fine, 44px coarse)
@@ -178,7 +179,7 @@ Each animation also exists as a plain class (`.fade-up`). Helpers: `.stagger-ite
 | Faces, weights | `--FONT-UI`, `--FONT-MONO`, `--FONT-HEADING` and `--FONT-DISPLAY` (optional, undeclared), `--FONT-UI-SIZE-ADJUST` / `--FONT-HEADING-SIZE-ADJUST` / `--FONT-DISPLAY-SIZE-ADJUST` (optional, undeclared), `--WEIGHT-NORMAL/MEDIUM/SEMIBOLD`, `--HEADING-WEIGHT`, `--HEADING-TRACKING`, `--HEADING-CASE`, `--DISPLAY-WEIGHT` |
 | Figures | `--NUMERALS-DATA` (tabular-nums), `--NUMERALS-PROSE` (proportional-nums): `font-variant-numeric` values |
 | UI scale (density) | `--R-SIZE-1..6`, `--H1..H6` + `--Hn-line-height`, `--BodyText-1..3` + `-line-height`, `--ICON` |
-| Axis-derived | `--HIT-MIN`, `--CONTROL-H`, `--ROW-H` (both registered `<length>`: getComputedStyle returns px) |
+| Axis-derived | `--HIT-MIN`, `--CONTROL-H`, `--CONTROL-PAD`, `--ROW-H` (the last three registered `<length>`: getComputedStyle returns px) |
 | Per-density named values | `<selected name>-COMFORTABLE` / `-COMPACT` for every density token, e.g. `--R-SIZE-3-COMPACT`, `--H1-line-height-COMFORTABLE`, `--CONTROL-H-COMPACT` |
 | Prose / display | `--DISPLAY-1..4` + `-line-height` + `-tracking`, `--ProseText-1..3` + `-line-height`, `--PROSE-FLOW`, `--MEASURE`, `--SECTION-1..3`, `--GUTTER` |
 | Layout widths | `--PAGE-MAX`, `--COLUMN-SM/MD/LG` (fixed, density-independent) |
@@ -215,7 +216,7 @@ See [docs/axes.md](docs/axes.md) for the detail.
 - No `tailwind.config.js`.
 - No `light-dark()`: a theme is light or dark. Use `--SCHEME-DARK` to tune an extension for dark.
 - No theme selector other than `:root[data-theme="…"]`; no subtree themes.
-- No setting a selected density name (`--R-SIZE-3`, `--H1`, `--ICON`) or `--CONTROL-H` / `--ROW-H` / `--HIT-MIN` in a theme. Set the `-COMFORTABLE` / `-COMPACT` names.
+- No setting a selected density name (`--R-SIZE-3`, `--H1`, `--ICON`) or `--CONTROL-H` / `--CONTROL-PAD` / `--ROW-H` / `--HIT-MIN` in a theme. Set the `-COMFORTABLE` / `-COMPACT` names.
 - No `@media (width …)` that redefines a token.
 - No `!important` in a theme: the package's preference and print overrides beat a theme only because theirs are important.
 - No font loading in a theme (`@import`, `@font-face`): a theme names families; the app loads them.

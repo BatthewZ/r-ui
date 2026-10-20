@@ -324,10 +324,13 @@
 .r-form-segmented[data-disabled] {
   opacity: var(--OPACITY-DISABLED);
 }
+/* Segments keep step-3 sides, not --CONTROL-PAD: they are parts of one wide track (they
+   never look square), and the track neither wraps nor scrolls, so wider sides at coarse
+   pushed a four-option control past a phone's column. The hit floor is a minimum width. */
 .r-form-segment {
   display: inline-flex;
   flex: 1 1 auto;
-  min-inline-size: 0;
+  min-inline-size: var(--HIT-MIN);
   align-items: center;
   justify-content: center;
   gap: var(--R-SIZE-5);

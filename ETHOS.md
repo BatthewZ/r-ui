@@ -59,7 +59,7 @@ Themes apply at the root only (`:root[data-theme="name"]`). Subtree themes are u
 | Axis | Set by | Drives |
 | --- | --- | --- |
 | **Theme** | `:root[data-theme]` | Every colour, font, radius, shadow and motion value |
-| **Density** | `[data-density="comfortable"\|"compact"]` on **any** element | UI spacing, UI type, `--CONTROL-H`, `--ROW-H`, `--ICON` |
+| **Density** | `[data-density="comfortable"\|"compact"]` on **any** element | UI spacing, UI type, `--CONTROL-H`, `--CONTROL-PAD`, `--ROW-H`, `--ICON` |
 | **Input** | `@media (pointer: coarse)`, forced by `html[data-input]` | `--HIT-MIN` (1.5rem fine, 2.75rem coarse) |
 | **Container** | The component's own width | `@container` rules and `cqi` sizes |
 
@@ -68,7 +68,7 @@ Themes apply at the root only (`:root[data-theme="name"]`). Subtree themes are u
 The old family stepped its sizes at a 40rem viewport breakpoint. That puts a component's size on the wrong question. A table in a narrow sidebar on a wide screen is not a wide table. A touch laptop is not a phone. Compact is a choice the user or the context makes, not a property of the screen. Each fact gets its own axis:
 
 - **Density** is a closed, documented set: `comfortable` (default) and `compact`. A subtree can be compact.
-- **Input** sets the hit floor: `--CONTROL-H` and `--ROW-H` are `max(density value, --HIT-MIN)`.
+- **Input** sets the hit floor: `--CONTROL-H` and `--ROW-H` are `max(density value, --HIT-MIN)`, and `--CONTROL-PAD` (a text control's inline padding) widens by half of what the floor added to the height.
 - **Container** lets a component adapt to the space it actually has.
 
 ## UI scale and prose/display scale
@@ -111,7 +111,7 @@ Contracts that must hold are scripts, wired into each package's `check` script (
 | **Themes at the root only** | `:root[data-theme]`. No subtree themes. |
 | **Four axes; viewport moves only layout** | Theme, density, input, container. No token changes under `@media (width …)`. |
 | **Per-density named values** | `:root` declares `--R-SIZE-3-COMFORTABLE` / `--R-SIZE-3-COMPACT`; `[data-density]` only *selects* `--R-SIZE-3`. Themes tune what each density *means* and never select one. Derived tokens are re-declared at every density boundary so they re-derive there. |
-| **Registered derived lengths** | `--CONTROL-H` and `--ROW-H` are `@property` `<length>`, `inherits: true`, so `getComputedStyle` returns px. A `cqi`-based token is never registered: registration would compute it once, at the element that declares it, and inherit the frozen length. |
+| **Registered derived lengths** | `--CONTROL-H`, `--CONTROL-PAD` and `--ROW-H` are `@property` `<length>`, `inherits: true`, so `getComputedStyle` returns px. A `cqi`-based token is never registered: registration would compute it once, at the element that declares it, and inherit the frozen length. |
 | **UI vs prose/display role split** | The element's role picks the scale; UI inside prose stays UI. |
 | **Separate colour roles** | Primary fill, accent, focus and selection are independent, so a theme can make primary ink and accent a hue, or the reverse. |
 | **Status triples** | Each status has a mark (≥ 3:1), a text-safe colour (≥ 4.5:1) and a subtle background. Status always comes with an icon and a label. |

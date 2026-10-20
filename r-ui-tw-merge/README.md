@@ -43,7 +43,7 @@ Your lists are added to the built-in ones, never instead of them. [AGENTS.md](AG
 
 ## What it knows
 
-Every utility name r-ui-css declares, one list per Tailwind namespace: colours, font families (`ui`, `heading`, `display`, `mono`) and weights, text sizes (UI, display and prose), spacing and sizes (`r1`–`r6`, `control`, `row`, `icon`, `hit`, `section-*`, `gutter`), `measure`, radius, shadow, opacity, durations, easings, animations, stacking layers (`z-raised`, `z-sticky`, `z-docked`, `z-bypass`), and the `focus-ring` utilities. tailwind-merge's own defaults keep working.
+Every utility name r-ui-css declares, one list per Tailwind namespace: colours, font families (`ui`, `heading`, `display`, `mono`) and weights, text sizes (UI, display and prose), spacing and sizes (`r1`–`r6`, `control`, `control-pad`, `row`, `icon`, `hit`, `section-*`, `gutter`), `measure`, radius, shadow, opacity, durations, easings, animations, stacking layers (`z-raised`, `z-sticky`, `z-docked`, `z-bypass`), and the `focus-ring` utilities. tailwind-merge's own defaults keep working.
 
 The list is checked, not trusted: `bun run check` parses r-ui-css's `@theme` blocks and fails if the two differ by a single name, in either direction.
 

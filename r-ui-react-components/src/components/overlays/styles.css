@@ -18,6 +18,16 @@
   overflow: hidden;
 }
 
+/* The close button in a dialog's or drawer's corner. Its hit area overhangs its
+   visual box (`--ICON + 2 × --R-SIZE-4`) by half the difference to --HIT-MIN; the
+   modal is a scroll container, so an overhang past its padding box scrolls it
+   sideways. The offset is at least that overhang (compact + coarse: 9px, not 8). */
+.r-overlays-close {
+  --r-overlays-close-inset: max(var(--R-SIZE-3), (var(--HIT-MIN) - var(--ICON)) / 2 - var(--R-SIZE-4));
+  inset-block-start: var(--r-overlays-close-inset);
+  inset-inline-end: var(--r-overlays-close-inset);
+}
+
 /* Dialog: a readable measure wide, never touching the viewport edge. The
    percentages are of the viewport: a modal dialog is fixed-positioned. */
 .r-overlays-dialog {

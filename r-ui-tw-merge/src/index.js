@@ -86,7 +86,7 @@ export const tailwindMergeExtension = deepFreeze({
     ],
     spacing: [
       "r1", "r2", "r3", "r4", "r5", "r6",
-      "control", "row", "icon", "hit",
+      "control", "control-pad", "row", "icon", "hit",
       "section-1", "section-2", "section-3", "gutter",
     ],
     container: ["measure", "page", "column-lg", "column-md", "column-sm"],

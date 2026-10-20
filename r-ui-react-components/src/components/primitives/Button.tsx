@@ -58,7 +58,7 @@ export function Button({
       type={type}
       className={cn(
         BUTTON_BASE,
-        "h-control max-w-full gap-r5 rounded-md px-r3 text-body-1 font-medium",
+        "h-control min-w-hit max-w-full gap-r5 rounded-md px-control-pad text-body-1 font-medium",
         BUTTON_VARIANT[variant],
         BUTTON_PRESSED,
         className,

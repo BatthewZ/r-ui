@@ -172,9 +172,9 @@ export type TabsTabProps = {
 
 const TAB: Record<TabsVariant, string> = {
   underline:
-    "r-navigation-tab-underline px-r3 text-fg-secondary enabled:hover:text-fg-primary aria-selected:text-fg-primary",
+    "r-navigation-tab-underline min-w-hit px-control-pad text-fg-secondary enabled:hover:text-fg-primary aria-selected:text-fg-primary",
   enclosed:
-    "rounded-sm px-r3 text-fg-secondary enabled:hover:text-fg-primary enabled:not-aria-selected:hover:bg-fg-primary/8 aria-selected:bg-surface-0 aria-selected:text-fg-primary aria-selected:shadow-[inset_0_0_0_var(--BORDER-WIDTH)_var(--C-BORDER-STRONG)] forced-colors:aria-selected:bg-selection forced-colors:aria-selected:[--C-FOCUS:var(--C-TEXT-ON-SELECTION)] forced-colors:aria-selected:focus-visible:outline-offset-[calc(var(--FOCUS-WIDTH)*-2)]",
+    "min-w-hit rounded-sm px-control-pad text-fg-secondary enabled:hover:text-fg-primary enabled:not-aria-selected:hover:bg-fg-primary/8 aria-selected:bg-surface-0 aria-selected:text-fg-primary aria-selected:shadow-[inset_0_0_0_var(--BORDER-WIDTH)_var(--C-BORDER-STRONG)] forced-colors:aria-selected:bg-selection forced-colors:aria-selected:[--C-FOCUS:var(--C-TEXT-ON-SELECTION)] forced-colors:aria-selected:focus-visible:outline-offset-[calc(var(--FOCUS-WIDTH)*-2)]",
 };
 
 /** One tab. Roving tab stop: only the selected tab (else the first enabled one) is in the Tab order. */

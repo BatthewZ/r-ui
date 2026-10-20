@@ -5,7 +5,7 @@
 //     never redefines a token, and the axes are the package's job.
 //  2. Every theme sets `color-scheme` (light|dark) and a matching `--SCHEME-DARK` (0|1).
 //  3. Themes never set a selected density name (`--R-SIZE-3`) or an axis-derived token
-//     (`--CONTROL-H`, `--ROW-H`, `--HIT-MIN`, `--ICON`); only per-density NAMED values.
+//     (`--CONTROL-H`, `--CONTROL-PAD`, `--ROW-H`, `--HIT-MIN`, `--ICON`); only per-density NAMED values.
 //     Nor a structure token: `--LAYER-*` (stacking order is not a brand lever) or a
 //     `--container-*` alias (it points a box utility at its lever; set the lever).
 //  4. The template declares every themeable :root token, with the default's value.
@@ -27,7 +27,7 @@ import { isMain, parseArgs } from "./lib/cli.mjs";
 import { allNodes, listFiles, loadSheet, splitSelectors } from "./lib/css.mjs";
 import { THEME_SELECTOR, loadDefaults, pkgPaths, printDecls, readTheme, themeFiles } from "./lib/tokens.mjs";
 
-const AXIS_DERIVED = ["--CONTROL-H", "--ROW-H", "--HIT-MIN", "--ICON", "--MOTION-INLINE-SIGN"];
+const AXIS_DERIVED = ["--CONTROL-H", "--CONTROL-PAD", "--ROW-H", "--HIT-MIN", "--ICON", "--MOTION-INLINE-SIGN"];
 const STRUCTURE = /^--(LAYER-|container-)/;
 const VIEWPORT_MEDIA = /\b(min-|max-)?(width|height|aspect-ratio|orientation)\b/;
 const SYSTEM_COLOR = /\b(Canvas|CanvasText|LinkText|VisitedText|ActiveText|ButtonFace|ButtonText|ButtonBorder|Field|FieldText|Highlight|HighlightText|SelectedItem|SelectedItemText|Mark|MarkText|GrayText|AccentColor|AccentColorText)\b/;

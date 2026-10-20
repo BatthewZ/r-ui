@@ -7,7 +7,7 @@
    2. Selection blocks: [data-density] only picks a named value
       (`--R-SIZE-3: var(--R-SIZE-3-COMPACT)`). Themes never set a selected name; the
       theme-rule check enforces it.
-   3. Derived tokens (`--CONTROL-H`, `--ROW-H`) meet the input axis. They are
+   3. Derived tokens (`--CONTROL-H`, `--ROW-H`, `--CONTROL-PAD`) meet the input axis. They are
       re-declared in every selection block on purpose: a custom property resolves
       its var()s where it is declared and inherits the RESULT, so declared on :root
       alone a compact card would keep comfortable rows.
@@ -26,6 +26,14 @@
   syntax: "<length>";
   inherits: true;
   initial-value: 40px;
+}
+/* A text control's inline padding: step 3, plus half of whatever the hit floor added
+   to the density's own control height, so a control the input axis makes taller
+   widens in step and keeps its proportions (zero at fine input). */
+@property --CONTROL-PAD {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 12px;
 }
 
 :root {
@@ -120,6 +128,7 @@
   --BodyText-3-line-height: var(--BodyText-3-line-height-COMFORTABLE);
   --ICON: var(--ICON-COMFORTABLE);
   --CONTROL-H: max(var(--CONTROL-H-COMFORTABLE), var(--HIT-MIN));
+  --CONTROL-PAD: calc(var(--R-SIZE-3) + max(0px, var(--HIT-MIN) - var(--CONTROL-H-COMFORTABLE)) / 2);
   --ROW-H: max(var(--ROW-H-COMFORTABLE), var(--HIT-MIN));
 }
 
@@ -150,6 +159,7 @@
   --BodyText-3-line-height: var(--BodyText-3-line-height-COMPACT);
   --ICON: var(--ICON-COMPACT);
   --CONTROL-H: max(var(--CONTROL-H-COMPACT), var(--HIT-MIN));
+  --CONTROL-PAD: calc(var(--R-SIZE-3) + max(0px, var(--HIT-MIN) - var(--CONTROL-H-COMPACT)) / 2);
   --ROW-H: max(var(--ROW-H-COMPACT), var(--HIT-MIN));
 }
 
@@ -161,6 +171,7 @@
   --spacing-r5: var(--R-SIZE-5);
   --spacing-r6: var(--R-SIZE-6);
   --spacing-control: var(--CONTROL-H);
+  --spacing-control-pad: var(--CONTROL-PAD);
   --spacing-row: var(--ROW-H);
   --spacing-icon: var(--ICON);
   --spacing-hit: var(--HIT-MIN);

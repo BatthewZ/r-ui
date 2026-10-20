@@ -219,7 +219,7 @@ function ModalContent({
               icon={<X />}
               variant="ghost"
               onClick={() => setOpen(false)}
-              className={cn("absolute end-r3 top-r3", classNames?.close)}
+              className={cn("r-overlays-close absolute", classNames?.close)}
             />
           )}
         </CloseShownContext.Provider>

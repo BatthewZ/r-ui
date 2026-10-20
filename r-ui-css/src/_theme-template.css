@@ -8,7 +8,7 @@
    - Set BOTH `color-scheme` and `--SCHEME-DARK`. A theme is light OR dark, never both.
    - Density: override the per-density NAMED values (`--R-SIZE-3-COMPACT`). Never set
      a selected name (`--R-SIZE-3`, `--H1`, `--BodyText-1`, `--ICON`) or a derived one
-     (`--CONTROL-H`, `--ROW-H`, `--HIT-MIN`); those belong to the axes.
+     (`--CONTROL-H`, `--CONTROL-PAD`, `--ROW-H`, `--HIT-MIN`); those belong to the axes.
    - No @media blocks: the viewport never redefines a token, and reduced motion /
      coarse pointer / more contrast / print are handled by the package for every theme.
    - No `!important`: the package's preference and print overrides win over a theme

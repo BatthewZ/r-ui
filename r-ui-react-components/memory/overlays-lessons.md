@@ -44,3 +44,9 @@
 - **A toast raised while a modal dialog is open is inert** (visible, not clickable, not
   announced): everything outside the modal is, top layer or not. Re-promoting the region
   on arrival fixes paint order only.
+- **A hit area overhanging a scroll container scrolls it.** `hit-area` grows an invisible
+  box to `--HIT-MIN` around a smaller visual one; inside a scroll container (a `<dialog>`
+  is one) any overhang past the padding box is scrollable overflow, and a 1px overhang
+  draws a whole scrollbar. Place a small target at least its overhang,
+  `(--HIT-MIN - its size) / 2`, from a scroller's edge; do not clip the scroller, which
+  would hide real overflow too.
