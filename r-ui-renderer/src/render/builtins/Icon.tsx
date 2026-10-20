@@ -1,6 +1,9 @@
-import type { ReactNode } from "react";
+import { createElement, type ReactNode, use } from "react";
 
+import { DIAGNOSTIC_CLASSES, severityClass } from "../../diagnostics";
 import type { IconProps } from "../../spec/types";
+import { IconSetContext } from "../icon-context";
+import { classes, toneClass } from "./tones";
 
 /**
  * The named icon from the view's icon set (`IconSetContext`) at `size-icon`;
@@ -8,5 +11,17 @@ import type { IconProps } from "../../spec/types";
  * missing-icon diagnostic.
  */
 export function Icon(props: IconProps): ReactNode {
-  throw new Error("not implemented");
+  const { name, label, tone, className } = props;
+  const icons = use(IconSetContext);
+  const Glyph = icons !== undefined && typeof name === "string" && Object.hasOwn(icons, name) ? icons[name] : undefined;
+  if (Glyph === undefined) {
+    return createElement("span", {
+      className: classes(DIAGNOSTIC_CLASSES.diagnostic, severityClass("warning"), DIAGNOSTIC_CLASSES.missingIcon),
+      "data-code": "unknown-icon",
+    });
+  }
+  const look = classes("size-icon shrink-0", toneClass(tone), className);
+  return typeof label === "string" && label.length > 0
+    ? createElement(Glyph, { className: look, role: "img", "aria-label": label })
+    : createElement(Glyph, { className: look, "aria-hidden": true });
 }

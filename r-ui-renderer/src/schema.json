@@ -1,19 +1,1336 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ViewSpec",
-  "description": "A ViewSpec document, format version 2. The top level only; node, binding and form shapes are described in VIEWSPEC.md.",
+  "description": "A ViewSpec document, format version 2: a view built from @batthewz/r-ui-react-components. Write keys in the order listed; root last.",
   "type": "object",
-  "required": ["version", "title", "root"],
-  "additionalProperties": false,
   "properties": {
-    "$schema": { "type": "string" },
-    "version": { "const": 2 },
-    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
-    "description": { "type": "string" },
-    "density": { "enum": ["comfortable", "compact"] },
-    "state": { "type": "object" },
-    "data": { "type": "object" },
-    "forms": { "type": "object" },
-    "root": {}
+    "$schema": {
+      "type": "string"
+    },
+    "version": {
+      "const": 2
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string"
+    },
+    "density": {
+      "enum": [
+        "comfortable",
+        "compact"
+      ]
+    },
+    "state": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/Json"
+      }
+    },
+    "data": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/DataBinding"
+      }
+    },
+    "forms": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/Name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/FormDef"
+      }
+    },
+    "root": {
+      "$ref": "#/$defs/ViewNode"
+    }
+  },
+  "required": [
+    "version",
+    "title",
+    "root"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Name": {
+      "type": "string",
+      "pattern": "^(?!(?:__proto__|constructor|prototype)$)[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "Alias": {
+      "type": "string",
+      "pattern": "^(?!(?:__proto__|constructor|prototype|data|status|state|forms|event)$)[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "RefPath": {
+      "type": "string",
+      "pattern": "^(?!(?:__proto__|constructor|prototype)(?:\\.|$))[A-Za-z_][A-Za-z0-9_]*(?:\\.(?!(?:__proto__|constructor|prototype)(?:\\.|$))[^.]+)*$"
+    },
+    "StatePath": {
+      "type": "string",
+      "pattern": "^state(?:\\.(?!(?:__proto__|constructor|prototype)(?:\\.|$))[^.]+)+$"
+    },
+    "KeyPath": {
+      "type": "string",
+      "pattern": "^(?!(?:__proto__|constructor|prototype)(?:\\.|$))[^.]+(?:\\.(?!(?:__proto__|constructor|prototype)(?:\\.|$))[^.]+)*$"
+    },
+    "Json": {
+      "anyOf": [
+        {
+          "type": [
+            "null",
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Json"
+          }
+        }
+      ],
+      "description": "Any JSON value."
+    },
+    "Operand": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RefMarker"
+        },
+        {
+          "type": [
+            "null",
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/Json"
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:\\$ref)$)"
+              }
+            },
+            {
+              "type": "object",
+              "minProperties": 2
+            }
+          ],
+          "description": "An object whose only key is $ref is that marker."
+        }
+      ]
+    },
+    "RefMarker": {
+      "title": "$ref marker",
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "$ref": "#/$defs/RefPath"
+        }
+      },
+      "required": [
+        "$ref"
+      ],
+      "additionalProperties": false
+    },
+    "NodeMarker": {
+      "title": "$node marker",
+      "type": "object",
+      "properties": {
+        "$node": {
+          "$ref": "#/$defs/ViewNode"
+        }
+      },
+      "required": [
+        "$node"
+      ],
+      "additionalProperties": false
+    },
+    "FormatMarker": {
+      "title": "$format marker",
+      "type": "object",
+      "properties": {
+        "$format": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "$ref": "#/$defs/PropValue"
+                },
+                "style": {
+                  "const": "currency"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "notation": {
+                  "enum": [
+                    "standard",
+                    "compact"
+                  ]
+                },
+                "minimumFractionDigits": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "maximumFractionDigits": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "maximumSignificantDigits": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 21
+                },
+                "signDisplay": {
+                  "enum": [
+                    "auto",
+                    "always",
+                    "exceptZero",
+                    "negative",
+                    "never"
+                  ]
+                },
+                "currencyDisplay": {
+                  "enum": [
+                    "symbol",
+                    "narrowSymbol",
+                    "code",
+                    "name"
+                  ]
+                },
+                "unitDisplay": {
+                  "enum": [
+                    "short",
+                    "long",
+                    "narrow"
+                  ]
+                },
+                "useGrouping": {
+                  "type": "boolean"
+                },
+                "dateStyle": {
+                  "enum": [
+                    "full",
+                    "long",
+                    "medium",
+                    "short"
+                  ]
+                },
+                "timeStyle": {
+                  "enum": [
+                    "full",
+                    "long",
+                    "medium",
+                    "short"
+                  ]
+                },
+                "timeZone": {
+                  "enum": [
+                    "local",
+                    "UTC"
+                  ]
+                },
+                "missing": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value",
+                "style",
+                "currency"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "$ref": "#/$defs/PropValue"
+                },
+                "style": {
+                  "const": "unit"
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "notation": {
+                  "enum": [
+                    "standard",
+                    "compact"
+                  ]
+                },
+                "minimumFractionDigits": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "maximumFractionDigits": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "maximumSignificantDigits": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 21
+                },
+                "signDisplay": {
+                  "enum": [
+                    "auto",
+                    "always",
+                    "exceptZero",
+                    "negative",
+                    "never"
+                  ]
+                },
+                "currencyDisplay": {
+                  "enum": [
+                    "symbol",
+                    "narrowSymbol",
+                    "code",
+                    "name"
+                  ]
+                },
+                "unitDisplay": {
+                  "enum": [
+                    "short",
+                    "long",
+                    "narrow"
+                  ]
+                },
+                "useGrouping": {
+                  "type": "boolean"
+                },
+                "dateStyle": {
+                  "enum": [
+                    "full",
+                    "long",
+                    "medium",
+                    "short"
+                  ]
+                },
+                "timeStyle": {
+                  "enum": [
+                    "full",
+                    "long",
+                    "medium",
+                    "short"
+                  ]
+                },
+                "timeZone": {
+                  "enum": [
+                    "local",
+                    "UTC"
+                  ]
+                },
+                "missing": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value",
+                "style",
+                "unit"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "value": {
+                  "$ref": "#/$defs/PropValue"
+                },
+                "style": {
+                  "enum": [
+                    "number",
+                    "integer",
+                    "compact",
+                    "percent",
+                    "delta",
+                    "bytes",
+                    "date",
+                    "datetime",
+                    "time"
+                  ]
+                },
+                "currency": {
+                  "type": "string"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "notation": {
+                  "enum": [
+                    "standard",
+                    "compact"
+                  ]
+                },
+                "minimumFractionDigits": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "maximumFractionDigits": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100
+                },
+                "maximumSignificantDigits": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 21
+                },
+                "signDisplay": {
+                  "enum": [
+                    "auto",
+                    "always",
+                    "exceptZero",
+                    "negative",
+                    "never"
+                  ]
+                },
+                "currencyDisplay": {
+                  "enum": [
+                    "symbol",
+                    "narrowSymbol",
+                    "code",
+                    "name"
+                  ]
+                },
+                "unitDisplay": {
+                  "enum": [
+                    "short",
+                    "long",
+                    "narrow"
+                  ]
+                },
+                "useGrouping": {
+                  "type": "boolean"
+                },
+                "dateStyle": {
+                  "enum": [
+                    "full",
+                    "long",
+                    "medium",
+                    "short"
+                  ]
+                },
+                "timeStyle": {
+                  "enum": [
+                    "full",
+                    "long",
+                    "medium",
+                    "short"
+                  ]
+                },
+                "timeZone": {
+                  "enum": [
+                    "local",
+                    "UTC"
+                  ]
+                },
+                "missing": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "value",
+                "style"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "A style with its options; `currency` needs `currency`, `unit` needs `unit`."
+        }
+      },
+      "required": [
+        "$format"
+      ],
+      "additionalProperties": false
+    },
+    "PropValue": {
+      "anyOf": [
+        {
+          "type": [
+            "null",
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PropValue"
+          }
+        },
+        {
+          "$ref": "#/$defs/RefMarker"
+        },
+        {
+          "$ref": "#/$defs/NodeMarker"
+        },
+        {
+          "$ref": "#/$defs/FormatMarker"
+        },
+        {
+          "type": "object",
+          "patternProperties": {
+            "^on[A-Z]": {
+              "$ref": "#/$defs/OnValue"
+            }
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/PropValue"
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:\\$ref|\\$node|\\$format)$)"
+              }
+            },
+            {
+              "type": "object",
+              "minProperties": 2
+            }
+          ],
+          "description": "An object whose only key is $ref or $node or $format is that marker."
+        }
+      ],
+      "description": "JSON, where an object whose only key is $ref, $node or $format is that marker."
+    },
+    "Props": {
+      "type": "object",
+      "patternProperties": {
+        "^on[A-Z]": {
+          "$ref": "#/$defs/OnValue"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/PropValue"
+      }
+    },
+    "Action": {
+      "title": "Action",
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "setState"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "$ref": "#/$defs/StatePath"
+                },
+                "value": {
+                  "$ref": "#/$defs/PropValue"
+                }
+              },
+              "required": [
+                "path",
+                "value"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "submitForm"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "form": {
+                  "$ref": "#/$defs/Name"
+                }
+              },
+              "required": [
+                "form"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "resetForm"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "form": {
+                  "$ref": "#/$defs/Name"
+                }
+              },
+              "required": [
+                "form"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "navigate"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "to": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/RefMarker"
+                    }
+                  ]
+                },
+                "replace": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "showToast"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "$ref": "#/$defs/ToastText"
+                },
+                "description": {
+                  "$ref": "#/$defs/ToastText"
+                },
+                "tone": {
+                  "enum": [
+                    "neutral",
+                    "success",
+                    "warning",
+                    "error",
+                    "info",
+                    "serious",
+                    "stale"
+                  ]
+                }
+              },
+              "required": [
+                "title"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "apiCall"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "type": "string"
+                },
+                "method": {
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ]
+                },
+                "query": {
+                  "$ref": "#/$defs/QueryParams"
+                },
+                "body": {
+                  "$ref": "#/$defs/PropValue"
+                },
+                "into": {
+                  "$ref": "#/$defs/StatePath"
+                },
+                "onSuccess": {
+                  "$ref": "#/$defs/Handler"
+                },
+                "onError": {
+                  "$ref": "#/$defs/Handler"
+                }
+              },
+              "required": [
+                "endpoint"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "openDialog"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "dialogId": {
+                  "$ref": "#/$defs/Name"
+                }
+              },
+              "required": [
+                "dialogId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "action": {
+              "const": "closeDialog"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "dialogId": {
+                  "$ref": "#/$defs/Name"
+                }
+              },
+              "required": [
+                "dialogId"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "{ \"action\": setState | submitForm | resetForm | navigate | showToast | apiCall | openDialog | closeDialog, \"payload\": {…} }"
+    },
+    "Handler": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Action"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Action"
+          },
+          "minItems": 1
+        }
+      ],
+      "description": "An action, or a non-empty list of actions."
+    },
+    "OnValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Handler"
+        },
+        {
+          "$ref": "#/$defs/NotAction"
+        }
+      ],
+      "description": "A handler: an action or a non-empty list of actions."
+    },
+    "NotAction": {
+      "anyOf": [
+        {
+          "type": [
+            "null",
+            "boolean",
+            "number",
+            "string"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NotAction"
+          }
+        },
+        {
+          "$ref": "#/$defs/RefMarker"
+        },
+        {
+          "$ref": "#/$defs/NodeMarker"
+        },
+        {
+          "$ref": "#/$defs/FormatMarker"
+        },
+        {
+          "type": "object",
+          "patternProperties": {
+            "^on[A-Z]": {
+              "$ref": "#/$defs/OnValue"
+            }
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/PropValue"
+          },
+          "anyOf": [
+            {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^(?!(?:\\$ref|\\$node|\\$format)$)"
+              }
+            },
+            {
+              "type": "object",
+              "minProperties": 2
+            }
+          ],
+          "description": "An object whose only key is $ref or $node or $format is that marker.",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^(?!action$)"
+          }
+        }
+      ]
+    },
+    "ToastText": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/RefMarker"
+        },
+        {
+          "$ref": "#/$defs/FormatMarker"
+        }
+      ]
+    },
+    "QueryParams": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": [
+              "null",
+              "boolean",
+              "number",
+              "string"
+            ]
+          },
+          {
+            "$ref": "#/$defs/RefMarker"
+          }
+        ]
+      }
+    },
+    "ViewNode": {
+      "anyOf": [
+        {
+          "type": "string",
+          "title": "text"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "component": {
+              "type": "string",
+              "minLength": 1
+            },
+            "props": {
+              "$ref": "#/$defs/Props"
+            },
+            "children": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ViewNode"
+              }
+            }
+          },
+          "required": [
+            "component"
+          ],
+          "additionalProperties": false,
+          "title": "Component node"
+        },
+        {
+          "$ref": "#/$defs/RefMarker"
+        },
+        {
+          "$ref": "#/$defs/FormatMarker"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "$each": {
+              "$ref": "#/$defs/RefPath"
+            },
+            "as": {
+              "$ref": "#/$defs/Alias"
+            },
+            "key": {
+              "$ref": "#/$defs/KeyPath"
+            },
+            "node": {
+              "$ref": "#/$defs/ViewNode"
+            }
+          },
+          "required": [
+            "$each",
+            "as",
+            "node"
+          ],
+          "additionalProperties": false,
+          "title": "$each node"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "$cond": {
+              "$ref": "#/$defs/Condition"
+            },
+            "then": {
+              "$ref": "#/$defs/ViewNode"
+            },
+            "else": {
+              "$ref": "#/$defs/ViewNode"
+            }
+          },
+          "required": [
+            "$cond",
+            "then"
+          ],
+          "additionalProperties": false,
+          "title": "$cond node"
+        }
+      ],
+      "description": "A node: text, or an object with exactly one of component, $ref, $format, $each, $cond."
+    },
+    "Condition": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RefPath",
+          "title": "truthy path"
+        },
+        {
+          "title": "not",
+          "type": "object",
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/Condition"
+            }
+          },
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "title": "ref eq",
+          "type": "object",
+          "properties": {
+            "ref": {
+              "$ref": "#/$defs/RefPath"
+            },
+            "eq": {
+              "$ref": "#/$defs/Operand"
+            }
+          },
+          "required": [
+            "ref",
+            "eq"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "title": "ref ne",
+          "type": "object",
+          "properties": {
+            "ref": {
+              "$ref": "#/$defs/RefPath"
+            },
+            "ne": {
+              "$ref": "#/$defs/Operand"
+            }
+          },
+          "required": [
+            "ref",
+            "ne"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "title": "ref gt",
+          "type": "object",
+          "properties": {
+            "ref": {
+              "$ref": "#/$defs/RefPath"
+            },
+            "gt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/RefMarker"
+                }
+              ]
+            }
+          },
+          "required": [
+            "ref",
+            "gt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "title": "ref lt",
+          "type": "object",
+          "properties": {
+            "ref": {
+              "$ref": "#/$defs/RefPath"
+            },
+            "lt": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/RefMarker"
+                }
+              ]
+            }
+          },
+          "required": [
+            "ref",
+            "lt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "title": "ref in",
+          "type": "object",
+          "properties": {
+            "ref": {
+              "$ref": "#/$defs/RefPath"
+            },
+            "in": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/Json"
+                  }
+                },
+                {
+                  "$ref": "#/$defs/RefMarker"
+                }
+              ]
+            }
+          },
+          "required": [
+            "ref",
+            "in"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A reference path (truthy), { \"not\": Condition }, or { \"ref\": path } with exactly one of eq, ne, gt, lt, in."
+    },
+    "DataBinding": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "static"
+            },
+            "value": {
+              "$ref": "#/$defs/Json"
+            }
+          },
+          "required": [
+            "type",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "api"
+            },
+            "endpoint": {
+              "type": "string"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "POST"
+              ]
+            },
+            "query": {
+              "$ref": "#/$defs/QueryParams"
+            },
+            "body": {
+              "$ref": "#/$defs/PropValue"
+            }
+          },
+          "required": [
+            "type",
+            "endpoint"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "source"
+            },
+            "source": {
+              "type": "string"
+            },
+            "params": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/PropValue"
+              }
+            }
+          },
+          "required": [
+            "type",
+            "source"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "A data binding: { \"type\": static | api | source, … }."
+    },
+    "FormDef": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/Name"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "enum": [
+                  "text",
+                  "number",
+                  "boolean",
+                  "date",
+                  "dateRange",
+                  "list"
+                ]
+              },
+              "initialValue": {
+                "$ref": "#/$defs/Operand"
+              },
+              "rules": {
+                "type": "object",
+                "properties": {
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "minLength": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "maxLength": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "pattern": {
+                    "type": "string"
+                  },
+                  "min": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "max": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              },
+              "message": {
+                "type": "string"
+              },
+              "messages": {
+                "type": "object",
+                "properties": {
+                  "required": {
+                    "type": "string"
+                  },
+                  "minLength": {
+                    "type": "string"
+                  },
+                  "maxLength": {
+                    "type": "string"
+                  },
+                  "pattern": {
+                    "type": "string"
+                  },
+                  "min": {
+                    "type": "string"
+                  },
+                  "max": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "validateOn": {
+          "enum": [
+            "change",
+            "blur",
+            "submit"
+          ]
+        },
+        "revalidateOn": {
+          "enum": [
+            "change",
+            "blur",
+            "submit"
+          ]
+        },
+        "onSubmit": {
+          "$ref": "#/$defs/Handler"
+        },
+        "onInvalid": {
+          "$ref": "#/$defs/Handler"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "additionalProperties": false
+    }
   }
 }

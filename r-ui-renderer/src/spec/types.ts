@@ -486,6 +486,7 @@ export const ISSUE_CODE_INFO = {
   "invalid-node": { severity: "error", summary: "A node matches none of the node shapes." },
   "invalid-ref": { severity: "error", summary: "A reference path is malformed." },
   "invalid-name": { severity: "error", summary: "A name breaks the name rules or is reserved." },
+  "too-deep": { severity: "error", summary: "Nested beyond what a checker's call stack can walk (thousands of levels); not validated." },
   "limit-exceeded": { severity: "warning", summary: "Past a limit (depth, handler chain); the excess is not rendered or run." },
   "undeclared-name": { severity: "warning", summary: "A reference, form, field, dialog or binding name nothing declares." },
   "unknown-component": { severity: "warning", summary: "A component name nothing registers." },
@@ -499,6 +500,10 @@ export const ISSUE_CODE_INFO = {
   "unknown-class": { severity: "warning", summary: "A class outside the class vocabulary; it would style nothing." },
   "sensitive-component": { severity: "warning", summary: "A component the host must allow before it renders." },
   "controlled-in-field": { severity: "warning", summary: "A value on a control inside a bound Field; it would detach the binding." },
+  "unusable-value": {
+    severity: "warning",
+    summary: "A value that conforms but cannot work: a rule its field's type ignores, a pattern that does not compile, a code `Intl` refuses.",
+  },
   "key-order": { severity: "warning", summary: "Keys out of the streaming order; the object renders only once it closes." },
   "duplicate-key": { severity: "warning", summary: "Two siblings share a key; positions are used instead." },
   "missing-adapter": { severity: "warning", summary: "The host did not provide the adapter this needs; nothing was sent." },

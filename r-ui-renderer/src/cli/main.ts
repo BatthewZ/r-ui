@@ -19,7 +19,8 @@ Options:
   --strict             Warnings fail too.
   -h, --help           Show this help.
 
-Exit status: 0 valid, 1 not valid (or warnings with --strict), 2 usage or input error.
+Exit status: 0 valid, 1 not valid (or warnings with --strict), 2 usage or input
+error, 3 internal error (a bug in r-ui-validate, not in the document).
 `;
 
 export const OUTPUT_FORMATS = ["text", "json", "model"] as const;
@@ -45,6 +46,9 @@ export interface CliIO {
 }
 
 export class UsageError extends Error {}
+
+/** The first line of the report when r-ui-validate itself fails (exit 3). */
+export const INTERNAL_ERROR = "r-ui-validate failed internally; the document was not judged.\n";
 
 const VALUE_FLAGS = new Set(["--raw", "--format", "--contracts", "--origin"]);
 
@@ -82,6 +86,8 @@ export function parseArgs(argv: readonly string[]): CliArgs {
   }
   const raw = values.get("--raw");
   if (raw !== undefined && file !== undefined) throw new UsageError("Give a file or --raw, not both.");
+  const origin = values.get("--origin");
+  if (origin !== undefined && !URL.canParse(origin)) throw new UsageError(`--origin must be a URL ("https://app.example"), not ${JSON.stringify(origin)}.`);
 
   return {
     help,
@@ -89,15 +95,62 @@ export function parseArgs(argv: readonly string[]): CliArgs {
     raw,
     format,
     contracts: values.get("--contracts"),
-    origin: values.get("--origin"),
+    origin,
     strict,
   };
+}
+
+/** The JSON type each contract field holds, so a malformed file is an input error rather than a crash. */
+const CONTRACT_FIELD_TYPES: { readonly [K in keyof Required<ComponentContract>]: "string" | "array" | "object" | "boolean" } = {
+  category: "string",
+  note: "string",
+  props: "array",
+  slots: "array",
+  propEnums: "object",
+  urlProps: "array",
+  imageProps: "array",
+  dateProps: "object",
+  iconProps: "array",
+  nodeProps: "array",
+  templateProps: "object",
+  setProps: "array",
+  formatProps: "array",
+  eventValue: "object",
+  coercions: "object",
+  childInspection: "string",
+  elementProps: "object",
+  headingLevelProps: "object",
+  sensitive: "boolean",
+  textChildren: "boolean",
+  dialog: "boolean",
+  fieldName: "boolean",
+  formProps: "array",
+  namespacedProps: "array",
+  intlProps: "object",
+  droppedProps: "array",
+  nativeAttributes: "boolean",
+};
+
+function jsonType(value: unknown): string {
+  if (Array.isArray(value)) return "array";
+  return isPlainObject(value) ? "object" : typeof value;
 }
 
 async function readContracts(path: string, io: CliIO): Promise<ComponentContracts> {
   const parsed: unknown = JSON.parse(await io.readFile(path));
   if (!isPlainObject(parsed) || !Object.values(parsed).every(isPlainObject)) {
     throw new UsageError(`${path} must be a JSON object of contracts (name -> contract object).`);
+  }
+  for (const [name, contract] of Object.entries(parsed as Record<string, Record<string, unknown>>)) {
+    for (const [field, value] of Object.entries(contract)) {
+      const expected = Object.hasOwn(CONTRACT_FIELD_TYPES, field) ? CONTRACT_FIELD_TYPES[field as keyof ComponentContract] : undefined;
+      if (expected === undefined) throw new UsageError(`${path}: ${name}.${field} is not a contract field.`);
+      if (jsonType(value) !== expected) throw new UsageError(`${path}: ${name}.${field} must be ${expected === "array" ? "an" : "a"} ${expected}.`);
+    }
+    const props: unknown = contract.props;
+    if (Array.isArray(props) && !props.every((prop) => isPlainObject(prop) && typeof prop.name === "string")) {
+      throw new UsageError(`${path}: ${name}.props must list objects with a \`name\`.`);
+    }
   }
   return extendContracts(defaultContracts, parsed as { readonly [name: string]: Partial<ComponentContract> });
 }
@@ -142,12 +195,19 @@ export async function main(argv: readonly string[], io: CliIO): Promise<number> 
     return 2;
   }
 
-  const result = validateViewSpec(text, { contracts, origin: args.origin });
-  const failed = !result.ok || (args.strict && result.issues.length > 0);
+  let output: string;
+  let failed: boolean;
+  try {
+    const result = validateViewSpec(text, { contracts, origin: args.origin });
+    failed = !result.ok || (args.strict && result.issues.length > 0);
+    if (args.format === "json") output = `${JSON.stringify({ ok: result.ok, issues: result.issues }, null, 2)}\n`;
+    else if (args.format === "model") output = `${formatIssuesForModel(result.issues)}\n`;
+    else output = formatText(result.issues);
+  } catch (error) {
+    io.stderr(`${INTERNAL_ERROR}${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+    return 3;
+  }
 
-  if (args.format === "json") io.stdout(`${JSON.stringify({ ok: result.ok, issues: result.issues }, null, 2)}\n`);
-  else if (args.format === "model") io.stdout(`${formatIssuesForModel(result.issues)}\n`);
-  else io.stdout(formatText(result.issues));
-
+  io.stdout(output);
   return failed ? 1 : 0;
 }

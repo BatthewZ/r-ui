@@ -1,5 +1,4 @@
-import type { FormApi } from "@batthewz/r-ui-react-components";
-
+import type { ViewFormApi } from "../forms/registry";
 import type { IconSet } from "../icons/types";
 import type { ComponentRegistry } from "../registry/registry";
 import type {
@@ -52,7 +51,8 @@ export interface DialogState {
   setOpen(dialogId: string, open: boolean): void;
 }
 
-export type FormHandles = { readonly [name: string]: FormApi<unknown, unknown> };
+/** A declared form's handle by name: what a `Form` (or `Wizard`) node's `form` prop receives. */
+export type FormHandles = { readonly [name: string]: ViewFormApi };
 
 export type StreamingFallback = "none" | "skeleton";
 

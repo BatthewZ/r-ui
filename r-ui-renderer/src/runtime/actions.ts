@@ -1,18 +1,266 @@
 import type { FormRegistry } from "../forms/registry";
+import { isAction, isHandler, isPlainObject } from "../spec/guards";
+import { appendPointer } from "../spec/pointer";
+import { LIMITS } from "../spec/policy";
+import {
+  HTTP_METHODS,
+  type IssueCode,
+  ISSUE_CODE_INFO,
+  type JsonValue,
+  LITERAL_PAYLOAD_KEYS,
+  NAME_PATTERN,
+  TOAST_TONES,
+  type ToastTone,
+} from "../spec/types";
+import { defaultAllowUrl, resolveUrl, safeUrl } from "../spec/url-policy";
 import type { RendererAdapters } from "./adapters";
 import type { ActionDispatcher, DialogState, IssueReporter, RefRoots } from "./context";
+import { readEventArgs, readEventValue } from "./event-value";
+import { performRequest, prepareRequest } from "./request";
+import { type FormatValue, plainFormat, type RefScope, resolveValue } from "./resolve";
+import type { SetStateOptions } from "./state";
 
 export interface DispatcherDeps {
   /** The latest values, read when a handler runs (never a render-time copy). */
   readonly getRoots: () => RefRoots;
-  readonly setState: (path: string, value: unknown) => void;
+  /** Returns false when `path` is not a `state.…` path. */
+  readonly setState: (path: string, value: unknown, options?: SetStateOptions) => boolean;
   readonly forms: FormRegistry;
   readonly dialogs: DialogState;
-  readonly adapters: RendererAdapters;
+  /** The host's adapters as of the latest render. */
+  readonly getAdapters: () => RendererAdapters;
   readonly report: IssueReporter;
   readonly isComplete: () => boolean;
+  /** `$format` in payloads; without it a value formats as plain text. */
+  readonly format?: FormatValue;
+}
+
+/** What `onError` sees as `event.value`, and what a failed `apiCall` rejects with. */
+export interface ActionErrorValue {
+  readonly status: number | null;
+  readonly message: string;
+  readonly body: JsonValue;
+}
+
+/**
+ * Why a handler stopped. Already reported to the issue channel (or, for a
+ * form that did not submit, shown by the form): a caller only needs to catch
+ * it. `response` is set when an `apiCall` failed.
+ */
+export class ActionFailure extends Error {
+  readonly response: ActionErrorValue | undefined;
+
+  constructor(message: string, response?: ActionErrorValue) {
+    super(message);
+    this.name = "ActionFailure";
+    this.response = response;
+  }
+}
+
+type EventScope = { readonly value: unknown; readonly args: readonly unknown[] };
+
+const TONES: ReadonlySet<string> = new Set<string>(TOAST_TONES);
+const METHODS: ReadonlySet<string> = new Set<string>(HTTP_METHODS);
+
+function isToastTone(value: unknown): value is ToastTone {
+  return typeof value === "string" && TONES.has(value);
+}
+
+function asText(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
 }
 
 export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
-  throw new Error("not implemented");
+  const format = deps.format ?? plainFormat;
+
+  function fail(code: IssueCode, path: string, message: string): never {
+    deps.report({ code, path, severity: ISSUE_CODE_INFO[code].severity, message });
+    throw new ActionFailure(message);
+  }
+
+  function scopeFor(vars: RefScope, event: EventScope): RefScope {
+    return { ...vars, ...deps.getRoots(), event };
+  }
+
+  async function runHandler(handler: unknown, path: string, vars: RefScope, event: EventScope, depth: number): Promise<void> {
+    const list = Array.isArray(handler) ? (handler as readonly unknown[]) : [handler];
+    if (list.length > LIMITS.actionsPerHandler) {
+      deps.report({
+        code: "limit-exceeded",
+        path,
+        severity: ISSUE_CODE_INFO["limit-exceeded"].severity,
+        message: `A handler runs at most ${LIMITS.actionsPerHandler} actions; the rest did not run.`,
+      });
+    }
+    const actions = list.slice(0, LIMITS.actionsPerHandler);
+    for (const [index, action] of actions.entries()) {
+      const actionPath = Array.isArray(handler) ? appendPointer(path, index) : path;
+      try {
+        await runAction(action, actionPath, vars, event, depth);
+      } catch (error) {
+        if (error instanceof ActionFailure) throw error;
+        fail("action-failed", actionPath, error instanceof Error ? error.message : "The action failed.");
+      }
+    }
+  }
+
+  /** `onSuccess`/`onError`: their own `event`, the same local names, one level deeper. */
+  async function runChained(handler: unknown, path: string, vars: RefScope, value: unknown, depth: number): Promise<void> {
+    if (handler === undefined) return;
+    if (!isHandler(handler)) fail("invalid-value", path, "Not an action or a list of actions.");
+    if (depth > LIMITS.actionDepth) {
+      deps.report({
+        code: "limit-exceeded",
+        path,
+        severity: ISSUE_CODE_INFO["limit-exceeded"].severity,
+        message: `onSuccess/onError nest at most ${LIMITS.actionDepth} deep; this one did not run.`,
+      });
+      return;
+    }
+    await runHandler(handler, path, vars, { value, args: [value] }, depth);
+  }
+
+  async function runAction(action: unknown, path: string, vars: RefScope, event: EventScope, depth: number): Promise<void> {
+    if (!isAction(action)) fail("invalid-value", path, "Not an action.");
+    const payload: Record<string, unknown> = isPlainObject(action.payload) ? action.payload : {};
+    const payloadPath = appendPointer(path, "payload");
+    const at = (key: string) => appendPointer(payloadPath, key);
+    const literal: readonly string[] = LITERAL_PAYLOAD_KEYS[action.action];
+    const read = (key: string): unknown => {
+      if (!Object.hasOwn(payload, key)) return undefined;
+      return literal.includes(key) ? payload[key] : resolveValue(payload[key], scopeFor(vars, event), format);
+    };
+
+    switch (action.action) {
+      case "setState": {
+        const target = read("path");
+        if (typeof target !== "string" || !deps.setState(target, read("value"))) {
+          fail("invalid-ref", at("path"), "setState writes to a `state.…` path.");
+        }
+        return;
+      }
+      case "submitForm":
+      case "resetForm": {
+        const name = read("form");
+        const form = typeof name === "string" ? deps.forms.get(name) : undefined;
+        if (form === undefined) fail("undeclared-name", at("form"), `No form named ${JSON.stringify(name)} is in this view.`);
+        if (action.action === "resetForm") {
+          form.reset();
+          return;
+        }
+        // The form shows why it did not submit; the rest of the list must not run.
+        if (!(await form.submit())) throw new ActionFailure("The form did not submit.");
+        return;
+      }
+      case "navigate":
+        return navigate(read("to"), read("replace") === true, at("to"));
+      case "showToast": {
+        const title = asText(read("title"));
+        if (title === undefined) fail("invalid-value", at("title"), "showToast needs a text `title`.");
+        const description = asText(read("description"));
+        const tone = read("tone");
+        const { toast } = deps.getAdapters();
+        if (toast === undefined) {
+          deps.report({
+            code: "missing-adapter",
+            path,
+            severity: ISSUE_CODE_INFO["missing-adapter"].severity,
+            message: "The host provides no `toast` adapter; the toast was not shown.",
+          });
+          return;
+        }
+        toast({
+          title,
+          ...(description === undefined ? {} : { description }),
+          ...(isToastTone(tone) ? { tone } : {}),
+        });
+        return;
+      }
+      case "apiCall":
+        return apiCall(read, path, at, vars, depth);
+      case "openDialog":
+      case "closeDialog": {
+        const dialogId = read("dialogId");
+        if (typeof dialogId !== "string" || !NAME_PATTERN.test(dialogId)) {
+          fail("invalid-name", at("dialogId"), "`dialogId` is a name.");
+        }
+        deps.dialogs.setOpen(dialogId, action.action === "openDialog");
+        return;
+      }
+    }
+  }
+
+  function navigate(to: unknown, replace: boolean, path: string): void {
+    const safe = typeof to === "string" ? safeUrl(to) : "";
+    if (safe === "") fail("refused-url", path, "navigate needs a URL with an allowed scheme.");
+    const adapter = deps.getAdapters().navigate;
+    if (adapter !== undefined) {
+      adapter(safe, { replace });
+      return;
+    }
+    const url = resolveUrl(safe);
+    if (url === null || !defaultAllowUrl(url)) {
+      fail("refused-url", path, "Without a `navigate` adapter only same-origin URLs are followed.");
+    }
+    if (replace) globalThis.location.replace(url.href);
+    else globalThis.location.assign(url.href);
+  }
+
+  async function apiCall(
+    read: (key: string) => unknown,
+    path: string,
+    at: (key: string) => string,
+    vars: RefScope,
+    depth: number,
+  ): Promise<void> {
+    const endpoint = read("endpoint");
+    const method = read("method") ?? "GET";
+    if (typeof endpoint !== "string") fail("invalid-value", at("endpoint"), "apiCall needs an `endpoint`.");
+    if (typeof method !== "string" || !METHODS.has(method)) {
+      fail("invalid-value", at("method"), `\`method\` is one of ${HTTP_METHODS.join(", ")}.`);
+    }
+    const adapters = deps.getAdapters();
+    const fetcher = adapters.fetch;
+    if (fetcher === undefined) fail("missing-adapter", path, "The host provides no `fetch` adapter; nothing was sent.");
+    const prepared = prepareRequest({ endpoint, method, query: read("query"), body: read("body") }, adapters);
+    if (!prepared.ok) fail("refused-url", at("endpoint"), prepared.message);
+
+    const outcome = await performRequest(fetcher, prepared.url, prepared.init);
+    const payloadPath = appendPointer(path, "payload");
+    if (outcome.ok) {
+      const into = read("into");
+      if (into !== undefined && (typeof into !== "string" || !deps.setState(into, outcome.body, { replace: true }))) {
+        deps.report({
+          code: "invalid-ref",
+          path: at("into"),
+          severity: ISSUE_CODE_INFO["invalid-ref"].severity,
+          message: "`into` is a `state.…` path; the response was not stored.",
+        });
+      }
+      await runChained(read("onSuccess"), appendPointer(payloadPath, "onSuccess"), vars, outcome.body, depth + 1);
+      return;
+    }
+
+    const error: ActionErrorValue = { status: outcome.status, message: outcome.message, body: outcome.body };
+    const onError = read("onError");
+    if (onError === undefined) {
+      deps.report({ code: "action-failed", path, severity: ISSUE_CODE_INFO["action-failed"].severity, message: outcome.message });
+    } else {
+      try {
+        await runChained(onError, appendPointer(payloadPath, "onError"), vars, error, depth + 1);
+      } catch {
+        // Reported where it failed; the call's own failure is what rejects.
+      }
+    }
+    throw new ActionFailure(outcome.message, error);
+  }
+
+  return (handler, context) => {
+    if (!deps.isComplete()) return Promise.resolve();
+    const kind = context.eventValue ?? "value";
+    const event: EventScope = { value: readEventValue(context.args, kind), args: readEventArgs(context.args, kind) };
+    return runHandler(handler, context.path, context.vars, event, 0);
+  };
 }

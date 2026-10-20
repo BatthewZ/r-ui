@@ -1,9 +1,16 @@
-import type { FormRegistry } from "../forms/registry";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+
+import { createFormRegistry, type FormRegistry } from "../forms/registry";
 import type { PartialDocument } from "../stream/snapshot";
 import type { Issue } from "../spec/types";
+import { createActionDispatcher } from "./actions";
 import type { RendererAdapters } from "./adapters";
 import type { ActionDispatcher, DialogState, RefRoots, StreamingState } from "./context";
-import type { IssueChannel } from "./issues";
+import { useDataBindings } from "./data";
+import { useDialogState } from "./dialogs";
+import { createIssueChannel, type IssueChannel } from "./issues";
+import { type FormatValue, plainFormat } from "./resolve";
+import { useViewState } from "./state";
 
 export interface ViewRuntimeOptions {
   /** The top-level object as far as it has arrived. */
@@ -11,6 +18,8 @@ export interface ViewRuntimeOptions {
   readonly streaming: StreamingState;
   readonly adapters: RendererAdapters;
   readonly onIssue?: (issue: Issue) => void;
+  /** `$format` in action payloads, in the host's locale; plain text without it. */
+  readonly format?: FormatValue;
 }
 
 export interface ViewRuntime {
@@ -23,7 +32,53 @@ export interface ViewRuntime {
   readonly forms: FormRegistry;
 }
 
+/** A top-level section once its object has closed (`state`, `data`, `forms` take effect then). */
+function closedSection(document: PartialDocument | undefined, key: string, pending: ReadonlySet<string>): unknown {
+  if (document === undefined || !Object.hasOwn(document, key) || pending.has(`/${key}`)) return undefined;
+  return document[key];
+}
+
 /** State, data bindings, dialogs, the action dispatcher and the issue channel of one view. */
 export function useViewRuntime(options: ViewRuntimeOptions): ViewRuntime {
-  throw new Error("not implemented");
+  const { document, streaming, adapters } = options;
+
+  const latestOnIssue = useRef(options.onIssue);
+  const [issues] = useState(() => createIssueChannel((issue) => latestOnIssue.current?.(issue)));
+  const [forms] = useState(createFormRegistry);
+
+  const view = useViewState(closedSection(document, "state", streaming.pending));
+  const { data, status } = useDataBindings(document?.data, {
+    adapters,
+    state: view.state,
+    pending: streaming.pending,
+    report: issues.report,
+  });
+  const dialogs = useDialogState();
+
+  const latest = useRef({ data, status, adapters, dialogs, complete: streaming.complete, format: options.format });
+  useLayoutEffect(() => {
+    latestOnIssue.current = options.onIssue;
+    latest.current = { data, status, adapters, dialogs, complete: streaming.complete, format: options.format };
+  });
+
+  const [dispatch] = useState(() =>
+    createActionDispatcher({
+      getRoots: () => ({
+        data: latest.current.data,
+        status: latest.current.status,
+        state: view.getState(),
+        forms: forms.getSnapshot().values,
+      }),
+      setState: view.setState,
+      forms,
+      dialogs: { isOpen: (id, initial) => latest.current.dialogs.isOpen(id, initial), setOpen: dialogs.setOpen },
+      getAdapters: () => latest.current.adapters,
+      report: issues.report,
+      isComplete: () => latest.current.complete,
+      format: (value, spec) => (latest.current.format ?? plainFormat)(value, spec),
+    }),
+  );
+
+  const roots = useMemo(() => ({ data, status, state: view.state }), [data, status, view.state]);
+  return { roots, dispatch, dialogs, issues, forms };
 }
