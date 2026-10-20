@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ViewSpec",
+  "description": "A ViewSpec document, format version 2. The top level only; node, binding and form shapes are described in VIEWSPEC.md.",
+  "type": "object",
+  "required": ["version", "title", "root"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 2 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "description": { "type": "string" },
+    "density": { "enum": ["comfortable", "compact"] },
+    "state": { "type": "object" },
+    "data": { "type": "object" },
+    "forms": { "type": "object" },
+    "root": {}
+  }
+}

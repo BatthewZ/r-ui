@@ -1,0 +1,54 @@
+/*
+ * @batthewz/r-ui-renderer/styles. Import it after the component library's
+ * styles. Its rules sit in the components layer, so a document's className
+ * still wins; colours and lengths are contract tokens only.
+ */
+
+/* This package's own class strings, relative to this file (works from src/ and dist/). */
+@source "../src/**/*.{ts,tsx}";
+
+@layer components {
+  .r-renderer-view {
+    display: block;
+    min-inline-size: 0;
+  }
+
+  .r-renderer-diagnostic {
+    display: block;
+    padding: var(--R-SIZE-5) var(--R-SIZE-4);
+    border: var(--BORDER-WIDTH) dashed var(--C-BORDER-STRONG);
+    border-radius: var(--RADIUS-SM);
+    font-family: var(--FONT-MONO);
+    font-size: var(--BodyText-3);
+    line-height: var(--BodyText-3-line-height);
+    overflow-wrap: anywhere;
+  }
+
+  .r-renderer-diagnostic-error {
+    border-color: var(--C-STATUS-ERROR);
+    background: var(--C-STATUS-ERROR-BG);
+    color: var(--C-TEXT-ERROR);
+  }
+
+  .r-renderer-diagnostic-warning {
+    border-color: var(--C-STATUS-WARNING);
+    background: var(--C-STATUS-WARNING-BG);
+    color: var(--C-TEXT-WARNING);
+  }
+
+  .r-renderer-missing-icon {
+    display: inline-block;
+    inline-size: var(--ICON);
+    block-size: var(--ICON);
+    padding: 0;
+    vertical-align: middle;
+  }
+
+  .r-renderer-issue-log {
+    display: none;
+  }
+
+  .r-renderer-pending {
+    display: block;
+  }
+}

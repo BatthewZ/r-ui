@@ -1,0 +1,103 @@
+# AGENTS — @batthewz/r-ui-renderer
+
+Rules for anyone (human or agent) working in this package. Read the family's `ETHOS.md`
+and `CLAUDE.md` first, and `VIEWSPEC.md`, which is the format's contract with its
+producers. Each rule names the gate that holds it where one exists (`bun run check`).
+
+## Layout
+
+```
+VIEWSPEC.md               the model-facing reference: hand-written prose + generated regions
+src/
+  index.ts                the package root ("use client"): ViewRenderer, the stream hook,
+                          the parser, registry and contract helpers, diagnostics, format types
+  ViewRenderer.tsx        the composition root: input → snapshot → runtime → forms → renderNode
+  diagnostics.ts          every class the renderer marks its elements with, and the DOM query
+  styles.css              `./styles`: the renderer's own CSS (tokens only, components layer)
+  schema.json             `./schema.json`: the format as JSON Schema
+  spec/                   `./spec`, React-free: the format (types.ts), its policy (policy.ts,
+                          url-policy.ts), the $ref grammar, JSON Pointers, shape guards, the
+                          built-in and default contracts, the validator and its helpers
+  stream/                 `./stream`, React-free: the incremental parser, PENDING, fences;
+                          plus the React hooks the root exports (use-view-spec-stream.ts)
+  render/                 renderNode, Scope, the built-ins (Text, Heading, Icon), the issue log
+  runtime/                RenderContext, adapters, actions, event values, state, data
+                          bindings, dialogs, the issue channel, useViewRuntime
+  forms/                  form defs compiled to a Standard Schema on the library's useForm
+  registry/               names → components, derived from the library's barrel
+  reference/              `./reference`, React-free: renders VIEWSPEC.md from the contracts
+  icons/                  `./icons`: a curated lucide set (and the IconSet type)
+  zod/                    `./zod`: the format as a Zod schema (zod is an optional peer)
+  cli/                    the `r-ui-validate` bin (main.ts holds everything but process wiring)
+scripts/                  the gates (`verify:*`), their tests and fixtures
+test-utils.ts             shared test helpers (not shipped)
+```
+
+## Dependencies and knowledge run one way
+
+- `src/` imports only `@batthewz/r-ui-react-components`, `react` and `react-dom`;
+  `lucide-react` only under `icons/`, `zod` only under `zod/`. Never `@batthewz/r-ui-css` or
+  `@batthewz/r-ui-tw-merge`: the renderer's CSS reads tokens by name and the consumer imports
+  the contract. Those two are dev dependencies for the gates only.
+- This package may name the library; nothing upstream ever names this package (its docs,
+  code, tests or changelog). A library change the renderer needs is an additive change with
+  the library's own tests and its own justification.
+- **React-free subpaths.** `./spec`, `./stream`, `./reference`, `./zod` and the bin run on
+  servers and in the CLI. Their module graphs, type-only imports included, reach no React, no
+  library, no lucide and no `.tsx` (`verify:react-free`). React-side code lives in a module only
+  the package root imports.
+
+## The format
+
+- `src/spec/types.ts` and `VIEWSPEC.md`'s prose describe the same format and change
+  together. The format is a one-way door: a change that can break a document is a minor bump
+  with a CHANGELOG entry.
+- **Errors are conformance, warnings are advice.** An `error` issue is exactly what a schema
+  can express (shape, JSON types, closed sets, syntax), so `validateViewSpec` and the Zod
+  schema agree on `ok`. Anything needing scope, the registry, contracts or a cross-reference
+  is a `warning`. Issue codes come only from `ISSUE_CODE_INFO`.
+- Contracts are the single source of what the renderer, the validator and the reference
+  know about a component. A table that names a library component or prop is gated against
+  the library.
+- No example theme name (the library's showcase themes) appears anywhere in this package:
+  not in code, types, fixtures or docs. Fixtures invent names (`aurora`).
+
+## Rendering
+
+- **No wrapper component or wrapper DOM between a parent and its children.** `renderNode`
+  builds the library's elements directly; `$each` yields keyed sibling arrays. Parents read
+  their children by identity, props, cloning and counting, and direct-child CSS selectors
+  assume nothing in between. A per-node error boundary sits only where the parent's contract
+  allows one, and never remembers a failure across renders.
+- **Degrade, never throw, never silently.** A bad node renders a diagnostic in place (or,
+  where its context allows no element, the issue log lists it). Every diagnostic is a DOM
+  element carrying the classes in `diagnostics.ts`; nothing else spells them.
+- Renderer-held controlled values (`open`, `value`) are defined from the first render.
+- Do not wrap a document's `className` in `cn()`: every library component already merges
+  its own.
+
+## CSS: tokens only
+
+The renderer's stylesheet and the built-ins speak the contract's tokens and nothing else: no
+raw lengths or colours, no Tailwind defaults (`p-4`, `text-sm`). Every class the renderer
+defines carries the `r-renderer-` prefix. Its rules sit in `@layer components`, so a
+document's `className` wins.
+
+## The gates (`bun run check`)
+
+| Script | Asserts |
+| --- | --- |
+| `verify:react-free` | the React-free subpaths' module graphs (type imports included) reach no React, library, lucide, CSS package or `.tsx`, and zod only under `./zod`; each entry is still published under its subpath (fixture test proves each rule) |
+| `verify:no-suppressions` | no lint or TypeScript suppression directive in sources, tests, gates or configs (fixture test) |
+| `verify:source-text` | no raw control character in any text file, which would make git treat it as binary (test writes its bad fixture at run time) |
+| `typecheck`, `lint`, `test` | tsc strict (+ `noUncheckedIndexedAccess`), eslint (narrow; inline config off), vitest (jsdom) |
+
+**Never suppress** a TypeScript or ESLint error. Fix it.
+
+## Testing
+
+Read the family's `guides/tests.md`. Shared helpers are in `test-utils.ts`:
+`renderThrowing` (a render a node is expected to throw in, silenced only there),
+`queryDiagnostics` (every diagnostic in `document.body`, hidden ones included),
+`createMountProbe` (mount counts per id, for no-remount claims while streaming),
+`stubPopover` / `stubDialog` (per test, never global). Run new tests on one worker.

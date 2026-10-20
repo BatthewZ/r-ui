@@ -1,0 +1,5 @@
+{
+  "name": "fixture",
+  "exports": { "./spec": "./x.js", "./stream": "./x.js", "./zod": "./x.js" },
+  "bin": { "r-ui-validate": "./x.js" }
+}
