@@ -1,17 +1,16 @@
-import { parseISODate, type StandardSchemaIssue, type StandardSchemaV1, toISODate } from "@batthewz/r-ui-react-components";
+import { type StandardSchemaIssue, type StandardSchemaV1, toISODate } from "@batthewz/r-ui-react-components";
 
 import { toJsonValue } from "../runtime/event-value";
-import { isPlainObject, isRefMarker } from "../spec/guards";
+import { parseIsoDate } from "../spec/dates";
+import { isForbiddenSegment, isName, isPlainObject, isRefMarker } from "../spec/guards";
 import { appendPointer } from "../spec/pointer";
 import { LIMITS } from "../spec/policy";
 import {
   FIELD_TYPES,
   type FieldRules,
   type FieldType,
-  FORBIDDEN_SEGMENTS,
   type FormDef,
   type JsonValue,
-  NAME_PATTERN,
   type RuleName,
 } from "../spec/types";
 
@@ -30,8 +29,6 @@ interface CompiledField {
   readonly message: string | undefined;
   readonly messages: { readonly [R in RuleName]?: string };
 }
-
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
 
 function isFieldType(value: unknown): value is FieldType {
   return FIELD_TYPES.some((type) => type === value);
@@ -57,7 +54,7 @@ function compileFields(def: FormDef): CompiledField[] {
   const out: CompiledField[] = [];
   for (const key of Object.keys(fields)) {
     const field: unknown = fields[key];
-    if (!NAME_PATTERN.test(key) || FORBIDDEN.has(key) || !isPlainObject(field)) continue;
+    if (!isName(key) || !isPlainObject(field)) continue;
     const rules: FieldRules = isPlainObject(field.rules) ? field.rules : {};
     out.push({
       key,
@@ -80,7 +77,7 @@ function isEmpty(value: unknown, type: FieldType): boolean {
 
 /** A date bound as `YYYY-MM-DD`, or undefined when it names no date. */
 function dateBound(bound: unknown): string | undefined {
-  const date = typeof bound === "string" ? parseISODate(bound) : null;
+  const date = typeof bound === "string" ? parseIsoDate(bound) : null;
   return date === null ? undefined : toISODate(date);
 }
 
@@ -148,7 +145,7 @@ function check(field: CompiledField, value: unknown): string | undefined {
 function toOutput(values: FormValues, types: ReadonlyMap<string, FieldType>): FormOutput {
   const out: { [field: string]: JsonValue } = {};
   for (const key of Object.keys(values)) {
-    if (FORBIDDEN.has(key)) continue;
+    if (isForbiddenSegment(key)) continue;
     const type = types.get(key);
     const json = toJsonValue(values[key], type === "date" || type === "dateRange" ? "date" : "auto");
     if (json !== undefined) out[key] = json;
@@ -188,7 +185,7 @@ export function compileFormSchema(def: FormDef): StandardSchemaV1<FormValues, Fo
 
 function toDate(value: unknown): Date | null {
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  return typeof value === "string" ? parseISODate(value) : null;
+  return typeof value === "string" ? parseIsoDate(value) : null;
 }
 
 /** A JSON value as the field type's control holds it; the type's empty value when it does not fit. */

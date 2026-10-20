@@ -1,8 +1,9 @@
 /**
- * ISO text to `Date`, strictly. A bare `YYYY-MM-DD` is that calendar date at
- * local midnight (never UTC midnight, which is the previous day west of
- * Greenwich); a date-time with `Z` or an offset is that instant, without one
- * it is local time. Impossible dates and times are refused, never rolled over.
+ * ISO text to `Date`, strictly: the one parser the renderer, the forms and the
+ * validator share. A bare `YYYY-MM-DD` is that calendar date at local midnight
+ * (never UTC midnight, which is the previous day west of Greenwich); a
+ * date-time with `Z` or an offset is that instant, without one it is local
+ * time. Impossible dates and times are refused, never rolled over.
  */
 
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
@@ -80,4 +81,14 @@ export function parseIsoDateTimeUtc(text: string): Date | null {
   const utc = new Date(0);
   utc.setUTCFullYear(year, month - 1, day);
   return utc;
+}
+
+/** A bare `YYYY-MM-DD` naming a real calendar date. */
+export function isIsoDate(text: string): boolean {
+  return parseIsoDate(text) !== null;
+}
+
+/** A real date, or a real date and time with an optional `Z` or `±hh:mm` offset. */
+export function isIsoDateTime(text: string): boolean {
+  return parseIsoDateTime(text) !== null;
 }

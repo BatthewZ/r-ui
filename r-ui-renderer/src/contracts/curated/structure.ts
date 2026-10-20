@@ -53,6 +53,45 @@ export const FIELD_NAMES: CuratedTable<"fieldName"> = {
   Field: true,
 };
 
+/**
+ * `name` names the hidden input(s) the component submits: a DOM name. The
+ * deriver adds every component whose native attributes carry `name` (Input,
+ * Select, Button, …); this lists the ones that declare their own.
+ */
+export const DOM_NAMES: CuratedTable<"domName"> = {
+  Combobox: true,
+  MultiSelect: true,
+  RadioGroup: true,
+  RangeSlider: true,
+  Rating: true,
+  SegmentedControl: true,
+  Slider: true,
+  TagInput: true,
+  TimeField: true,
+  TimePicker: true,
+  ToggleGroup: true,
+};
+
+/**
+ * Components whose own `name` means something else, and keeps it. Not a
+ * contract field (keeping is the default); the classification the name gate
+ * reads, so a new library `name` prop is decided rather than defaulted.
+ */
+export const OWN_NAMES: { readonly [name: string]: string } = {
+  Avatar: "The person or thing; its initials show without a picture.",
+  Testimonial: "Who said it.",
+};
+
+/** Parents whose children sit in element-structured markup: a diagnostic there goes to the issue log. */
+export const STRUCTURAL_CHILDREN: CuratedTable<"structuralChildren"> = {
+  Table: true,
+  "Table.Head": true,
+  "Table.Body": true,
+  "Table.Row": true,
+  DescriptionList: true,
+  Select: true,
+};
+
 /** Props whose string names a declared form; the renderer passes that form's handle. */
 export const FORM_PROPS: CuratedTable<"formProps"> = {
   Form: ["form"],

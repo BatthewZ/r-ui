@@ -124,6 +124,8 @@ const CONTRACT_FIELD_TYPES: { readonly [K in keyof Required<ComponentContract>]:
   textChildren: "boolean",
   dialog: "boolean",
   fieldName: "boolean",
+  domName: "boolean",
+  structuralChildren: "boolean",
   formProps: "array",
   namespacedProps: "array",
   intlProps: "object",

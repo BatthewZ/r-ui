@@ -28,6 +28,12 @@ const SCALAR_KEYS: ReadonlySet<string> = new Set([
 
 const LENGTH_KEYS: ReadonlySet<string> = new Set(["width", "minWidth", "maxWidth"]);
 
+/** Keys the renderer builds the library's column from, not passing them on: it has no `field` or `format`. */
+export const BRIDGED_COLUMN_KEYS = ["field", "format"] as const;
+
+/** Every column key this module reads; any other is dropped as unknown. */
+export const COLUMN_KEYS: readonly string[] = ["id", "header", "cell", "filter", ...BRIDGED_COLUMN_KEYS, ...SCALAR_KEYS, ...LENGTH_KEYS];
+
 /** A CSS length, a keyword width or a `calc()` of them; it lands in a custom property read as a width. */
 const CSS_LENGTH = /^(?:-?(?:\d+|\d*\.\d+)(?:px|rem|em|ch|ex|lh|%|vw|vh|cqi|cqw)?|auto|min-content|max-content|fit-content|calc\([\w\s.+\-*/(),%]*\))$/;
 

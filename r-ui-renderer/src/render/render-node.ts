@@ -4,25 +4,28 @@ import { createElement, Fragment, isValidElement, type ReactNode } from "react";
 import { contractFor, exclusionFor } from "../contracts";
 import { DIAGNOSTIC_CLASSES } from "../diagnostics";
 import { lookupComponent } from "../registry/registry";
-import { isFormatMarker, isPlainObject, isRefMarker, nodeKind } from "../spec/guards";
+import { isFormatMarker, isName, isPlainObject, isRefMarker, nodeKind } from "../spec/guards";
+import { makeIssue } from "../spec/issue";
 import { appendPointer } from "../spec/pointer";
 import { LIMITS } from "../spec/policy";
 import { walkSegments } from "../spec/ref-path";
-import { type ComponentContract, NAME_PATTERN, REF_ROOTS } from "../spec/types";
+import { type ComponentContract, REF_ROOTS } from "../spec/types";
 import { isPending } from "../stream/pending";
 import { Icon } from "./builtins/Icon";
 import { fieldSegments } from "./coerce";
 import { evaluateCondition } from "./conditions";
-import { issueOf, placeDiagnostic, reportIssue } from "./diagnostic";
-import { STRUCTURAL_ELEMENTS, STRUCTURAL_PARENTS } from "./host-policy";
+import { placeDiagnostic, reportIssue } from "./diagnostic";
 import { memoised, type Slot } from "./memo";
 import { NodeBoundary } from "./NodeBoundary";
 import { buildProps, iconElement } from "./props";
 import { PropResolver } from "./resolve";
 import { childScope, refScopeOf, type Scope } from "./scope";
-import { readValue, valueText } from "./text";
+import { valueText } from "../runtime/resolve";
+import { readValue } from "./text";
 
 const ROOT_SLOT: Slot = { boundary: true, structural: false };
+/** Elements a layout component may render as (`as`) whose children are structured: no diagnostic element may stand there. */
+const STRUCTURAL_ELEMENTS: ReadonlySet<string> = new Set(["ul", "ol"]);
 const EMPTY_CONTRACT: ComponentContract = { category: "custom" };
 const RESERVED: ReadonlySet<string> = new Set<string>(REF_ROOTS);
 
@@ -55,7 +58,7 @@ function renderAt(node: unknown, scope: Scope, slot: Slot): ReactNode {
   if (scope.depth > LIMITS.depth) {
     return placeDiagnostic(
       scope,
-      issueOf("limit-exceeded", scope.path, `Nodes nest deeper than ${LIMITS.depth} levels; the rest is not rendered.`),
+      makeIssue("limit-exceeded", scope.path, `Nodes nest deeper than ${LIMITS.depth} levels; the rest is not rendered.`),
       slot.structural,
       slot.key,
     );
@@ -63,14 +66,14 @@ function renderAt(node: unknown, scope: Scope, slot: Slot): ReactNode {
   if (isPending(node) || node === undefined) return pendingFallback(scope, slot);
   if (typeof node === "string") return keyed(node, slot.key);
   if (!isPlainObject(node)) {
-    return placeDiagnostic(scope, issueOf("invalid-node", scope.path, "Not a node: text or an object."), slot.structural, slot.key);
+    return placeDiagnostic(scope, makeIssue("invalid-node", scope.path, "Not a node: text or an object."), slot.structural, slot.key);
   }
   return memoised(node, scope, slot, () => {
     try {
       return renderObject(node, scope, slot);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      return placeDiagnostic(scope, issueOf("render-error", scope.path, message), slot.structural, slot.key);
+      return placeDiagnostic(scope, makeIssue("render-error", scope.path, message), slot.structural, slot.key);
     }
   });
 }
@@ -94,7 +97,7 @@ function renderObject(node: Record<string, unknown>, scope: Scope, slot: Slot): 
   }
   return placeDiagnostic(
     scope,
-    issueOf("invalid-node", scope.path, "Not a node: a node has one of `component`, `$ref`, `$format`, `$each` or `$cond`."),
+    makeIssue("invalid-node", scope.path, "Not a node: a node has one of `component`, `$ref`, `$format`, `$each` or `$cond`."),
     slot.structural,
     slot.key,
   );
@@ -112,8 +115,8 @@ function renderRef(path: string, scope: Scope, slot: Slot): ReactNode {
 
 function renderEach(node: Record<string, unknown>, source: string, scope: Scope, slot: Slot): ReactNode {
   const alias = node.as;
-  if (typeof alias !== "string" || !NAME_PATTERN.test(alias) || RESERVED.has(alias)) {
-    return placeDiagnostic(scope, issueOf("invalid-name", appendPointer(scope.path, "as"), "`as` is a name that is not a scope root."), slot.structural, slot.key);
+  if (!isName(alias) || RESERVED.has(alias)) {
+    return placeDiagnostic(scope, makeIssue("invalid-name", appendPointer(scope.path, "as"), "`as` is a name that is not a scope root."), slot.structural, slot.key);
   }
   const items = readValue(source, refScopeOf(scope));
   if (!Array.isArray(items)) {
@@ -161,7 +164,7 @@ function sensitiveAllowed(allow: boolean | readonly string[], name: string): boo
 function renderComponent(node: Record<string, unknown>, name: string, scope: Scope, slot: Slot): ReactNode {
   const { ctx } = scope;
   const place = (code: "unknown-component" | "not-addressable" | "sensitive-component", message: string) =>
-    placeDiagnostic(scope, issueOf(code, appendPointer(scope.path, "component"), message), slot.structural, slot.key);
+    placeDiagnostic(scope, makeIssue(code, appendPointer(scope.path, "component"), message), slot.structural, slot.key);
   const Component = lookupComponent(ctx.registry, name);
   if (Component === undefined) {
     const exclusion = exclusionFor(name);
@@ -185,7 +188,7 @@ function renderComponent(node: Record<string, unknown>, name: string, scope: Sco
     }
   }
 
-  const structural = STRUCTURAL_PARENTS.has(name) || (typeof props.as === "string" && STRUCTURAL_ELEMENTS.has(props.as));
+  const structural = contract.structuralChildren === true || (typeof props.as === "string" && STRUCTURAL_ELEMENTS.has(props.as));
   const children = renderChildren(node, contract, scope, structural);
   const all = built.leading.length > 0 ? [...built.leading, ...(children ?? [])] : children;
   const elementKey = slot.boundary ? undefined : slot.key;

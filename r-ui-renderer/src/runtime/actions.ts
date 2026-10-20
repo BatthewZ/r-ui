@@ -1,14 +1,13 @@
 import type { FormRegistry } from "../forms/registry";
-import { isAction, isHandler, isPlainObject } from "../spec/guards";
+import { isAction, isHandler, isName, isPlainObject } from "../spec/guards";
 import { appendPointer } from "../spec/pointer";
 import { LIMITS } from "../spec/policy";
+import { makeIssue } from "../spec/issue";
 import {
   HTTP_METHODS,
   type IssueCode,
-  ISSUE_CODE_INFO,
   type JsonValue,
   LITERAL_PAYLOAD_KEYS,
-  NAME_PATTERN,
   TOAST_TONES,
   type ToastTone,
 } from "../spec/types";
@@ -17,7 +16,7 @@ import type { RendererAdapters } from "./adapters";
 import type { ActionDispatcher, DialogState, IssueReporter, RefRoots } from "./context";
 import { readEventArgs, readEventValue } from "./event-value";
 import { performRequest, prepareRequest } from "./request";
-import { type FormatValue, plainFormat, type RefScope, resolveValue } from "./resolve";
+import { type FormatValue, plainFormat, type RefScope, resolveValue, valueText } from "./resolve";
 import type { SetStateOptions } from "./state";
 
 export interface DispatcherDeps {
@@ -66,17 +65,11 @@ function isToastTone(value: unknown): value is ToastTone {
   return typeof value === "string" && TONES.has(value);
 }
 
-function asText(value: unknown): string | undefined {
-  if (typeof value === "string") return value;
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  return undefined;
-}
-
 export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
   const format = deps.format ?? plainFormat;
 
   function fail(code: IssueCode, path: string, message: string): never {
-    deps.report({ code, path, severity: ISSUE_CODE_INFO[code].severity, message });
+    deps.report(makeIssue(code, path, message));
     throw new ActionFailure(message);
   }
 
@@ -87,12 +80,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
   async function runHandler(handler: unknown, path: string, vars: RefScope, event: EventScope, depth: number): Promise<void> {
     const list = Array.isArray(handler) ? (handler as readonly unknown[]) : [handler];
     if (list.length > LIMITS.actionsPerHandler) {
-      deps.report({
-        code: "limit-exceeded",
-        path,
-        severity: ISSUE_CODE_INFO["limit-exceeded"].severity,
-        message: `A handler runs at most ${LIMITS.actionsPerHandler} actions; the rest did not run.`,
-      });
+      deps.report(makeIssue("limit-exceeded", path, `A handler runs at most ${LIMITS.actionsPerHandler} actions; the rest did not run.`));
     }
     const actions = list.slice(0, LIMITS.actionsPerHandler);
     for (const [index, action] of actions.entries()) {
@@ -111,12 +99,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     if (handler === undefined) return;
     if (!isHandler(handler)) fail("invalid-value", path, "Not an action or a list of actions.");
     if (depth > LIMITS.actionDepth) {
-      deps.report({
-        code: "limit-exceeded",
-        path,
-        severity: ISSUE_CODE_INFO["limit-exceeded"].severity,
-        message: `onSuccess/onError nest at most ${LIMITS.actionDepth} deep; this one did not run.`,
-      });
+      deps.report(makeIssue("limit-exceeded", path, `onSuccess/onError nest at most ${LIMITS.actionDepth} deep; this one did not run.`));
       return;
     }
     await runHandler(handler, path, vars, { value, args: [value] }, depth);
@@ -157,18 +140,13 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
       case "navigate":
         return navigate(read("to"), read("replace") === true, at("to"));
       case "showToast": {
-        const title = asText(read("title"));
+        const title = valueText(read("title")) ?? undefined;
         if (title === undefined) fail("invalid-value", at("title"), "showToast needs a text `title`.");
-        const description = asText(read("description"));
+        const description = valueText(read("description")) ?? undefined;
         const tone = read("tone");
         const { toast } = deps.getAdapters();
         if (toast === undefined) {
-          deps.report({
-            code: "missing-adapter",
-            path,
-            severity: ISSUE_CODE_INFO["missing-adapter"].severity,
-            message: "The host provides no `toast` adapter; the toast was not shown.",
-          });
+          deps.report(makeIssue("missing-adapter", path, "The host provides no `toast` adapter; the toast was not shown."));
           return;
         }
         toast({
@@ -183,7 +161,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
       case "openDialog":
       case "closeDialog": {
         const dialogId = read("dialogId");
-        if (typeof dialogId !== "string" || !NAME_PATTERN.test(dialogId)) {
+        if (!isName(dialogId)) {
           fail("invalid-name", at("dialogId"), "`dialogId` is a name.");
         }
         deps.dialogs.setOpen(dialogId, action.action === "openDialog");
@@ -232,12 +210,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     if (outcome.ok) {
       const into = read("into");
       if (into !== undefined && (typeof into !== "string" || !deps.setState(into, outcome.body, { replace: true }))) {
-        deps.report({
-          code: "invalid-ref",
-          path: at("into"),
-          severity: ISSUE_CODE_INFO["invalid-ref"].severity,
-          message: "`into` is a `state.…` path; the response was not stored.",
-        });
+        deps.report(makeIssue("invalid-ref", at("into"), "`into` is a `state.…` path; the response was not stored."));
       }
       await runChained(read("onSuccess"), appendPointer(payloadPath, "onSuccess"), vars, outcome.body, depth + 1);
       return;
@@ -246,7 +219,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     const error: ActionErrorValue = { status: outcome.status, message: outcome.message, body: outcome.body };
     const onError = read("onError");
     if (onError === undefined) {
-      deps.report({ code: "action-failed", path, severity: ISSUE_CODE_INFO["action-failed"].severity, message: outcome.message });
+      deps.report(makeIssue("action-failed", path, outcome.message));
     } else {
       try {
         await runChained(onError, appendPointer(payloadPath, "onError"), vars, error, depth + 1);

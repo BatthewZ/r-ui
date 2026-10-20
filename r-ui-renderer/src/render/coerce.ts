@@ -6,23 +6,21 @@
 
 import { createElement, type ReactNode } from "react";
 
-import { isPlainObject } from "../spec/guards";
-import { FORBIDDEN_SEGMENTS, type DateKind } from "../spec/types";
+import { isForbiddenSegment, isPlainObject } from "../spec/guards";
+import type { DateKind } from "../spec/types";
 import { walkSegments } from "../spec/ref-path";
-import { ISO_SHAPED, parseIsoDateTime } from "./dates";
+import { ISO_SHAPED, parseIsoDateTime } from "../spec/dates";
 
 /** What a coercion makes of a value it cannot use: dropped, with why. */
 export class Refusal {
   constructor(readonly reason: string) {}
 }
 
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
-
 /** A dot path's segments (`"billing.monthly"`), or null when a segment is empty or forbidden. */
 export function fieldSegments(path: unknown): readonly string[] | null {
   if (typeof path !== "string" || path.length === 0) return null;
   const segments = path.split(".");
-  return segments.every((segment) => segment.length > 0 && !FORBIDDEN.has(segment)) ? segments : null;
+  return segments.every((segment) => segment.length > 0 && !isForbiddenSegment(segment)) ? segments : null;
 }
 
 /**

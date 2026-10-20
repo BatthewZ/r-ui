@@ -20,7 +20,7 @@ import {
   SENSITIVE,
   URL_PROPS,
 } from "./curated/sinks";
-import { CHILD_INSPECTION, DIALOGS, FIELD_NAMES, FORM_PROPS, TEXT_CHILDREN } from "./curated/structure";
+import { CHILD_INSPECTION, DIALOGS, DOM_NAMES, FIELD_NAMES, FORM_PROPS, STRUCTURAL_CHILDREN, TEXT_CHILDREN } from "./curated/structure";
 import type { CuratedTable } from "./curated/table";
 import {
   COERCIONS,
@@ -45,6 +45,8 @@ export interface GeneratedComponent {
   readonly slots?: readonly string[];
   readonly nodeProps?: readonly PropPath[];
   readonly nativeAttributes?: boolean;
+  /** Its native attributes carry a DOM `name`. */
+  readonly domName?: boolean;
 }
 
 /** Every path the library's declarations allow for a component, and which of them hold what JSON cannot. */
@@ -82,6 +84,8 @@ export const CURATED_FIELDS = {
   textChildren: TEXT_CHILDREN,
   dialog: DIALOGS,
   fieldName: FIELD_NAMES,
+  domName: DOM_NAMES,
+  structuralChildren: STRUCTURAL_CHILDREN,
   formProps: FORM_PROPS,
   namespacedProps: NAMESPACED_PROPS,
   intlProps: INTL_PROPS,
@@ -157,6 +161,7 @@ function assemble(name: string, library: GeneratedComponent): ComponentContract 
   if (nodes.length > 0) record.nodeProps = nodes;
   if (dropped.length > 0) record.droppedProps = dropped;
   if (library.nativeAttributes) record.nativeAttributes = true;
+  if (library.domName) record.domName = true;
   for (const [field, table] of Object.entries(CURATED_FIELDS)) {
     if (Object.hasOwn(table, name)) record[field] = (table as Record<string, unknown>)[name];
   }

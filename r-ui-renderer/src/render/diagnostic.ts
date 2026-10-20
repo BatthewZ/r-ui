@@ -1,23 +1,14 @@
 import { createElement, type ReactElement, type ReactNode } from "react";
 
-import { DIAGNOSTIC_CLASSES, severityClass } from "../diagnostics";
-import { type Issue, type IssueCode, ISSUE_CODE_INFO } from "../spec/types";
+import { diagnosticAttributes } from "../diagnostics";
+import { makeIssue } from "../spec/issue";
+import type { Issue, IssueCode } from "../spec/types";
 import type { Scope } from "./scope";
-
-export function issueOf(code: IssueCode, path: string, message: string): Issue {
-  return { code, path, severity: ISSUE_CODE_INFO[code].severity, message };
-}
 
 /** The element that shows `issue` where its node would have been. */
 export function diagnosticElement(issue: Issue, key?: string, extraClass?: string): ReactElement {
-  const classes = [DIAGNOSTIC_CLASSES.diagnostic, severityClass(issue.severity)];
-  if (extraClass !== undefined) classes.push(extraClass);
   // A span, so it is valid inside phrasing content too; the stylesheet makes it a block.
-  return createElement(
-    "span",
-    { key, className: classes.join(" "), "data-code": issue.code, "data-path": issue.path },
-    issue.message,
-  );
+  return createElement("span", { key, ...diagnosticAttributes(issue, extraClass) }, issue.message);
 }
 
 /**
@@ -35,5 +26,5 @@ export function placeDiagnostic(scope: Scope, issue: Issue, structural: boolean,
 
 /** An issue no element shows (a dropped prop, an unrenderable value): the issue log lists it. */
 export function reportIssue(scope: Scope, code: IssueCode, path: string, message: string): void {
-  scope.ctx.report(issueOf(code, path, message));
+  scope.ctx.report(makeIssue(code, path, message));
 }

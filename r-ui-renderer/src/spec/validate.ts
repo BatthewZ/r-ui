@@ -3,7 +3,8 @@ import type { ComponentContracts, Issue, ValidationResult, ViewSpec } from "./ty
 import { adviseDocument } from "./validate-advice";
 import { findNonJson, parseText } from "./validate-json";
 import { VIEWSPEC_SCHEMA } from "./validate-schema";
-import { makeIssue, SchemaInterpreter } from "./validate-structure";
+import { makeIssue } from "./issue";
+import { SchemaInterpreter } from "./validate-structure";
 import { CLASS_VOCABULARY, ICON_NAMES } from "./vocabulary";
 
 export interface ValidateOptions {

@@ -18,12 +18,12 @@ import type { FormatValue } from "./runtime/resolve";
 import { useViewRuntime } from "./runtime/use-view-runtime";
 import { defaultContracts } from "./contracts";
 import { isPlainObject } from "./spec/guards";
+import { makeIssue } from "./spec/issue";
 import {
   type ComponentContracts,
   DENSITIES,
   type Density,
   type Issue,
-  ISSUE_CODE_INFO,
   type ValidationResult,
   type ViewSpec,
 } from "./spec/types";
@@ -118,24 +118,6 @@ function useStableList<T>(list: readonly T[]): readonly T[] {
   return kept.current;
 }
 
-function sameEntries(a: { readonly [key: string]: unknown }, b: { readonly [key: string]: unknown }): boolean {
-  const keys = Object.keys(a);
-  return keys.length === Object.keys(b).length && keys.every((key) => Object.hasOwn(b, key) && Object.is(a[key], b[key]));
-}
-
-/**
- * The runtime's roots, kept as the same objects while every binding's value
- * and status is: a streaming snapshot rebuilds them each time, and rendering
- * memoises on their identity.
- */
-function useStableRoots<R extends { readonly [K in keyof R]: { readonly [key: string]: unknown } }>(roots: R): R {
-  const kept = useRef(roots);
-  const previous = kept.current;
-  const same = (Object.keys(roots) as (keyof R)[]).every((key) => sameEntries(previous[key], roots[key]));
-  if (!same) kept.current = roots;
-  return kept.current;
-}
-
 /** The names the document's `forms` declares, as one stable set per distinct list. */
 function useFormNames(document: PartialDocument | undefined): ReadonlySet<string> {
   const forms = document?.forms;
@@ -186,7 +168,7 @@ export function ViewRenderer(props: ViewRendererProps): ReactNode {
   const locale = useLocale();
   const format = useMemo<FormatValue>(() => (value, options) => formatWith(value, options, locale), [locale]);
   const runtime = useViewRuntime({ document, streaming, adapters, onIssue, format });
-  const roots = useStableRoots(runtime.roots);
+  const { roots } = runtime;
   const { report } = runtime.issues;
   const namespace = useId();
 
@@ -202,7 +184,7 @@ export function ViewRenderer(props: ViewRendererProps): ReactNode {
   useEffect(() => {
     const error = snapshot.error;
     if (error === undefined) return;
-    report({ code: error.code, path: "", severity: ISSUE_CODE_INFO[error.code].severity, message: error.message });
+    report(makeIssue(error.code, "", error.message));
   }, [snapshot.error, report]);
 
   // Once per completed document, not once per new callback identity.

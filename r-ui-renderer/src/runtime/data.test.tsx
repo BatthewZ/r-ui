@@ -42,6 +42,18 @@ describe("useDataBindings", () => {
     expect(view.result.current).toEqual({ data: { summary: { uptime: 1 } }, status: { summary: "ready" } });
   });
 
+  it("keeps data and status as the same objects while only the pending set changes, and replaces them when a value does", () => {
+    const bindings = { summary: { type: "static", value: { uptime: 1 } } };
+    const view = mount({ bindings, adapters: {}, pending: new Set(["/root"]) });
+    const first = view.result.current;
+    view.rerender({ bindings, adapters: {}, pending: new Set(["/root", "/root/children"]) });
+    expect(view.result.current.data).toBe(first.data);
+    expect(view.result.current.status).toBe(first.status);
+    view.rerender({ bindings: { summary: { type: "static", value: { uptime: 2 } } }, adapters: {}, pending: NOTHING });
+    expect(view.result.current.data).toEqual({ summary: { uptime: 2 } });
+    expect(view.result.current.status).toBe(first.status);
+  });
+
   it("sends nothing without a fetch adapter and reports missing-adapter", () => {
     const view = mount({ bindings: { services: { type: "api", endpoint: "/api/services" } }, adapters: {} });
     expect(view.result.current.status).toEqual({ services: "error" });

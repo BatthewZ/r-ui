@@ -11,8 +11,10 @@ import {
   type ComponentNode,
   type CondNode,
   type EachNode,
+  FORBIDDEN_SEGMENTS,
   type FormatMarker,
   type Handler,
+  NAME_PATTERN,
   type NodeMarker,
   type RefMarker,
 } from "./types";
@@ -21,6 +23,18 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const proto: unknown = Object.getPrototypeOf(value);
   return proto === Object.prototype || proto === null;
+}
+
+const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
+
+/** `__proto__`, `constructor` or `prototype`: never a name, a path segment or a key passed on. */
+export function isForbiddenSegment(key: string): boolean {
+  return FORBIDDEN.has(key);
+}
+
+/** A name (`NAME_PATTERN`) that is not a forbidden segment: data, state, form, field, alias and dialog names. */
+export function isName(value: unknown): value is string {
+  return typeof value === "string" && NAME_PATTERN.test(value) && !FORBIDDEN.has(value);
 }
 
 function isSoleKey(value: unknown, key: string): value is Record<string, unknown> {

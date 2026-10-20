@@ -11,7 +11,9 @@ import { isExportedComponent } from "../registry/registry";
 import { BUILTIN_CONTRACTS } from "../spec/builtins";
 import { URL_PROPS as UNIVERSAL_URL_PROPS } from "../spec/policy";
 import type { ComponentContract, PropPath } from "../spec/types";
+import { nameRole } from "../spec/contract-facts";
 import { ALWAYS_DROPPED, DROPPED_PROPS, ELEMENT_PROPS, HEADING_LEVEL_PROPS } from "./curated/sinks";
+import { DOM_NAMES, FIELD_NAMES, OWN_NAMES } from "./curated/structure";
 import { DATES_READ_AS_TEXT, DOCUMENT_PROPS } from "./curated/values";
 import {
   bridgedPaths,
@@ -198,6 +200,54 @@ describe("curated tables against the library's declarations", () => {
 });
 
 // ---------------------------------------------------------------------------
+// What `name` means: every library component that declares its own is decided
+
+/** Problems with the classification of the components whose own props include `name`. */
+function nameProblems(declaring: readonly string[], tables: { readonly [table: string]: readonly string[] }): string[] {
+  const problems: string[] = [];
+  for (const name of declaring) {
+    const in_ = Object.keys(tables).filter((table) => tables[table]?.includes(name));
+    if (in_.length === 0) problems.push(`${name}: declares \`name\`, classified nowhere`);
+    if (in_.length > 1) problems.push(`${name}: classified in ${in_.join(" and ")}`);
+  }
+  for (const [table, names] of Object.entries(tables)) {
+    for (const name of names) if (!declaring.includes(name)) problems.push(`${table}: ${name} declares no own \`name\``);
+  }
+  return problems;
+}
+
+describe("what `name` means", () => {
+  it("goes red on an unclassified, a doubly classified and a stale entry", () => {
+    expect(nameProblems(["Gauge", "Dial", "Avatar"], { dom: ["Dial", "Avatar"], own: ["Avatar", "Knob"] })).toEqual([
+      "Gauge: declares `name`, classified nowhere",
+      "Avatar: classified in dom and own",
+      "own: Knob declares no own `name`",
+    ]);
+  });
+
+  it("is decided for every library component that declares its own `name`", () => {
+    const declaring = Object.entries(LIBRARY_COMPONENTS)
+      .filter(([name, generated]) => !exclusionFor(name) && generated.props.some((prop) => prop.name === "name"))
+      .map(([name]) => name);
+    expect(declaring.length).toBeGreaterThan(10);
+    const tables = { DOM_NAMES: Object.keys(DOM_NAMES), FIELD_NAMES: Object.keys(FIELD_NAMES), OWN_NAMES: Object.keys(OWN_NAMES) };
+    expect(nameProblems(declaring, tables)).toEqual([]);
+  });
+
+  it("reads a native DOM name off the declarations, and defaults to the component's own meaning", () => {
+    for (const name of ["Input", "Textarea", "Select", "Checkbox", "Switch", "Button", "Form"]) {
+      expect(nameRole(defaultContracts[name]), name).toBe("dom");
+    }
+    expect(nameRole(defaultContracts.Slider)).toBe("dom");
+    expect(nameRole(defaultContracts.Field)).toBe("field");
+    expect(nameRole(defaultContracts.Avatar)).toBe("own");
+    expect(nameRole(defaultContracts.Icon)).toBe("own");
+    expect(nameRole(defaultContracts.Card)).toBe("own");
+    expect(nameRole(undefined)).toBe("own");
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Omission: what the declarations type as un-JSON-able must be decided somewhere
 
 /** `path` is covered by an entry of `list`, itself or an ancestor. */
@@ -326,6 +376,7 @@ describe("the assembled contracts", () => {
       expect(contract.category).toBe(generated.category);
       expect(contract.slots).toBe(generated.slots);
       expect(Boolean(contract.nativeAttributes)).toBe(Boolean(generated.nativeAttributes));
+      expect(Boolean(contract.domName), `${name}.domName`).toBe(Boolean(generated.domName) || Object.hasOwn(DOM_NAMES, name));
       for (const [prop, values] of Object.entries(generated.propEnums ?? {})) {
         if (!dropped.includes(prop)) expect(contract.propEnums?.[prop], `${name}.${prop}`).toBe(values);
       }

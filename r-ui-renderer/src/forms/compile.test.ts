@@ -117,6 +117,20 @@ describe("formDefaults", () => {
     expect(formDefaults(def, () => undefined)).toEqual({ name: "", seats: 12, on: false, start: null, span: null, tags: ["a", "b"] });
   });
 
+  it("reads dates with the format's one strict parser: what the validator calls a date and nothing looser", () => {
+    const def: FormDef = {
+      fields: {
+        loose: { type: "date", initialValue: "2026-1-2" },
+        padded: { type: "date", initialValue: " 2026-11-02 " },
+        span: { type: "dateRange", initialValue: { start: "2026-11-02", end: "2026-11-9" } },
+      },
+    };
+    const values = formDefaults(def, () => undefined);
+    expect(values.loose).toBeNull();
+    expect(values.padded).toBeNull();
+    expect((values.span as { start: Date | null; end: Date | null }).end).toBeNull();
+  });
+
   it("reads a $ref initial value through the resolver", () => {
     const def: FormDef = { fields: { start: { type: "date", initialValue: { $ref: "data.plan.renewsOn" } } } };
     const seen: string[] = [];

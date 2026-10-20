@@ -56,14 +56,16 @@ export const SINK_FINDINGS: { readonly [finding: string]: readonly SinkClassific
   "components/marketing/NavigationMenu.tsx url href={item.href}": [{ excluded: "NavigationMenu" }],
   "components/marketing/NavigationMenu.tsx url href={link.href}": [{ excluded: "NavigationMenu" }],
   "components/marketing/SiteHeader.tsx url href={skipTo}": [{ excluded: "SiteHeader" }],
-  "components/marketing/Testimonial.tsx url cite={sourceUrl}": [{ component: "Testimonial", prop: "sourceUrl" }],
+  "components/marketing/Testimonial.tsx url cite={typeof sourceUrl === \"string\" ? safeUrl(sourceUrl) || undefined : undefined}": [
+    { component: "Testimonial", prop: "sourceUrl" },
+  ],
   "components/marketing/Testimonial.tsx url src={avatar}": [{ component: "Testimonial", prop: "avatar" }],
   "components/media/Image.tsx url src={placeholder}": [
     { component: "Image", prop: "placeholder" },
     { component: "MediaCard", prop: "image.placeholder" },
     { component: "Lightbox", prop: "items[].placeholder" },
   ],
-  "components/media/Image.tsx url src={src}": [
+  "components/media/Image.tsx url src={address}": [
     { component: "Image", prop: "src" },
     { component: "MediaCard", prop: "image.src" },
     { component: "Lightbox", prop: "items[].src" },
@@ -81,6 +83,7 @@ export const SINK_FINDINGS: { readonly [finding: string]: readonly SinkClassific
   "components/media/Lightbox.tsx url src={item.src}": [{ component: "Lightbox", prop: "items[].src" }],
   "components/media/Lightbox.tsx url srcSet={item.srcSet}": [{ component: "Lightbox", prop: "items[].srcSet" }],
   "components/navigation/AppShell.tsx url href={`#${mainId}`}": [{ excluded: "AppShell" }],
+  "components/navigation/NavList.tsx url href={safeUrl(given) || undefined}": [{ component: "NavList.Item", prop: "href" }],
   // `getHref` is a function, so a document cannot set it and Pagination stays in button mode.
   "components/navigation/Pagination.tsx url href={getHref(slot)}": [{ component: "Pagination", prop: "getHref" }],
   "components/navigation/Pagination.tsx url href={getHref(target)}": [{ component: "Pagination", prop: "getHref" }],

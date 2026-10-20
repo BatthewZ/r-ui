@@ -80,6 +80,7 @@ function formState() {
     errors: Record<string, string>;
     submitting: boolean;
     submitFailed: boolean;
+    submitCount: number;
     dirty: boolean;
   } | null;
 }
@@ -220,6 +221,25 @@ describe("FormsRoot", () => {
     });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(runtime?.roots.state).toEqual({ sent: true });
+  });
+
+  it("does nothing on a submit until the whole document has arrived: no store change, no onSubmit", async () => {
+    const fetch = vi.fn(() => Promise.resolve(json({})));
+    const streaming: StreamingState = { complete: false, pending: new Set(["", "/root"]), fallback: "none" };
+    const { rerender } = render(<View doc={contactDoc()} adapters={{ fetch }} streaming={streaming} />);
+    await userEvent.type(screen.getByLabelText("Email"), "ada@aurora.test");
+    const before = formState();
+
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await act(async () => {});
+    expect(fetch).toHaveBeenCalledTimes(0);
+    expect(formState()).toEqual(before);
+    expect(formState()).toMatchObject({ submitting: false, submitCount: 0 });
+
+    rerender(<View doc={contactDoc()} adapters={{ fetch }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(formState()).toMatchObject({ submitCount: 1 });
   });
 
   it("waits while the def is still streaming", () => {

@@ -3,14 +3,12 @@ import { type ReactNode, useLayoutEffect, useMemo, useRef, useState, useSyncExte
 
 import { ActionFailure } from "../runtime/actions";
 import type { ActionDispatcher, IssueReporter, RefRoots, StreamingState } from "../runtime/context";
-import { isHandler, isPlainObject } from "../spec/guards";
+import { isHandler, isName, isPlainObject } from "../spec/guards";
 import { appendPointer } from "../spec/pointer";
 import { parseRefPath, readRef } from "../spec/ref-path";
+import { makeIssue } from "../spec/issue";
 import {
-  FORBIDDEN_SEGMENTS,
   type FormDef,
-  ISSUE_CODE_INFO,
-  NAME_PATTERN,
   VALIDATION_TRIGGERS,
   type ValidationTrigger,
 } from "../spec/types";
@@ -32,8 +30,6 @@ export interface FormsRootProps {
   readonly report: IssueReporter;
   readonly children: (forms: FormsSnapshot) => ReactNode;
 }
-
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
 
 function isTrigger(value: unknown): value is ValidationTrigger {
   return VALIDATION_TRIGGERS.some((trigger) => trigger === value);
@@ -61,7 +57,7 @@ function serverFieldErrors(error: unknown): Record<string, string> | undefined {
   if (!isPlainObject(body) || !isPlainObject(body.errors)) return undefined;
   const entries = Object.entries(body.errors).filter(
     (entry): entry is [string, string] =>
-      NAME_PATTERN.test(entry[0]) && !FORBIDDEN.has(entry[0]) && typeof entry[1] === "string" && entry[1] !== "",
+      isName(entry[0]) && typeof entry[1] === "string" && entry[1] !== "",
   );
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
@@ -69,17 +65,19 @@ function serverFieldErrors(error: unknown): Record<string, string> | undefined {
 interface FormHostProps {
   readonly name: string;
   readonly def: FormDef;
+  /** The whole document has arrived. */
+  readonly complete: boolean;
   readonly roots: Roots;
   readonly dispatch: ActionDispatcher;
   readonly registry: FormRegistry;
 }
 
 /** One form's `useForm`, published to the registry. Renders nothing. */
-function FormHost({ name, def, roots, dispatch, registry }: FormHostProps): null {
+function FormHost({ name, def, complete, roots, dispatch, registry }: FormHostProps): null {
   const [defaultValues] = useState(() => formDefaults(def, resolverFor(roots)));
-  const latest = useRef({ def, roots, dispatch });
+  const latest = useRef({ def, complete, roots, dispatch });
   useLayoutEffect(() => {
-    latest.current = { def, roots, dispatch };
+    latest.current = { def, complete, roots, dispatch };
   });
   const schema = useMemo(() => compileFormSchema(def), [def]);
   const path = appendPointer("/forms", name);
@@ -108,9 +106,14 @@ function FormHost({ name, def, roots, dispatch, registry }: FormHostProps): null
     },
   });
 
-  // `reset()` re-reads initial values that `$ref` data or state.
   const handle = useMemo<ViewFormApi>(
-    () => ({ ...api, reset: (values) => api.reset(values ?? formDefaults(latest.current.def, resolverFor(latest.current.roots))) }),
+    () => ({
+      ...api,
+      // Actions are inert until the document has arrived, so a submit could not run `onSubmit`: until then it does nothing at all.
+      submit: () => (latest.current.complete ? api.submit() : Promise.resolve(false)),
+      // Re-reads initial values that `$ref` data or state.
+      reset: (values) => api.reset(values ?? formDefaults(latest.current.def, resolverFor(latest.current.roots))),
+    }),
     [api],
   );
   const { store } = api;
@@ -137,21 +140,23 @@ export function FormsRoot(props: FormsRootProps): ReactNode {
   if (isPlainObject(defs)) {
     for (const name of Object.keys(defs)) {
       const path = appendPointer("/forms", name);
-      if (streaming.pending.has(path) || !NAME_PATTERN.test(name) || FORBIDDEN.has(name)) continue;
+      if (streaming.pending.has(path) || !isName(name)) continue;
       const formDef = defs[name];
       if (!isFormDefShape(formDef)) {
-        report({ code: "invalid-value", path, severity: ISSUE_CODE_INFO["invalid-value"].severity, message: `Form "${name}" has no \`fields\` object.` });
+        report(makeIssue("invalid-value", path, `Form "${name}" has no \`fields\` object.`));
         continue;
       }
       for (const problem of formDefProblems(formDef)) {
-        report({ code: "invalid-value", path: path + problem.path, severity: ISSUE_CODE_INFO["invalid-value"].severity, message: problem.message });
+        report(makeIssue("invalid-value", path + problem.path, problem.message));
       }
       const key = `${name}\u0000${formDefHash(formDef)}`;
       if (!mounted.has(key)) {
         if (!refsSettled(formDef, roots)) continue;
         mounted.add(key);
       }
-      hosts.push(<FormHost key={key} name={name} def={formDef} roots={roots} dispatch={dispatch} registry={registry} />);
+      hosts.push(
+        <FormHost key={key} name={name} def={formDef} complete={streaming.complete} roots={roots} dispatch={dispatch} registry={registry} />,
+      );
     }
   }
 

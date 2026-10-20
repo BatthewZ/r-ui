@@ -6,12 +6,11 @@
  * its identity, so a re-render hands a component the same object.
  */
 
-import { isFormatMarker, isHandler, isNodeMarker, isPlainObject, isRefMarker } from "../spec/guards";
+import { isForbiddenSegment, isFormatMarker, isHandler, isNodeMarker, isPlainObject, isRefMarker } from "../spec/guards";
 import { LIMITS } from "../spec/policy";
 import { appendPointer } from "../spec/pointer";
 import {
   type EventValueKind,
-  FORBIDDEN_SEGMENTS,
   type FormatMarker,
   type Handler,
   HANDLER_KEY_PATTERN,
@@ -20,12 +19,11 @@ import {
 import { reportIssue } from "./diagnostic";
 import { formatWith, toFormatOptions } from "./format";
 import type { Slot } from "./memo";
-import { DROP, setOwn } from "./prop-path";
+import { DROP, setOwn } from "../spec/prop-path";
 import { propNodeScope, refScopeOf, type Scope } from "./scope";
 import type { RenderAt } from "./templates";
-import { readValue, valueText } from "./text";
-
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
+import { valueText } from "../runtime/resolve";
+import { readValue } from "./text";
 
 /** A `$node` in a prop: its parent never reads it as a child, so it may carry a boundary. */
 const PROP_NODE_SLOT: Slot = { boundary: true, structural: false };
@@ -88,7 +86,7 @@ export class PropResolver {
       const item = value[key];
       const keyPath = appendPointer(path, key);
       let next: unknown;
-      if (FORBIDDEN.has(key)) next = this.drop("forbidden-prop", keyPath, `\`${key}\` is never passed on.`);
+      if (isForbiddenSegment(key)) next = this.drop("forbidden-prop", keyPath, `\`${key}\` is never passed on.`);
       else if (HANDLER_KEY_PATTERN.test(key)) {
         next = isHandler(item)
           ? handlerCallback(item, this.scope, keyPath)

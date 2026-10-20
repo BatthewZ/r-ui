@@ -415,7 +415,6 @@ export interface DataTableColumnSpec {
   readonly firstDirection?: "asc" | "desc";
   readonly priority?: 1 | 2 | 3 | 4 | 5;
   readonly truncate?: boolean;
-  readonly wrap?: boolean;
   readonly required?: boolean;
   readonly resizable?: boolean;
   /** A CSS length or `calc()`. */
@@ -639,6 +638,18 @@ export interface ComponentContract {
   readonly dialog?: true;
   /** `name` is a form field key, not a DOM name. */
   readonly fieldName?: true;
+  /**
+   * `name` reaches a form control's DOM `name` (a native one, or a hidden
+   * input the component submits): a document's is dropped. Without this or
+   * `fieldName`, `name` is the component's own and passes on.
+   */
+  readonly domName?: true;
+  /**
+   * Its children sit in element-structured markup (table rows and cells,
+   * `<dl>`, `<select>`): a diagnostic element there would be invalid, so the
+   * issue log shows it instead.
+   */
+  readonly structuralChildren?: true;
   /** Props whose value names a declared form; the renderer passes the form's handle. */
   readonly formProps?: readonly string[];
   /** Props whose string the renderer prefixes per view (persisted keys). */

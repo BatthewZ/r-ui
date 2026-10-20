@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { sameEntries } from "../spec/equal";
 import { isPlainObject } from "../spec/guards";
 import { appendPointer } from "../spec/pointer";
-import { type BindingStatus, type IssueCode, ISSUE_CODE_INFO, type JsonValue } from "../spec/types";
+import { makeIssue } from "../spec/issue";
+import { type BindingStatus, type IssueCode, type JsonValue } from "../spec/types";
 import type { RendererAdapters } from "./adapters";
 import type { IssueReporter } from "./context";
 import { toJsonValue } from "./event-value";
@@ -47,7 +49,7 @@ function resolveFromState(value: unknown, state: DataBindingsOptions["state"]): 
 function planBinding(name: string, binding: unknown, options: DataBindingsOptions): Plan {
   const path = appendPointer("/data", name);
   const refuse = (code: IssueCode, message: string): Plan => {
-    options.report({ code, path, severity: ISSUE_CODE_INFO[code].severity, message });
+    options.report(makeIssue(code, path, message));
     return { kind: "refused" };
   };
   if (!isPlainObject(binding)) return refuse("invalid-value", `Data binding "${name}" is not an object.`);
@@ -145,12 +147,7 @@ export function useDataBindings(bindings: unknown, options: DataBindingsOptions)
           if (controller.signal.aborted) return;
           running.delete(name);
           if (!outcome.ok) {
-            report({
-              code: "data-error",
-              path: appendPointer("/data", name),
-              severity: ISSUE_CODE_INFO["data-error"].severity,
-              message: `Data binding "${name}" failed: ${outcome.message}`,
-            });
+            report(makeIssue("data-error", appendPointer("/data", name), `Data binding "${name}" failed: ${outcome.message}`));
           }
           setResults((current) => ({ ...current, [name]: { key: plan.key, outcome } }));
         },
@@ -170,7 +167,8 @@ export function useDataBindings(bindings: unknown, options: DataBindingsOptions)
     };
   }, []);
 
-  return useMemo(() => {
+  const shown = useRef<DataSnapshot | undefined>(undefined);
+  const next = useMemo(() => {
     const data: { [name: string]: unknown } = {};
     const status: { [name: string]: BindingStatus } = {};
     for (const [name, plan] of plans) {
@@ -192,4 +190,13 @@ export function useDataBindings(bindings: unknown, options: DataBindingsOptions)
     }
     return { data, status };
   }, [plans, results]);
+  // A streamed chunk re-plans every binding; what reads `data` and `status` memoises on their identity.
+  const previous = shown.current;
+  if (previous === undefined) shown.current = next;
+  else {
+    const data = sameEntries(previous.data, next.data) ? previous.data : next.data;
+    const status = sameEntries(previous.status, next.status) ? previous.status : next.status;
+    if (data !== previous.data || status !== previous.status) shown.current = { data, status };
+  }
+  return shown.current ?? next;
 }

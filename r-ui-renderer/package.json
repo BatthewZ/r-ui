@@ -64,12 +64,14 @@
     "test:watch": "vitest",
     "derive:contracts": "node scripts/derive-contracts.mjs",
     "derive:classes": "node scripts/derive-class-vocabulary.mjs",
+    "derive:schema": "bun scripts/generate-schema.mjs",
     "verify:react-free": "node scripts/verify-react-free.mjs",
     "verify:no-suppressions": "node scripts/verify-no-suppressions.mjs",
     "verify:source-text": "node scripts/verify-source-text.mjs",
     "verify:contracts": "node scripts/derive-contracts.mjs --check",
     "verify:classes": "node scripts/derive-class-vocabulary.mjs --check && node scripts/verify-class-vocabulary.mjs",
-    "verify": "bun run verify:react-free && bun run verify:no-suppressions && bun run verify:source-text && bun run verify:contracts && bun run verify:classes",
+    "verify:schema": "bun scripts/generate-schema.mjs --check",
+    "verify": "bun run verify:react-free && bun run verify:no-suppressions && bun run verify:source-text && bun run verify:contracts && bun run verify:classes && bun run verify:schema",
     "check": "bun run verify && bun run typecheck && bun run lint && bun run test"
   },
   "peerDependencies": {

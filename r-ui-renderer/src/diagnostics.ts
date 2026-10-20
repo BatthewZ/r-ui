@@ -29,6 +29,15 @@ export function severityClass(severity: IssueSeverity): string {
   return severity === "error" ? DIAGNOSTIC_CLASSES.error : DIAGNOSTIC_CLASSES.warning;
 }
 
+/** What every diagnostic element carries: its classes (plus `extraClass`), `data-code` and, when known, `data-path`. */
+export function diagnosticAttributes(
+  issue: { readonly code: IssueCode; readonly severity: IssueSeverity; readonly path?: string },
+  extraClass?: string,
+): { readonly className: string; readonly "data-code": IssueCode; readonly "data-path"?: string } {
+  const className = [DIAGNOSTIC_CLASSES.diagnostic, severityClass(issue.severity), extraClass].filter(Boolean).join(" ");
+  return issue.path === undefined ? { className, "data-code": issue.code } : { className, "data-code": issue.code, "data-path": issue.path };
+}
+
 export interface FoundDiagnostic {
   readonly code: IssueCode | null;
   readonly path: string | null;

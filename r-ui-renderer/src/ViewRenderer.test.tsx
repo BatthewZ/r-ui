@@ -138,8 +138,12 @@ describe("streaming text", () => {
     const probe = createMountProbe();
     const registry = extendRegistry(defaultRegistry, { Probe: probe.Probe });
     const contracts = extendContracts(defaultContracts, { Probe: {} });
+    // The binding makes the runtime re-plan on every chunk: its `data`/`status` must keep their identity.
     const text = JSON.stringify(
-      view({ component: "Stack", children: [{ component: "Probe", props: { probeId: "first" }, children: ["one"] }, "and more text"] }),
+      view(
+        { component: "Stack", children: [{ component: "Probe", props: { probeId: "first" }, children: [{ $ref: "data.labels.first" }] }, "and more text"] },
+        { data: { labels: { type: "static", value: { first: "one" } } } },
+      ),
     );
     const at = (end: number) => <ViewRenderer text={text.slice(0, end)} registry={registry} contracts={contracts} />;
     const start = text.indexOf("and more") + 3;

@@ -81,3 +81,32 @@ export function defaultAllowImageUrl(url: URL, base: string = currentBase()): bo
   if (url.protocol === "data:") return SAFE_DATA_TYPE.test(url.href);
   return defaultAllowUrl(url, base);
 }
+
+/** The URLs of a `srcset` list, as the HTML parser splits it (a `data:` URL may hold commas). */
+export function srcSetUrls(value: string): string[] {
+  const urls: string[] = [];
+  let index = 0;
+  while (index < value.length) {
+    while (index < value.length && /[\s,]/.test(value.charAt(index))) index += 1;
+    if (index >= value.length) break;
+    const start = index;
+    while (index < value.length && !/\s/.test(value.charAt(index))) index += 1;
+    let url = value.slice(start, index);
+    if (url.endsWith(",")) {
+      urls.push(url.replace(/,+$/, ""));
+      continue;
+    }
+    // Descriptors run to the next comma outside parentheses.
+    let depth = 0;
+    while (index < value.length) {
+      const char = value.charAt(index);
+      if (char === "(") depth += 1;
+      else if (char === ")") depth = Math.max(0, depth - 1);
+      else if (char === "," && depth === 0) break;
+      index += 1;
+    }
+    url = url.trim();
+    if (url.length > 0) urls.push(url);
+  }
+  return urls;
+}

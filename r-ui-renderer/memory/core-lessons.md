@@ -12,9 +12,10 @@
   `data`/`status` records per snapshot defeats the memo just as surely: keep their identity
   while their entries are the same.
 - **A policy list names DOM attributes; a contract can give the same name a meaning.**
-  `form` is a DOM id reference, except as Form's or Wizard's form handle; `name` is a DOM
-  name, except as Field's form field or the built-in Icon's glyph. Check the contract's
-  meaning before the generic list.
+  `form` is a DOM id reference, except as Form's or Wizard's form handle. Check the
+  contract's meaning before the generic list, and pick the default by the miss you can
+  afford: `name` keeps its meaning unless the contract says it is a DOM name (an
+  Avatar's person and the Icon's kebab-case glyph were both being dropped the other way).
 - **"Dropped" is not always safe for the component.** Image reads an absent `src` as
   loading and throws on it; a refused `src` becomes `null`, the library's "no picture". A
   required Intl prop that is dropped makes its component throw; the boundary shows that.

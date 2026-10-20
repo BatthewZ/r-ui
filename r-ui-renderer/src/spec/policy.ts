@@ -39,14 +39,13 @@ export const FORBIDDEN_PROPS = [
 /**
  * DOM ids and the props that point at one. A document cannot author them: two
  * views on one page would collide, and the library's Field wiring supplies
- * every id a control needs. `name` is dropped except where a contract says it
- * is a form field key (`fieldName`).
+ * every id a control needs. `name` is not here: what it means is each
+ * contract's (`nameRole`).
  */
 export const ID_REFERENCE_PROPS = [
   "id",
   "htmlfor",
   "for",
-  "name",
   "form",
   "list",
   "headers",
@@ -92,4 +91,16 @@ export function isForbiddenProp(name: string): boolean {
 
 export function isIdReferenceProp(name: string): boolean {
   return ID_REFERENCES.has(lowerCaseProp(name));
+}
+
+/** A `data-*` name a document may set: it matches the pattern and moves no host axis. */
+export function isAllowedDataAttribute(name: string): boolean {
+  return DATA_ATTRIBUTE_PATTERN.test(name) && !DROPPED_DATA_ATTRIBUTES.some((dropped) => dropped === name);
+}
+
+/** A `data-*` value that passes on: a string, number or boolean, within the attribute's set when it has one. */
+export function isAllowedDataValue(name: string, value: unknown): boolean {
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return false;
+  const allowed = Object.hasOwn(CONSTRAINED_DATA_ATTRIBUTES, name) ? CONSTRAINED_DATA_ATTRIBUTES[name] : undefined;
+  return allowed === undefined || allowed.some((option) => option === value);
 }

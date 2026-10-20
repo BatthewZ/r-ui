@@ -1,6 +1,6 @@
 import { createElement, type ReactNode, useSyncExternalStore } from "react";
 
-import { DIAGNOSTIC_CLASSES, severityClass } from "../diagnostics";
+import { DIAGNOSTIC_CLASSES, diagnosticAttributes } from "../diagnostics";
 import type { IssueChannel } from "../runtime/issues";
 
 /**
@@ -15,16 +15,7 @@ export function IssueLog(props: { readonly channel: IssueChannel }): ReactNode {
     "ul",
     { className: DIAGNOSTIC_CLASSES.issueLog, hidden: true },
     issues.map((issue) =>
-      createElement(
-        "li",
-        {
-          key: `${issue.code}\u0000${issue.path}`,
-          className: `${DIAGNOSTIC_CLASSES.diagnostic} ${severityClass(issue.severity)}`,
-          "data-code": issue.code,
-          "data-path": issue.path,
-        },
-        issue.message,
-      ),
+      createElement("li", { key: `${issue.code}\u0000${issue.path}`, ...diagnosticAttributes(issue) }, issue.message),
     ),
   );
 }

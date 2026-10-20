@@ -343,7 +343,7 @@ describe("validateViewSpec: warnings", () => {
       ["forbidden-prop", "/root/props/dangerouslySetInnerHTML", undefined],
       ["forbidden-prop", "/root/props/id", undefined],
       ["forbidden-prop", "/root/props/aria-labelledby", undefined],
-      ["forbidden-prop", "/root/props/name", undefined],
+      ["unknown-prop", "/root/props/name", undefined],
       ["forbidden-prop", "/root/props/data-theme", undefined],
       ["invalid-prop-value", "/root/props/data-density", undefined],
       ["forbidden-prop", "/root/props/data-Track", undefined],
@@ -352,6 +352,32 @@ describe("validateViewSpec: warnings", () => {
       ["undeclared-name", "/root/children/1/props/name", undefined],
       ["forbidden-prop", "/root/children/2/props/labels/saving", undefined],
       ["forbidden-prop", "/root/children/3/props/open", undefined],
+    ]);
+  });
+
+  it("reads `name` and ref-typed props the way the renderer does", () => {
+    expect(
+      warnings(
+        doc({
+          component: "Stack",
+          children: [
+            { component: "Input", props: { name: "email", "aria-label": "Email" } },
+            { component: "Slider", props: { name: "volume" } },
+            { component: "Avatar", props: { name: "Ada Lovelace" } },
+            { component: "Icon", props: { name: "arrow-up-right" } },
+            { component: "Icon", props: { name: "arow-up-right" } },
+            { component: "Popover", children: [{ component: "Popover.Content", props: { initialFocus: { current: null } } }] },
+            { component: "Popover", children: [{ component: "Popover.Content", props: { initialFocus: 1 } }] },
+            { component: "Dialog", props: { dialogId: "d" }, children: [{ component: "Dialog.Content", props: { initialFocus: 1 } }] },
+          ],
+        }),
+      ),
+    ).toEqual([
+      ["forbidden-prop", "/root/children/0/props/name", undefined],
+      ["forbidden-prop", "/root/children/1/props/name", undefined],
+      ["unknown-icon", "/root/children/4/props/name", '"arrow-up-right"'],
+      ["invalid-prop-value", "/root/children/5/children/0/props/initialFocus", undefined],
+      ["forbidden-prop", "/root/children/7/children/0/props/initialFocus", undefined],
     ]);
   });
 

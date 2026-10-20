@@ -1,6 +1,6 @@
-import { isFormatMarker, isNodeMarker, isPlainObject, isRefMarker } from "../spec/guards";
+import { isForbiddenSegment, isFormatMarker, isNodeMarker, isPlainObject, isRefMarker } from "../spec/guards";
 import { readRef } from "../spec/ref-path";
-import { FORBIDDEN_SEGMENTS, type FormatOptions } from "../spec/types";
+import type { FormatOptions } from "../spec/types";
 
 /** Formats a resolved value per a FormatSpec's options, in the host's locale. */
 export type FormatValue = (value: unknown, options: FormatOptions) => string;
@@ -8,7 +8,12 @@ export type FormatValue = (value: unknown, options: FormatOptions) => string;
 /** Names a `$ref` can reach: the roots, the local names and, in a handler, `event`. */
 export type RefScope = Readonly<Record<string, unknown>>;
 
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
+/** A resolved value as text where text renders: a string or a finite number; anything else is no text. */
+export function valueText(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return null;
+}
 
 /** Without a host formatter: the value as text, or the spec's `missing` text. */
 export const plainFormat: FormatValue = (value, options) =>
@@ -30,7 +35,7 @@ export function resolveValue(value: unknown, scope: RefScope, format: FormatValu
   if (isPlainObject(value)) {
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(value)) {
-      if (!FORBIDDEN.has(key)) out[key] = resolveValue(value[key], scope, format);
+      if (!isForbiddenSegment(key)) out[key] = resolveValue(value[key], scope, format);
     }
     return out;
   }

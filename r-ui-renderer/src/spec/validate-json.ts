@@ -11,7 +11,7 @@ import { parsePartialViewSpec } from "../stream/parser";
 import { isPlainObject } from "./guards";
 import { appendPointer } from "./pointer";
 import type { Issue } from "./types";
-import { makeIssue } from "./validate-structure";
+import { makeIssue } from "./issue";
 
 export type ParsedInput = { readonly value: unknown; readonly issue?: undefined } | { readonly value?: undefined; readonly issue: Issue };
 

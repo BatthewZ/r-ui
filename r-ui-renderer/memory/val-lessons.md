@@ -46,12 +46,8 @@ scan) are iterative.
 ## Warnings must say what the renderer will do
 
 Every warning is a promise that the renderer drops, refuses or ignores that
-value. Mirror the renderer's decisions rather than the policy table's letter:
-an exemption the renderer makes (a form name, the built-in Icon's `name`) has
-to be an exemption here, or a clean renderer gets a noisy validator. Derive
-from contract data where possible (a prop typed `number | RefObject` takes only
-a number; a column key the library's columns do not declare is dropped) rather
-than keeping a second hand table of the same fact.
+value. Keep the promise by calling the same code, not by writing the rule
+twice: see gate1-lessons.md.
 
 ## Zod's JSON Schema reader is not a referee
 

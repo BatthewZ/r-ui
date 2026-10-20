@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 
 import type { RenderContext } from "../runtime/context";
+import { sameEntries } from "../spec/equal";
 import type { Scope } from "./scope";
 
 export interface Slot {
@@ -42,13 +43,6 @@ function sameList(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.length === b.length && a.every((item, index) => Object.is(item, b[index]));
 }
 
-function sameRecord(a: object, b: object): boolean {
-  const aKeys = Object.keys(a);
-  const bRecord = b as Record<string, unknown>;
-  const aRecord = a as Record<string, unknown>;
-  return aKeys.length === Object.keys(b).length && aKeys.every((key) => Object.hasOwn(b, key) && Object.is(aRecord[key], bRecord[key]));
-}
-
 /** The same context for rendering: every field identical (roots and lists compared one level down). */
 export function sameContext(a: RenderContext, b: RenderContext): boolean {
   if (a === b) return true;
@@ -65,7 +59,7 @@ export function sameContext(a: RenderContext, b: RenderContext): boolean {
       continue;
     }
     if (Array.isArray(x) && Array.isArray(y) && sameList(x, y)) continue;
-    if (key === "roots" && sameRecord(a.roots, b.roots)) continue;
+    if (key === "roots" && sameEntries(a.roots, b.roots)) continue;
     return false;
   }
   return true;

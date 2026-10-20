@@ -16,15 +16,23 @@ src/
   styles.css              `./styles`: the renderer's own CSS (tokens only, components layer)
   schema.json             `./schema.json`: the format as JSON Schema
   spec/                   `./spec`, React-free: the format (types.ts), its policy (policy.ts,
-                          url-policy.ts), the $ref grammar, JSON Pointers, shape guards, the
-                          built-in and default contracts, the validator and its helpers
+                          url-policy.ts), what renderer and validator both read off a
+                          contract (contract-facts.ts), the one ISO date parser (dates.ts),
+                          contract prop paths (prop-path.ts), the $ref grammar, JSON
+                          Pointers, shape guards, issues, the built-in contracts, the
+                          validator (validate*.ts) and its one schema source
+  contracts/              the contracts every check reads: generated/ (the deriver's JSON,
+                          never hand-edited), curated/ (the decisions, each gated), index.ts
+                          (the assembled view, extendContracts)
   stream/                 `./stream`, React-free: the incremental parser, PENDING, fences;
                           plus the React hooks the root exports (use-view-spec-stream.ts)
-  render/                 renderNode, Scope, the built-ins (Text, Heading, Icon), the issue log
+  render/                 renderNode, Scope, props and their coercions, the built-ins (Text,
+                          Heading, Icon), diagnostics in place and the issue log
   runtime/                RenderContext, adapters, actions, event values, state, data
                           bindings, dialogs, the issue channel, useViewRuntime
   forms/                  form defs compiled to a Standard Schema on the library's useForm
-  registry/               names → components, derived from the library's barrel
+  registry/               names → components (registry.ts, React side) and the name list
+                          (names.ts, React-free), derived from the library's barrel
   reference/              `./reference`, React-free: renders VIEWSPEC.md from the contracts
   icons/                  `./icons`: a curated lucide set (and the IconSet type)
   zod/                    `./zod`: the format as a Zod schema (zod is an optional peer)
@@ -58,7 +66,17 @@ test-utils.ts             shared test helpers (not shipped)
   is a `warning`. Issue codes come only from `ISSUE_CODE_INFO`.
 - Contracts are the single source of what the renderer, the validator and the reference
   know about a component. A table that names a library component or prop is gated against
-  the library.
+  the library. Derive a fact from the declarations where they show it (a native `name`, a
+  `RefObject` type); curate it, with a gate that fails on an unclassified case, where they
+  do not.
+- **The renderer and the validator read a fact the same way, from one place:** the policy
+  (`policy.ts`, `url-policy.ts`), the contract facts (`contract-facts.ts`), the ISO parser,
+  the prop-path walker, the Intl checks. A warning is a promise of what the renderer will
+  do; a second copy of the rule breaks it silently.
+- **`name` keeps its meaning unless a contract says otherwise** (`nameRole`): a DOM name
+  (`domName`, derived from native attributes or curated) is dropped, Field's is a field
+  name, every other is the component's own. Never default the other way: the set of
+  semantic names is open.
 - No example theme name (the library's showcase themes) appears anywhere in this package:
   not in code, types, fixtures or docs. Fixtures invent names (`aurora`).
 
@@ -90,7 +108,21 @@ document's `className` wins.
 | `verify:react-free` | the React-free subpaths' module graphs (type imports included) reach no React, library, lucide, CSS package or `.tsx`, and zod only under `./zod`; each entry is still published under its subpath (fixture test proves each rule) |
 | `verify:no-suppressions` | no lint or TypeScript suppression directive in sources, tests, gates or configs (fixture test) |
 | `verify:source-text` | no raw control character in any text file, which would make git treat it as binary (test writes its bad fixture at run time) |
+| `verify:contracts` | `src/contracts/generated/` is what `derive:contracts` writes from the installed library's built declarations (stale or missing fails, naming the file) |
+| `verify:classes` | `src/spec/class-vocabulary.json` and the stylesheet's `@source inline` lines are what `derive:classes` writes, every listed class compiles to CSS, no Tailwind default is listed, and the stylesheet reads tokens only |
+| `verify:schema` | `src/schema.json` is what `derive:schema` writes from the one schema source (`validate-schema.ts`) |
 | `typecheck`, `lint`, `test` | tsc strict (+ `noUncheckedIndexedAccess`), eslint (narrow; inline config off), vitest (jsdom) |
+
+| Writer | Writes (commit the result; the matching `verify:*` fails until you do) |
+| --- | --- |
+| `derive:contracts` | `src/contracts/generated/`: components, parts, props, value sets, slots, node props, native attributes and DOM names, declared paths. Needs the library's `dist` current |
+| `derive:classes` | the class vocabulary JSON and the stylesheet's `@source inline` lines |
+| `derive:schema` | `src/schema.json` (runs on bun: the source is TypeScript) |
+
+Gates that live in `test`: the barrel gate (library exports = contracts ∪ `NOT_ADDRESSABLE`),
+curated-table drift, the omission scans (un-JSON-able props, the library's URL, heading and
+children-reading sinks), the `name` classification, DataTable column keys against the format
+and the library, the fold, and validator ⇄ Zod ⇄ `schema.json` agreement.
 
 **Never suppress** a TypeScript or ESLint error. Fix it.
 

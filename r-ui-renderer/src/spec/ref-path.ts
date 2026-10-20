@@ -6,22 +6,20 @@
  * prototype.
  */
 
-import { FORBIDDEN_SEGMENTS, NAME_PATTERN } from "./types";
+import { isForbiddenSegment, isName } from "./guards";
 
 export interface RefPath {
   readonly root: string;
   readonly segments: readonly string[];
 }
 
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
-
 /** The parsed path, or null when it breaks the grammar or names a forbidden segment. */
 export function parseRefPath(path: string): RefPath | null {
   if (typeof path !== "string" || path.length === 0) return null;
   const [root = "", ...segments] = path.split(".");
-  if (!NAME_PATTERN.test(root) || FORBIDDEN.has(root)) return null;
+  if (!isName(root)) return null;
   for (const segment of segments) {
-    if (segment.length === 0 || FORBIDDEN.has(segment)) return null;
+    if (segment.length === 0 || isForbiddenSegment(segment)) return null;
   }
   return { root, segments };
 }

@@ -3,7 +3,7 @@
  */
 
 import { render, type RenderOptions, type RenderResult } from "@testing-library/react";
-import { createElement, type ReactElement, type ReactNode, useEffect } from "react";
+import { type ComponentType, createElement, type ReactElement, type ReactNode, useEffect } from "react";
 import { expect, vi } from "vitest";
 
 import { type FoundDiagnostic, findDiagnostics } from "./src/diagnostics";
@@ -44,7 +44,9 @@ export interface MountCounts {
 /**
  * A component that counts its mounts, unmounts and renders per `probeId`, for
  * "an arriving sibling never remounts the ones before it". Register `Probe`
- * under a name with `extendRegistry` and render documents that use it.
+ * under a name with `extendRegistry` and render documents that use it, or
+ * `wrap` a registered component to count it under an id read off its props
+ * (the document stays the same).
  */
 export function createMountProbe() {
   const counts = new Map<string, MountCounts>();
@@ -68,8 +70,23 @@ export function createMountProbe() {
     return createElement("div", { "data-probe": probeId }, children);
   }
 
+  function wrap<P extends object>(Component: ComponentType<P>, idOf: (props: P) => string): ComponentType<P> {
+    return function Counted(props: P) {
+      const id = idOf(props);
+      countsFor(id).renders += 1;
+      useEffect(() => {
+        countsFor(id).mounts += 1;
+        return () => {
+          countsFor(id).unmounts += 1;
+        };
+      }, [id]);
+      return createElement(Component, props);
+    };
+  }
+
   return {
     Probe,
+    wrap,
     /** The counts for `id`, zero when it never rendered. */
     counts: (id: string): MountCounts => ({ ...countsFor(id) }),
     ids: (): string[] => [...counts.keys()],

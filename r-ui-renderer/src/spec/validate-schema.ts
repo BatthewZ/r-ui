@@ -573,7 +573,6 @@ export const ADVISORY_DEFS: { readonly [name: string]: SchemaDef } = {
       firstDirection: values(FIRST_DIRECTIONS),
       priority: values(COLUMN_PRIORITIES),
       truncate: boolean,
-      wrap: boolean,
       required: boolean,
       resizable: boolean,
       width: ref("CssLength"),

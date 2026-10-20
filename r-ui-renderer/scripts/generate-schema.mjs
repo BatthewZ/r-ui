@@ -33,7 +33,7 @@ function main() {
   const path = join(root, "src", "schema.json");
   if (process.argv.includes("--check")) {
     if (isStale(root)) {
-      console.error(`generate-schema --check — stale: ${relative(root, path)}\nRun \`bun scripts/generate-schema.mjs\`.`);
+      console.error(`generate-schema --check — stale: ${relative(root, path)}\nRun \`bun run derive:schema\`.`);
       process.exit(1);
     }
     console.log("generate-schema — OK");

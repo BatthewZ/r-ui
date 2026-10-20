@@ -1,12 +1,13 @@
 /**
  * Contract prop paths (`"href"`, `"items[].href"`, `"x[]"`, `"labels.title"`,
- * `"value.*"`) applied to a resolved prop value, copy-on-write: a value the
- * document shares with data (a `$ref`) is never mutated.
+ * `"value.*"`): one parser and one walk for the renderer (which rewrites
+ * resolved values, copy-on-write, so a value shared with data is never
+ * mutated) and the validator (which reads the values a path reaches).
  */
 
-import { isPlainObject } from "../spec/guards";
-import { appendPointer } from "../spec/pointer";
-import type { PropPath } from "../spec/types";
+import { isPlainObject } from "./guards";
+import { appendPointer } from "./pointer";
+import type { PropPath } from "./types";
 
 type Step = { readonly kind: "key"; readonly key: string } | { readonly kind: "each" } | { readonly kind: "values" };
 
@@ -82,4 +83,19 @@ export function transformAt(value: unknown, steps: readonly Step[], visit: LeafV
 /** `target[key] = value` as an own property, even for `"__proto__"` (which JSON data may hold). */
 export function setOwn(target: Record<string, unknown>, key: string, value: unknown): void {
   Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
+}
+
+/**
+ * Every value `path` reaches in `props`, with its JSON Pointer under `base`.
+ * An absent step reaches nothing.
+ */
+export function valuesAt(props: Readonly<Record<string, unknown>>, path: PropPath, base: string): { path: string; value: unknown }[] {
+  const { prop, steps } = parsePropPath(path);
+  if (!Object.hasOwn(props, prop)) return [];
+  const found: { path: string; value: unknown }[] = [];
+  transformAt(props[prop], steps, (value, pointer) => {
+    found.push({ path: appendPointer(base, prop) + pointer, value });
+    return value;
+  });
+  return found;
 }

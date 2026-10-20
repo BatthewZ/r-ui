@@ -6,8 +6,9 @@
 //                        exports (addressable or not: the curated tables decide
 //                        that), with its category, props (name, type, required,
 //                        first doc sentence), closed value sets, `classNames`
-//                        slot keys, React-node props (nested ones too) and
-//                        whether it spreads native element attributes;
+//                        slot keys, React-node props (nested ones too),
+//                        whether it spreads native element attributes and
+//                        whether those carry a DOM `name` (a form control's);
 //   declared-paths.json  every prop path the declarations allow, nested ones
 //                        (`items[].href`) included: what the curated tables
 //                        are gated against.
@@ -405,8 +406,11 @@ function describe(ctx, name, classNamesSeen) {
   const properties = collectProperties(ctx, propsType);
   const enums = {};
   let native = false;
+  let domName = false;
   const readNative = (prop, entry) => {
-    native ||= entry.symbols.some((s) => (s.declarations ?? []).some(isNativeAttribute));
+    const isNative = entry.symbols.some((s) => (s.declarations ?? []).some(isNativeAttribute));
+    native ||= isNative;
+    domName ||= isNative && prop === "name";
     if (URL_ATTRIBUTES.has(prop.toLowerCase())) sink.paths.add(prop);
   };
   for (const [prop, entry] of properties) {
@@ -461,6 +465,7 @@ function describe(ctx, name, classNamesSeen) {
   if (record.slots) record.slots.sort();
   if (sink.nodes.size > 0) record.nodeProps = [...sink.nodes].sort();
   if (native) record.nativeAttributes = true;
+  if (domName) record.domName = true;
   return record;
 }
 

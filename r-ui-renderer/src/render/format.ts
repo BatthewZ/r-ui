@@ -17,7 +17,7 @@ import {
 
 import { isPlainObject } from "../spec/guards";
 import { FORMAT_STYLES, type FormatOptions, type FormatStyle } from "../spec/types";
-import { parseIsoDateTime, parseIsoDateTimeUtc } from "./dates";
+import { parseIsoDateTime, parseIsoDateTimeUtc } from "../spec/dates";
 
 const STYLES: ReadonlySet<string> = new Set<string>(FORMAT_STYLES);
 

@@ -13,6 +13,7 @@
  */
 
 import { isPlainObject } from "./guards";
+import { makeIssue } from "./issue";
 import { appendPointer } from "./pointer";
 import { ISSUE_CODE_INFO, type Issue, type IssueCode, type JsonPrimitive } from "./types";
 import type { JsonType, SchemaDef } from "./validate-schema";
@@ -29,11 +30,6 @@ interface Miss {
 type Fit = Miss | null;
 
 const DEF_PREFIX = "#/$defs/";
-
-export function makeIssue(code: IssueCode, path: string, message: string, suggestion?: string): Issue {
-  const severity = ISSUE_CODE_INFO[code].severity;
-  return suggestion === undefined ? { code, path, severity, message } : { code, path, severity, message, suggestion };
-}
 
 function jsonTypeOf(value: unknown): Exclude<JsonType, "integer"> | "other" {
   if (value === null) return "null";

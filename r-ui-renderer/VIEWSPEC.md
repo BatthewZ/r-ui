@@ -32,7 +32,14 @@ The renderer can draw a document while it arrives, so write keys in this order:
 - `$each`: `$each`, `as`, `key`, `node`;
 - `$cond`: `$cond`, `then`, `else`.
 
-A node appears once its `component` name is complete and its `props` object has closed; its children then stream in, and a text child may appear character by character. No half-written prop ever reaches a component. Out-of-order keys still render, but the object waits until it has closed, and the validator warns (`key-order`). A `$node` inside props holds back that whole prop until it closes. `state`, `data` and `forms` take effect when their objects close. Actions do nothing until the whole document has arrived.
+What shows, and when:
+
+- A component node appears once its `component` name is complete and its `props` object has closed (a node written without `props` appears when its `children` begin); its children then stream in, and a text child may appear character by character. No half-written prop ever reaches a component.
+- A `$each` appears once `$each`, `as` and (when written) `key` have closed; a `$cond` once its condition has closed. Their `node`, `then` and `else` then stream like any node. A `$ref` or `$format` node appears once it has closed.
+- Out-of-order keys still render, but the object waits until it has closed, and the validator warns (`key-order`). A `$node` inside props holds back that whole prop until it closes.
+- `state`, `data` and `forms` take effect when their objects close; until its binding has closed, `status.<name>` is `"loading"`.
+- Nothing runs until the whole document has arrived: actions do nothing, and a form's submit does nothing at all (no validation, no state change).
+- A node still arriving shows nothing, or a Skeleton when the host asks for one. A stream that ends early keeps what it showed and reports `stream-incomplete`.
 
 ## Nodes
 
@@ -49,7 +56,7 @@ A `ViewNode` is one of:
 
 - `component` names a registered component or a compound part by dot path: `"Card.Header"`, `"Tabs.Panel"`. A part belongs inside its parent.
 - `children` is always an array. `props` and `children` are optional.
-- A `$ref` or `$format` node renders strings and numbers; `null`, `false` and a missing value render nothing; an object or array renders nothing and reports `not-renderable`. Numbers render as written; use `$format` for locale formatting.
+- A `$ref` or `$format` node renders strings and numbers; `null`, `false` and a missing value render nothing; anything else (`true`, an object, an array) renders nothing and reports `not-renderable`. Numbers render as written; use `$format` for locale formatting.
 - Nothing else is a node: no numbers, `null` or bare objects in `children`.
 
 ## Values in props
@@ -64,13 +71,14 @@ A prop holds JSON, or one of these markers. A marker is an object whose **only**
 ```
 
 - **Markers resolve anywhere** inside props, at any depth, including inside arrays and objects.
-- **Handlers** are values under keys spelled `on` + capital (`onClick`, `onValueChange`, `onSelect`), at any depth. A handler is one action or an array of actions. Anything else under an `on…` key is dropped. An action object under any other key is ordinary data.
+- **Handlers** are values under keys spelled `on` + capital (`onClick`, `onValueChange`, `onSelect`), at any depth. A handler is one action (`{ "action", "payload" }` and no other key) or a non-empty array of them. Under an `on…` key, an object with an `action` key, alone or in an array, must be a valid handler (an error otherwise); anything else there is dropped (`forbidden-prop`). An action object under any other key is ordinary data.
 - **Text or a node.** A prop the component takes as a React node accepts a string directly (`"header": "Revenue"`) or a `$node`.
 - **Row templates.** Some props take a template that the component calls per row (a DataTable column's `cell`, `rowActions`, `renderDetail`, `bulkActions`). Write them as `$node`; the names in scope are listed per component (`row`, `rowIndex`, `value`, `selectedKeys`).
 - **Icons.** A prop the component takes as an icon accepts an icon name string (`"icon": "check"`). Unknown names render a missing-icon diagnostic.
 - **Dates.** A prop the component takes as a `Date` accepts ISO text: `"2026-11-02"` is that calendar date, local; `"2026-11-02T09:30:00Z"` (or with an offset) is that instant; without an offset it is local time. Impossible dates (`"2026-02-30"`) are refused. A date range is `{ "start": "…", "end": "…" }`.
 - **Sets.** A prop the component takes as a `Set` accepts an array.
 - **Formatters.** A prop the component takes as a formatting function (`format`, `formatTick`, `formatDelta`) accepts a FormatSpec.
+- **Refs.** A prop the component takes as a React ref (`initialFocus`) takes only what it accepts besides a ref (a number), or nothing; anything else is dropped.
 
 ## References
 
@@ -120,7 +128,7 @@ There is no shorthand: a path always starts with one of these roots. An inner `$
 ]
 ```
 
-A list runs in order, each action awaited; one that fails stops the rest. Payload values resolve `$ref`, `$format` and `event` at the moment the handler runs, except the **literal** keys in the table, which are read as written so that fetched data never decides what the view does or where a request goes.
+A list runs in order, each action awaited; one that fails stops the rest. A `submitForm` on an invalid form fails quietly: the form shows its errors and the rest of the list does not run. An `apiCall` without the host's `fetch` reports `missing-adapter` and fails; a `showToast` without the host's toast reports `missing-adapter` and the list carries on. Payload values resolve `$ref`, `$format` and `event` at the moment the handler runs, except the **literal** keys in the table, which are read as written so that fetched data never decides what the view does or where a request goes.
 
 | Action | Payload | Effect |
 | --- | --- | --- |
@@ -132,7 +140,7 @@ A list runs in order, each action awaited; one that fails stops the rest. Payloa
 | `apiCall` | **`endpoint`**, **`method`**, `query`, `body`, **`into`**, **`onSuccess`**, **`onError`** | a request through the host's `fetch` (see Network) |
 | `openDialog` / `closeDialog` | **`dialogId`** | opens or closes the dialog component whose `dialogId` prop matches |
 
-**`apiCall`.** `method` is `GET` (default), `POST`, `PUT`, `PATCH` or `DELETE`. `query` becomes the query string; `body` is sent as JSON (not with `GET` or `DELETE`). The response is parsed as JSON when it says so, else as text. `into` (`"state.result"`) stores it. `onSuccess` runs with `event.value` = the response; `onError` with `event.value` = `{ "status": number | null, "message": string, "body": … }`, and then the call fails (a form waiting on it stays unsubmitted). When an `apiCall` that a form's `onSubmit` ran fails with a body of the shape `{ "errors": { "<field>": "message" } }`, those messages show on the form's fields.
+**`apiCall`.** `method` is `GET` (default), `POST`, `PUT`, `PATCH` or `DELETE`. `query` becomes the query string; `body` is sent as JSON (not with `GET` or `DELETE`). The response is parsed as JSON when it says so, else as text. `into` (`"state.result"`) stores it, replacing what was there (no merge). `onSuccess` runs with `event.value` = the response; `onError` with `event.value` = `{ "status": number | null, "message": string, "body": … }`, and then the call fails (a form waiting on it stays unsubmitted). A failure with no `onError` reports `action-failed`; with one, the handler is the report. When an `apiCall` that a form's `onSubmit` ran fails with a body of the shape `{ "errors": { "<field>": "message" } }`, those messages show on the form's fields.
 
 **`event`.** Inside a handler, `event.value` is the first thing the component reported, made JSON: a DOM event becomes its control's value (`checked` for a checkbox or radio), a Set an array, a date `"YYYY-MM-DD"` (an instant: ISO with its offset), a date range `{ "start", "end" }`. `event.args.0`, `event.args.1`… are every argument, made JSON the same way. `event` is not carried into `onSuccess`/`onError`, which get their own. Prefer a component's uncontrolled seed (`defaultValue`, `defaultOpen`) where it has one: it needs no state at all.
 
@@ -152,7 +160,7 @@ A list runs in order, each action awaited; one that fails stops the rest. Payloa
 - `api`: requested through the host's `fetch` when the binding has closed. `method` `GET` (default) or `POST`; `query` and `body` may `$ref` **`state.…` only**, and the request repeats when one of those values changes.
 - `source`: handed to the host's `resolveSource` with `params` resolved (`state.…` refs only, as above).
 
-While loading, `data.<name>` is missing and `status.<name>` is `"loading"`; on failure `status.<name>` is `"error"` and the view reports `data-error`. A view usually draws a Skeleton under `{ "$cond": { "ref": "status.services", "eq": "loading" } }`.
+While a binding first loads, `data.<name>` is missing and `status.<name>` is `"loading"`; when it loads again (a `state` value it reads changed) the last value stays on show while the status is `"loading"`. On failure `status.<name>` is `"error"`, `data.<name>` is missing and the view reports `data-error`. A binding that cannot start (no `fetch` or `resolveSource` from the host, a refused endpoint) is `"error"` at once and reports `missing-adapter` or `refused-url` instead. A view usually draws a Skeleton under `{ "$cond": { "ref": "status.services", "eq": "loading" } }`.
 
 ## Forms
 
@@ -173,9 +181,10 @@ While loading, `data.<name>` is missing and `status.<name>` is `"loading"`; on f
 ```
 
 - **Field types:** `text` (default, `""`), `number` (`null`), `boolean` (`false`), `date` (`null`, ISO text), `dateRange` (`null`, `{ "start", "end" }`), `list` (`[]`, an array of strings). Field keys are names: no dots, no nesting.
-- **Rules**, checked in this order, the first failure being the field's error: `required` (empty is `null`, `""`, `false`, `[]`; so a required boolean must be true), `minLength`/`maxLength` (characters of text, items of a list), `pattern` (text; tested on at most 1000 characters, a longer value fails), `min`/`max` (numbers for number fields; ISO dates for date fields). `message` replaces every rule's default message; `messages: { "pattern": "…" }` replaces one.
+- **Rules**, checked in this order, the first failure being the field's error: `required` (empty is `null`, `""`, `false`, `[]`, and a date range missing either end; so a required boolean must be true), `minLength`/`maxLength` (characters of text, items of a list), `pattern` (text; tested on at most 1000 characters, a longer value fails), `min`/`max` (numbers for number fields; ISO dates for date fields). `message` replaces every rule's default message; `messages: { "pattern": "…" }` replaces one. A rule the field's type ignores, a `pattern` that does not compile or a date bound that is not an ISO date is `unusable-value`.
 - `validateOn` / `revalidateOn`: `change`, `blur` or `submit`.
-- `onSubmit` runs only when the form is valid, with `event.value` = the values as JSON (dates as ISO text). `onInvalid` runs otherwise, with `event.value` = the errors by field.
+- `onSubmit` runs only when the form is valid, with `event.value` = the values as JSON (dates as ISO text). `onInvalid` runs otherwise, with `event.value` = the errors by field. When `onSubmit` fails, a response `{ "errors": { "<field>": "message" } }` shows on those fields; any other failure shows as the form's own error. Either way `submitFailed` is true.
+- A form does not submit until the whole document has arrived (Streaming order).
 - `initialValue` may `$ref` data or state; the form then waits until it resolves (or its binding fails) and keeps its values from then on. `resetForm` reads it again.
 
 **Placing a form.** Put the `<form>` where the fields are, and bind each control with a `Field` named after the field:
@@ -207,6 +216,8 @@ The control inside a `Field` reads and writes the field through the Field: give 
 | `unit` | a measure; needs `unit` (an Intl unit) | `{ "style": "unit", "unit": "millisecond" }` |
 | `date`, `datetime`, `time` | ISO text or a timestamp | `dateStyle` / `timeStyle`, `timeZone`: `"local"` (default) or `"UTC"` |
 
+`currency` without `currency`, or `unit` without `unit`, is an error. A code Intl does not know (`"EURO"`, `"furlong"`) and `minimumFractionDigits` above `maximumFractionDigits` are `unusable-value`: the value then formats as a plain number.
+
 Options: `notation` (`standard`, `compact`), `minimumFractionDigits`, `maximumFractionDigits`, `maximumSignificantDigits`, `signDisplay` (`auto`, `always`, `exceptZero`, `negative`, `never`), `currencyDisplay`, `unitDisplay`, `useGrouping`, `dateStyle`, `timeStyle` (`full`, `long`, `medium`, `short`), `timeZone`, `missing` (text for a missing value, "—" by default). The locale is always the host's.
 
 ## DataTable columns
@@ -220,14 +231,14 @@ Options: `notation` (`standard`, `compact`), `minimumFractionDigits`, `maximumFr
   "format": { "style": "currency", "currency": "USD" },   // display only: sort and filters read the raw value
   "cell": { "$node": … },             // a row template: row, rowIndex, value
   "numeric": true, "sortable": true, "firstDirection": "desc", "priority": 2,
-  "truncate": true, "wrap": false, "required": false, "resizable": true,
+  "truncate": true, "required": false, "resizable": true,
   "width": "…", "minWidth": "…", "maxWidth": "…",   // CSS lengths
   "label": "…",
   "filter": { "type": "text", "placeholder": "…" }   // or { "type": "select", "options": [{ "value", "label" }] }
 }
 ```
 
-`rowKey` is a field path (`"id"`) whose value identifies a row; without it, or on a missing or repeated value, the row's position is used. `rowActions`, `renderDetail` and `bulkActions` are row templates.
+No other column key exists; one is dropped (`unknown-prop`). `rowKey` is a field path (`"id"`) whose value identifies a row; without it, or on a missing or repeated value, the row's position is used. `rowActions`, `renderDetail` and `bulkActions` are row templates.
 
 ## Built-in components
 
@@ -257,9 +268,9 @@ The renderer provides three components the library leaves to the page. They are 
 ## Ids, names and attributes
 
 - A document never writes DOM ids or what points at them: `id`, `htmlFor`, `for`, `form`, `list`, `headers`, `popoverTarget`, `commandFor`, `aria-labelledby`, `aria-describedby`, `aria-controls`, `aria-owns`, `aria-activedescendant`, `aria-details`, `aria-errormessage`, `aria-flowto` are dropped (`forbidden-prop`). Fields wire their labels, descriptions and errors themselves, and two views on one page never collide.
-- `name` is dropped too, except where it names a form field (`Field`'s `name`).
+- `name` on a form control (`Input`, `Select`, `Slider`, `RadioGroup`, anything that submits a DOM name) is dropped (`forbidden-prop`): the `Field` around it names the control. `Field`'s `name` is the form field it binds. Everywhere else `name` is the component's own (`Avatar`'s person, `Icon`'s glyph) and passes on as written.
 - Name a control without a visible label with `aria-label`.
-- Dialog components take a `dialogId` (a name) that `openDialog` and `closeDialog` match; the renderer owns their open state (`defaultOpen` seeds it).
+- Dialog components take a `dialogId` (a name) that `openDialog` and `closeDialog` match; the renderer owns their open state: `open` is dropped (`forbidden-prop`), and `defaultOpen` seeds it.
 - `data-*` attributes pass through with string, number or boolean values. `data-density` takes `comfortable` or `compact`; `data-theme` and `data-input` are dropped (the host owns those axes).
 
 ## Network and images
@@ -267,6 +278,7 @@ The renderer provides three components the library leaves to the page. They are 
 - Nothing is requested unless the host provides `fetch`. Without it, `api` bindings and `apiCall` send nothing and report `missing-adapter`.
 - `endpoint` is relative or same-origin unless the host allows more. Origins are judged on the resolved URL, never on how the string starts.
 - Every image a document makes the browser load (`src`, `srcSet`, `poster`, avatar and logo URLs, at any depth) must pass the host's image policy: by default same-origin, or a `data:` PNG, JPEG, GIF, WebP or AVIF. A refused image shows its fallback and loads nothing.
+- Markdown shows an image only from a URL prefix the host lists (`markdownImageAllowlist`); otherwise its alt text. A document's own `imageAllowlist` is dropped.
 
 ## Sensitive components
 
@@ -282,7 +294,7 @@ The renderer provides three components the library leaves to the page. They are 
 
 ## Issues
 
-`validateViewSpec` and the renderer report issues as `{ "code", "path", "severity", "message", "suggestion"? }`. `path` is a JSON Pointer into the document (`/root/children/2/props/href`; `""` is the document). An **error** means the document does not conform; a **warning** means it conforms but something will be dropped, refused or will not work. Fix both.
+`validateViewSpec` and the renderer report issues as `{ "code", "path", "severity", "message", "suggestion"? }`. `path` is a JSON Pointer into the document (`/root/children/2/props/href`; `""` is the document). An **error** means the document does not conform; a **warning** means it conforms but something will be dropped, refused or will not work. Fix both. A document nested thousands of levels deep is not checked at all: `too-deep`, an error.
 
 <!-- GENERATED:issue-codes -->
 <!-- /GENERATED:issue-codes -->

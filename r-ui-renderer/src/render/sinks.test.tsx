@@ -49,29 +49,43 @@ describe("forbidden props", () => {
 });
 
 describe("ids and names", () => {
-  it("drops DOM ids, id references and a control's name; keeps Field's name and Icon's", () => {
+  it("drops DOM ids, id references and a form control's DOM name, native or its own", () => {
     const view = renderTree({
       component: "Stack",
       children: [
         { component: "Input", props: { id: "email", name: "email", "aria-labelledby": "x", "aria-label": "Email" } },
-        { component: "Icon", props: { name: "check", label: "Done" } },
+        { component: "Slider", props: { NAME: "volume", "aria-label": "Volume" } },
       ],
     });
     const input = screen.getByRole("textbox", { name: "Email" });
     expect(input).not.toHaveAttribute("name");
     expect(input.id).not.toBe("email");
     expect(input).not.toHaveAttribute("aria-labelledby");
-    expect(screen.getByRole("img", { name: "Done" })).toBeInTheDocument();
+    expect(document.querySelector('[name="volume"]')).toBeNull();
     expect(view.issuesOf("forbidden-prop")).toEqual([
       ["/root/children/0/props/id", false],
       ["/root/children/0/props/name", false],
       ["/root/children/0/props/aria-labelledby", false],
+      ["/root/children/1/props/NAME", false],
     ]);
   });
 
-  it("refuses a Field name that is not a name", () => {
+  it("keeps a name that means something else: a person's, an icon's (hyphens and all), a field's", () => {
+    const view = renderTree({
+      component: "Stack",
+      children: [
+        { component: "Avatar", props: { name: { $ref: "data.person" } } },
+        { component: "Icon", props: { name: "arrow-up-right", label: "Opens" } },
+      ],
+    }, { data: { person: "Ada Lovelace" } });
+    expect(screen.getByText("AL")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Opens" })).toBeInTheDocument();
+    expect(view.reported).toEqual([]);
+  });
+
+  it("refuses a Field name that is not a field name", () => {
     const view = renderTree({ component: "Field", props: { name: "__proto__" }, children: [] });
-    expect(view.issuesOf("invalid-name")).toEqual([["/root/props/name", false]]);
+    expect(view.issuesOf("invalid-prop-value")).toEqual([["/root/props/name", false]]);
   });
 });
 

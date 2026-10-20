@@ -1,12 +1,10 @@
 import { toISODate, toISODateTime } from "@batthewz/r-ui-react-components";
 
-import { isPlainObject } from "../spec/guards";
-import { FORBIDDEN_SEGMENTS, type EventValueKind, type JsonValue } from "../spec/types";
+import { isForbiddenSegment, isPlainObject } from "../spec/guards";
+import type { EventValueKind, JsonValue } from "../spec/types";
 
 /** How a Date becomes text: by whether it sits at local midnight, or always as a day or an instant. */
 export type DateMode = "auto" | "date" | "datetime";
-
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
 
 /** Deeper than any value a component reports; past it a branch is dropped rather than walked forever. */
 const MAX_DEPTH = 32;
@@ -42,7 +40,7 @@ function convert(value: unknown, mode: DateMode, depth: number): JsonValue | und
   if (!isPlainObject(value)) return undefined;
   const out: { [key: string]: JsonValue } = {};
   for (const key of Object.keys(value)) {
-    if (FORBIDDEN.has(key)) continue;
+    if (isForbiddenSegment(key)) continue;
     const item = convert(value[key], mode, depth + 1);
     if (item !== undefined) out[key] = item;
   }

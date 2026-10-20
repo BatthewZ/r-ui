@@ -9,24 +9,21 @@
 
 import { createElement, type ReactNode } from "react";
 
-import { isHandler, isNodeMarker, isPlainObject } from "../spec/guards";
+import { type NameRole, nameRole, refPropKinds } from "../spec/contract-facts";
+import { isHandler, isName, isNodeMarker, isPlainObject } from "../spec/guards";
 import {
+  CONSTRAINED_DATA_ATTRIBUTES,
   IMAGE_URL_PROPS,
+  isAllowedDataAttribute,
+  isAllowedDataValue,
   isForbiddenProp,
   isIdReferenceProp,
   lowerCaseProp,
   URL_PROPS,
 } from "../spec/policy";
+import { makeIssue } from "../spec/issue";
 import { appendPointer } from "../spec/pointer";
-import {
-  type ComponentContract,
-  type DateKind,
-  FORBIDDEN_SEGMENTS,
-  HANDLER_KEY_PATTERN,
-  type Issue,
-  NAME_PATTERN,
-  type PropPath,
-} from "../spec/types";
+import { type ComponentContract, type DateKind, HANDLER_KEY_PATTERN, type Issue, type PropPath } from "../spec/types";
 import { DIAGNOSTIC_CLASSES } from "../diagnostics";
 import {
   coerceDate,
@@ -39,13 +36,13 @@ import {
   rowTextAccessor,
 } from "./coerce";
 import { coerceColumns } from "./columns";
-import { diagnosticElement, issueOf } from "./diagnostic";
+import { diagnosticElement } from "./diagnostic";
 import { createFormatter, formatOptionsWork, toFormatOptions } from "./format";
-import { HOST_PROPS, NUMBER_ONLY_PROPS } from "./host-policy";
-import { DROP, type ParsedPropPath, parsePropPath, transformAt } from "./prop-path";
+import { HOST_PROPS } from "./host-policy";
+import { DROP, type ParsedPropPath, parsePropPath, transformAt } from "../spec/prop-path";
 import { handlerCallback, PropResolver } from "./resolve";
 import type { Scope } from "./scope";
-import { srcSetAllowed, imageAllowed, intlValueAllowed, judgeDataAttribute, urlAllowed } from "./sinks";
+import { imageAllowed, intlValueAllowed, srcSetAllowed, urlAllowed } from "./sinks";
 import { rowIndexLookup, type RenderAt, templateFunction } from "./templates";
 
 export interface PropsBuild {
@@ -77,7 +74,7 @@ interface Facts {
   readonly templates: ReadonlyMap<string, readonly string[]>;
   readonly forms: ReadonlySet<string>;
   readonly namespaced: ReadonlySet<string>;
-  readonly keepsName: boolean;
+  readonly nameRole: NameRole;
 }
 
 function split(paths: readonly PropPath[] | undefined): [Set<string>, Map<string, ParsedPropPath[]>] {
@@ -127,15 +124,12 @@ function factsOf(contract: ComponentContract): Facts {
     templates,
     forms: new Set(contract.formProps ?? []),
     namespaced: new Set(contract.namespacedProps ?? []),
-    // `name` is a form field key on Field, and the icon's name on the renderer's own Icon.
-    keepsName:
-      contract.fieldName === true || (contract.category === "builtin" && (contract.props ?? []).some((prop) => prop.name === "name")),
+    nameRole: nameRole(contract),
   };
   factsCache.set(contract, facts);
   return facts;
 }
 
-const FORBIDDEN: ReadonlySet<string> = new Set<string>(FORBIDDEN_SEGMENTS);
 const UNIVERSAL_URLS: ReadonlySet<string> = new Set<string>(URL_PROPS);
 const UNIVERSAL_IMAGES: ReadonlySet<string> = new Set<string>(IMAGE_URL_PROPS);
 
@@ -148,7 +142,7 @@ export function iconElement(scope: Scope, name: string, path: string): ReactNode
   const icons = scope.ctx.icons;
   const Glyph = icons !== undefined && Object.hasOwn(icons, name) ? icons[name] : undefined;
   if (Glyph !== undefined) return createElement(Glyph, { "aria-hidden": true });
-  const issue = issueOf("unknown-icon", path, `No icon is named "${name}".`);
+  const issue = makeIssue("unknown-icon", path, `No icon is named "${name}".`);
   scope.ctx.report(issue, { inPlace: true });
   return diagnosticElement({ ...issue, message: "" }, undefined, DIAGNOSTIC_CLASSES.missingIcon);
 }
@@ -190,8 +184,11 @@ export function buildProps(
   const judge = (key: string, raw: unknown, path: string): unknown => {
     const lower = lowerCaseProp(key);
     if (isForbiddenProp(key)) return resolver.drop("forbidden-prop", path, `\`${key}\` is never passed to a component.`);
-    if (isIdReferenceProp(key) && !(lower === "name" && facts.keepsName) && !facts.forms.has(key)) {
-      return resolver.drop("forbidden-prop", path, `\`${key}\` is the renderer's: documents write no DOM ids or names.`);
+    if (isIdReferenceProp(key) && !facts.forms.has(key)) {
+      return resolver.drop("forbidden-prop", path, `\`${key}\` is the renderer's: documents write no DOM ids.`);
+    }
+    if (lower === "name" && facts.nameRole === "dom") {
+      return resolver.drop("forbidden-prop", path, `${name}'s \`name\` is a DOM name: documents write none (a Field names its control).`);
     }
     if (facts.dropped.has(key)) return resolver.drop("forbidden-prop", path, `${name} takes no \`${key}\` from a document.`);
     if (contract.dialog === true && (key === "open" || key === "dialogId")) {
@@ -221,14 +218,13 @@ export function buildProps(
     if (value === undefined) return DROP;
 
     if (lower.startsWith("data-")) {
-      const verdict = judgeDataAttribute(key, value);
-      if (verdict === "keep") return value;
-      return verdict === "forbidden"
-        ? resolver.drop("forbidden-prop", path, `\`${key}\` is not an attribute a document may set.`)
-        : resolver.drop("invalid-prop-value", path, `\`${key}\` takes text, a number or a boolean${lower === "data-density" ? ' ("comfortable" or "compact")' : ""}.`);
+      if (!isAllowedDataAttribute(key)) return resolver.drop("forbidden-prop", path, `\`${key}\` is not an attribute a document may set.`);
+      if (isAllowedDataValue(key, value)) return value;
+      const options = own(CONSTRAINED_DATA_ATTRIBUTES, key);
+      return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${options === undefined ? "text, a number or a boolean" : options.join(" or ")}.`);
     }
-    if (lower === "name" && facts.keepsName && (typeof value !== "string" || !NAME_PATTERN.test(value) || FORBIDDEN.has(value))) {
-      return resolver.drop("invalid-name", path, "`name` is a name: letters, digits and _, not starting with a digit.");
+    if (key === "name" && facts.nameRole === "field" && !isName(value)) {
+      return resolver.drop("invalid-prop-value", path, "`name` is a field name: letters, digits and _, not starting with a digit.");
     }
 
     if (typeof value === "string") {
@@ -247,8 +243,9 @@ export function buildProps(
     if (levels !== undefined && (typeof value !== "number" || !levels.includes(value))) {
       return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${levels.join(", ")}.`);
     }
-    if (own(NUMBER_ONLY_PROPS, name)?.includes(key) === true && (typeof value !== "number" || !Number.isFinite(value))) {
-      return resolver.drop("invalid-prop-value", path, `\`${key}\` takes a number here.`);
+    const refKinds = refPropKinds(contract, key);
+    if (refKinds !== undefined && !refKinds.includes(typeof value)) {
+      return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${refKinds.length === 0 ? "nothing a document can write" : refKinds.join(" or ")}: a ref cannot come from a document.`);
     }
     const intl = own(contract.intlProps, key);
     if (intl !== undefined && !intlValueAllowed(value, intl)) {
@@ -279,7 +276,7 @@ export function buildProps(
       const handle = own(ctx.forms, value);
       if (handle !== undefined) return handle;
       if (env.formNames.has(value) || !ctx.streaming.complete) waiting = true;
-      else failure = issueOf("undeclared-name", path, `No form is named "${value}".`);
+      else failure = makeIssue("undeclared-name", path, `No form is named "${value}".`);
       return DROP;
     }
     if (facts.namespaced.has(key)) {

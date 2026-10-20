@@ -9,12 +9,15 @@
  */
 
 import { contractFor, DECLARED_PATHS, exclusionFor, LIBRARY_COMPONENTS } from "../contracts";
-import { isFormatMarker, isHandler, isNodeMarker, isPlainObject, isRefMarker, nodeKind } from "./guards";
+import { nameRole, refPropKinds } from "./contract-facts";
+import { makeIssue } from "./issue";
+import { isFormatMarker, isHandler, isName, isNodeMarker, isPlainObject, isRefMarker, nodeKind } from "./guards";
 import {
   CONSTRAINED_DATA_ATTRIBUTES,
   DATA_ATTRIBUTE_PATTERN,
-  DROPPED_DATA_ATTRIBUTES,
   IMAGE_URL_PROPS,
+  isAllowedDataAttribute,
+  isAllowedDataValue,
   isForbiddenProp,
   isIdReferenceProp,
   LIMITS,
@@ -36,16 +39,17 @@ import {
   HANDLER_KEY_PATTERN,
   type Issue,
   type IssueCode,
-  NAME_PATTERN,
   type PropPath,
   REF_ROOTS,
 } from "./types";
-import { defaultAllowImageUrl, defaultAllowUrl, NO_LOCATION_BASE, resolveUrl, safeUrl } from "./url-policy";
+import { defaultAllowImageUrl, defaultAllowUrl, NO_LOCATION_BASE, resolveUrl, safeUrl, srcSetUrls } from "./url-policy";
 import { isNativeAttribute } from "./validate-attributes";
 import { ADVISORY_DEFS, FORM_STATE_KEYS } from "./validate-schema";
-import { makeIssue, SchemaInterpreter } from "./validate-structure";
+import { SchemaInterpreter } from "./validate-structure";
 import { closest } from "./validate-suggest";
-import { digitsAccepted, isCurrencyCode, isIntlUnit, ISO_SHAPED, isIsoDate, isIsoDateTime } from "./validate-values";
+import { ISO_SHAPED, isIsoDate, isIsoDateTime } from "./dates";
+import { valuesAt } from "./prop-path";
+import { digitsAccepted, isCurrencyCode, isIntlUnit } from "./validate-values";
 
 /**
  * Components that throw or misbehave outside a given ancestor, beyond the
@@ -61,10 +65,6 @@ export const PLACEMENT: { readonly [name: string]: readonly string[] } = {
 export const FIELD_LIST_PROPS: { readonly [name: string]: readonly string[] } = {
   "Wizard.Step": ["fields"],
 };
-
-/** Column keys the renderer builds the library's column from rather than passing on. */
-const BRIDGED_COLUMN_KEYS: ReadonlySet<string> = new Set(["field", "format"]);
-const COLUMN_KEYS: ReadonlySet<string> = new Set(Object.keys(ADVISORY_DEFS.Column?.properties ?? {}));
 
 /** Props that fix a control's value, which detaches a Field binding. */
 const CONTROLLED_PROPS = new Set(["value", "checked", "defaultValue", "defaultChecked"]);
@@ -104,30 +104,6 @@ function isMarker(value: unknown): boolean {
 
 const quote = (value: unknown) => JSON.stringify(value);
 const list = (items: readonly unknown[]) => items.map((item) => `\`${String(item)}\``).join(", ");
-
-/** The values at a contract prop path (`items[].href`, `value.*`) with their pointers. */
-export function valuesAt(props: Record<string, unknown>, propPath: PropPath, base: string): { path: string; value: unknown }[] {
-  let found: { path: string; value: unknown }[] = [{ path: base, value: props }];
-  for (const [index, part] of propPath.split(".").entries()) {
-    const each = part.endsWith("[]");
-    const name = each ? part.slice(0, -2) : part;
-    const next: { path: string; value: unknown }[] = [];
-    for (const { path, value } of found) {
-      if (!isPlainObject(value)) continue;
-      if (name === "*" && index > 0) {
-        for (const key of Object.keys(value)) next.push({ path: appendPointer(path, key), value: value[key] });
-      } else if (name.length > 0 && Object.hasOwn(value, name) && value[name] !== undefined) {
-        next.push({ path: appendPointer(path, name), value: value[name] });
-      }
-    }
-    found = each
-      ? next.flatMap(({ path, value }) =>
-          Array.isArray(value) ? value.map((item: unknown, at) => ({ path: appendPointer(path, at), value: item })) : [],
-        )
-      : next;
-  }
-  return found;
-}
 
 class Advisor {
   readonly issues: Issue[] = [];
@@ -286,7 +262,7 @@ class Advisor {
       case "each": {
         this.keyOrder(node, EACH_NODE_KEYS, path, "Write a `$each` node's keys in this order");
         if (typeof node.$each === "string") this.ref(node.$each, appendPointer(path, "$each"), scope);
-        const alias = typeof node.as === "string" && NAME_PATTERN.test(node.as) ? node.as : undefined;
+        const alias = isName(node.as) ? node.as : undefined;
         const vars = alias === undefined ? scope.vars : new Set([...scope.vars, alias, `${alias}Index`]);
         this.node(node.node, appendPointer(path, "node"), { ...scope, vars, depth: scope.depth + 1 });
         return;
@@ -372,7 +348,7 @@ class Advisor {
       const value = props?.[prop];
       form = typeof value === "string" && this.forms.has(value) ? value : null;
     }
-    if (contract?.fieldName && typeof props?.name === "string") {
+    if (nameRole(contract) === "field" && typeof props?.name === "string") {
       boundField = true;
       this.fieldBinding(props.name, appendPointer(appendPointer(path, "props"), "name"), scope.form);
     }
@@ -456,14 +432,17 @@ class Advisor {
       else if (!this.forms.has(value)) this.undeclared(at, `No form \`${value}\` is declared in \`forms\`.`, value, this.forms.keys());
       return false;
     }
-    if (key === "name" && keepsName(contract)) {
-      if (typeof value !== "string" || !NAME_PATTERN.test(value)) this.warn("invalid-prop-value", at, "`name` is a name: letters, digits and `_`, not starting with a digit.");
-      if (contract.category === "builtin" && typeof value === "string") this.literal(name, contract, key, value, at, inner);
+    const role = lower === "name" ? nameRole(contract) : undefined;
+    if (role === "field" && key === "name") {
+      if (!isMarker(value) && !isName(value)) this.warn("invalid-prop-value", at, "`name` is a field name: letters, digits and `_`, not starting with a digit.");
+      return false;
+    }
+    if (role === "dom") {
+      this.warn("forbidden-prop", at, `\`${key}\` is dropped: ${name}'s \`name\` is a DOM name, which documents never set (a Field names its control).`);
       return false;
     }
     if (isIdReferenceProp(key)) {
-      const why = lower === "name" ? "documents set no DOM names (a Field's `name` binds a form field)" : "ids and what points at them are wired by the renderer";
-      this.warn("forbidden-prop", at, `\`${key}\` is dropped: ${why}.`);
+      this.warn("forbidden-prop", at, `\`${key}\` is dropped: ids and what points at them are wired by the renderer.`);
       return false;
     }
     if (contract.droppedProps?.includes(key)) {
@@ -527,8 +506,11 @@ class Advisor {
     } else if (enums !== undefined && !enums.includes(value as string | number | boolean)) {
       this.outside(at, `${name}'s \`${key}\` is one of ${enums.map(quote).join(", ")}.`, value, enums);
     }
-    const declaredType = contract.props?.find((prop) => prop.name === key)?.type;
-    if (declaredType?.includes("RefObject")) this.refObject(key, declaredType, value, at);
+    const refKinds = refPropKinds(contract, key);
+    if (refKinds !== undefined && !refKinds.includes(typeof value)) {
+      const takes = refKinds.length === 0 ? "nothing a document can write" : refKinds.join(" or ");
+      this.warn("invalid-prop-value", at, `\`${key}\` takes ${takes} here; a ref cannot come from a document.`);
+    }
     const intl = contract.intlProps?.[key];
     if (intl !== undefined && typeof value === "string" && !(intl === "currency" ? isCurrencyCode(value) : isIntlUnit(value))) {
       this.warn("invalid-prop-value", at, `Not ${intl === "currency" ? "an ISO 4217 currency code (\"EUR\")" : "a unit Intl formats"}; the renderer drops it.`);
@@ -540,26 +522,15 @@ class Advisor {
       if (typeof value === "string") this.icon(value, at);
     }
     if (contract.formatProps?.includes(key)) this.formatSpec(value, at);
-    if (contract.dialog && key === "dialogId" && (typeof value !== "string" || !NAME_PATTERN.test(value))) {
+    if (contract.dialog && key === "dialogId" && !isName(value)) {
       this.warn("invalid-prop-value", at, "`dialogId` is a name (letters, digits and `_`).");
     }
     const coercion = contract.coercions?.[key];
-    if (coercion?.kind === "columns") this.columns(name, value, at, inner);
+    if (coercion?.kind === "columns") this.columns(value, at, inner);
     else if (coercion?.kind === "options") this.advisory("SelectOptions", value, at);
     else if (coercion !== undefined && typeof value !== "string") {
       this.warn("invalid-prop-value", at, coercion.kind === "accessor" ? `\`${key}\` is a field path (a string).` : `\`${key}\` is a string of characters.`);
     }
-  }
-
-  /** Props typed `number | RefObject<…>`: a document gives the non-ref alternative or nothing. */
-  private refObject(key: string, declared: string, value: unknown, at: string): void {
-    const kinds = declared
-      .split("|")
-      .map((member) => member.trim())
-      .filter((member) => !member.includes("RefObject"));
-    if (kinds.includes(typeof value)) return;
-    const takes = kinds.length === 0 ? "nothing a document can write" : kinds.join(" or ");
-    this.warn("invalid-prop-value", at, `\`${key}\` takes ${takes} here; a ref cannot come from a document.`);
   }
 
   private outside(at: string, message: string, value: unknown, allowed: readonly unknown[]): void {
@@ -609,18 +580,15 @@ class Advisor {
   }
 
   private dataAttribute(key: string, value: unknown, at: string): void {
-    if (!DATA_ATTRIBUTE_PATTERN.test(key)) {
-      this.warn("forbidden-prop", at, `\`${key}\` is dropped: \`data-*\` names are lower-case letters, digits and hyphens.`);
-    } else if ((DROPPED_DATA_ATTRIBUTES as readonly string[]).includes(key)) {
-      this.warn("forbidden-prop", at, `\`${key}\` is dropped: the host owns that axis.`);
-    } else if (!isMarker(value) && typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
-      this.warn("invalid-prop-value", at, `\`${key}\` is dropped: a \`data-*\` value is a string, number or boolean.`);
-    } else {
-      const allowed = Object.hasOwn(CONSTRAINED_DATA_ATTRIBUTES, key) ? CONSTRAINED_DATA_ATTRIBUTES[key] : undefined;
-      if (allowed !== undefined && !isMarker(value) && !allowed.includes(String(value))) {
-        this.outside(at, `\`${key}\` is one of ${allowed.map(quote).join(", ")}.`, value, allowed);
-      }
+    if (!isAllowedDataAttribute(key)) {
+      const why = DATA_ATTRIBUTE_PATTERN.test(key) ? "the host owns that axis" : "`data-*` names are lower-case letters, digits and hyphens";
+      this.warn("forbidden-prop", at, `\`${key}\` is dropped: ${why}.`);
+      return;
     }
+    if (isMarker(value) || isAllowedDataValue(key, value)) return;
+    const allowed = Object.hasOwn(CONSTRAINED_DATA_ATTRIBUTES, key) ? CONSTRAINED_DATA_ATTRIBUTES[key] : undefined;
+    if (allowed === undefined) this.warn("invalid-prop-value", at, `\`${key}\` is dropped: a \`data-*\` value is a string, number or boolean.`);
+    else this.outside(at, `\`${key}\` is one of ${allowed.map(quote).join(", ")}.`, value, allowed);
   }
 
   private classList(text: string, at: string): void {
@@ -657,12 +625,12 @@ class Advisor {
     this.warn("unknown-icon", at, `No icon \`${name}\` in the icon set.`, suggestion === undefined ? undefined : quote(suggestion));
   }
 
-  /** A shape the contract decides, checked against the advisory schema and reported as a prop warning. */
+  /** A shape the contract decides, checked against the advisory schema and reported as a prop warning (a key it lacks: `unknown-prop`). */
   private advisory(def: string, value: unknown, at: string): void {
     const schema = ADVISORY_DEFS[def];
     if (schema === undefined) throw new Error(`No advisory definition ${def}.`);
     for (const issue of ADVISORY.validate(schema, value, at)) {
-      this.warn("invalid-prop-value", issue.path, issue.message, issue.suggestion);
+      this.warn(issue.code === "unknown-key" ? "unknown-prop" : "invalid-prop-value", issue.path, issue.message, issue.suggestion);
     }
   }
 
@@ -683,25 +651,16 @@ class Advisor {
     }
   }
 
-  private columns(name: string, value: unknown, at: string, scope: Scope): void {
+  private columns(value: unknown, at: string, scope: Scope): void {
     if (!Array.isArray(value)) {
       this.warn("invalid-prop-value", at, "`columns` is an array of column objects.");
       return;
     }
-    // A column key the library's own columns lack, unless the renderer turns it into one (`field`, `format`).
-    const declared = Object.hasOwn(DECLARED_PATHS, name) ? DECLARED_PATHS[name]?.paths : undefined;
-    const libraryKeys = new Set(
-      (declared ?? []).filter((path) => /^columns\[\]\.[^.[]+$/.test(path)).map((path) => path.slice("columns[].".length)),
-    );
     const ids = new Set<string>();
     value.forEach((column: unknown, index) => {
       const columnAt = appendPointer(at, index);
       this.advisory("Column", column, columnAt);
       if (!isPlainObject(column)) return;
-      for (const key of Object.keys(column)) {
-        if (declared === undefined || libraryKeys.has(key) || BRIDGED_COLUMN_KEYS.has(key) || !COLUMN_KEYS.has(key)) continue;
-        this.warn("unknown-prop", appendPointer(columnAt, key), `${name}'s columns have no \`${key}\`; the renderer drops it.`);
-      }
       if (typeof column.id === "string") {
         if (ids.has(column.id)) this.warn("invalid-prop-value", appendPointer(columnAt, "id"), `Two columns share the id ${quote(column.id)}.`);
         ids.add(column.id);
@@ -910,21 +869,8 @@ interface Walk {
   readonly stateOnly?: boolean;
 }
 
-/** `name` is a form field key on a Field and the icon's name on the built-in Icon; everywhere else a DOM name. */
-function keepsName(contract: ComponentContract): boolean {
-  return contract.fieldName === true || (contract.category === "builtin" && (contract.props ?? []).some((prop) => prop.name === "name"));
-}
-
 function lowerCaseLast(pointer: string): string {
   return lowerCaseProp(pointer.slice(pointer.lastIndexOf("/") + 1));
-}
-
-/** The URLs in a `srcset`: each candidate's first token. */
-function srcSetUrls(srcSet: string): string[] {
-  return srcSet
-    .split(",")
-    .map((candidate) => candidate.trim().split(/\s+/)[0] ?? "")
-    .filter((url) => url !== "");
 }
 
 function originBase(origin: string | undefined): string {

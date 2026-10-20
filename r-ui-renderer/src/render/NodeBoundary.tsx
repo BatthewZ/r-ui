@@ -1,7 +1,8 @@
 import { Component, type ReactNode } from "react";
 
 import type { IssueReporter } from "../runtime/context";
-import { diagnosticElement, issueOf } from "./diagnostic";
+import { makeIssue } from "../spec/issue";
+import { diagnosticElement } from "./diagnostic";
 
 export interface NodeBoundaryProps {
   /** JSON Pointer of the node it contains. */
@@ -36,7 +37,7 @@ export class NodeBoundary extends Component<NodeBoundaryProps, NodeBoundaryState
 
   override componentDidCatch(error: unknown): void {
     if (this.props.pending !== undefined) return;
-    this.props.report(issueOf("render-error", this.props.path, messageOf(error)), { inPlace: !this.props.structural });
+    this.props.report(makeIssue("render-error", this.props.path, messageOf(error)), { inPlace: !this.props.structural });
   }
 
   override componentDidUpdate(previous: NodeBoundaryProps): void {
@@ -49,6 +50,6 @@ export class NodeBoundary extends Component<NodeBoundaryProps, NodeBoundaryState
     if (failure === null) return this.props.children;
     if (this.props.pending !== undefined) return this.props.pending;
     if (this.props.structural) return null;
-    return diagnosticElement(issueOf("render-error", this.props.path, failure));
+    return diagnosticElement(makeIssue("render-error", this.props.path, failure));
   }
 }

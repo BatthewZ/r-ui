@@ -29,7 +29,7 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
     expect(written.status).toBe(0);
     const { library, components } = JSON.parse(readFileSync(join(out, "components.json"), "utf8"));
     expect(library).toEqual({ name: "fixture-library", version: "1.0.0" });
-    expect(Object.keys(components)).toEqual(["Dial", "Dial.Needle"]);
+    expect(Object.keys(components)).toEqual(["Dial", "Dial.Knob", "Dial.Needle"]);
     expect(components.Dial).toEqual({
       category: "gauges",
       props: [
@@ -45,6 +45,9 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
       nativeAttributes: true,
     });
     expect(components["Dial.Needle"].nativeAttributes).toBeUndefined();
+    // An <input>'s native attributes carry a DOM `name`; a <div>'s do not.
+    expect(components["Dial.Knob"]).toMatchObject({ nativeAttributes: true, domName: true });
+    expect(components.Dial.domName).toBeUndefined();
     const paths = JSON.parse(readFileSync(join(out, "declared-paths.json"), "utf8"));
     expect(paths.Dial).toEqual({
       paths: ["format", "label", "onTurn", "size", "when"],

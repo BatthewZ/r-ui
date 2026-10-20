@@ -34,7 +34,8 @@
       "category": "disclosure",
       "props": [],
       "slots": ["chevron","heading"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "ActivityFeed": {
       "category": "data",
@@ -315,7 +316,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Calendar": {
       "category": "dates",
@@ -432,7 +434,8 @@
         {"name":"onCheckedChange","type":"(checked: boolean) => void","required":false}
       ],
       "slots": ["box","input","label"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Chip": {
       "category": "primitives",
@@ -496,7 +499,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "ColorPicker": {
       "category": "form",
@@ -521,7 +525,8 @@
       "propEnums": {
         "format": ["hex","oklch"]
       },
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Combobox": {
       "category": "form",
@@ -683,7 +688,8 @@
       "propEnums": {
         "variant": ["primary","secondary","ghost","danger"]
       },
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "CountUp": {
       "category": "motion",
@@ -718,7 +724,8 @@
         "currencyDisplay": ["symbol","narrowSymbol","code"]
       },
       "nodeProps": ["end"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "DataTable": {
       "category": "data",
@@ -807,7 +814,8 @@
         "weekStartsOn": [0,1,2,3,4,5,6]
       },
       "nodeProps": ["hint"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "DateRangePicker": {
       "category": "dates",
@@ -842,7 +850,8 @@
         "variant": ["button","field"],
         "weekStartsOn": [0,1,2,3,4,5,6]
       },
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "DensitySwitcher": {
       "category": "preferences",
@@ -904,7 +913,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Dialog.Content": {
       "category": "overlays",
@@ -955,7 +965,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Divider": {
       "category": "primitives",
@@ -1002,7 +1013,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Drawer.Content": {
       "category": "overlays",
@@ -1055,7 +1067,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "DropdownMenu": {
       "category": "overlays",
@@ -1150,7 +1163,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "EmailCapture": {
       "category": "marketing",
@@ -1443,7 +1457,8 @@
       "props": [
         {"name":"form","type":"FormApi<TValues, TOutput>","required":true}
       ],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "FormActions": {
       "category": "form",
@@ -1466,7 +1481,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Grid": {
       "category": "layout",
@@ -1557,7 +1573,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["icon"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "HoverCard.Trigger": {
       "category": "overlays",
@@ -1598,7 +1615,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["icon"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Image": {
       "category": "media",
@@ -1657,7 +1675,8 @@
         "type": ["text","email","password","search","tel","url"]
       },
       "nodeProps": ["end","start"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "InputSwitcher": {
       "category": "preferences",
@@ -1723,7 +1742,8 @@
         {"name":"asChild","type":"boolean","required":false,"description":"Put the open behaviour on your own single child instead of a `<button>`."},
         {"name":"index","type":"number","required":true,"description":"The picture to open on, 0-based."}
       ],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "LineChart": {
       "category": "charts",
@@ -1823,7 +1843,8 @@
         "type": ["text","tel"]
       },
       "nodeProps": ["end","start"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "MasonryGrid": {
       "category": "media",
@@ -1982,7 +2003,8 @@
       ],
       "slots": ["end","input","start"],
       "nodeProps": ["end","start"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "OTPInput": {
       "category": "form",
@@ -2004,7 +2026,8 @@
         "mode": ["numeric","alphanumeric"]
       },
       "nodeProps": ["separator"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Pagination": {
       "category": "navigation",
@@ -2054,7 +2077,8 @@
         "autoComplete": ["current-password","new-password","one-time-code","off"]
       },
       "nodeProps": ["end","start"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Popover": {
       "category": "overlays",
@@ -2082,7 +2106,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Popover.Content": {
       "category": "overlays",
@@ -2107,7 +2132,8 @@
         "variant": ["primary","secondary","ghost","danger"]
       },
       "nodeProps": ["iconEnd","iconStart"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "PreferencesMenu": {
       "category": "preferences",
@@ -2389,7 +2415,8 @@
       ],
       "slots": ["end","input","start"],
       "nodeProps": ["end"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Section": {
       "category": "layout",
@@ -2456,7 +2483,8 @@
         {"name":"value","type":"string","required":false,"description":"The chosen option's `value` (controlled)."}
       ],
       "slots": ["icon","select"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "SiteHeader": {
       "category": "marketing",
@@ -2538,7 +2566,8 @@
       "propEnums": {
         "series": [1,2,3,4,5,6,7,8,"total"]
       },
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Spinner": {
       "category": "primitives",
@@ -2687,7 +2716,8 @@
         {"name":"onCheckedChange","type":"(checked: boolean) => void","required":false}
       ],
       "slots": ["label","thumb","track"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Table": {
       "category": "data",
@@ -2797,7 +2827,8 @@
         {"name":"value","type":"string","required":true}
       ],
       "nodeProps": ["icon"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "TagInput": {
       "category": "form",
@@ -2852,7 +2883,8 @@
         {"name":"invalid","type":"boolean","required":false},
         {"name":"maxRows","type":"number","required":false,"description":"With `autosize`: the most rows to grow to."}
       ],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "ThemeScript": {
       "category": "preferences",
@@ -3005,7 +3037,8 @@
         {"name":"value","type":"string","required":true,"description":"What the item contributes to the group's value."}
       ],
       "nodeProps": ["icon"],
-      "nativeAttributes": true
+      "nativeAttributes": true,
+      "domName": true
     },
     "Toolbar": {
       "category": "toolbar",
