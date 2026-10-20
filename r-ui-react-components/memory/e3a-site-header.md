@@ -39,3 +39,9 @@
   padding change cannot flip the form under them.
 - **Row labels are class contexts for the raw-length gate.** "(22rem)" in a showcase label
   failed `verify:no-raw-tailwind`; name the token instead.
+- **An icon beside a title and description sits on the title's first line.** Give the
+  icon a box one line tall (`block-size: 1lh`, glyph centred) and start-align the row,
+  as Alert does. When the row also has a minimum height (`--ROW-H`, which a coarse input
+  raises), start alignment pushes a lone label to the top: make the row a grid with
+  `align-items: start` and `align-content: center`, so the block centres and the icon
+  stays on the first line.

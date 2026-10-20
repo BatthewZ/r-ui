@@ -430,11 +430,15 @@ tbody > [data-table-row]:hover > .r-marketing-pricing-sticky {
 
 /* A link row in a panel or the narrow header's menu: a row tall at least, the
    label in primary ink over a secondary description. */
+/* A grid, so the icon can sit on the label's first line (items start) while the
+   whole block still centres in a row taller than its text (content centres). */
 .r-marketing-nav-link {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--R-SIZE-4);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  align-items: start;
+  column-gap: var(--R-SIZE-4);
   min-block-size: var(--ROW-H);
   padding: var(--R-SIZE-5) var(--R-SIZE-4);
   border-radius: var(--RADIUS-MD);
@@ -456,9 +460,15 @@ tbody > [data-table-row]:hover > .r-marketing-pricing-sticky {
   border-radius: var(--RADIUS-FULL);
   background: var(--C-ACCENT);
 }
+.r-marketing-nav-link:has(> .r-marketing-nav-link-icon) {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+/* One label line tall, the glyph centred in it: level with the label, not the
+   label and description together. */
 .r-marketing-nav-link-icon {
-  display: inline-flex;
-  flex: none;
+  display: flex;
+  align-items: center;
+  block-size: 1lh;
 }
 .r-marketing-nav-link-icon > svg {
   inline-size: var(--ICON);

@@ -22,7 +22,9 @@
 //      by its `aria-controls`, in the top layer (`:popover-open`), and holds
 //      only links and the featured card;
 //   2. a mega panel spans the header's bar (its start edge and width within
-//      2px of the bar's) and sits below the bar, inside the viewport;
+//      2px of the bar's) and sits below the bar, inside the viewport; every
+//      link's icon is level with its label's first line (centres within 1px),
+//      not with the label and description together;
 //   3. keyboard with real keys: Tab from the brand reaches Product, Enter
 //      opens it, Tab walks into its first link (Editor), Shift+Tab returns to
 //      Product with the panel open, Escape from a link closes it and puts
@@ -45,7 +47,8 @@
 //      `aria-current="page"` and an accent bar (an opaque `::after`) under it;
 //   7. density: Resources' rows in the compact NavigationMenu are the compact
 //      frame's `--ROW-H` (a panel rendered in place inherits it), shorter than
-//      the comfortable menu's.
+//      the comfortable menu's; in both, each label-only row's label sits at the
+//      row's centre and its icon level with the label (within 1px).
 async (page) => {
   const fail = [];
   const summary = {};
@@ -69,6 +72,23 @@ async (page) => {
         box: { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height },
       };
     });
+  // Per icon link in a trigger's panel: the icon's centre, the label's first-line centre, the label's and row's centres.
+  const levels = (button) =>
+    [...document.getElementById(button.getAttribute("aria-controls")).querySelectorAll("a[href]")]
+      .filter((a) => a.querySelector("svg"))
+      .map((a) => {
+        const svg = a.querySelector("svg").getBoundingClientRect();
+        const labelEl = a.querySelector("span:not([aria-hidden]) > span");
+        const label = labelEl.getBoundingClientRect();
+        const row = a.getBoundingClientRect();
+        return {
+          label: labelEl.textContent,
+          icon: svg.top + svg.height / 2,
+          firstLine: label.top + parseFloat(getComputedStyle(labelEl).lineHeight) / 2,
+          labelCentre: label.top + label.height / 2,
+          rowCentre: row.top + row.height / 2,
+        };
+      });
   const isOpen = async (trigger) => (await panelState(trigger))?.open === true;
   const waitFor = async (predicate, timeout = 1500) => {
     const start = Date.now();
@@ -140,6 +160,11 @@ async (page) => {
     if (panel.box.top < bar.bottom - 1) fail.push(`mega: the panel's top ${panel.box.top} is above the bar's bottom ${bar.bottom}`);
     if (panel.box.left < 0 || panel.box.right > 1440) fail.push(`mega: the panel leaves the viewport ${JSON.stringify(panel.box)}`);
   }
+  const iconRows = await product.evaluate(levels);
+  summary.iconRows = iconRows.length;
+  if (iconRows.length !== 6) fail.push(`icons: harness: ${iconRows.length} of Product's links have an icon, expected 6`);
+  for (const row of iconRows)
+    if (Math.abs(row.icon - row.firstLine) > 1) fail.push(`icons: "${row.label}"'s icon centre is ${(row.icon - row.firstLine).toFixed(1)}px off its label's first line`);
   await closeAll();
 
   // ── 3. Keyboard ───────────────────────────────────────────────────────────
@@ -270,6 +295,7 @@ async (page) => {
       const rows = [...panel.querySelectorAll("a[href]")].map((a) => a.getBoundingClientRect().height);
       return { rows, rowH: parseFloat(getComputedStyle(panel).getPropertyValue("--ROW-H")), promoted: panel.matches(":popover-open") };
     });
+    m.levels = await button.evaluate(levels);
     await page.keyboard.press("Escape");
     await settle(page);
     return m;
@@ -280,6 +306,13 @@ async (page) => {
   if (compact.rows.length !== 3 || comfortable.rows.length !== 3) fail.push(`density: harness: Resources holds ${compact.rows.length}/${comfortable.rows.length} rows, expected 3`);
   if (!compact.promoted) fail.push("density: the compact panel is not in the top layer");
   if (compact.rows.some((h) => Math.abs(h - compact.rowH) > 1)) fail.push(`density: compact rows ${JSON.stringify(compact.rows)} are not the frame's --ROW-H ${compact.rowH}`);
+  for (const [density, m] of [["comfortable", comfortable], ["compact", compact]]) {
+    if (m.levels.length !== 3) fail.push(`density: harness: ${m.levels.length} of ${density} Resources' rows have an icon, expected 3`);
+    for (const row of m.levels) {
+      if (Math.abs(row.labelCentre - row.rowCentre) > 1) fail.push(`density: ${density} "${row.label}" sits ${(row.labelCentre - row.rowCentre).toFixed(1)}px off its row's centre`);
+      if (Math.abs(row.icon - row.firstLine) > 1) fail.push(`density: ${density} "${row.label}"'s icon is ${(row.icon - row.firstLine).toFixed(1)}px off its label`);
+    }
+  }
   if (!(compact.rows[0] < comfortable.rows[0])) fail.push(`density: compact rows (${compact.rows[0]}px) are not shorter than comfortable ones (${comfortable.rows[0]}px)`);
 
   if (errors.length) fail.push(...errors);

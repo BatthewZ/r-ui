@@ -171,7 +171,12 @@ export default function ProgressBarSection() {
               labels={{ indeterminate: "قيد التنفيذ" }}
               locale="ar-EG"
             />
-            <ProgressBar label="جارٍ التحضير" labels={{ indeterminate: "قيد التنفيذ" }} className="mt-r4" />
+            <ProgressBar
+              label="جارٍ التحضير"
+              labels={{ indeterminate: "قيد التنفيذ" }}
+              className="mt-r4"
+              data-sc="progress-indeterminate-rtl"
+            />
           </div>
         </div>
       </Row>

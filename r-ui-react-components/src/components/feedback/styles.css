@@ -2,22 +2,26 @@
    Imported by src/styles.css inside `@layer components`, so a caller's utility
    (`className`) always beats these rules. Plain rules, tokens only. */
 
-/* Indeterminate bar: a short fill sweeps from the inline start past the end.
-   Inset (a logical property) rather than a transform, so RTL needs no rule.
+/* Indeterminate bar: a short fill sweeps from off the inline start past the end.
+   A translate, not an inset, so the compositor runs it with no layout or paint.
+   Its percentages are the fill's own width (40% of the track), so -100% to 250%
+   clears both ends. A translate is physical, so the contract's inline sign
+   mirrors it under dir="rtl" (not `:dir()`, which the build lowers to `:lang()`).
    The loop rides the duration token because reduced motion stops it below,
    before the collapsed token could turn it into a strobe. */
 .r-feedback-progress-sweep {
   position: absolute;
   inset-block: 0;
+  inset-inline-start: 0;
   inline-size: 40%;
   animation: r-feedback-progress-sweep calc(var(--DURATION-SLOW) * 6) var(--EASE-STANDARD) infinite;
 }
 @keyframes r-feedback-progress-sweep {
   from {
-    inset-inline-start: -40%;
+    translate: calc(-100% * var(--MOTION-INLINE-SIGN, 1));
   }
   to {
-    inset-inline-start: 100%;
+    translate: calc(250% * var(--MOTION-INLINE-SIGN, 1));
   }
 }
 

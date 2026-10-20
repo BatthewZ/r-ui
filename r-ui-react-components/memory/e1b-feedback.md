@@ -11,7 +11,12 @@
 - **A loop may ride the duration tokens only if reduced motion stops it first.** The tokens
   collapse to 0.01ms there, which turns an infinite animation into a strobe; the sweep sets
   `animation: none` under the media query itself and becomes a still, striped (masked)
-  fill. Animating `inset-inline-start` rather than a transform makes RTL free.
+  fill.
+- **An infinite loop animates `translate` (or `opacity`) only.** The sweep once animated
+  `inset-inline-start`: layout and paint on the main thread every frame, for as long as
+  anything loads. `translate` percentages are the element's own size, so size the travel in
+  its widths, and mirror it with the contract's `--MOTION-INLINE-SIGN`. The browser check
+  asserts the keyframes animate `translate` alone and the path in both directions.
 - **A part that forced colours must restyle is painted by the group's CSS, not a utility.**
   The group sheet sits under `@layer utilities`, so a forced-colours rule cannot beat a
   `stroke-…` utility on the same element: the ring's track stroke lives in the stylesheet.
@@ -27,3 +32,8 @@
   ref into the fallback's DOM).
 - **The raw-value gate reads words.** A showcase description saying "rounded down" failed
   `verify:no-raw-tailwind` as a bare `rounded`; prose in strings is scanned like classes.
+- **`:dir()` does not survive the build.** Tailwind's Lightning CSS targets browsers older
+  than `:dir()` and lowers it to a `:lang()` list of RTL languages, so it matches on `lang`,
+  not on `dir`: a bare `dir="rtl"` container misses it, and an LTR island inside `lang="ar"`
+  hits it. Flip by an inherited custom property set on `[dir]` (the contract's
+  `--MOTION-INLINE-SIGN`), and check RTL under a `dir` with no RTL `lang`.

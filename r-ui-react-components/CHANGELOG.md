@@ -16,6 +16,8 @@ tokens or the public surface are versioned events and are recorded here.
 
 ### Fixed
 
+- Marketing: a `NavigationMenu` panel link's icon (and so a `SiteHeader` dropdown's and its mobile menu's) sits level with the label's first line instead of centred on the label and description together; a label-only row still centres in its row height.
+- Feedback: `ProgressBar`'s indeterminate sweep animates `translate` instead of `inset-inline-start`, so it runs off the main thread with no layout or paint per frame; it mirrors under `dir="rtl"` through `--MOTION-INLINE-SIGN`.
 - Overlays: under reduced motion every closed surface with an exit (dialogs and the Lightbox, popovers, menus, tooltips, hover cards, toasts, selection lists, navigation panels, chart tooltips) unmounts its content at once. The collapsed 0.01ms exits were still waited on, which kept the content mounted a frame or two after the close.
 - Form: `OTPInput` keeps what is typed in the frame after it takes focus. Its focus-time caret placement used the code as it was at focus, so it threw the caret back to the first box and the next keys landed there ("4821" typed fast became "821").
 - Form: `OTPInput` keeps a selection made between its focus and the next frame (a caller's `focus()` then `select()`, or a test's `fill("")`, which selects all before it deletes). The focus-time caret placement collapsed it, so the delete removed nothing and the next keys were appended to the old code.

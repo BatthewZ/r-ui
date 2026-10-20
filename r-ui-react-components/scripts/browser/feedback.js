@@ -20,9 +20,14 @@
 //   3. the indeterminate bar (`[data-sc="progress-indeterminate"]`) has no aria-valuenow
 //      and says its word, visibly and in aria-valuetext; with no motion preference its
 //      sweep runs the `r-feedback-progress-sweep` animation and moves between frames;
-//   4. under emulated reduced motion (reloaded), the same sweep runs no animation
-//      (`getAnimations()` empty, `animation-name: none`), stands still across the whole
-//      track, and is striped (a mask image), while the word stays.
+//      its keyframes animate `translate` alone (compositor-only), and, paused at the
+//      start, middle and end of an iteration, it begins just off the track's left edge
+//      and ends just past its right (±1px), moving rightward; the RTL bar
+//      (`[data-sc="progress-indeterminate-rtl"]`, says "قيد التنفيذ", under a bare
+//      dir="rtl" with no RTL lang) runs the same animation, mirrored;
+//   4. under emulated reduced motion (reloaded), both sweeps run no animation
+//      (`getAnimations()` empty, `animation-name: none`), stand still across the whole
+//      track, and are striped (a mask image), while the word stays.
 // On the Banner section opened alone (`#feedback-banner`):
 //   5. the sticky banner (`[data-sc="banner-sticky"]`), its scroller scrolled to the end,
 //      stays on the scroller's top edge (±1px) on the sticky layer (z-index =
@@ -117,10 +122,15 @@ async (page) => {
 
   await load();
 
-  // 3 + 4. the indeterminate sweep, then the same under reduced motion
-  const readSweep = () =>
-    page.evaluate(async () => {
-      const bar = document.querySelector('[data-sc="progress-indeterminate"]');
+  // 3 + 4. the indeterminate sweeps (LTR and RTL), then the same under reduced motion
+  const SWEEPS = [
+    { sc: "progress-indeterminate", word: "In progress", rtl: false },
+    { sc: "progress-indeterminate-rtl", word: "قيد التنفيذ", rtl: true },
+  ];
+  const readSweep = (sc) =>
+    page.evaluate(async (sc) => {
+      const bar = document.querySelector(`[data-sc="${sc}"]`);
+      bar.scrollIntoView({ block: "center" });
       const sweep = bar.querySelector(".r-feedback-progress-sweep");
       const track = sweep.parentElement;
       const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
@@ -128,34 +138,69 @@ async (page) => {
       for (let i = 0; i < 10; i += 1) await frame();
       const x1 = sweep.getBoundingClientRect().left;
       const css = getComputedStyle(sweep);
-      return {
+      const animations = sweep.getAnimations();
+      const result = {
         now: bar.getAttribute("aria-valuenow"),
         spoken: bar.getAttribute("aria-valuetext"),
         shown: bar.querySelector('[aria-hidden="true"]')?.textContent ?? null,
-        animations: sweep.getAnimations().map((a) => a.animationName ?? a.constructor.name),
+        animations: animations.map((a) => a.animationName ?? a.constructor.name),
         name: css.animationName,
         mask: css.maskImage || css.webkitMaskImage,
         moved: Math.abs(x1 - x0),
         width: sweep.getBoundingClientRect().width,
         track: track.getBoundingClientRect().width,
       };
-    });
+      const [animation] = animations;
+      if (animation) {
+        const META = new Set(["offset", "computedOffset", "easing", "composite"]);
+        result.properties = [...new Set(animation.effect.getKeyframes().flatMap((k) => Object.keys(k).filter((key) => !META.has(key))))];
+        const duration = Number(animation.effect.getComputedTiming().duration);
+        const t = track.getBoundingClientRect();
+        const at = (time) => {
+          animation.currentTime = time;
+          const r = sweep.getBoundingClientRect();
+          return { left: r.left - t.left, right: r.right - t.left, center: (r.left + r.right) / 2 - t.left };
+        };
+        animation.pause();
+        result.path = { trackWidth: t.width, start: at(0), mid: at(duration / 2), end: at(duration - 1) };
+        animation.play();
+      }
+      return result;
+    }, sc);
 
-  const moving = await readSweep();
-  if (moving.now !== null) fail.push(`indeterminate: aria-valuenow ${moving.now}, expected none`);
-  if (moving.spoken !== "In progress" || moving.shown !== "In progress")
-    fail.push(`indeterminate: says "${moving.spoken}", shows "${moving.shown}", expected "In progress" for both`);
-  if (!moving.animations.includes("r-feedback-progress-sweep")) fail.push(`indeterminate: animations ${JSON.stringify(moving.animations)}, expected the sweep`);
-  if (!(moving.moved > 0.5)) fail.push(`indeterminate: the sweep did not move over 10 frames (${moving.moved}px)`);
+  const moving = [];
+  for (const sweep of SWEEPS) {
+    const label = `indeterminate${sweep.rtl ? " (RTL)" : ""}`;
+    const read = await readSweep(sweep.sc);
+    moving.push(read);
+    if (read.now !== null) fail.push(`${label}: aria-valuenow ${read.now}, expected none`);
+    if (read.spoken !== sweep.word || read.shown !== sweep.word)
+      fail.push(`${label}: says "${read.spoken}", shows "${read.shown}", expected "${sweep.word}" for both`);
+    if (!read.animations.includes("r-feedback-progress-sweep")) fail.push(`${label}: animations ${JSON.stringify(read.animations)}, expected the sweep`);
+    if (!(read.moved > 0.5)) fail.push(`${label}: the sweep did not move over 10 frames (${read.moved}px)`);
+    if (JSON.stringify(read.properties) !== '["translate"]')
+      fail.push(`${label}: keyframes animate ${JSON.stringify(read.properties)}, expected translate alone (compositor-only)`);
+    const path = read.path;
+    if (!path) continue;
+    const { start, mid, end, trackWidth } = path;
+    const [first, last] = sweep.rtl ? [start.left - trackWidth, end.right] : [start.right, end.left - trackWidth];
+    if (Math.abs(first) > 1) fail.push(`${label}: the sweep starts ${first.toFixed(1)}px from just off its inline start`);
+    if (Math.abs(last) > 1) fail.push(`${label}: the sweep ends ${last.toFixed(1)}px from just past its inline end`);
+    if (!(sweep.rtl ? mid.center < start.center : mid.center > start.center))
+      fail.push(`${label}: the sweep runs the wrong way (centre ${start.center.toFixed(1)} → ${mid.center.toFixed(1)}px)`);
+  }
 
   await load({ reduced: true });
-  const still = await readSweep();
-  if (still.animations.length !== 0 || still.name !== "none")
-    fail.push(`reduced motion: the sweep still animates (${JSON.stringify(still.animations)}, animation-name ${still.name})`);
-  if (still.moved !== 0) fail.push(`reduced motion: the sweep moved ${still.moved}px`);
-  if (Math.abs(still.width - still.track) > 1) fail.push(`reduced motion: the stripes span ${still.width} of a ${still.track}px track`);
-  if (!still.mask || still.mask === "none") fail.push("reduced motion: no striped mask on the still fill");
-  if (still.spoken !== "In progress" || still.shown !== "In progress") fail.push(`reduced motion: says "${still.spoken}", shows "${still.shown}"`);
+  for (const sweep of SWEEPS) {
+    const label = `reduced motion${sweep.rtl ? " (RTL)" : ""}`;
+    const still = await readSweep(sweep.sc);
+    if (still.animations.length !== 0 || still.name !== "none")
+      fail.push(`${label}: the sweep still animates (${JSON.stringify(still.animations)}, animation-name ${still.name})`);
+    if (still.moved !== 0) fail.push(`${label}: the sweep moved ${still.moved}px`);
+    if (Math.abs(still.width - still.track) > 1) fail.push(`${label}: the stripes span ${still.width} of a ${still.track}px track`);
+    if (!still.mask || still.mask === "none") fail.push(`${label}: no striped mask on the still fill`);
+    if (still.spoken !== sweep.word || still.shown !== sweep.word) fail.push(`${label}: says "${still.spoken}", shows "${still.shown}"`);
+  }
 
   // 5. the sticky Banner on its scroller's edge
   await openSection(page, "feedback-banner", { view: { theme: "default", density: "comfortable", input: "fine" } });
@@ -184,5 +229,5 @@ async (page) => {
   stopErrors();
   if (errors.length) fail.push(`errors: ${errors.join(" | ")}`);
   if (fail.length) throw new Error(`feedback FAILED:\n  ${fail.join("\n  ")}`);
-  return `feedback OK ${bars.length} determinate bars show what they say and fill their share; the sweep moves ${moving.moved.toFixed(1)}px in 10 frames, and under reduced motion stands still, striped, across the track; sticky band on its scroller's edge at z ${sticky.z}`;
+  return `feedback OK ${bars.length} determinate bars show what they say and fill their share; the sweeps move ${moving.map((m) => m.moved.toFixed(1)).join(" / ")}px (LTR / RTL) in 10 frames on translate alone, edge to edge each way, and under reduced motion stand still, striped, across the track; sticky band on its scroller's edge at z ${sticky.z}`;
 }
