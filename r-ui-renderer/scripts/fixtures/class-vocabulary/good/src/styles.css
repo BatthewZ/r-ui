@@ -1,0 +1,8 @@
+@source inline("p-r3 text-body-2");
+
+@layer components {
+  .r-renderer-ok {
+    padding: 0 var(--R-SIZE-4);
+    border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  }
+}

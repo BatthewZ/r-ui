@@ -1,6 +1,7 @@
 import * as library from "@batthewz/r-ui-react-components";
 import type { ElementType } from "react";
 
+import { defaultContracts } from "../contracts";
 import { Heading } from "../render/builtins/Heading";
 import { Icon } from "../render/builtins/Icon";
 import { Text } from "../render/builtins/Text";
@@ -28,14 +29,18 @@ export function isExportedComponent(name: string, value: unknown): value is Elem
   return /^[A-Z]/.test(name) && isComponentLike(value);
 }
 
-/** Parts attached as static members (`Object.assign(Card, { Header })`). */
-function collectParts(component: ElementType): Record<string, ElementType> | undefined {
+type NameFilter = (name: string) => boolean;
+
+const everything: NameFilter = () => true;
+
+/** Parts attached as static members (`Object.assign(Card, { Header })`), as `include` allows them. */
+function collectParts(name: string, component: ElementType, include: NameFilter): Record<string, ElementType> | undefined {
   if (typeof component !== "function" && typeof component !== "object") return undefined;
   const parts = Object.create(null) as Record<string, ElementType>;
   let found = false;
   for (const key of Object.keys(component)) {
     const value: unknown = (component as unknown as Record<string, unknown>)[key];
-    if (isExportedComponent(key, value)) {
+    if (isExportedComponent(key, value) && include(`${name}.${key}`)) {
       parts[key] = value;
       found = true;
     }
@@ -43,16 +48,22 @@ function collectParts(component: ElementType): Record<string, ElementType> | und
   return found ? parts : undefined;
 }
 
-function entryFor(component: ElementType): RegistryEntry {
-  const parts = collectParts(component);
+function entryFor(name: string, component: ElementType, include: NameFilter = everything): RegistryEntry {
+  const parts = collectParts(name, component, include);
   return parts ? { component, parts } : { component };
 }
 
-/** Every component a module namespace exports, with its parts. */
-export function createRegistryFromModule(namespace: { readonly [name: string]: unknown }): ComponentRegistry {
+/**
+ * Every component a module namespace exports, with its parts; `include`
+ * narrows both by the name a document would write (`"Card"`, `"Card.Header"`).
+ */
+export function createRegistryFromModule(
+  namespace: { readonly [name: string]: unknown },
+  include: NameFilter = everything,
+): ComponentRegistry {
   const registry = Object.create(null) as Record<string, RegistryEntry>;
   for (const [name, value] of Object.entries(namespace)) {
-    if (isExportedComponent(name, value)) registry[name] = entryFor(value);
+    if (isExportedComponent(name, value) && include(name)) registry[name] = entryFor(name, value, include);
   }
   return registry;
 }
@@ -65,7 +76,7 @@ export function extendRegistry(
   const next = Object.create(null) as Record<string, RegistryEntry>;
   for (const name of Object.keys(base)) next[name] = base[name] as RegistryEntry;
   for (const [name, value] of Object.entries(extra)) {
-    next[name] = isComponentLike(value) ? entryFor(value) : value;
+    next[name] = isComponentLike(value) ? entryFor(name, value) : value;
   }
   return next;
 }
@@ -81,12 +92,15 @@ export function lookupComponent(registry: ComponentRegistry, name: string): Elem
   return entry.parts && Object.hasOwn(entry.parts, part) ? entry.parts[part] : undefined;
 }
 
-/** The library's components and the renderer's built-ins. */
-export const defaultRegistry: ComponentRegistry = extendRegistry(createRegistryFromModule(library), {
-  Text,
-  Heading,
-  Icon,
-});
+/** The library's addressable components (those `defaultContracts` holds) and the renderer's built-ins. */
+export const defaultRegistry: ComponentRegistry = extendRegistry(
+  createRegistryFromModule(library, (name) => Object.hasOwn(defaultContracts, name)),
+  {
+    Text,
+    Heading,
+    Icon,
+  },
+);
 
 /** Every name in `registry`, parts included (`"Card.Header"`), sorted. */
 export function listRegistryNames(registry: ComponentRegistry): string[] {

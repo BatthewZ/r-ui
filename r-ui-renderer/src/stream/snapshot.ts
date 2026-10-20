@@ -28,3 +28,8 @@ export interface StreamSnapshot {
   /** Malformed text, or `end()` before the document closed. The last good `spec` stays. */
   readonly error?: StreamError;
 }
+
+export const NOTHING_PENDING: ReadonlySet<string> = new Set();
+
+/** Before the document's `{` has arrived, and for no input at all. */
+export const EMPTY_SNAPSHOT: StreamSnapshot = Object.freeze({ spec: undefined, complete: false, pending: NOTHING_PENDING });

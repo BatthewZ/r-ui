@@ -1,0 +1,14 @@
+@source inline("p-r3 text-sm p-4");
+
+@layer components {
+  .r-renderer-x {
+    padding: 4px;
+    color: #fff;
+    margin: var(--NOPE-TOKEN);
+    border-width: 0px;
+  }
+
+  .aurora-card {
+    gap: var(--R-SIZE-3);
+  }
+}

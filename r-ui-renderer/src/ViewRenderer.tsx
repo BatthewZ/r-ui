@@ -13,7 +13,7 @@ import { createRootScope } from "./render/scope";
 import type { RendererAdapters } from "./runtime/adapters";
 import type { StreamingFallback, StreamingState } from "./runtime/context";
 import { useViewRuntime } from "./runtime/use-view-runtime";
-import { defaultContracts } from "./spec/contracts";
+import { defaultContracts } from "./contracts";
 import { isPlainObject } from "./spec/guards";
 import {
   type ComponentContracts,

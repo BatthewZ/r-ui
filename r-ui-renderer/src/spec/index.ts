@@ -34,8 +34,18 @@ export { parseRefPath, readRef, type RefPath, walkSegments } from "./ref-path";
 export { appendPointer, parsePointer, toPointer } from "./pointer";
 export { defaultAllowImageUrl, defaultAllowUrl, NO_LOCATION_BASE, resolveUrl, safeUrl } from "./url-policy";
 export { BUILTIN_CONTRACTS } from "./builtins";
-export { contractFor, defaultContracts, extendContracts } from "./contracts";
-export { listComponentNames } from "./names";
+export { CLASS_VOCABULARY, ICON_NAMES } from "./vocabulary";
+export {
+  contractFor,
+  defaultContracts,
+  EXCLUSION_REASONS,
+  type Exclusion,
+  type ExclusionReason,
+  exclusionFor,
+  extendContracts,
+  NOT_ADDRESSABLE,
+} from "../contracts";
+export { listComponentNames } from "../registry/names";
 export { type ValidateOptions, validateViewSpec } from "./validate";
 export { type FormatIssuesOptions, formatIssuesForModel } from "./format-issues";
 export { createValidationHandler, type ValidationHandlerOptions, type ValidationResponseBody } from "./handler";

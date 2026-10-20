@@ -1,0 +1,795 @@
+{
+  "Accordion": {
+    "paths": ["collapsible","defaultValue","defaultValue[]","headingLevel","multiple","onValueChange","value","value[]"],
+    "functions": ["onValueChange"]
+  },
+  "Accordion.Content": {
+    "paths": []
+  },
+  "Accordion.Item": {
+    "paths": ["disabled","value"]
+  },
+  "Accordion.Trigger": {
+    "paths": ["formAction"]
+  },
+  "ActivityFeed": {
+    "paths": ["empty","groupByDay","hasMore","headingLevel","items","items[]","items[].actions","items[].actor","items[].actor.avatar","items[].actor.name","items[].description","items[].icon","items[].id","items[].meta","items[].object","items[].statusLabel","items[].time","items[].tone","items[].verb","label","labels","labels.collapse","labels.empty","labels.expand","labels.loading","labels.more","labels.region","labels.tones","labels.unknownDay","loading","loadingMore","locale","now","onLoadMore","order","pageSize","scrollable","timeFormat"],
+    "functions": ["onLoadMore"],
+    "dates": ["items[].time","now"]
+  },
+  "Alert": {
+    "paths": ["actions","icon","labels","labels.dismiss","labels.tones","onDismiss","title","tone"],
+    "functions": ["onDismiss"]
+  },
+  "AppShell": {
+    "paths": ["collapsed","defaultCollapsed","labels","labels.skipLink","onCollapsedChange"],
+    "functions": ["onCollapsedChange"]
+  },
+  "AppShell.BottomNav": {
+    "paths": ["label"]
+  },
+  "AppShell.Brand": {
+    "paths": ["as","children","href","mark"]
+  },
+  "AppShell.Header": {
+    "paths": []
+  },
+  "AppShell.Main": {
+    "paths": ["as"]
+  },
+  "AppShell.NavItem": {
+    "paths": ["as","badge","children","current","href","icon"]
+  },
+  "AppShell.Sidebar": {
+    "paths": ["label"]
+  },
+  "AppShell.SidebarSection": {
+    "paths": ["position","title"]
+  },
+  "AppShell.SidebarToggle": {
+    "paths": ["className","labels","labels.collapse","labels.expand"]
+  },
+  "Avatar": {
+    "paths": ["alt","name","size","src"]
+  },
+  "AvatarGroup": {
+    "paths": ["items","items[]","items[].key","items[].name","items[].src","label","labels","labels.more","labels.moreNames","max","renderOverflow","size"],
+    "functions": ["labels.more","labels.moreNames","renderOverflow"]
+  },
+  "AvatarUpload": {
+    "paths": ["accept","aria-describedby","aria-invalid","defaultValue","disabled","form","getSrc","id","invalid","labels","labels.apply","labels.cancel","labels.cancelUpload","labels.canceled","labels.choose","labels.cropHint","labels.failed","labels.remove","labels.removed","labels.replace","labels.retry","labels.tooLarge","labels.unreadable","labels.updated","labels.uploading","labels.waiting","labels.wrongType","labels.zoom","maxSize","maxZoom","name","onUpload","onValueChange","outputSize","outputType","personName","readOnly","validate","value"],
+    "functions": ["labels.failed","labels.tooLarge","labels.unreadable","labels.wrongType","onValueChange","validate"]
+  },
+  "Badge": {
+    "paths": ["icon","tone","variant"]
+  },
+  "Banner": {
+    "paths": ["actions","dismissKey","icon","labels","labels.dismiss","labels.region","labels.tones","onDismiss","placement","sticky","storage","storage.getItem","storage.setItem","title","tone","urgent"],
+    "functions": ["onDismiss","storage.getItem","storage.setItem"]
+  },
+  "BarChart": {
+    "paths": ["format","formatTick","label","labels","labels.cannotDraw","labels.cartesianSummary","labels.corner","labels.gridCapped","labels.heatmapSummary","labels.keyboardHint","labels.kinds","labels.kinds.area","labels.kinds.bar","labels.kinds.heatmap","labels.kinds.line","labels.kinds.stackedBar","labels.noData","labels.rowsCapped","labels.seriesCapped","labels.showChart","labels.showTable","labels.timeCorner","labels.total","labels.value","labels.valuesDropped","locale","max","min","orientation","series","series[]","series[].name","series[].slot","series[].values","series[].values[]","stacked","summary","timeZone","unit","x","x[]"],
+    "functions": ["format","formatTick","labels.cartesianSummary","labels.gridCapped","labels.heatmapSummary","labels.rowsCapped","labels.seriesCapped","labels.valuesDropped"],
+    "dates": ["x[]"]
+  },
+  "Breadcrumbs": {
+    "paths": ["itemsAfterCollapse","itemsBeforeCollapse","labels","labels.expand","labels.nav","maxItems"],
+    "functions": ["labels.expand"]
+  },
+  "Breadcrumbs.Item": {
+    "paths": ["as","children","current","href"]
+  },
+  "Button": {
+    "paths": ["formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "Calendar": {
+    "paths": ["autoFocus","defaultMonth","defaultValue","disabled","isDateUnavailable","labels","labels.inRange","labels.nextMonth","labels.previousMonth","labels.rangeEnd","labels.rangeStart","labels.selected","labels.today","locale","max","min","month","months","onMonthChange","onValueChange","value","weekStartsOn"],
+    "functions": ["isDateUnavailable","onMonthChange","onValueChange"],
+    "dates": ["defaultMonth","defaultValue","max","min","month","value"],
+    "dateCallbacks": ["isDateUnavailable","onMonthChange","onValueChange"]
+  },
+  "CallToAction": {
+    "paths": ["actions","body","children","headingLevel","layout","title","variant"]
+  },
+  "Card": {
+    "paths": []
+  },
+  "Card.Actions": {
+    "paths": []
+  },
+  "Card.Body": {
+    "paths": []
+  },
+  "Card.Description": {
+    "paths": []
+  },
+  "Card.Footer": {
+    "paths": []
+  },
+  "Card.Header": {
+    "paths": []
+  },
+  "Card.Title": {
+    "paths": ["as"]
+  },
+  "Carousel": {
+    "paths": ["autoplay","children","dots","label","labels","labels.carousel","labels.dots","labels.next","labels.pause","labels.play","labels.prev","labels.slide","labels.slideRole","labels.slides","labels.status","perView"],
+    "functions": ["labels.slide","labels.status"]
+  },
+  "Carousel.Slide": {
+    "paths": []
+  },
+  "Checkbox": {
+    "paths": ["checked","children","defaultChecked","disabled","formAction","indeterminate","invalid","onCheckedChange","src"],
+    "functions": ["onCheckedChange"]
+  },
+  "Chip": {
+    "paths": ["as","children","disabled","labels","labels.remove","onRemove"],
+    "functions": ["labels.remove","onRemove"]
+  },
+  "CodeBlock": {
+    "paths": ["code","copyable","defaultWrap","filename","highlightLines","highlightLines[]","labels","labels.copied","labels.copy","labels.failed","labels.wrap","language","lineNumbers","onWrapChange","wrap","wrapToggle"],
+    "functions": ["onWrapChange"]
+  },
+  "Collapsible": {
+    "paths": ["defaultOpen","disabled","onOpenChange","open"],
+    "functions": ["onOpenChange"]
+  },
+  "Collapsible.Content": {
+    "paths": []
+  },
+  "Collapsible.Trigger": {
+    "paths": ["formAction","hideChevron","iconEnd","iconStart","loading","variant"]
+  },
+  "ColorPicker": {
+    "paths": ["alpha","contrast","contrast.against","contrast.label","defaultOpen","defaultValue","eyeDropper","formAction","format","invalid","labels","labels.alpha","labels.alphaValue","labels.area","labels.areaRole","labels.areaValue","labels.dialog","labels.empty","labels.eyeDropper","labels.fail","labels.heading","labels.hue","labels.hueValue","labels.input","labels.invalid","labels.outOfGamut","labels.pass","labels.placeholder","labels.swatches","labels.trigger","onOpenChange","onValueChange","open","readOnly","required","swatches","swatches[]","swatches[].label","swatches[].value","value"],
+    "functions": ["labels.alphaValue","labels.areaValue","labels.heading","labels.hueValue","labels.invalid","labels.outOfGamut","onOpenChange","onValueChange"]
+  },
+  "Combobox": {
+    "paths": ["allowCustomValue","defaultInputValue","defaultOpen","defaultValue","filter","formAction","inputValue","invalid","labels","labels.clear","labels.custom","labels.empty","labels.loading","labels.results","labels.toggle","loadError","loading","name","onInputChange","onOpenChange","onValueChange","open","options","options[]","options[].description","options[].disabled","options[].group","options[].icon","options[].label","options[].value","src","start","value","virtualizeThreshold"],
+    "functions": ["labels.custom","labels.results","onInputChange","onOpenChange","onValueChange"]
+  },
+  "CommandPalette": {
+    "paths": ["commands","commands[]","commands[].disabled","commands[].group","commands[].icon","commands[].id","commands[].keywords","commands[].keywords[]","commands[].label","commands[].onSelect","commands[].page","commands[].page.commands","commands[].page.commands[]","commands[].page.placeholder","commands[].page.search","commands[].page.title","commands[].shortcut","commands[].shortcut[]","defaultOpen","defaultRecent","defaultRecent[]","initialFocus","labels","labels.back","labels.close","labels.count","labels.empty","labels.error","labels.inputLabel","labels.label","labels.listLabel","labels.loading","labels.navigate","labels.placeholder","labels.recent","labels.run","lightDismiss","loading","onOpenChange","onRecentChange","open","recent","recentLimit","recent[]","search","searchDelayMs"],
+    "functions": ["commands[].onSelect","commands[].page.search","labels.count","labels.empty","onOpenChange","onRecentChange","search"]
+  },
+  "Container": {
+    "paths": ["as","gutter","width"]
+  },
+  "ContextMenu": {
+    "paths": ["children","defaultOpen","onOpenChange","open"],
+    "functions": ["onOpenChange"]
+  },
+  "ContextMenu.CheckboxItem": {
+    "paths": ["checked","closeOnSelect","defaultChecked","disabled","onCheckedChange","onSelect","shortcut"],
+    "functions": ["onCheckedChange","onSelect"]
+  },
+  "ContextMenu.Content": {
+    "paths": []
+  },
+  "ContextMenu.Item": {
+    "paths": ["closeOnSelect","disabled","icon","onSelect","shortcut","variant"],
+    "functions": ["onSelect"]
+  },
+  "ContextMenu.Label": {
+    "paths": []
+  },
+  "ContextMenu.RadioGroup": {
+    "paths": ["defaultValue","onValueChange","value"],
+    "functions": ["onValueChange"]
+  },
+  "ContextMenu.RadioItem": {
+    "paths": ["closeOnSelect","disabled","onSelect","shortcut","value"],
+    "functions": ["onSelect"]
+  },
+  "ContextMenu.Separator": {
+    "paths": []
+  },
+  "ContextMenu.Trigger": {
+    "paths": ["asChild","disabled","onBeforeOpen"],
+    "functions": ["onBeforeOpen"]
+  },
+  "CopyButton": {
+    "paths": ["formAction","labels","labels.copied","labels.copy","labels.failed","onCopy","onCopyError","resetAfter","showLabel","value","variant"],
+    "functions": ["onCopy","onCopyError"]
+  },
+  "CountUp": {
+    "paths": ["format","formatOptions","formatOptions.missing","from","locale","threshold","value"],
+    "functions": ["format"]
+  },
+  "CurrencyInput": {
+    "paths": ["allowNegative","currency","currencyDisplay","defaultValue","end","formAction","invalid","locale","max","min","minorUnits","onValueChange","src","value"],
+    "functions": ["onValueChange"]
+  },
+  "DataTable": {
+    "paths": ["bulkActions","caption","columnWidths","columnWidths.*","columns","columnsMenu","columns[]","columns[].cell","columns[].compare","columns[].filter","columns[].filter.match","columns[].filter.options","columns[].filter.options[]","columns[].filter.options[].label","columns[].filter.options[].value","columns[].filter.placeholder","columns[].filter.render","columns[].filter.type","columns[].firstDirection","columns[].header","columns[].id","columns[].label","columns[].maxWidth","columns[].minWidth","columns[].numeric","columns[].priority","columns[].required","columns[].resizable","columns[].sortable","columns[].title","columns[].truncate","columns[].value","columns[].width","defaultColumnWidths","defaultColumnWidths.*","defaultExpandedKeys","defaultFilters","defaultFilters.*","defaultPage","defaultPageSize","defaultSelectedKeys","defaultSort","defaultSort.column","defaultSort.direction","defaultVisibleColumns","empty","error","errorActions","expandedKeys","filters","filters.*","getRowKey","getRowLabel","labels","labels.bulkActions","labels.clearFilters","labels.clearSelection","labels.columns","labels.details","labels.detailsColumn","labels.empty","labels.filterAll","labels.filterColumn","labels.loading","labels.noMatches","labels.pageRange","labels.resizeColumn","labels.rowActions","labels.rowsPerPage","labels.selectAll","labels.selectRow","labels.selectedCount","layout","loading","loadingRows","manualFiltering","manualPagination","manualSorting","onColumnWidthsChange","onExpandedKeysChange","onFiltersChange","onPageChange","onPageSizeChange","onSelectedKeysChange","onSortChange","onVisibleColumnsChange","page","pageSize","pageSizeOptions","pageSizeOptions[]","renderDetail","resizableColumns","rowActions","rowCount","rows","rows[]","selectable","selectedKeys","sort","sort.column","sort.direction","stickyColumns","stickyHeader","striped","variant","visibleColumns"],
+    "functions": ["bulkActions","columns[].cell","columns[].compare","columns[].filter.match","columns[].filter.render","columns[].title","columns[].value","getRowKey","getRowLabel","labels.details","labels.filterColumn","labels.pageRange","labels.resizeColumn","labels.selectRow","labels.selectedCount","onColumnWidthsChange","onExpandedKeysChange","onFiltersChange","onPageChange","onPageSizeChange","onSelectedKeysChange","onSortChange","onVisibleColumnsChange","renderDetail","rowActions"],
+    "sets": ["defaultExpandedKeys","defaultSelectedKeys","defaultVisibleColumns","expandedKeys","selectedKeys","visibleColumns"],
+    "setCallbacks": ["bulkActions","onExpandedKeysChange","onSelectedKeysChange","onVisibleColumnsChange"]
+  },
+  "DatePicker": {
+    "paths": ["defaultOpen","defaultValue","formAction","hint","invalid","isDateUnavailable","labels","labels.chooseDate","labels.formatLetters","labels.formatLetters.day","labels.formatLetters.month","labels.formatLetters.year","labels.hint","labels.inRange","labels.nextMonth","labels.outOfRange","labels.previousMonth","labels.rangeEnd","labels.rangeStart","labels.selected","labels.today","labels.unavailable","labels.unparseable","locale","max","min","months","onOpenChange","onValueChange","open","src","value","weekStartsOn"],
+    "functions": ["isDateUnavailable","labels.hint","labels.outOfRange","labels.unavailable","labels.unparseable","onOpenChange","onValueChange"],
+    "dates": ["defaultValue","max","min","value"],
+    "dateCallbacks": ["isDateUnavailable","onValueChange"]
+  },
+  "DateRangePicker": {
+    "paths": ["defaultOpen","defaultValue","defaultValue.end","defaultValue.preset","defaultValue.start","formAction","hourCycle","invalid","isDateUnavailable","labels","labels.apply","labels.cancel","labels.clear","labels.dialog","labels.end","labels.endBeforeStart","labels.endTime","labels.formatLetters","labels.formatLetters.day","labels.formatLetters.month","labels.formatLetters.year","labels.hint","labels.inRange","labels.nextMonth","labels.outOfRange","labels.placeholder","labels.presets","labels.previousMonth","labels.rangeEnd","labels.rangeStart","labels.selected","labels.start","labels.startTime","labels.today","labels.unavailable","labels.unparseable","locale","max","min","months","now","onOpenChange","onValueChange","open","placeholder","placement","presets","presets[]","presets[].id","presets[].label","presets[].range","timeStep","value","value.end","value.preset","value.start","variant","weekStartsOn","withTime"],
+    "functions": ["isDateUnavailable","labels.hint","labels.outOfRange","labels.unavailable","labels.unparseable","onOpenChange","onValueChange","presets[].range"],
+    "dates": ["defaultValue.end","defaultValue.start","max","min","now","value.end","value.start"],
+    "dateCallbacks": ["isDateUnavailable","onValueChange","presets[].range"]
+  },
+  "DensitySwitcher": {
+    "paths": ["className","disabled","id","labels","labels.densities","labels.density","storageKey","variant"]
+  },
+  "DescriptionList": {
+    "paths": ["variant"]
+  },
+  "DescriptionList.Item": {
+    "paths": ["children","term"]
+  },
+  "Dialog": {
+    "paths": ["children","defaultOpen","onOpenChange","open"],
+    "functions": ["onOpenChange"]
+  },
+  "Dialog.Body": {
+    "paths": []
+  },
+  "Dialog.Close": {
+    "paths": ["asChild","formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "Dialog.Content": {
+    "paths": ["initialFocus","labels","labels.close","lightDismiss","role","showClose"]
+  },
+  "Dialog.Description": {
+    "paths": []
+  },
+  "Dialog.Footer": {
+    "paths": []
+  },
+  "Dialog.Header": {
+    "paths": []
+  },
+  "Dialog.Title": {
+    "paths": []
+  },
+  "Dialog.Trigger": {
+    "paths": ["asChild","formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "Divider": {
+    "paths": ["children","orientation"]
+  },
+  "DocumentTitleProvider": {
+    "paths": ["base","children","separator"]
+  },
+  "Drawer": {
+    "paths": ["children","defaultOpen","onOpenChange","open"],
+    "functions": ["onOpenChange"]
+  },
+  "Drawer.Body": {
+    "paths": []
+  },
+  "Drawer.Close": {
+    "paths": ["asChild","formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "Drawer.Content": {
+    "paths": ["initialFocus","labels","labels.close","lightDismiss","role","showClose","side"]
+  },
+  "Drawer.Description": {
+    "paths": []
+  },
+  "Drawer.Footer": {
+    "paths": []
+  },
+  "Drawer.Header": {
+    "paths": []
+  },
+  "Drawer.Title": {
+    "paths": []
+  },
+  "Drawer.Trigger": {
+    "paths": ["asChild","formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "DropdownMenu": {
+    "paths": ["children","defaultOpen","onOpenChange","open","placement"],
+    "functions": ["onOpenChange"]
+  },
+  "DropdownMenu.CheckboxItem": {
+    "paths": ["checked","closeOnSelect","defaultChecked","disabled","onCheckedChange","onSelect","shortcut"],
+    "functions": ["onCheckedChange","onSelect"]
+  },
+  "DropdownMenu.Content": {
+    "paths": []
+  },
+  "DropdownMenu.Item": {
+    "paths": ["closeOnSelect","disabled","icon","onSelect","shortcut","variant"],
+    "functions": ["onSelect"]
+  },
+  "DropdownMenu.Label": {
+    "paths": []
+  },
+  "DropdownMenu.RadioGroup": {
+    "paths": ["defaultValue","onValueChange","value"],
+    "functions": ["onValueChange"]
+  },
+  "DropdownMenu.RadioItem": {
+    "paths": ["closeOnSelect","disabled","onSelect","shortcut","value"],
+    "functions": ["onSelect"]
+  },
+  "DropdownMenu.Separator": {
+    "paths": []
+  },
+  "DropdownMenu.Trigger": {
+    "paths": ["asChild","formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "EmailCapture": {
+    "paths": ["consent","consentRequired","defaultValue","description","disabled","hideLabel","honeypot","labels","labels.consentRequired","labels.email","labels.failed","labels.honeypot","labels.invalid","labels.placeholder","labels.required","labels.submit","labels.successMessage","labels.successTitle","onSubmit"],
+    "functions": ["labels.failed","labels.successMessage","onSubmit"]
+  },
+  "EmptyState": {
+    "paths": ["actions","description","headingLevel","icon","title","tone"]
+  },
+  "ErrorBoundary": {
+    "paths": ["children","className","details","fallback","labels","labels.details","labels.message","labels.retry","labels.title","onError","onReset","resetKeys","resetKeys[]"],
+    "functions": ["onError","onReset"]
+  },
+  "ErrorFallback": {
+    "paths": ["children","details","error","labels","labels.details","labels.message","labels.retry","labels.title","onRetry"],
+    "functions": ["onRetry"]
+  },
+  "ErrorSummary": {
+    "paths": ["labels","labels.title","title"]
+  },
+  "FeatureGrid": {
+    "paths": ["children","columns","columns.base","gap","headingLevel","minColumn","variant"]
+  },
+  "FeatureGrid.Item": {
+    "paths": ["children","href","icon","linkAs","title"]
+  },
+  "FeatureRows": {
+    "paths": ["children","headingLevel","mediaSide","stackedMedia"]
+  },
+  "FeatureRows.Row": {
+    "paths": ["actions","children","eyebrow","media","mediaSide","title"]
+  },
+  "Field": {
+    "paths": ["disabled","invalid","name","orientation","readOnly","required","validate"],
+    "functions": ["validate"]
+  },
+  "Field.Description": {
+    "paths": []
+  },
+  "Field.Error": {
+    "paths": ["icon"]
+  },
+  "Field.Label": {
+    "paths": ["required"]
+  },
+  "FileUpload": {
+    "paths": ["accept","aria-describedby","aria-invalid","aria-label","aria-labelledby","defaultValue","defaultValue[]","describe","disabled","form","id","invalid","labels","labels.added","labels.cancel","labels.canceled","labels.canceledFile","labels.dropping","labels.failed","labels.failedFile","labels.files","labels.hint","labels.progress","labels.prompt","labels.remove","labels.removedFile","labels.retry","labels.tooLarge","labels.tooMany","labels.uploaded","labels.uploadedFile","labels.waiting","labels.wrongType","maxFiles","maxSize","multiple","name","onUpload","onValueChange","paste","readOnly","validate","value","value[]"],
+    "functions": ["labels.added","labels.cancel","labels.canceledFile","labels.dropping","labels.failed","labels.failedFile","labels.hint","labels.progress","labels.prompt","labels.remove","labels.removedFile","labels.retry","labels.tooLarge","labels.tooMany","labels.uploadedFile","labels.wrongType","onValueChange","validate"]
+  },
+  "FilterBar": {
+    "paths": ["collapse","defaultOpen","defaultValue","defaultValue.*","disabled","drawerSide","filters","filters[]","filters[].creatable","filters[].disabled","filters[].exclusive","filters[].format","filters[].formatOptions","filters[].fromParam","filters[].id","filters[].isActive","filters[].kind","filters[].label","filters[].loadError","filters[].loading","filters[].max","filters[].min","filters[].options","filters[].options[]","filters[].options[].disabled","filters[].options[].label","filters[].options[].value","filters[].placeholder","filters[].presets","filters[].presets[]","filters[].presets[].id","filters[].presets[].label","filters[].presets[].range","filters[].render","filters[].searchable","filters[].selectAll","filters[].step","filters[].toParam","filters[].withTime","labels","labels.any","labels.applied","labels.atLeast","labels.atMost","labels.between","labels.clearAll","labels.done","labels.filters","labels.list","labels.loading","labels.remove","labels.results","labels.search","labels.trigger","labels.value","loading","locale","now","onOpenChange","onValueChange","open","resultCount","value","value.*"],
+    "functions": ["filters[].format","filters[].fromParam","filters[].isActive","filters[].presets[].range","filters[].render","filters[].toParam","labels.atLeast","labels.atMost","labels.between","labels.list","labels.remove","labels.results","labels.search","labels.trigger","labels.value","onOpenChange","onValueChange"],
+    "dates": ["filters[].max","filters[].min","now"],
+    "dateCallbacks": ["filters[].format","filters[].presets[].range"]
+  },
+  "Footer": {
+    "paths": ["as","brand","children","copyright","headingLevel","labels","labels.copyright","labels.legal","labels.social","legal","localeSwitcher","newsletter","social","variant","year"],
+    "functions": ["labels.copyright"]
+  },
+  "Footer.Column": {
+    "paths": ["children","defaultOpen","title"]
+  },
+  "Footer.Link": {
+    "paths": ["aria-describedby","as","children","external","href","labels","labels.newTab","rel","target","variant"]
+  },
+  "Footer.SocialLink": {
+    "paths": ["aria-describedby","href","icon","label","labels","labels.newTab","rel","target"]
+  },
+  "Form": {
+    "paths": ["action","form","form.focusFirstError","form.getValue","form.getValues","form.reset","form.setErrors","form.setValue","form.state","form.state.dirty","form.state.focusRequest","form.state.submitCount","form.state.submitFailed","form.state.submitting","form.state.validating","form.store","form.store.append","form.store.applySchema","form.store.arrayCache","form.store.arrayKeys","form.store.blur","form.store.change","form.store.checkLatest","form.store.checked","form.store.configure","form.store.defaults","form.store.dropCheck","form.store.editRows","form.store.emit","form.store.entriesCache","form.store.errorAt","form.store.fail","form.store.fieldCache","form.store.fieldErrors","form.store.fields","form.store.focusFirstError","form.store.focusRequest","form.store.formCache","form.store.generation","form.store.getArraySnapshot","form.store.getErrorEntries","form.store.getErrors","form.store.getFieldSnapshot","form.store.getFormSnapshot","form.store.getValue","form.store.getValues","form.store.hasErrorWithin","form.store.hasErrors","form.store.hasSchemaError","form.store.insert","form.store.isReportable","form.store.listeners","form.store.move","form.store.nextKey","form.store.output","form.store.pending","form.store.registerField","form.store.registerSummary","form.store.remove","form.store.replace","form.store.reportable","form.store.reset","form.store.revalidateOn","form.store.rowKeys","form.store.runFieldCheck","form.store.runSchema","form.store.runSchemaToLatest","form.store.schema","form.store.schemaErrors","form.store.schemaPending","form.store.schemaRun","form.store.serverErrors","form.store.setErrors","form.store.settle","form.store.submit","form.store.submitCount","form.store.submitFailed","form.store.submitting","form.store.subscribe","form.store.summary","form.store.touched","form.store.trigger","form.store.validate","form.store.validateOn","form.store.validatePath","form.store.validatePaths","form.store.values","form.store.version","form.submit","form.validate","form.validatePaths"],
+    "functions": ["form.focusFirstError","form.getValue","form.getValues","form.reset","form.setErrors","form.setValue","form.store.append","form.store.blur","form.store.change","form.store.configure","form.store.focusFirstError","form.store.getArraySnapshot","form.store.getErrorEntries","form.store.getErrors","form.store.getFieldSnapshot","form.store.getFormSnapshot","form.store.getValue","form.store.getValues","form.store.hasErrorWithin","form.store.insert","form.store.move","form.store.registerField","form.store.registerSummary","form.store.remove","form.store.replace","form.store.reset","form.store.setErrors","form.store.submit","form.store.subscribe","form.store.validate","form.store.validatePaths","form.submit","form.validate","form.validatePaths"]
+  },
+  "FormActions": {
+    "paths": ["sticky"]
+  },
+  "FormActions.Submit": {
+    "paths": ["formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "Grid": {
+    "paths": ["as","columns","columns.base","gap","minColumn","rowGap"]
+  },
+  "Heatmap": {
+    "paths": ["columns","columns[]","format","label","labels","labels.cannotDraw","labels.cartesianSummary","labels.corner","labels.gridCapped","labels.heatmapSummary","labels.keyboardHint","labels.kinds","labels.kinds.area","labels.kinds.bar","labels.kinds.heatmap","labels.kinds.line","labels.kinds.stackedBar","labels.noData","labels.rowsCapped","labels.seriesCapped","labels.showChart","labels.showTable","labels.timeCorner","labels.total","labels.value","labels.valuesDropped","locale","rows","rows[]","summary","unit","valueLabel","values","values[]","values[][]"],
+    "functions": ["format","labels.cartesianSummary","labels.gridCapped","labels.heatmapSummary","labels.rowsCapped","labels.seriesCapped","labels.valuesDropped"]
+  },
+  "Hero": {
+    "paths": ["actions","backdrop","children","eyebrow","headingLevel","layout","lead","media","proof","title","variant"]
+  },
+  "HoverCard": {
+    "paths": ["children","closeDelay","defaultOpen","disabled","labels","labels.toggle","onOpenChange","open","openDelay","placement"],
+    "functions": ["onOpenChange"]
+  },
+  "HoverCard.Content": {
+    "paths": []
+  },
+  "HoverCard.Toggle": {
+    "paths": ["formAction","icon","label","variant"]
+  },
+  "HoverCard.Trigger": {
+    "paths": ["children"]
+  },
+  "HowItWorks": {
+    "paths": ["children","headingLevel","label","orientation"]
+  },
+  "HowItWorks.Step": {
+    "paths": ["children","media","title"]
+  },
+  "IconButton": {
+    "paths": ["formAction","icon","label","variant"]
+  },
+  "Image": {
+    "paths": ["alt","fit","height","onError","onLoad","placeholder","placeholderColor","priority","radius","ratio","sizes","src","srcSet","width"],
+    "functions": ["onError","onLoad"]
+  },
+  "Inline": {
+    "paths": ["align","as","gap","justify","rowGap","wrap"]
+  },
+  "Input": {
+    "paths": ["end","formAction","invalid","src","start","type"]
+  },
+  "InputSwitcher": {
+    "paths": ["className","disabled","id","labels","labels.input","labels.inputs","storageKey","variant"]
+  },
+  "Kanban": {
+    "paths": ["aria-label","aria-labelledby","cardLabel","collapsed","collapsed[]","collapsible","columns","columns[]","columns[].id","columns[].limit","columns[].title","defaultCollapsed","defaultCollapsed[]","disabled","labels","labels.cancelled","labels.collapse","labels.count","labels.dropped","labels.empty","labels.expand","labels.instructions","labels.limitExceeded","labels.loading","labels.moved","labels.overLimit","labels.pickedUp","loading","locale","onCollapsedChange","onValueChange","renderAddCard","renderCard","value","value[]"],
+    "functions": ["cardLabel","labels.cancelled","labels.collapse","labels.count","labels.dropped","labels.expand","labels.limitExceeded","labels.moved","labels.pickedUp","onCollapsedChange","onValueChange","renderAddCard","renderCard"]
+  },
+  "Kbd": {
+    "paths": []
+  },
+  "Lightbox": {
+    "paths": ["children","className","defaultIndex","defaultOpen","index","items","items[]","items[].alt","items[].caption","items[].height","items[].id","items[].placeholder","items[].placeholderColor","items[].sizes","items[].src","items[].srcSet","items[].width","label","labels","labels.carousel","labels.close","labels.next","labels.position","labels.prev","labels.slideRole","onIndexChange","onOpenChange","open"],
+    "functions": ["labels.position","onIndexChange","onOpenChange"]
+  },
+  "Lightbox.Trigger": {
+    "paths": ["asChild","formAction","index"]
+  },
+  "LineChart": {
+    "paths": ["area","format","formatTick","formatX","label","labels","labels.cannotDraw","labels.cartesianSummary","labels.corner","labels.gridCapped","labels.heatmapSummary","labels.keyboardHint","labels.kinds","labels.kinds.area","labels.kinds.bar","labels.kinds.heatmap","labels.kinds.line","labels.kinds.stackedBar","labels.noData","labels.rowsCapped","labels.seriesCapped","labels.showChart","labels.showTable","labels.timeCorner","labels.total","labels.value","labels.valuesDropped","locale","max","min","series","series[]","series[].name","series[].slot","series[].values","series[].values[]","summary","timeZone","unit","x","xType","x[]"],
+    "functions": ["format","formatTick","formatX","labels.cartesianSummary","labels.gridCapped","labels.heatmapSummary","labels.rowsCapped","labels.seriesCapped","labels.valuesDropped"],
+    "dates": ["x[]"]
+  },
+  "Link": {
+    "paths": ["aria-describedby","as","children","external","href","labels","labels.newTab","rel","target","variant"]
+  },
+  "LocaleProvider": {
+    "paths": ["children","dir","labels","labels.Alert","labels.Alert.dismiss","labels.Alert.tones","labels.AppShell","labels.AppShell.skipLink","labels.AppShellSidebarToggle","labels.AppShellSidebarToggle.collapse","labels.AppShellSidebarToggle.expand","labels.AvatarGroup","labels.AvatarGroup.more","labels.AvatarGroup.moreNames","labels.AvatarUpload","labels.AvatarUpload.apply","labels.AvatarUpload.cancel","labels.AvatarUpload.cancelUpload","labels.AvatarUpload.canceled","labels.AvatarUpload.choose","labels.AvatarUpload.cropHint","labels.AvatarUpload.failed","labels.AvatarUpload.remove","labels.AvatarUpload.removed","labels.AvatarUpload.replace","labels.AvatarUpload.retry","labels.AvatarUpload.tooLarge","labels.AvatarUpload.unreadable","labels.AvatarUpload.updated","labels.AvatarUpload.uploading","labels.AvatarUpload.waiting","labels.AvatarUpload.wrongType","labels.AvatarUpload.zoom","labels.Banner","labels.Banner.dismiss","labels.Banner.region","labels.Banner.tones","labels.Breadcrumbs","labels.Breadcrumbs.expand","labels.Breadcrumbs.nav","labels.Calendar","labels.Calendar.inRange","labels.Calendar.nextMonth","labels.Calendar.previousMonth","labels.Calendar.rangeEnd","labels.Calendar.rangeStart","labels.Calendar.selected","labels.Calendar.today","labels.Carousel","labels.Carousel.carousel","labels.Carousel.dots","labels.Carousel.next","labels.Carousel.pause","labels.Carousel.play","labels.Carousel.prev","labels.Carousel.slide","labels.Carousel.slideRole","labels.Carousel.slides","labels.Carousel.status","labels.Chart","labels.Chart.cannotDraw","labels.Chart.cartesianSummary","labels.Chart.corner","labels.Chart.gridCapped","labels.Chart.heatmapSummary","labels.Chart.keyboardHint","labels.Chart.kinds","labels.Chart.kinds.area","labels.Chart.kinds.bar","labels.Chart.kinds.heatmap","labels.Chart.kinds.line","labels.Chart.kinds.stackedBar","labels.Chart.noData","labels.Chart.rowsCapped","labels.Chart.seriesCapped","labels.Chart.showChart","labels.Chart.showTable","labels.Chart.timeCorner","labels.Chart.total","labels.Chart.value","labels.Chart.valuesDropped","labels.Chip","labels.Chip.remove","labels.CodeBlock","labels.CodeBlock.copied","labels.CodeBlock.copy","labels.CodeBlock.failed","labels.CodeBlock.wrap","labels.ColorPicker","labels.ColorPicker.alpha","labels.ColorPicker.alphaValue","labels.ColorPicker.area","labels.ColorPicker.areaRole","labels.ColorPicker.areaValue","labels.ColorPicker.dialog","labels.ColorPicker.empty","labels.ColorPicker.eyeDropper","labels.ColorPicker.fail","labels.ColorPicker.heading","labels.ColorPicker.hue","labels.ColorPicker.hueValue","labels.ColorPicker.input","labels.ColorPicker.invalid","labels.ColorPicker.outOfGamut","labels.ColorPicker.pass","labels.ColorPicker.placeholder","labels.ColorPicker.swatches","labels.ColorPicker.trigger","labels.Combobox","labels.Combobox.clear","labels.Combobox.custom","labels.Combobox.empty","labels.Combobox.loading","labels.Combobox.results","labels.Combobox.toggle","labels.CommandPalette","labels.CommandPalette.back","labels.CommandPalette.close","labels.CommandPalette.count","labels.CommandPalette.empty","labels.CommandPalette.error","labels.CommandPalette.inputLabel","labels.CommandPalette.label","labels.CommandPalette.listLabel","labels.CommandPalette.loading","labels.CommandPalette.navigate","labels.CommandPalette.placeholder","labels.CommandPalette.recent","labels.CommandPalette.run","labels.CopyButton","labels.CopyButton.copied","labels.CopyButton.copy","labels.CopyButton.failed","labels.DataTable","labels.DataTable.bulkActions","labels.DataTable.clearFilters","labels.DataTable.clearSelection","labels.DataTable.columns","labels.DataTable.details","labels.DataTable.detailsColumn","labels.DataTable.empty","labels.DataTable.filterAll","labels.DataTable.filterColumn","labels.DataTable.loading","labels.DataTable.noMatches","labels.DataTable.pageRange","labels.DataTable.resizeColumn","labels.DataTable.rowActions","labels.DataTable.rowsPerPage","labels.DataTable.selectAll","labels.DataTable.selectRow","labels.DataTable.selectedCount","labels.DatePicker","labels.DatePicker.chooseDate","labels.DatePicker.formatLetters","labels.DatePicker.formatLetters.day","labels.DatePicker.formatLetters.month","labels.DatePicker.formatLetters.year","labels.DatePicker.hint","labels.DatePicker.inRange","labels.DatePicker.nextMonth","labels.DatePicker.outOfRange","labels.DatePicker.previousMonth","labels.DatePicker.rangeEnd","labels.DatePicker.rangeStart","labels.DatePicker.selected","labels.DatePicker.today","labels.DatePicker.unavailable","labels.DatePicker.unparseable","labels.DateRangePicker","labels.DateRangePicker.apply","labels.DateRangePicker.cancel","labels.DateRangePicker.clear","labels.DateRangePicker.dialog","labels.DateRangePicker.end","labels.DateRangePicker.endBeforeStart","labels.DateRangePicker.endTime","labels.DateRangePicker.formatLetters","labels.DateRangePicker.formatLetters.day","labels.DateRangePicker.formatLetters.month","labels.DateRangePicker.formatLetters.year","labels.DateRangePicker.hint","labels.DateRangePicker.inRange","labels.DateRangePicker.nextMonth","labels.DateRangePicker.outOfRange","labels.DateRangePicker.placeholder","labels.DateRangePicker.presets","labels.DateRangePicker.previousMonth","labels.DateRangePicker.rangeEnd","labels.DateRangePicker.rangeStart","labels.DateRangePicker.selected","labels.DateRangePicker.start","labels.DateRangePicker.startTime","labels.DateRangePicker.today","labels.DateRangePicker.unavailable","labels.DateRangePicker.unparseable","labels.Dialog","labels.Dialog.close","labels.EmailCapture","labels.EmailCapture.consentRequired","labels.EmailCapture.email","labels.EmailCapture.failed","labels.EmailCapture.honeypot","labels.EmailCapture.invalid","labels.EmailCapture.placeholder","labels.EmailCapture.required","labels.EmailCapture.submit","labels.EmailCapture.successMessage","labels.EmailCapture.successTitle","labels.ErrorFallback","labels.ErrorFallback.details","labels.ErrorFallback.message","labels.ErrorFallback.retry","labels.ErrorFallback.title","labels.ErrorSummary","labels.ErrorSummary.title","labels.FileUpload","labels.FileUpload.added","labels.FileUpload.cancel","labels.FileUpload.canceled","labels.FileUpload.canceledFile","labels.FileUpload.dropping","labels.FileUpload.failed","labels.FileUpload.failedFile","labels.FileUpload.files","labels.FileUpload.hint","labels.FileUpload.progress","labels.FileUpload.prompt","labels.FileUpload.remove","labels.FileUpload.removedFile","labels.FileUpload.retry","labels.FileUpload.tooLarge","labels.FileUpload.tooMany","labels.FileUpload.uploaded","labels.FileUpload.uploadedFile","labels.FileUpload.waiting","labels.FileUpload.wrongType","labels.FilterBar","labels.FilterBar.any","labels.FilterBar.applied","labels.FilterBar.atLeast","labels.FilterBar.atMost","labels.FilterBar.between","labels.FilterBar.clearAll","labels.FilterBar.done","labels.FilterBar.filters","labels.FilterBar.list","labels.FilterBar.loading","labels.FilterBar.remove","labels.FilterBar.results","labels.FilterBar.search","labels.FilterBar.trigger","labels.FilterBar.value","labels.Footer","labels.Footer.copyright","labels.Footer.legal","labels.Footer.social","labels.HoverCard","labels.HoverCard.toggle","labels.Kanban","labels.Kanban.cancelled","labels.Kanban.collapse","labels.Kanban.count","labels.Kanban.dropped","labels.Kanban.empty","labels.Kanban.expand","labels.Kanban.instructions","labels.Kanban.limitExceeded","labels.Kanban.loading","labels.Kanban.moved","labels.Kanban.overLimit","labels.Kanban.pickedUp","labels.Lightbox","labels.Lightbox.carousel","labels.Lightbox.close","labels.Lightbox.next","labels.Lightbox.position","labels.Lightbox.prev","labels.Lightbox.slideRole","labels.Link","labels.Link.newTab","labels.LogoCloud","labels.LogoCloud.list","labels.LogoCloud.pause","labels.Markdown","labels.Markdown.newTab","labels.Markdown.taskDone","labels.Markdown.taskOpen","labels.Meter","labels.Meter.tones","labels.MultiSelect","labels.MultiSelect.added","labels.MultiSelect.empty","labels.MultiSelect.loading","labels.MultiSelect.max","labels.MultiSelect.remove","labels.MultiSelect.removed","labels.MultiSelect.results","labels.MultiSelect.selectAll","labels.MultiSelect.selected","labels.MultiSelect.summary","labels.MultiSelect.toggle","labels.NavigationMenu","labels.NavigationMenu.navigation","labels.NumberInput","labels.NumberInput.decrement","labels.NumberInput.increment","labels.OTPInput","labels.OTPInput.label","labels.OTPInput.length","labels.Pagination","labels.Pagination.nav","labels.Pagination.next","labels.Pagination.page","labels.Pagination.previous","labels.Pagination.status","labels.PasswordInput","labels.PasswordInput.addDigitOrSymbol","labels.PasswordInput.capsLock","labels.PasswordInput.common","labels.PasswordInput.longer","labels.PasswordInput.mixCase","labels.PasswordInput.patterns","labels.PasswordInput.scores","labels.PasswordInput.scores[]","labels.PasswordInput.show","labels.PasswordInput.strength","labels.PasswordInput.tooShort","labels.PreferencesMenu","labels.PreferencesMenu.densities","labels.PreferencesMenu.density","labels.PreferencesMenu.input","labels.PreferencesMenu.inputs","labels.PreferencesMenu.theme","labels.PreferencesMenu.trigger","labels.Pricing","labels.Pricing.annual","labels.Pricing.billedYearly","labels.Pricing.billing","labels.Pricing.billingChanged","labels.Pricing.compare","labels.Pricing.custom","labels.Pricing.excluded","labels.Pricing.feature","labels.Pricing.free","labels.Pricing.included","labels.Pricing.loading","labels.Pricing.monthly","labels.Pricing.perMonth","labels.Pricing.planPrice","labels.Pricing.planSaving","labels.Pricing.plans","labels.Pricing.popular","labels.Pricing.saving","labels.Progress","labels.Progress.indeterminate","labels.Progress.steps","labels.Progress.tones","labels.RangeSlider","labels.RangeSlider.maximum","labels.RangeSlider.minimum","labels.Rating","labels.Rating.none","labels.Rating.value","labels.RequireAuth","labels.RequireAuth.forbiddenBody","labels.RequireAuth.forbiddenTitle","labels.RequireAuth.loading","labels.RequireAuth.signIn","labels.RequireAuth.signInBody","labels.RequireAuth.signInTitle","labels.SearchInput","labels.SearchInput.clear","labels.SearchInput.search","labels.SiteHeader","labels.SiteHeader.menu","labels.SiteHeader.skipToContent","labels.Sparkline","labels.Sparkline.noData","labels.Sparkline.summary","labels.Splitter","labels.Splitter.pane","labels.Splitter.resize","labels.StatCard","labels.StatCard.bad","labels.StatCard.good","labels.StatCard.neutral","labels.StatCard.stale","labels.Stepper","labels.Stepper.complete","labels.Stepper.current","labels.Stepper.error","labels.Stepper.optional","labels.Stepper.position","labels.Stepper.progress","labels.Stepper.skipped","labels.Stepper.upcoming","labels.TagInput","labels.TagInput.added","labels.TagInput.duplicate","labels.TagInput.max","labels.TagInput.remove","labels.TagInput.removed","labels.TagInput.tags","labels.Testimonial","labels.Testimonial.affiliation","labels.Testimonial.rating","labels.TimeField","labels.TimeField.dayPeriod","labels.TimeField.empty","labels.TimeField.hour","labels.TimeField.incomplete","labels.TimeField.label","labels.TimeField.minute","labels.TimeField.outOfRange","labels.TimeField.placeholder","labels.TimeField.second","labels.TimePicker","labels.TimePicker.chooseTime","labels.TimePicker.dayPeriod","labels.TimePicker.empty","labels.TimePicker.hour","labels.TimePicker.incomplete","labels.TimePicker.label","labels.TimePicker.minute","labels.TimePicker.outOfRange","labels.TimePicker.placeholder","labels.TimePicker.second","labels.Timeline","labels.Timeline.collapse","labels.Timeline.empty","labels.Timeline.expand","labels.Timeline.loading","labels.Timeline.more","labels.Timeline.region","labels.Timeline.tones","labels.Timeline.unknownDay","labels.Toast","labels.Toast.dismiss","labels.Toast.region","labels.Toast.tones","labels.Toolbar","labels.Toolbar.more","labels.TreeView","labels.TreeView.empty","labels.TreeView.loadError","labels.TreeView.loaded","labels.TreeView.loading","labels.TreeView.retry","labels.Wizard","labels.Wizard.back","labels.Wizard.complete","labels.Wizard.current","labels.Wizard.error","labels.Wizard.finish","labels.Wizard.next","labels.Wizard.optional","labels.Wizard.position","labels.Wizard.progress","labels.Wizard.skip","labels.Wizard.skipped","labels.Wizard.upcoming","locale"],
+    "functions": ["labels.AvatarGroup.more","labels.AvatarGroup.moreNames","labels.AvatarUpload.failed","labels.AvatarUpload.tooLarge","labels.AvatarUpload.unreadable","labels.AvatarUpload.wrongType","labels.Breadcrumbs.expand","labels.Carousel.slide","labels.Carousel.status","labels.Chart.cartesianSummary","labels.Chart.gridCapped","labels.Chart.heatmapSummary","labels.Chart.rowsCapped","labels.Chart.seriesCapped","labels.Chart.valuesDropped","labels.Chip.remove","labels.ColorPicker.alphaValue","labels.ColorPicker.areaValue","labels.ColorPicker.heading","labels.ColorPicker.hueValue","labels.ColorPicker.invalid","labels.ColorPicker.outOfGamut","labels.Combobox.custom","labels.Combobox.results","labels.CommandPalette.count","labels.CommandPalette.empty","labels.DataTable.details","labels.DataTable.filterColumn","labels.DataTable.pageRange","labels.DataTable.resizeColumn","labels.DataTable.selectRow","labels.DataTable.selectedCount","labels.DatePicker.hint","labels.DatePicker.outOfRange","labels.DatePicker.unavailable","labels.DatePicker.unparseable","labels.DateRangePicker.hint","labels.DateRangePicker.outOfRange","labels.DateRangePicker.unavailable","labels.DateRangePicker.unparseable","labels.EmailCapture.failed","labels.EmailCapture.successMessage","labels.FileUpload.added","labels.FileUpload.cancel","labels.FileUpload.canceledFile","labels.FileUpload.dropping","labels.FileUpload.failed","labels.FileUpload.failedFile","labels.FileUpload.hint","labels.FileUpload.progress","labels.FileUpload.prompt","labels.FileUpload.remove","labels.FileUpload.removedFile","labels.FileUpload.retry","labels.FileUpload.tooLarge","labels.FileUpload.tooMany","labels.FileUpload.uploadedFile","labels.FileUpload.wrongType","labels.FilterBar.atLeast","labels.FilterBar.atMost","labels.FilterBar.between","labels.FilterBar.list","labels.FilterBar.remove","labels.FilterBar.results","labels.FilterBar.search","labels.FilterBar.trigger","labels.FilterBar.value","labels.Footer.copyright","labels.Kanban.cancelled","labels.Kanban.collapse","labels.Kanban.count","labels.Kanban.dropped","labels.Kanban.expand","labels.Kanban.limitExceeded","labels.Kanban.moved","labels.Kanban.pickedUp","labels.Lightbox.position","labels.MultiSelect.added","labels.MultiSelect.max","labels.MultiSelect.remove","labels.MultiSelect.removed","labels.MultiSelect.results","labels.MultiSelect.summary","labels.OTPInput.length","labels.Pagination.page","labels.Pagination.status","labels.PasswordInput.tooShort","labels.Pricing.billedYearly","labels.Pricing.billingChanged","labels.Pricing.planPrice","labels.Pricing.planSaving","labels.Pricing.saving","labels.Progress.steps","labels.Rating.value","labels.Sparkline.summary","labels.Splitter.pane","labels.Splitter.resize","labels.Stepper.position","labels.TagInput.added","labels.TagInput.duplicate","labels.TagInput.max","labels.TagInput.remove","labels.TagInput.removed","labels.Testimonial.affiliation","labels.Testimonial.rating","labels.TimeField.outOfRange","labels.TimePicker.outOfRange","labels.TreeView.loaded","labels.Wizard.position"]
+  },
+  "LogoCloud": {
+    "paths": ["children","colorOnHover","labels","labels.list","labels.pause","marquee","title"]
+  },
+  "Markdown": {
+    "paths": ["children","components","components.blockquote","components.codeBlock","components.emphasis","components.heading","components.image","components.inlineCode","components.link","components.list","components.listItem","components.paragraph","components.strikethrough","components.strong","components.table","components.thematicBreak","headingOffset","imageAllowlist","imageAllowlist[]","labels","labels.newTab","labels.taskDone","labels.taskOpen","measure"]
+  },
+  "MaskedInput": {
+    "paths": ["defaultValue","end","formAction","invalid","mask","onComplete","onValueChange","placeholderChar","src","start","tokens","tokens.*","tokens.*.numeric","tokens.*.test","tokens.*.transform","type","value"],
+    "functions": ["onComplete","onValueChange","tokens.*.test","tokens.*.transform"]
+  },
+  "MasonryGrid": {
+    "paths": ["children","gap","list","maxColumns","minColumn"]
+  },
+  "MediaCard": {
+    "paths": ["actions","badge","description","href","image","image.alt","image.height","image.placeholder","image.placeholderColor","image.sizes","image.src","image.srcSet","image.width","linkAs","meta","ratio","title","titleAs"]
+  },
+  "MediaCard.Skeleton": {
+    "paths": ["label","ratio"]
+  },
+  "Meter": {
+    "paths": ["label","labels","labels.tones","max","min","thresholds","thresholds[]","thresholds[].at","thresholds[].tone","value","valueText","variant","worse"]
+  },
+  "MultiSelect": {
+    "paths": ["defaultInputValue","defaultOpen","defaultValue","defaultValue[]","filter","formAction","inputValue","invalid","labels","labels.added","labels.empty","labels.loading","labels.max","labels.remove","labels.removed","labels.results","labels.selectAll","labels.selected","labels.summary","labels.toggle","loadError","loading","max","name","onInputChange","onOpenChange","onValueChange","open","options","options[]","options[].description","options[].disabled","options[].group","options[].icon","options[].label","options[].value","selectAll","src","value","value[]","virtualizeThreshold"],
+    "functions": ["labels.added","labels.max","labels.remove","labels.removed","labels.results","labels.summary","onInputChange","onOpenChange","onValueChange"]
+  },
+  "NavList": {
+    "paths": ["label"]
+  },
+  "NavList.Item": {
+    "paths": ["as","badge","children","current","href","icon"]
+  },
+  "NavList.Section": {
+    "paths": ["title"]
+  },
+  "NavigationMenu": {
+    "paths": ["anchorRef","closeDelay","defaultOpen","items","items[]","items[].columns","items[].columns[]","items[].columns[].id","items[].columns[].links","items[].columns[].links[]","items[].columns[].title","items[].current","items[].featured","items[].href","items[].id","items[].label","items[].links","items[].links[]","items[].links[].current","items[].links[].description","items[].links[].href","items[].links[].icon","items[].links[].id","items[].links[].label","labels","labels.navigation","onOpenChange","open","openDelay"],
+    "functions": ["onOpenChange"]
+  },
+  "NumberInput": {
+    "paths": ["defaultValue","end","formAction","formatOptions","invalid","labels","labels.decrement","labels.increment","locale","max","min","onValueChange","precision","src","start","step","value"],
+    "functions": ["onValueChange"]
+  },
+  "OTPInput": {
+    "paths": ["defaultValue","formAction","groups","groups[]","invalid","labels","labels.label","labels.length","length","mask","mode","onComplete","onValueChange","separator","src","value"],
+    "functions": ["labels.length","onComplete","onValueChange"]
+  },
+  "Pagination": {
+    "paths": ["defaultPage","getHref","labels","labels.nav","labels.next","labels.page","labels.previous","labels.status","onPageChange","page","pageCount","siblings"],
+    "functions": ["getHref","labels.page","labels.status","onPageChange"]
+  },
+  "Parallax": {
+    "paths": ["strength"]
+  },
+  "PasswordInput": {
+    "paths": ["autoComplete","capsLockWarning","defaultValue","defaultVisible","end","formAction","invalid","labels","labels.addDigitOrSymbol","labels.capsLock","labels.common","labels.longer","labels.mixCase","labels.patterns","labels.scores","labels.scores[]","labels.show","labels.strength","labels.tooShort","minStrengthLength","onValueChange","onVisibleChange","src","start","strength","value","visible"],
+    "functions": ["labels.tooShort","onValueChange","onVisibleChange"]
+  },
+  "Popover": {
+    "paths": ["children","defaultOpen","onOpenChange","open","placement"],
+    "functions": ["onOpenChange"]
+  },
+  "Popover.Close": {
+    "paths": ["asChild","formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "Popover.Content": {
+    "paths": ["arrow","initialFocus"]
+  },
+  "Popover.Trigger": {
+    "paths": ["asChild","formAction","iconEnd","iconStart","loading","variant"]
+  },
+  "PreferencesMenu": {
+    "paths": ["className","hide","hide[]","labels","labels.densities","labels.density","labels.input","labels.inputs","labels.theme","labels.trigger","placement","storageKey","themes","themes[]","themes[].icon","themes[].label","themes[].value"]
+  },
+  "Pricing": {
+    "paths": ["billing","currency","currencyDisplay","defaultBilling","headingLevel","labels","labels.annual","labels.billedYearly","labels.billing","labels.billingChanged","labels.compare","labels.custom","labels.excluded","labels.feature","labels.free","labels.included","labels.loading","labels.monthly","labels.perMonth","labels.planPrice","labels.planSaving","labels.plans","labels.popular","labels.saving","loading","locale","onBillingChange","plans","plans[]","plans[].action","plans[].badge","plans[].description","plans[].features","plans[].features[]","plans[].features[].included","plans[].features[].label","plans[].highlighted","plans[].id","plans[].name","plans[].price","plans[].price.annual","plans[].price.monthly","plans[].priceNote"],
+    "functions": ["labels.billedYearly","labels.billingChanged","labels.planPrice","labels.planSaving","labels.saving","onBillingChange"]
+  },
+  "PricingTable": {
+    "paths": ["groups","groups[]","groups[].features","groups[].features[]","groups[].features[].description","groups[].features[].id","groups[].features[].label","groups[].features[].values","groups[].features[].values.*","groups[].id","groups[].label","labels","labels.annual","labels.billedYearly","labels.billing","labels.billingChanged","labels.compare","labels.custom","labels.excluded","labels.feature","labels.free","labels.included","labels.loading","labels.monthly","labels.perMonth","labels.planPrice","labels.planSaving","labels.plans","labels.popular","labels.saving","plans","plans[]","plans[].badge","plans[].highlighted","plans[].id","plans[].name","tableProps"],
+    "functions": ["labels.billedYearly","labels.billingChanged","labels.planPrice","labels.planSaving","labels.saving"]
+  },
+  "ProgressBar": {
+    "paths": ["hideLabel","label","labels","labels.indeterminate","labels.steps","labels.tones","locale","max","showValue","tone","value","valueText","variant"],
+    "functions": ["labels.steps"]
+  },
+  "ProgressRing": {
+    "paths": ["children","label","labels","labels.indeterminate","labels.steps","labels.tones","locale","max","showValue","size","tone","value","valueText"],
+    "functions": ["labels.steps"]
+  },
+  "Prose": {
+    "paths": ["as","measure"]
+  },
+  "Radio": {
+    "paths": ["children","disabled","formAction","src","value"]
+  },
+  "RadioGroup": {
+    "paths": ["defaultValue","disabled","invalid","name","onValueChange","orientation","readOnly","required","value"],
+    "functions": ["onValueChange"]
+  },
+  "RangeCalendar": {
+    "paths": ["autoFocus","defaultMonth","defaultValue","defaultValue.end","defaultValue.preset","defaultValue.start","disabled","isDateUnavailable","labels","labels.inRange","labels.nextMonth","labels.previousMonth","labels.rangeEnd","labels.rangeStart","labels.selected","labels.today","locale","max","min","month","months","onMonthChange","onValueChange","value","value.end","value.preset","value.start","weekStartsOn"],
+    "functions": ["isDateUnavailable","onMonthChange","onValueChange"],
+    "dates": ["defaultMonth","defaultValue.end","defaultValue.start","max","min","month","value.end","value.start"],
+    "dateCallbacks": ["isDateUnavailable","onMonthChange","onValueChange"]
+  },
+  "RangeSlider": {
+    "paths": ["defaultValue","defaultValue[]","disabled","form","formatOptions","formatValue","invalid","labels","labels.maximum","labels.minimum","largeStep","locale","marks","marks[]","marks[].label","marks[].value","max","min","minStepsBetweenThumbs","name","onValueChange","onValueCommit","orientation","readOnly","showValue","step","value","value[]"],
+    "functions": ["formatValue","onValueChange","onValueCommit"]
+  },
+  "Rating": {
+    "paths": ["allowHalf","clearable","defaultValue","disabled","form","icon","invalid","labels","labels.none","labels.value","max","name","onValueChange","readOnly","value"],
+    "functions": ["labels.value","onValueChange"]
+  },
+  "ReadingProgress": {
+    "paths": ["as"]
+  },
+  "RequireAuth": {
+    "paths": ["authorize","children","className","forbiddenFallback","labels","labels.forbiddenBody","labels.forbiddenTitle","labels.loading","labels.signIn","labels.signInBody","labels.signInTitle","loadingFallback","onUnauthenticated","signInHref","status","unauthenticatedFallback"],
+    "functions": ["authorize","onUnauthenticated"]
+  },
+  "RouterProvider": {
+    "paths": ["children","isCurrent","link"],
+    "functions": ["isCurrent"]
+  },
+  "ScrollPanel": {
+    "paths": []
+  },
+  "ScrollPanel.Body": {
+    "paths": []
+  },
+  "ScrollPanel.Footer": {
+    "paths": []
+  },
+  "ScrollReveal": {
+    "paths": ["animation","as","once","rootMargin","threshold"]
+  },
+  "SearchInput": {
+    "paths": ["defaultValue","end","formAction","invalid","labels","labels.clear","labels.search","loading","onClear","onValueChange","src","value"],
+    "functions": ["onClear","onValueChange"]
+  },
+  "Section": {
+    "paths": ["as","padding","variant"]
+  },
+  "SectionHeading": {
+    "paths": ["align","eyebrow","headingLevel","lead","title","titleId"]
+  },
+  "SegmentedControl": {
+    "paths": ["defaultValue","disabled","invalid","name","onValueChange","readOnly","value"],
+    "functions": ["onValueChange"]
+  },
+  "SegmentedControl.Item": {
+    "paths": ["children","disabled","formAction","icon","src","value"]
+  },
+  "Select": {
+    "paths": ["defaultValue","invalid","onValueChange","placeholder","readOnly","value"],
+    "functions": ["onValueChange"]
+  },
+  "SiteHeader": {
+    "paths": ["actions","brand","collapseBelow","defaultMenuOpen","hideOnScroll","items","items[]","items[].columns","items[].columns[]","items[].columns[].id","items[].columns[].links","items[].columns[].links[]","items[].columns[].title","items[].current","items[].featured","items[].href","items[].id","items[].label","items[].links","items[].links[]","items[].links[].current","items[].links[].description","items[].links[].href","items[].links[].icon","items[].links[].id","items[].links[].label","labels","labels.menu","labels.skipToContent","menuOpen","navigationProps","navigationProps.classNames","navigationProps.closeDelay","navigationProps.defaultOpen","navigationProps.labels","navigationProps.labels.navigation","navigationProps.onOpenChange","navigationProps.open","navigationProps.openDelay","onMenuOpenChange","skipTo","sticky","variant"],
+    "functions": ["navigationProps.onOpenChange","onMenuOpenChange"]
+  },
+  "Skeleton": {
+    "paths": ["label","lines","shape"]
+  },
+  "Slider": {
+    "paths": ["defaultValue","disabled","form","formatOptions","formatValue","invalid","largeStep","locale","marks","marks[]","marks[].label","marks[].value","max","min","name","onValueChange","onValueCommit","orientation","readOnly","showValue","step","value"],
+    "functions": ["formatValue","onValueChange","onValueCommit"]
+  },
+  "Sparkline": {
+    "paths": ["format","href","label","labels","labels.noData","labels.summary","series","summary","values","values[]"],
+    "functions": ["format","labels.summary"]
+  },
+  "Spinner": {
+    "paths": ["label"]
+  },
+  "Splitter": {
+    "paths": ["defaultSizes","defaultSizes[]","keyboardStep","labels","labels.pane","labels.resize","onSizesChange","onSizesCommit","orientation","sizes","sizes[]"],
+    "functions": ["labels.pane","labels.resize","onSizesChange","onSizesCommit"]
+  },
+  "Splitter.Pane": {
+    "paths": ["collapsible","label","max","min"]
+  },
+  "Spotlight": {
+    "paths": ["as"]
+  },
+  "Stack": {
+    "paths": ["align","as","gap","justify"]
+  },
+  "Stagger": {
+    "paths": ["animation","as","trigger"]
+  },
+  "StatCard": {
+    "paths": ["delta","deltaLabel","formatDelta","label","labels","labels.bad","labels.good","labels.neutral","labels.stale","loading","sentiment","sparkline","stale","status","unit","value"],
+    "functions": ["formatDelta"]
+  },
+  "StatusLabel": {
+    "paths": ["children","icon","tone"]
+  },
+  "Stepper": {
+    "paths": ["children","current","label","labels","labels.complete","labels.current","labels.error","labels.optional","labels.position","labels.progress","labels.skipped","labels.upcoming","onStepSelect","orientation"],
+    "functions": ["labels.position","onStepSelect"]
+  },
+  "Stepper.Step": {
+    "paths": ["description","href","label","optional","selectable","status"]
+  },
+  "Switch": {
+    "paths": ["checked","children","defaultChecked","disabled","formAction","invalid","onCheckedChange","src"],
+    "functions": ["onCheckedChange"]
+  },
+  "Table": {
+    "paths": ["footer","layout","stickyHeader","striped","tableProps","variant"]
+  },
+  "Table.Body": {
+    "paths": []
+  },
+  "Table.Caption": {
+    "paths": ["visuallyHidden"]
+  },
+  "Table.Cell": {
+    "paths": ["numeric","priority","truncate","wrap"]
+  },
+  "Table.Head": {
+    "paths": []
+  },
+  "Table.HeaderCell": {
+    "paths": ["after","numeric","onSort","priority","sort","truncate","wrap"],
+    "functions": ["onSort"]
+  },
+  "Table.Row": {
+    "paths": ["index","selected"]
+  },
+  "Tabs": {
+    "paths": ["activation","defaultValue","onValueChange","value","variant"],
+    "functions": ["onValueChange"]
+  },
+  "Tabs.List": {
+    "paths": []
+  },
+  "Tabs.Panel": {
+    "paths": ["value"]
+  },
+  "Tabs.Tab": {
+    "paths": ["formAction","icon","value"]
+  },
+  "TagInput": {
+    "paths": ["caseSensitive","commitOnBlur","defaultInputValue","defaultValue","defaultValue[]","delimiter","formAction","inputValue","invalid","labels","labels.added","labels.duplicate","labels.max","labels.remove","labels.removed","labels.tags","max","name","onInputChange","onValueChange","src","suggestions","suggestions[]","suggestions[].description","suggestions[].disabled","suggestions[].group","suggestions[].icon","suggestions[].label","suggestions[].value","validate","value","value[]"],
+    "functions": ["labels.added","labels.duplicate","labels.max","labels.remove","labels.removed","onInputChange","onValueChange","validate"],
+    "regexps": ["delimiter"]
+  },
+  "Testimonial": {
+    "paths": ["avatar","company","labels","labels.affiliation","labels.rating","logo","name","quote","rating","ratingMax","role","source","sourceUrl","variant"],
+    "functions": ["labels.affiliation","labels.rating"]
+  },
+  "Textarea": {
+    "paths": ["autosize","invalid","maxRows"]
+  },
+  "ThemeScript": {
+    "paths": ["nonce","storageKey","themes","themes[]"]
+  },
+  "ThemeSwitcher": {
+    "paths": ["className","disabled","id","labels","labels.theme","storageKey","themes","themes[]","themes[].icon","themes[].label","themes[].value","variant"]
+  },
+  "TimeField": {
+    "paths": ["defaultValue","disabled","end","form","hourCycle","invalid","labels","labels.dayPeriod","labels.empty","labels.hour","labels.incomplete","labels.label","labels.minute","labels.outOfRange","labels.placeholder","labels.second","locale","max","min","name","onValueChange","readOnly","required","step","value","withSeconds"],
+    "functions": ["labels.outOfRange","onValueChange"]
+  },
+  "TimePicker": {
+    "paths": ["defaultOpen","defaultValue","disabled","form","hourCycle","invalid","labels","labels.chooseTime","labels.dayPeriod","labels.empty","labels.hour","labels.incomplete","labels.label","labels.minute","labels.outOfRange","labels.placeholder","labels.second","locale","max","min","name","onOpenChange","onValueChange","open","readOnly","required","step","value","withSeconds"],
+    "functions": ["labels.outOfRange","onOpenChange","onValueChange"]
+  },
+  "Timeline": {
+    "paths": ["empty","events","events[]","events[].actions","events[].actor","events[].actor.avatar","events[].actor.name","events[].description","events[].icon","events[].id","events[].meta","events[].statusLabel","events[].time","events[].title","events[].tone","groupByDay","hasMore","headingLevel","label","labels","labels.collapse","labels.empty","labels.expand","labels.loading","labels.more","labels.region","labels.tones","labels.unknownDay","loading","loadingMore","locale","now","onLoadMore","order","pageSize","scrollable","timeFormat"],
+    "functions": ["onLoadMore"],
+    "dates": ["events[].time","now"]
+  },
+  "ToastProvider": {
+    "paths": ["children","className","duration","labels","labels.dismiss","labels.region","labels.tones","max","position"]
+  },
+  "ToggleGroup": {
+    "paths": ["children","defaultValue","defaultValue[]","disabled","invalid","name","onValueChange","orientation","required","type","value","value[]"],
+    "functions": ["onValueChange"]
+  },
+  "ToggleGroup.Item": {
+    "paths": ["children","disabled","formAction","icon","label","value"]
+  },
+  "Toolbar": {
+    "paths": ["aria-label","aria-labelledby","labels","labels.more","orientation","overflow"]
+  },
+  "Toolbar.Group": {
+    "paths": []
+  },
+  "Toolbar.Item": {
+    "paths": ["children","menu"]
+  },
+  "Toolbar.Separator": {
+    "paths": []
+  },
+  "Tooltip": {
+    "paths": ["arrow","children","className","content","defaultOpen","delay","disabled","onOpenChange","open","placement"],
+    "functions": ["onOpenChange"]
+  },
+  "TreeView": {
+    "paths": ["aria-label","aria-labelledby","checkedIds","checkedIds[]","children","defaultCheckedIds","defaultCheckedIds[]","defaultExpandedIds","defaultExpandedIds[]","defaultSelectedId","error","expandedIds","expandedIds[]","items","items[]","items[].children","items[].children[]","items[].current","items[].disabled","items[].hasChildren","items[].href","items[].icon","items[].id","items[].label","items[].textValue","labels","labels.empty","labels.loadError","labels.loaded","labels.loading","labels.retry","loadChildren","loading","onAction","onCheckedIdsChange","onExpandedIdsChange","onSelectedIdChange","renderActions","selectedId","selectionMode","virtualizeAbove"],
+    "functions": ["labels.loaded","loadChildren","onAction","onCheckedIdsChange","onExpandedIdsChange","onSelectedIdChange","renderActions"]
+  },
+  "TreeView.Item": {
+    "paths": ["children","current","disabled","hasChildren","href","icon","id","label","textValue"]
+  },
+  "VirtualizedTable": {
+    "paths": ["bulkActions","caption","columnWidths","columnWidths.*","columns","columnsMenu","columns[]","columns[].cell","columns[].compare","columns[].filter","columns[].filter.match","columns[].filter.options","columns[].filter.options[]","columns[].filter.options[].label","columns[].filter.options[].value","columns[].filter.placeholder","columns[].filter.render","columns[].filter.type","columns[].firstDirection","columns[].header","columns[].id","columns[].label","columns[].maxWidth","columns[].minWidth","columns[].numeric","columns[].priority","columns[].required","columns[].resizable","columns[].sortable","columns[].title","columns[].truncate","columns[].value","columns[].width","defaultColumnWidths","defaultColumnWidths.*","defaultFilters","defaultFilters.*","defaultSelectedKeys","defaultSort","defaultSort.column","defaultSort.direction","defaultVisibleColumns","empty","error","errorActions","filters","filters.*","getRowKey","getRowLabel","labels","labels.bulkActions","labels.clearFilters","labels.clearSelection","labels.columns","labels.details","labels.detailsColumn","labels.empty","labels.filterAll","labels.filterColumn","labels.loading","labels.noMatches","labels.pageRange","labels.resizeColumn","labels.rowActions","labels.rowsPerPage","labels.selectAll","labels.selectRow","labels.selectedCount","layout","loading","loadingRows","manualFiltering","manualSorting","onColumnWidthsChange","onFiltersChange","onSelectedKeysChange","onSortChange","onVisibleColumnsChange","overscan","resizableColumns","rowActions","rows","rows[]","selectable","selectedKeys","sort","sort.column","sort.direction","stickyColumns","stickyHeader","striped","variant","visibleColumns","visibleRows"],
+    "functions": ["bulkActions","columns[].cell","columns[].compare","columns[].filter.match","columns[].filter.render","columns[].title","columns[].value","getRowKey","getRowLabel","labels.details","labels.filterColumn","labels.pageRange","labels.resizeColumn","labels.selectRow","labels.selectedCount","onColumnWidthsChange","onFiltersChange","onSelectedKeysChange","onSortChange","onVisibleColumnsChange","rowActions"],
+    "sets": ["defaultSelectedKeys","defaultVisibleColumns","selectedKeys","visibleColumns"],
+    "setCallbacks": ["bulkActions","onSelectedKeysChange","onVisibleColumnsChange"]
+  },
+  "Wizard": {
+    "paths": ["children","defaultStep","form","form.focusFirstError","form.getValue","form.getValues","form.reset","form.setErrors","form.setValue","form.state","form.state.dirty","form.state.focusRequest","form.state.submitCount","form.state.submitFailed","form.state.submitting","form.state.validating","form.store","form.store.append","form.store.applySchema","form.store.arrayCache","form.store.arrayKeys","form.store.blur","form.store.change","form.store.checkLatest","form.store.checked","form.store.configure","form.store.defaults","form.store.dropCheck","form.store.editRows","form.store.emit","form.store.entriesCache","form.store.errorAt","form.store.fail","form.store.fieldCache","form.store.fieldErrors","form.store.fields","form.store.focusFirstError","form.store.focusRequest","form.store.formCache","form.store.generation","form.store.getArraySnapshot","form.store.getErrorEntries","form.store.getErrors","form.store.getFieldSnapshot","form.store.getFormSnapshot","form.store.getValue","form.store.getValues","form.store.hasErrorWithin","form.store.hasErrors","form.store.hasSchemaError","form.store.insert","form.store.isReportable","form.store.listeners","form.store.move","form.store.nextKey","form.store.output","form.store.pending","form.store.registerField","form.store.registerSummary","form.store.remove","form.store.replace","form.store.reportable","form.store.reset","form.store.revalidateOn","form.store.rowKeys","form.store.runFieldCheck","form.store.runSchema","form.store.runSchemaToLatest","form.store.schema","form.store.schemaErrors","form.store.schemaPending","form.store.schemaRun","form.store.serverErrors","form.store.setErrors","form.store.settle","form.store.submit","form.store.submitCount","form.store.submitFailed","form.store.submitting","form.store.subscribe","form.store.summary","form.store.touched","form.store.trigger","form.store.validate","form.store.validateOn","form.store.validatePath","form.store.validatePaths","form.store.values","form.store.version","form.submit","form.validate","form.validatePaths","headingLevel","label","labels","labels.back","labels.complete","labels.current","labels.error","labels.finish","labels.next","labels.optional","labels.position","labels.progress","labels.skip","labels.skipped","labels.upcoming","onComplete","onStepChange","orientation","step"],
+    "functions": ["form.focusFirstError","form.getValue","form.getValues","form.reset","form.setErrors","form.setValue","form.store.append","form.store.blur","form.store.change","form.store.configure","form.store.focusFirstError","form.store.getArraySnapshot","form.store.getErrorEntries","form.store.getErrors","form.store.getFieldSnapshot","form.store.getFormSnapshot","form.store.getValue","form.store.getValues","form.store.hasErrorWithin","form.store.insert","form.store.move","form.store.registerField","form.store.registerSummary","form.store.remove","form.store.replace","form.store.reset","form.store.setErrors","form.store.submit","form.store.subscribe","form.store.validate","form.store.validatePaths","form.submit","form.validate","form.validatePaths","labels.position","onComplete","onStepChange"]
+  },
+  "Wizard.Step": {
+    "paths": ["children","description","fields","fields[]","label","optional","validate"],
+    "functions": ["validate"]
+  }
+}

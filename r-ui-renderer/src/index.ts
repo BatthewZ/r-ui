@@ -20,7 +20,7 @@ export {
   lookupComponent,
   type RegistryEntry,
 } from "./registry/registry";
-export { contractFor, defaultContracts, extendContracts } from "./spec/contracts";
+export { contractFor, defaultContracts, extendContracts } from "./contracts";
 export type { RendererAdapters, SourceRequest, ToastRequest } from "./runtime/adapters";
 export type { StreamingFallback } from "./runtime/context";
 export type { IconComponentProps, IconSet } from "./icons/types";

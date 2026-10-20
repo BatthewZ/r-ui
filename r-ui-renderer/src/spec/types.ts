@@ -549,7 +549,8 @@ export type ValidationResult =
 
 /**
  * Where a contract field names a prop: `"href"`, `"items[].href"` (each
- * element's `href`), `"x[]"` (each element), `"labels.title"`.
+ * element's `href`), `"x[]"` (each element), `"labels.title"`, `"value.*"`
+ * (each value of a record).
  */
 export type PropPath = string;
 
@@ -576,7 +577,9 @@ export type PropCoercion =
   /** `DataTableColumnSpec[]` becomes the library's columns. */
   | { readonly kind: "columns" }
   /** A string of delimiter characters becomes a `RegExp` matching any of them. */
-  | { readonly kind: "delimiter" };
+  | { readonly kind: "delimiter" }
+  /** `{ value, label, disabled? }[]` becomes the component's `<option>` children. */
+  | { readonly kind: "options" };
 
 /** One row of a component's props table in the reference. */
 export interface PropDoc {
@@ -639,6 +642,11 @@ export interface ComponentContract {
   readonly intlProps?: { readonly [prop: string]: "currency" | "unit" };
   /** Props a document may not set on this component (dropped, `forbidden-prop`). */
   readonly droppedProps?: readonly PropPath[];
+  /**
+   * The component passes its element's native attributes through (`aria-*`,
+   * `role`, `title`, `tabIndex`, …); `props` lists only its own.
+   */
+  readonly nativeAttributes?: true;
 }
 
 export type ComponentContracts = { readonly [name: string]: ComponentContract };

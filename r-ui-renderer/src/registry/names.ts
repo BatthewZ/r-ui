@@ -1,5 +1,5 @@
-import { defaultContracts } from "./contracts";
-import type { ComponentContracts } from "./types";
+import { defaultContracts } from "../contracts";
+import type { ComponentContracts } from "../spec/types";
 
 /**
  * Every addressable component name (parts included, `"Card.Header"`), sorted:

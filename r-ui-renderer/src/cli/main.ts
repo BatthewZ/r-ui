@@ -1,4 +1,4 @@
-import { defaultContracts, extendContracts } from "../spec/contracts";
+import { defaultContracts, extendContracts } from "../contracts";
 import { formatIssuesForModel } from "../spec/format-issues";
 import { isPlainObject } from "../spec/guards";
 import type { ComponentContract, ComponentContracts, Issue } from "../spec/types";

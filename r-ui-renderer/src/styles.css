@@ -7,6 +7,57 @@
 /* This package's own class strings, relative to this file (works from src/ and dist/). */
 @source "../src/**/*.{ts,tsx}";
 
+/* The class vocabulary: every class a document may write, generated here so the
+   host's build holds them before any document arrives. */
+/* GENERATED:class-vocabulary (scripts/derive-class-vocabulary.mjs); do not edit by hand */
+@source inline("aspect-square aspect-video bg-accent bg-accent-hover bg-canvas bg-primary");
+@source inline("bg-primary-active bg-primary-hover bg-scrim bg-selection bg-status-error");
+@source inline("bg-status-error-bg bg-status-info bg-status-info-bg bg-status-success");
+@source inline("bg-status-success-bg bg-status-warning bg-status-warning-bg bg-surface-0");
+@source inline("bg-surface-1 bg-surface-2 bg-surface-3 block border border-0 border-accent");
+@source inline("border-b border-border border-border-strong border-e border-s border-status-error");
+@source inline("border-status-info border-status-success border-status-warning border-t border-x");
+@source inline("border-y break-words col-span-1 col-span-10 col-span-11 col-span-12 col-span-2");
+@source inline("col-span-3 col-span-4 col-span-5 col-span-6 col-span-7 col-span-8 col-span-9");
+@source inline("col-span-full divide-border divide-border-strong divide-x divide-y flex flex-1");
+@source inline("flex-auto flex-col flex-none flex-nowrap flex-row flex-wrap font-display");
+@source inline("font-heading font-medium font-mono font-normal font-semibold font-ui gap-0 gap-r1");
+@source inline("gap-r2 gap-r3 gap-r4 gap-r5 gap-r6 gap-section-1 gap-section-2 gap-section-3");
+@source inline("gap-x-r1 gap-x-r2 gap-x-r3 gap-x-r4 gap-x-r5 gap-x-r6 gap-y-r1 gap-y-r2 gap-y-r3");
+@source inline("gap-y-r4 gap-y-r5 gap-y-r6 gap-y-section-1 gap-y-section-2 gap-y-section-3 grid");
+@source inline("grid-cols-1 grid-cols-10 grid-cols-11 grid-cols-12 grid-cols-2 grid-cols-3");
+@source inline("grid-cols-4 grid-cols-5 grid-cols-6 grid-cols-7 grid-cols-8 grid-cols-9 grow");
+@source inline("h-control h-full h-row hidden inline inline-block inline-flex italic");
+@source inline("items-baseline items-center items-end items-start items-stretch justify-between");
+@source inline("justify-center justify-end justify-start m-0 m-r1 m-r2 m-r3 m-r4 m-r5 m-r6");
+@source inline("max-w-column-lg max-w-column-md max-w-column-sm max-w-full max-w-measure");
+@source inline("max-w-page mb-r1 mb-r2 mb-r3 mb-r4 mb-r5 mb-r6 mb-section-1 mb-section-2");
+@source inline("mb-section-3 me-auto me-r1 me-r2 me-r3 me-r4 me-r5 me-r6 min-h-0 min-h-control");
+@source inline("min-h-hit min-h-row min-w-0 min-w-column-lg min-w-column-md min-w-column-sm");
+@source inline("min-w-hit ms-auto ms-r1 ms-r2 ms-r3 ms-r4 ms-r5 ms-r6 mt-r1 mt-r2 mt-r3 mt-r4");
+@source inline("mt-r5 mt-r6 mt-section-1 mt-section-2 mt-section-3 mx-auto mx-r1 mx-r2 mx-r3");
+@source inline("mx-r4 mx-r5 mx-r6 my-r1 my-r2 my-r3 my-r4 my-r5 my-r6 my-section-1 my-section-2");
+@source inline("my-section-3 no-underline object-contain object-cover overflow-auto");
+@source inline("overflow-hidden overflow-x-auto overflow-y-auto p-0 p-r1 p-r2 p-r3 p-r4 p-r5 p-r6");
+@source inline("pb-r1 pb-r2 pb-r3 pb-r4 pb-r5 pb-r6 pb-section-1 pb-section-2 pb-section-3");
+@source inline("pe-gutter pe-r1 pe-r2 pe-r3 pe-r4 pe-r5 pe-r6 place-items-center ps-gutter ps-r1");
+@source inline("ps-r2 ps-r3 ps-r4 ps-r5 ps-r6 pt-r1 pt-r2 pt-r3 pt-r4 pt-r5 pt-r6 pt-section-1");
+@source inline("pt-section-2 pt-section-3 px-control-pad px-gutter px-r1 px-r2 px-r3 px-r4 px-r5");
+@source inline("px-r6 py-r1 py-r2 py-r3 py-r4 py-r5 py-r6 py-section-1 py-section-2 py-section-3");
+@source inline("relative rounded-full rounded-lg rounded-md rounded-none rounded-sm rounded-xl");
+@source inline("self-center self-end self-start self-stretch shadow-lg shadow-md shadow-none");
+@source inline("shadow-sm shrink-0 size-full size-icon space-x-r1 space-x-r2 space-x-r3");
+@source inline("space-x-r4 space-x-r5 space-x-r6 space-y-r1 space-y-r2 space-y-r3 space-y-r4");
+@source inline("space-y-r5 space-y-r6 sr-only tabular-nums text-body-1 text-body-2 text-body-3");
+@source inline("text-center text-display-1 text-display-2 text-display-3 text-display-4 text-end");
+@source inline("text-fg-accent text-fg-error text-fg-info text-fg-inverse text-fg-muted");
+@source inline("text-fg-on-accent text-fg-on-error text-fg-on-info text-fg-on-primary");
+@source inline("text-fg-on-selection text-fg-on-success text-fg-on-warning text-fg-primary");
+@source inline("text-fg-secondary text-fg-success text-fg-warning text-h1 text-h2 text-h3 text-h4");
+@source inline("text-h5 text-h6 text-prose-1 text-prose-2 text-prose-3 text-start truncate");
+@source inline("underline w-column-lg w-column-md w-column-sm w-full whitespace-nowrap");
+/* /GENERATED:class-vocabulary */
+
 @layer components {
   .r-renderer-view {
     display: block;
