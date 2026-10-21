@@ -74,7 +74,7 @@ export default function HeroSection() {
           />
         </Frame>
       </Row>
-      <Row label="Backdrop · a Parallax of contour rings behind the content: hidden, inert and pressed through, drifting as the page scrolls (still under reduced motion)">
+      <Row label="Backdrop · a Parallax of contour rings behind the content under a scrim of the canvas colour: hidden, inert and pressed through, the rings drifting as the page scrolls (still under reduced motion)">
         <Frame data-sc="hero-backdrop">
           <Hero
             headingLevel={2}
@@ -83,9 +83,15 @@ export default function HeroSection() {
             lead="The rings behind this text trail the page as you scroll; the text and its buttons never move, and every press lands on them."
             actions={<Actions />}
             backdrop={
-              <Parallax className="size-full">
-                <Contours />
-              </Parallax>
+              <>
+                <Parallax className="size-full">
+                  <Contours />
+                </Parallax>
+                {/* The scrim: the text keeps the theme's ink, so it sits on the canvas colour,
+                    fading out toward the edges where the art shows. Outside the Parallax, so
+                    it holds still while the art drifts. A picture wants one like it. */}
+                <div className="absolute inset-0 bg-radial from-canvas/85 from-40% to-transparent to-80%" />
+              </>
             }
             proof={<Proof />}
           />
