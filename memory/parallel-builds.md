@@ -129,7 +129,34 @@ A **round** is a few batches with a gate after each. Shape that has worked:
    agents with disjoint ownership, then a gate. Decide the cross-cutting
    conventions the findings imply (naming of label props, destructive
    variants, where `className` goes, controllable popups) **once, in the
-   batch brief**, so each owner applies them to its own groups.
+   batch brief**, so each owner applies them to its own groups. The brief also
+   names the cross-owner signatures (shared helpers, renamed props, new context
+   fields) before fan-out. A builder who needs one that hasn't landed does other
+   work first rather than write its own copy.
+
+Read-only reviewers who need to run code work in a scratch copy of the package
+(node_modules symlinked in), so they never touch the tree the editing agent owns.
+
+## Sharing the worktree with other sessions
+
+Other live Claude sessions in the same tree are part of the plan, not background.
+
+- **Find them and agree ownership in writing** before fanning out (the agent
+  listing shows them). Record the split in the shared rules file every agent
+  reads, and refresh it when their work commits. A file another session has
+  uncommitted edits in is theirs until they commit.
+- **Commit by explicit path, never `git add -A`.** A shared lockfile is committed by
+  whoever commits first, as it stands; the other leaves it alone. Check
+  `git diff --cached` before any commit: another session may have staged something.
+- **One browser lock for every session.** A lock file (owner and time) is taken
+  before any browser run and removed after, so two sessions' browser gates never
+  exhaust memory together. The library's own runner takes it too.
+- **Pause is a message, not a kill.** Running agents finish the current command,
+  stop servers and browser sessions, release the lock, report exact state and
+  wait. Killing an agent can strand a preview server and a held lock.
+- **A restart stops background agents mid-gate, but their transcripts survive.**
+  Resume the same agent and tell it to re-orient from disk (status and diff)
+  rather than starting a fresh one; its partial edits are usually coherent.
 
 ## The orchestrator's job between agents
 
@@ -254,5 +281,11 @@ A **round** is a few batches with a gate after each. Shape that has worked:
   library works around its gaps and says so; the gate fixes each at the source, removes the
   workaround and proves it with an assertion that goes red without the fix. Leaving the
   workaround in place teaches the next consumer the workaround.
+- **A findings ledger is an allowance.** A list of expected issues that tests consult to
+  ignore them is an allowance like any other. Fix the findings at the source and delete
+  the ledger.
+- **A test that times out only under load is a finding, not a flake.** Make the work
+  cheaper (skip unchanged snapshots, one assertion per document instead of thousands) and
+  give it an explicit timeout, so `check` passes on a busy machine.
 - **A gate never touches the git index.** `git rm` stages the deletion; delete with `rm` and
   leave staging to whoever commits.
