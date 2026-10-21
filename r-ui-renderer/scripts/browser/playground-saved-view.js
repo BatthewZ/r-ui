@@ -10,7 +10,10 @@
 //   1. reloaded, `/` restores all three on <html> (the save took: without it
 //      the rest proves nothing);
 //   2. `?view=analytics-overview` sets none of them: no data-theme,
-//      data-density or data-input on <html>, and no host density on the view root;
+//      data-density or data-input on <html>, and no host density on the view root,
+//      and none was set and removed again while the page loaded (a watcher served
+//      first in <head> records every change, so the pre-paint script standing aside
+//      is seen, not only the route clearing what it set);
 //   3. `?view=analytics-overview&theme=aurora&density=comfortable` puts the
 //      URL's theme on <html> and the URL's density on the view root.
 // The saved View is cleared at the end, pass or fail: the session outlives the check.
@@ -49,8 +52,23 @@ async (page) => {
       throw new Error(`harness: \`/\` restored ${JSON.stringify(restored)} after saving ${theme}, compact, coarse; the save did not take`);
     }
 
-    // 2. the full-page route ignores it
-    await openView(page, "analytics-overview");
+    // 2. the full-page route ignores it, from the first script on
+    const WATCH = `<script>window.__axisWrites=[];new MutationObserver((records)=>{for(const record of records)window.__axisWrites.push(record.attributeName)}).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme","data-density","data-input"]});</script>`;
+    const servesView = (url) => url.searchParams.has("view");
+    const watch = async (route) => {
+      const response = await route.fetch();
+      const html = await response.text();
+      await route.fulfill({ response, body: html.replace("<head>", `<head>${WATCH}`) });
+    };
+    await page.route(servesView, watch);
+    try {
+      await openView(page, "analytics-overview");
+    } finally {
+      await page.unroute(servesView, watch);
+    }
+    const writes = await page.evaluate(() => window.__axisWrites ?? null);
+    if (!Array.isArray(writes)) throw new Error("harness: the attribute watcher was not served first in <head>");
+    if (writes.length > 0) problems.push(`?view= with no axes: <html> had ${writes.join(", ")} set while it loaded, from the saved View`);
     const bare = await axes();
     for (const axis of ["theme", "density", "input", "viewDensity"]) {
       if (bare[axis] !== null) problems.push(`?view= with no axes: ${axis} is ${JSON.stringify(bare[axis])}, from the saved View`);

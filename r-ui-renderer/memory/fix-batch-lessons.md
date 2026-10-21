@@ -33,3 +33,10 @@
   checks were written and their checks wired, but the playground's `?view=` resolved only
   the corpus, so the checks would have reported a route error instead of their claim.
   Resolve every name a check opens, with a test that each one does.
+- **A check that reads the end state cannot see a guard a later layer repairs.** The
+  saved-View check stayed green with the pre-paint script's `?view` guard removed, because
+  the route cleared what the script had set. Watch from the first script instead (a
+  watcher served first in `<head>` records every write), then break each layer once.
+- **`getByLabel` matches substrings.** "Document" also found "Document source" and
+  "Document JSON", so a check written blind failed on its first line. Pass `exact: true`
+  whenever another accessible name contains the same word.

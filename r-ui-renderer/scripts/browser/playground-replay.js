@@ -19,8 +19,8 @@ async (page) => {
   await page.goto("about:blank");
   await page.goto(BROWSER_CHECK_HOME);
   await waitForReady(page);
-  await page.getByLabel("Document").selectOption("ops-dashboard");
-  await page.getByLabel("Replay speed").selectOption("256");
+  await page.getByLabel("Document", { exact: true }).selectOption("ops-dashboard");
+  await page.getByLabel("Replay speed", { exact: true }).selectOption("256");
   const preview = page.getByRole("region", { name: "Preview" });
   await preview.getByRole("table", { name: "Production services" }).waitFor({ timeout: 10_000 });
   await waitForReady(page);
