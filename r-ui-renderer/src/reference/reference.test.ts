@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { defaultContracts, extendContracts, NOT_ADDRESSABLE } from "../contracts";
+import { defaultContracts, extendContracts, LIBRARY_COMPONENTS, NOT_ADDRESSABLE } from "../contracts";
 import type { ComponentContracts } from "../spec/types";
 import { validateViewSpec } from "../spec/validate";
 import { CLASS_VOCABULARY, ICON_NAMES } from "../spec/vocabulary";
@@ -153,7 +153,9 @@ describe("the component tables", () => {
     const omitted: string[] = [];
     const children = Object.entries(defaultContracts).map(([name, contract]) => {
       const props: Record<string, unknown> = {};
-      for (const { name: prop } of contract.props ?? []) {
+      // What the library declares too: the contracts already leave out what is always dropped.
+      const declared = [...(LIBRARY_COMPONENTS[name]?.props ?? []), ...(contract.props ?? [])].map((doc) => doc.name);
+      for (const prop of new Set(declared)) {
         props[prop] = /^on[A-Z]/.test(prop) ? { action: "setState", payload: { path: "state.x", value: 1 } } : "x";
         (isDocumentProp(contract, prop) ? listed : omitted).push(`${name} ${prop}`);
       }

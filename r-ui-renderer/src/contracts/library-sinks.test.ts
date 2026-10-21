@@ -19,8 +19,9 @@ import { defaultContracts, exclusionFor, LIBRARY_COMPONENTS } from "./index";
  * enumerates the sinks itself:
  * - a JSX attribute that becomes a URL (`href`, `src`, `srcSet`, `poster`,
  *   `action`, `formAction`, `cite`, `data`, any casing) given an expression,
- *   or such a key in an object spread onto an element, or a resource hint
- *   (`preload`, `preinit`, …);
+ *   or such a key in an object spread onto an element or in a props bag
+ *   rebuilt from a spread (`{ ...rest, href }`, spread later), or a resource
+ *   hint (`preload`, `preinit`, …);
  * - a heading element built by interpolation (`h${level}`);
  * - a read of a parent's children: `cloneElement`, `elementChildren`, an
  *   element's `.props`, or `.type` compared with a component.
@@ -49,11 +50,12 @@ function scanSource(file: string, text: string): Finding[] {
     return false;
   };
   const named = (node: ts.PropertyName | ts.JsxAttributeName) => URL_ATTRIBUTES.has(node.getText(source).toLowerCase());
+  const inRebuiltBag = (node: ts.Node) => ts.isObjectLiteralExpression(node.parent) && node.parent.properties.some(ts.isSpreadAssignment);
 
   const visit = (node: ts.Node): void => {
     if (ts.isJsxAttribute(node) && named(node.name) && node.initializer && ts.isJsxExpression(node.initializer)) {
       add("url", node);
-    } else if ((ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) && named(node.name) && insideSpread(node)) {
+    } else if ((ts.isPropertyAssignment(node) || ts.isShorthandPropertyAssignment(node)) && named(node.name) && (insideSpread(node) || inRebuiltBag(node))) {
       add("url", node);
     } else if (ts.isCallExpression(node)) {
       const callee = ts.isIdentifier(node.expression)
@@ -161,6 +163,7 @@ describe("the library sink scan (omission gate)", () => {
       'const b = <a href="/static" title={x} />;',
       "const c = <img SRC={pic} />;",
       "const d = <div {...(ok ? { href: safe } : {})} />;",
+      "const bag = { ...rest, href }; const plain = { href: link };",
       "preload(item.src, { as: 'image' });",
       "const H = `h${level}`;",
       "const path = `M${x}h${y}`;",
@@ -174,11 +177,12 @@ describe("the library sink scan (omission gate)", () => {
       "x.tsx url href={item.link}",
       "x.tsx url SRC={pic}",
       "x.tsx url href: safe",
+      "x.tsx url href",
       "x.tsx url preload(item.src, { as: 'image' })",
       "x.tsx heading `h${level}`",
-      "x.tsx:8 cloneElement(child, extra)",
-      "x.tsx:9 node.type === CardActions",
-      "x.tsx:11 slide.props",
+      "x.tsx:9 cloneElement(child, extra)",
+      "x.tsx:10 node.type === CardActions",
+      "x.tsx:12 slide.props",
     ]);
   });
 

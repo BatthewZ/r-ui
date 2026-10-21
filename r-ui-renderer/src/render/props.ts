@@ -9,15 +9,13 @@
 
 import { createElement, type ReactNode } from "react";
 
-import { type NameRole, nameRole, refPropKinds } from "../spec/contract-facts";
+import { type DropReason, dropReason, type NameRole, nameRole, refPropKinds } from "../spec/contract-facts";
 import { isHandler, isName, isNodeMarker, isPlainObject } from "../spec/guards";
 import {
   CONSTRAINED_DATA_ATTRIBUTES,
   IMAGE_URL_PROPS,
   isAllowedDataAttribute,
   isAllowedDataValue,
-  isForbiddenProp,
-  isIdReferenceProp,
   lowerCaseProp,
   URL_PROPS,
 } from "../spec/policy";
@@ -59,7 +57,6 @@ type Nested = ReadonlyMap<string, readonly ParsedPropPath[]>;
 
 /** A contract's prop paths split into top-level names and deeper paths, by top-level prop. */
 interface Facts {
-  readonly dropped: ReadonlySet<string>;
   readonly droppedNested: Nested;
   readonly urls: ReadonlySet<string>;
   readonly urlsNested: Nested;
@@ -93,7 +90,7 @@ const factsCache = new WeakMap<ComponentContract, Facts>();
 function factsOf(contract: ComponentContract): Facts {
   const cached = factsCache.get(contract);
   if (cached !== undefined) return cached;
-  const [dropped, droppedNested] = split(contract.droppedProps);
+  const [, droppedNested] = split(contract.droppedProps);
   const [urls, urlsNested] = split(contract.urlProps);
   const [images, imagesNested] = split(contract.imageProps);
   const [sets, setsNested] = split(contract.setProps);
@@ -109,7 +106,6 @@ function factsOf(contract: ComponentContract): Facts {
     if (parsePropPath(path).steps.length === 0) templates.set(path, names);
   }
   const facts: Facts = {
-    dropped,
     droppedNested,
     urls,
     urlsNested,
@@ -129,6 +125,14 @@ function factsOf(contract: ComponentContract): Facts {
   factsCache.set(contract, facts);
   return facts;
 }
+
+const DROP_MESSAGES: { readonly [R in DropReason]: (name: string, key: string) => string } = {
+  forbidden: (_, key) => `\`${key}\` is never passed to a component.`,
+  "dom-name": (name) => `${name}'s \`name\` is a DOM name: documents write none (a Field names its control).`,
+  "id-reference": (_, key) => `\`${key}\` is the renderer's: documents write no DOM ids.`,
+  dropped: (name, key) => `${name} takes no \`${key}\` from a document.`,
+  "dialog-open": () => "The renderer owns `open`; seed it with `defaultOpen`.",
+};
 
 const UNIVERSAL_URLS: ReadonlySet<string> = new Set<string>(URL_PROPS);
 const UNIVERSAL_IMAGES: ReadonlySet<string> = new Set<string>(IMAGE_URL_PROPS);
@@ -171,29 +175,22 @@ export function buildProps(
   const getRows = () => props.rows;
 
   /**
-   * A refused image: `src` becomes `null`, the library's "no picture" (an
-   * absent `src` reads as one still loading, and Image throws on it); any
-   * other image prop is dropped.
+   * A refused image: `src` becomes `""`, the library's "nothing to load" (an
+   * Image shows its error fallback and requests nothing; `null` would read as
+   * an address still on its way); any other image prop is dropped.
    */
   const refuseImage = (key: string, path: string, url: string): unknown => {
     const dropped = resolver.drop("refused-url", path, `The host's image policy refuses "${url}".`);
-    return key === "src" ? null : dropped;
+    return key === "src" ? "" : dropped;
   };
 
   /** One top-level prop: the value to set, or DROP. */
   const judge = (key: string, raw: unknown, path: string): unknown => {
     const lower = lowerCaseProp(key);
-    if (isForbiddenProp(key)) return resolver.drop("forbidden-prop", path, `\`${key}\` is never passed to a component.`);
-    if (isIdReferenceProp(key) && !facts.forms.has(key)) {
-      return resolver.drop("forbidden-prop", path, `\`${key}\` is the renderer's: documents write no DOM ids.`);
-    }
-    if (lower === "name" && facts.nameRole === "dom") {
-      return resolver.drop("forbidden-prop", path, `${name}'s \`name\` is a DOM name: documents write none (a Field names its control).`);
-    }
-    if (facts.dropped.has(key)) return resolver.drop("forbidden-prop", path, `${name} takes no \`${key}\` from a document.`);
-    if (contract.dialog === true && (key === "open" || key === "dialogId")) {
-      if (key === "dialogId") dialogId = raw;
-      else resolver.drop("forbidden-prop", path, "The renderer owns `open`; seed it with `defaultOpen`.");
+    const dropped = dropReason(contract, key);
+    if (dropped !== undefined) return resolver.drop("forbidden-prop", path, DROP_MESSAGES[dropped](name, key));
+    if (contract.dialog === true && key === "dialogId") {
+      dialogId = raw;
       return DROP;
     }
     if (HANDLER_KEY_PATTERN.test(key)) {

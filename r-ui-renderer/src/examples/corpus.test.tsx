@@ -24,7 +24,6 @@ import type { StreamSnapshot } from "../stream/snapshot";
 import { ViewRenderer } from "../ViewRenderer";
 import { viewSpecSchema } from "../zod";
 import { apiEndpoints, componentNames, fixtureFetch, TEST_ORIGIN } from "./corpus.test.helpers";
-import { FINDINGS, isFinding } from "./findings";
 import {
   COVERAGE_EXAMPLES,
   EXAMPLES,
@@ -65,14 +64,9 @@ describe("the corpus manifest", () => {
 describe.each(ALL)("%s", (name) => {
   const text = exampleText(name);
 
-  const findings = FINDINGS[name] ?? [];
-  const unledgered = <T extends { readonly code: string | null; readonly path: string | null }>(found: readonly T[]) =>
-    found.filter((issue) => !findings.some((finding) => isFinding(EXAMPLES[name], finding, issue)));
-
-  it("validates with no issue but its ledgered findings, and Zod agrees", () => {
+  it("validates with no issue at all, and Zod agrees", () => {
     const result = validateViewSpec(text, { origin: TEST_ORIGIN });
-    expect(unledgered(result.issues)).toEqual([]);
-    expect(findings.filter((finding) => !result.issues.some((issue) => isFinding(EXAMPLES[name], finding, issue)))).toEqual([]);
+    expect(result.issues).toEqual([]);
     expect(result.ok).toBe(true);
     expect(viewSpecSchema.safeParse(EXAMPLES[name]).success).toBe(true);
   });
@@ -107,8 +101,8 @@ describe.each(ALL)("%s", (name) => {
       await act(async () => {});
       const answered = fixtures.requests.map((request) => `${request.status} ${new URL(request.url).pathname}`);
       expect(new Set(answered)).toEqual(new Set(apiEndpoints(EXAMPLES[name]).map((endpoint) => `200 ${endpoint}`)));
-      expect(unledgered(queryDiagnostics())).toEqual([]);
-      expect(unledgered(issues)).toEqual([]);
+      expect(queryDiagnostics()).toEqual([]);
+      expect(issues).toEqual([]);
       expect(toast).not.toHaveBeenCalled();
     });
   });
@@ -154,6 +148,17 @@ describe("what the corpus opens", () => {
 
     expect(queryDiagnostics()).toEqual([]);
     expect(issues).toEqual([]);
+  });
+
+  it("team-directory: each person's address is a mailto link built with $concat", async () => {
+    const fixtures = fixtureFetch();
+    render(<ViewRenderer spec={exampleSpec("team-directory")} adapters={{ fetch: fixtures.fetch }} icons={icons} />);
+    await act(async () => {
+      await fixtures.settled();
+    });
+    await act(async () => {});
+    const address = "mariana.okonkwo-fitzgerald@northwind.example";
+    expect(screen.getByRole("link", { name: address })).toHaveAttribute("href", `mailto:${address}`);
   });
 
   it("settings-form: the delete dialog opens, and its form refuses to submit unconfirmed", async () => {

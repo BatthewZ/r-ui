@@ -10,6 +10,14 @@
 /* The class vocabulary: every class a document may write, generated here so the
    host's build holds them before any document arrives. */
 /* GENERATED:class-vocabulary (scripts/derive-class-vocabulary.mjs); do not edit by hand */
+@source inline("@2xl:col-span-2 @2xl:col-span-3 @2xl:col-span-4 @2xl:col-span-5 @2xl:col-span-6");
+@source inline("@3xl:col-span-2 @3xl:col-span-3 @3xl:col-span-4 @3xl:col-span-5 @3xl:col-span-6");
+@source inline("@4xl:col-span-2 @4xl:col-span-3 @4xl:col-span-4 @4xl:col-span-5 @4xl:col-span-6");
+@source inline("@5xl:col-span-2 @5xl:col-span-3 @5xl:col-span-4 @5xl:col-span-5 @5xl:col-span-6");
+@source inline("@lg:col-span-2 @lg:col-span-3 @lg:col-span-4 @lg:col-span-5 @lg:col-span-6");
+@source inline("@md:col-span-2 @md:col-span-3 @md:col-span-4 @md:col-span-5 @md:col-span-6");
+@source inline("@sm:col-span-2 @sm:col-span-3 @sm:col-span-4 @sm:col-span-5 @sm:col-span-6");
+@source inline("@xl:col-span-2 @xl:col-span-3 @xl:col-span-4 @xl:col-span-5 @xl:col-span-6");
 @source inline("aspect-square aspect-video bg-accent bg-accent-hover bg-canvas bg-primary");
 @source inline("bg-primary-active bg-primary-hover bg-scrim bg-selection bg-status-error");
 @source inline("bg-status-error-bg bg-status-info bg-status-info-bg bg-status-success");

@@ -2,11 +2,12 @@
 
 - **Never bend a document to silence a check.** The corpus is what models learn the format
   from; a document reworded around a validator false positive teaches the workaround. Keep
-  the document as the advice says to write it and ledger the issue (code, component, prop,
-  reason). Every ledger entry must still be found, so a fix retires its excuse loudly.
-- **One ledger for every reader.** The unit tests and the browser checks excuse the same
-  findings; the browser runner runs on bun so it can import the ledger and the manifest from
-  their TypeScript sources instead of keeping a copy.
+  the document as the advice says to write it and fix the rule at its source, as a contract
+  fact the renderer and the validator both read (an option's required `value` is its
+  identity; a stand-in part needs no root; a node prop's parts sit where the component
+  renders them; an id-reference name typed as no id reference can be is the component's
+  own). The corpus asserts zero issues with no allowance list: an excuse ledger outlives
+  the bug it excused.
 - **"No diagnostics" passes on a view stuck loading.** A document whose binding never
   answered renders its loading branch cleanly. Assert that every `api` binding was requested
   and answered before trusting a clean render.

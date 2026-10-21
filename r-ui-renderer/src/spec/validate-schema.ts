@@ -201,7 +201,7 @@ function notSoleKey(keys: readonly string[]): SchemaDef {
   };
 }
 
-const MARKER_KEYS = ["$ref", "$node", "$format"] as const;
+const MARKER_KEYS = ["$ref", "$node", "$format", "$concat"] as const;
 const HANDLERS = { [PATTERNS.handlerKey]: ref("OnValue") };
 
 /** A prop value's object: any keys, `on[A-Z]…` keys hold handlers, other values are prop values. */
@@ -264,10 +264,10 @@ function formatOptions(withValue: boolean): SchemaDef {
 // Actions
 
 const PAYLOADS: { readonly [A in ActionName]: SchemaDef } = {
-  setState: shape<SetStatePayload>()({ path: ref("StatePath"), value: ref("PropValue") }, ["path", "value"]),
+  setState: shape<SetStatePayload>()({ path: ref("StatePath"), value: ref("PropValue"), replace: boolean }, ["path", "value"]),
   submitForm: shape<FormPayload>()({ form: ref("Name") }, ["form"]),
   resetForm: shape<FormPayload>()({ form: ref("Name") }, ["form"]),
-  navigate: shape<NavigatePayload>()({ to: { anyOf: [string, ref("RefMarker")] }, replace: boolean }, ["to"]),
+  navigate: shape<NavigatePayload>()({ to: { anyOf: [string, ref("RefMarker"), ref("ConcatMarker")] }, replace: boolean }, ["to"]),
   showToast: shape<ShowToastPayload>()(
     { title: ref("ToastText"), description: ref("ToastText"), tone: values(TOAST_TONES) },
     ["title"],
@@ -359,7 +359,16 @@ const CONDITION: SchemaDef = {
 // ---------------------------------------------------------------------------
 // Data and forms
 
-const QUERY_VALUE: SchemaDef = { anyOf: [PRIMITIVE, ref("RefMarker")] };
+/**
+ * A query value: a scalar, or a list of them sent as repeated parameters. An
+ * object conforms but has no query-string form (`unusable-value`, left out).
+ */
+const QUERY_VALUE: SchemaDef = jsonOrRef(
+  PRIMITIVE,
+  ref("ConcatMarker"),
+  { type: "array", items: jsonOrRef(PRIMITIVE, ref("ConcatMarker")) },
+  { ...record(ref("Json")), ...notSoleKey(["$ref", "$concat"]) },
+);
 
 const DATA_BINDING: SchemaDef = {
   anyOf: [
@@ -482,6 +491,20 @@ const DEFS: { readonly [name: string]: SchemaDef } = {
     required: ["$format"],
     additionalProperties: false,
   },
+  ConcatMarker: {
+    title: "$concat marker",
+    type: "object",
+    properties: {
+      $concat: {
+        type: "array",
+        minItems: 1,
+        items: { anyOf: [{ type: ["string", "number", "boolean"] }, ref("RefMarker"), ref("FormatMarker")] },
+        description: "Parts joined into one string: text, numbers and booleans, `$ref` and `$format` markers.",
+      },
+    },
+    required: ["$concat"],
+    additionalProperties: false,
+  },
   PropValue: {
     anyOf: [
       PRIMITIVE,
@@ -489,9 +512,10 @@ const DEFS: { readonly [name: string]: SchemaDef } = {
       ref("RefMarker"),
       ref("NodeMarker"),
       ref("FormatMarker"),
+      ref("ConcatMarker"),
       propObject(),
     ],
-    description: "JSON, where an object whose only key is $ref, $node or $format is that marker.",
+    description: "JSON, where an object whose only key is $ref, $node, $format or $concat is that marker.",
   },
   Props: { type: "object", patternProperties: HANDLERS, additionalProperties: ref("PropValue") },
   Action: ACTION,
@@ -515,10 +539,11 @@ const DEFS: { readonly [name: string]: SchemaDef } = {
       ref("RefMarker"),
       ref("NodeMarker"),
       ref("FormatMarker"),
+      ref("ConcatMarker"),
       propObject({ propertyNames: { type: "string", pattern: "^(?!action$)" } }),
     ],
   },
-  ToastText: { anyOf: [string, ref("RefMarker"), ref("FormatMarker")] },
+  ToastText: { anyOf: [string, ref("RefMarker"), ref("FormatMarker"), ref("ConcatMarker")] },
   QueryParams: record(QUERY_VALUE),
   ViewNode: {
     anyOf: [{ type: "string", title: "text" }, COMPONENT_NODE, ref("RefMarker"), ref("FormatMarker"), EACH_NODE, COND_NODE],

@@ -602,6 +602,81 @@ describe("validateViewSpec: warnings", () => {
     ]);
   });
 
+  it("flags a control's value inside a bound Field, never an option's own value", () => {
+    const option = (component: string, value: string) => ({ component, props: { value }, children: [value] });
+    const value = doc(
+      {
+        component: "Form",
+        props: { form: "prefs" },
+        children: [
+          { component: "Field", props: { name: "plan" }, children: [{ component: "RadioGroup", children: [option("Radio", "pro")] }] },
+          { component: "Field", props: { name: "view" }, children: [{ component: "SegmentedControl", children: [option("SegmentedControl.Item", "grid")] }] },
+          { component: "Field", props: { name: "tags" }, children: [{ component: "ToggleGroup", children: [option("ToggleGroup.Item", "bold")] }] },
+          { component: "Field", props: { name: "plan" }, children: [{ component: "RadioGroup", props: { value: "pro" }, children: [option("Radio", "pro")] }] },
+        ],
+      },
+      { forms: { prefs: { fields: { plan: {}, view: {}, tags: { type: "list" } } } } },
+    );
+    expect(warnings(value)).toEqual([["controlled-in-field", "/root/children/3/children/0/props/value", undefined]]);
+  });
+
+  it("places a stand-in part where its root could be, and a node prop's parts inside what renders it", () => {
+    const item = (label: string) => ({ component: "DropdownMenu.Item", children: [label] });
+    const value = doc({
+      component: "Stack",
+      children: [
+        { component: "MediaCard.Skeleton", props: { label: "Loading the story" } },
+        {
+          component: "Toolbar",
+          props: { "aria-label": "Format" },
+          children: [
+            { component: "Toolbar.Item", props: { menu: { $node: item("Bold") } }, children: [{ component: "Button", children: ["Bold"] }] },
+            { component: "Toolbar.Item", props: { menu: { $node: { component: "Stack", children: [item("Italic")] } } }, children: [{ component: "Button", children: ["Italic"] }] },
+          ],
+        },
+        { component: "Card", props: { title: { $node: item("Stray") } } },
+      ],
+    });
+    expect(warnings(value)).toEqual([["misplaced-part", "/root/children/2/props/title/$node/component", undefined]]);
+  });
+
+  it("warns on a query parameter written as an object, in a binding and in an apiCall; a list is fine", () => {
+    const value = doc(
+      {
+        component: "Button",
+        props: { onClick: { action: "apiCall", payload: { endpoint: "/api/x", query: { tags: ["a", "b"], where: { region: "eu" } } } } },
+        children: ["Go"],
+      },
+      { state: { tab: "a" }, data: { rows: { type: "api", endpoint: "/api/rows", query: { tags: ["a", 1, null], filter: { a: 1 }, one: { $ref: "state.tab" } } } } },
+    );
+    expect(warnings(value)).toEqual([
+      ["unusable-value", "/data/rows/query/filter", undefined],
+      ["unusable-value", "/root/props/onClick/payload/query/where", undefined],
+    ]);
+  });
+
+  it("walks a $concat's parts and judges a URL whose literal start decides the scheme", () => {
+    const value = doc(
+      {
+        component: "Stack",
+        children: [
+          { component: "Link", props: { href: { $concat: ["mailto:", { $ref: "state.email" }] } }, children: ["Mail"] },
+          { component: "Link", props: { href: { $concat: ["javascript:", { $ref: "state.email" }] } }, children: ["Bad"] },
+          { component: "Link", props: { href: { $concat: ["java", "script", ":x"] } }, children: ["Bad too"] },
+          { component: "Link", props: { href: { $concat: ["/p/", { $ref: "state.nope" }, { $format: { value: { $ref: "state.email" }, style: "number" } }] } }, children: ["Ref"] },
+          { component: "Button", props: { onClick: { action: "navigate", payload: { to: { $concat: ["vbscript:", 1] } } } }, children: ["Go"] },
+        ],
+      },
+      { state: { email: "a@b.test" } },
+    );
+    expect(warnings(value)).toEqual([
+      ["refused-url", "/root/children/1/props/href", undefined],
+      ["refused-url", "/root/children/2/props/href", undefined],
+      ["undeclared-name", "/root/children/3/props/href/$concat/1/$ref", undefined],
+      ["refused-url", "/root/children/4/props/onClick/payload/to", undefined],
+    ]);
+  });
+
   it("checks form field rules and initial values against the field's type", () => {
     const value = doc("x", {
       forms: {

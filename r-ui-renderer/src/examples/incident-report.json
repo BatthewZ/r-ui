@@ -151,7 +151,7 @@
           },
           {
             "component": "Grid",
-            "props": { "columns": { "base": 1, "lg": 2 }, "gap": "r3", "className": "items-start" },
+            "props": { "columns": { "base": 1, "@3xl": 2 }, "gap": "r3", "className": "items-start" },
             "children": [
               {
                 "component": "Card",

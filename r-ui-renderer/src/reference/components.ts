@@ -2,8 +2,7 @@
 // props as a document writes them, and the `classNames` keys.
 
 import propDocs from "../contracts/generated/prop-docs.json";
-import { nameRole, refPropKinds } from "../spec/contract-facts";
-import { isForbiddenProp, isIdReferenceProp } from "../spec/policy";
+import { dropReason, nameRole, refPropKinds } from "../spec/contract-facts";
 import type { ComponentContract, ComponentContracts, PropDoc } from "../spec/types";
 import { CATEGORY_TITLES } from "./categories";
 
@@ -39,18 +38,13 @@ function declaredType(type: string): string {
 }
 
 /**
- * Whether a document can set `prop` at all, decided in the validator's order:
- * not dropped everywhere; a form prop always; not a DOM name or an id
- * reference, not dropped for this component, not a renderer-owned dialog
- * `open`, not a ref that takes nothing JSON holds. A test holds this and the
- * validator's `forbidden-prop` together, component by component.
+ * Whether a document can set `prop` at all: the renderer does not drop it
+ * (`dropReason`, the rule the renderer and the validator read) and it is not
+ * a ref that takes nothing JSON holds.
  */
 export function isDocumentProp(contract: ComponentContract, prop: string): boolean {
-  if (isForbiddenProp(prop)) return false;
+  if (dropReason(contract, prop) !== undefined) return false;
   if (contract.formProps?.includes(prop)) return true;
-  if (prop.toLowerCase() === "name" && nameRole(contract) === "dom") return false;
-  if (isIdReferenceProp(prop) || contract.droppedProps?.includes(prop)) return false;
-  if (contract.dialog === true && prop === "open") return false;
   return refPropKinds(contract, prop)?.length !== 0;
 }
 

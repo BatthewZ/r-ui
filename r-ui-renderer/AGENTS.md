@@ -34,10 +34,16 @@ src/
   registry/               names → components (registry.ts, React side) and the name list
                           (names.ts, React-free), derived from the library's barrel
   reference/              `./reference`, React-free: renders VIEWSPEC.md from the contracts
+                          and the prose (prose.json, written from VIEWSPEC.md by derive:viewspec)
   icons/                  `./icons`: a curated lucide set (and the IconSet type)
   zod/                    `./zod`: the format as a Zod schema (zod is an optional peer)
   cli/                    the `r-ui-validate` bin (main.ts holds everything but process wiring)
-scripts/                  the gates (`verify:*`), their tests and fixtures
+  examples/               the corpus (not shipped as an entry): product documents, coverage/
+                          (every addressable component), the typed manifest, their tests
+scripts/                  the gates (`verify:*`), their tests and fixtures; browser/ holds the
+                          browser checks, run by browser-check.mjs against the playground
+playground/               a consumer app: editor, live preview, issue panel, streaming replay,
+                          and the full-page route `/?view=<name>` the browser checks drive
 test-utils.ts             shared test helpers (not shipped)
 ```
 
@@ -109,8 +115,10 @@ document's `className` wins.
 | `verify:no-suppressions` | no lint or TypeScript suppression directive in sources, tests, gates or configs (fixture test) |
 | `verify:source-text` | no raw control character in any text file, which would make git treat it as binary (test writes its bad fixture at run time) |
 | `verify:contracts` | `src/contracts/generated/` is what `derive:contracts` writes from the installed library's built declarations (stale or missing fails, naming the file) |
+| `verify:viewspec` | `VIEWSPEC.md`'s generated regions and `src/reference/prose.json` are what `derive:viewspec` writes (byte for byte, naming the stale file) |
 | `verify:classes` | `src/spec/class-vocabulary.json` and the stylesheet's `@source inline` lines are what `derive:classes` writes, every listed class compiles to CSS, no Tailwind default is listed, and the stylesheet reads tokens only |
 | `verify:schema` | `src/schema.json` is what `derive:schema` writes from the one schema source (`validate-schema.ts`) |
+| `verify:playground` | the playground's sources speak tokens only, and no example theme is named outside its theme list module (fixture test) |
 | `typecheck`, `lint`, `test` | tsc strict (+ `noUncheckedIndexedAccess`), eslint (narrow; inline config off), vitest (jsdom) |
 
 | Writer | Writes (commit the result; the matching `verify:*` fails until you do) |
@@ -118,11 +126,22 @@ document's `className` wins.
 | `derive:contracts` | `src/contracts/generated/`: components, parts, props, value sets, slots, node props, native attributes and DOM names, declared paths. Needs the library's `dist` current |
 | `derive:classes` | the class vocabulary JSON and the stylesheet's `@source inline` lines |
 | `derive:schema` | `src/schema.json` (runs on bun: the source is TypeScript) |
+| `derive:viewspec` | `VIEWSPEC.md`'s generated regions and `src/reference/prose.json`. Edit the prose in `VIEWSPEC.md`, never inside a region; after a library rebuild run `derive:contracts` first |
 
 Gates that live in `test`: the barrel gate (library exports = contracts ∪ `NOT_ADDRESSABLE`),
 curated-table drift, the omission scans (un-JSON-able props, the library's URL, heading and
 children-reading sinks), the `name` classification, DataTable column keys against the format
 and the library, the fold, and validator ⇄ Zod ⇄ `schema.json` agreement.
+
+Outside `check`, run alone (they start a browser or a server):
+
+| Script | Does |
+| --- | --- |
+| `playground:dev` / `playground:build` / `playground:preview` | the playground on 4318 / into `playground/dist` / served on 4317 |
+| `browser:check` | builds the playground into its own folder, serves it and runs `scripts/browser/*.js` in playwright-cli sessions (`--group`, `--changed`, name filters; a failure re-runs alone and a pass then is FLAKY, which fails). Takes the machine-wide browser lock |
+
+The corpus asserts zero issues: a document never keeps an excuse for a validator or renderer
+shortfall; fix the rule at its source, as a contract fact both read.
 
 **Never suppress** a TypeScript or ESLint error. Fix it.
 

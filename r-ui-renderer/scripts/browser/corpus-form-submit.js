@@ -50,8 +50,10 @@ async (page) => {
     await name.fill("Northwind EMEA Operations");
     await slug.fill("northwind-emea-ops");
     await save.click();
+    // The toast's text carries its tone for screen readers ("Success: Settings saved").
     await page
-      .getByText("Settings saved", { exact: true })
+      .locator('[data-toast-id][data-tone="success"]')
+      .filter({ hasText: /^Success: Settings saved$/ })
       .waitFor({ timeout: 5_000 })
       .catch(() => problems.push("no 'Settings saved' toast after a valid submit"));
     if (saves.length !== 1) problems.push(`a valid submit sent ${saves.length} requests, expected 1`);
@@ -60,6 +62,6 @@ async (page) => {
     page.off("request", onRequest);
   }
 
-  for (const d of unledgered("settings-form", await diagnostics(page))) problems.push(`diagnostic ${d.code} at ${d.path}: ${d.text}`);
+  for (const d of await diagnostics(page)) problems.push(`diagnostic ${d.code} at ${d.path}: ${d.text}`);
   return report(problems, "invalid: summary, marks, focus, no request; valid: one request and the toast");
 };

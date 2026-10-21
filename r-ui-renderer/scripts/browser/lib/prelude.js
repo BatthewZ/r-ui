@@ -1,8 +1,7 @@
 // Prepended to every browser check by `scripts/browser-check.mjs`, inside the
 // check's own `async (page) => …` scope, so each script can call these by name.
-// The runner defines before it: BROWSER_CHECK_HOME (the playground's URL),
-// CORPUS ({ product, coverage }: document names) and LEDGERED ({ [name]:
-// [{ code, path }] }: the diagnostics the corpus's findings ledger excuses).
+// The runner defines before it: BROWSER_CHECK_HOME (the playground's URL) and
+// CORPUS ({ product, coverage }: document names).
 
 /** The viewport every session opens at, and every check is reset to. */
 const VIEWPORT = { width: 1280, height: 900 };
@@ -46,12 +45,6 @@ function diagnostics(page) {
       text: (element.textContent ?? "").trim().slice(0, 120),
     })),
   );
-}
-
-/** `found` less the diagnostics the findings ledger excuses for document `name`. */
-function unledgered(name, found) {
-  const excused = LEDGERED[name] ?? [];
-  return found.filter((d) => !excused.some((e) => e.code === d.code && e.path === d.path));
 }
 
 const errorCollectors = [];

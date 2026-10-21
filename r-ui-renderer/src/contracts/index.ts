@@ -6,6 +6,7 @@
  */
 
 import { BUILTIN_CONTRACTS } from "../spec/builtins";
+import { dropReason } from "../spec/contract-facts";
 import type { ComponentContract, ComponentContracts, PropDoc, PropPath } from "../spec/types";
 import { type Exclusion, NOT_ADDRESSABLE } from "./curated/not-addressable";
 import { NOTES } from "./curated/notes";
@@ -20,7 +21,17 @@ import {
   SENSITIVE,
   URL_PROPS,
 } from "./curated/sinks";
-import { CHILD_INSPECTION, DIALOGS, DOM_NAMES, FIELD_NAMES, FORM_PROPS, STRUCTURAL_CHILDREN, TEXT_CHILDREN } from "./curated/structure";
+import {
+  CHILD_INSPECTION,
+  DIALOGS,
+  DOM_NAMES,
+  FIELD_NAMES,
+  FORM_PROPS,
+  NODE_PROP_PARENTS,
+  STANDALONE_PARTS,
+  STRUCTURAL_CHILDREN,
+  TEXT_CHILDREN,
+} from "./curated/structure";
 import type { CuratedTable } from "./curated/table";
 import {
   COERCIONS,
@@ -78,6 +89,8 @@ export const CURATED_FIELDS = {
   eventValue: EVENT_VALUES,
   coercions: COERCIONS,
   childInspection: CHILD_INSPECTION,
+  standalone: STANDALONE_PARTS,
+  nodePropParents: NODE_PROP_PARENTS,
   elementProps: ELEMENT_PROPS,
   headingLevelProps: HEADING_LEVEL_PROPS,
   sensitive: SENSITIVE,
@@ -165,6 +178,10 @@ function assemble(name: string, library: GeneratedComponent): ComponentContract 
   for (const [field, table] of Object.entries(CURATED_FIELDS)) {
     if (Object.hasOwn(table, name)) record[field] = (table as Record<string, unknown>)[name];
   }
+  // A prop the renderer always drops is not advertised: the reference and `unknown-prop` read this list.
+  const settable = props.filter((prop) => dropReason(record as unknown as ComponentContract, prop.name) === undefined);
+  if (settable.length > 0) record.props = settable;
+  else delete record.props;
   return record as unknown as ComponentContract;
 }
 

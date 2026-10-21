@@ -69,7 +69,7 @@
               "$cond": "data.overview",
               "then": {
                 "component": "Stack",
-                "props": { "gap": "r2" },
+                "props": { "gap": "r4" },
                 "children": [
                   {
                     "component": "Grid",
@@ -167,45 +167,46 @@
                     ]
                   },
                   {
-                    "component": "Card",
+                    "component": "Grid",
+                    "props": { "columns": { "base": 1, "@3xl": 2 }, "gap": "r4", "className": "items-start" },
                     "children": [
                       {
-                        "component": "Card.Header",
+                        "component": "Card",
+                        "props": { "className": "@3xl:col-span-2" },
                         "children": [
-                          { "component": "Card.Title", "props": { "as": "h2" }, "children": ["Sessions"] },
                           {
-                            "component": "Card.Description",
-                            "children": ["This period against the one before. Tracking was down for a day on 9 October."]
+                            "component": "Card.Header",
+                            "children": [
+                              { "component": "Card.Title", "props": { "as": "h2" }, "children": ["Sessions"] },
+                              {
+                                "component": "Card.Description",
+                                "children": ["This period against the one before. Tracking was down for a day on 9 October."]
+                              }
+                            ]
+                          },
+                          {
+                            "component": "Card.Body",
+                            "children": [
+                              {
+                                "component": "LineChart",
+                                "props": {
+                                  "label": "Sessions per day",
+                                  "summary": "Sessions grew through the period, dipping each weekend, and stayed above the previous period every day.",
+                                  "x": { "$ref": "data.overview.days" },
+                                  "xType": "time",
+                                  "area": true,
+                                  "series": [
+                                    { "name": "This period", "values": { "$ref": "data.overview.sessions" } },
+                                    { "name": "Previous period", "values": { "$ref": "data.overview.sessionsPrevious" } }
+                                  ],
+                                  "format": "integer",
+                                  "formatTick": "compact"
+                                }
+                              }
+                            ]
                           }
                         ]
                       },
-                      {
-                        "component": "Card.Body",
-                        "children": [
-                          {
-                            "component": "LineChart",
-                            "props": {
-                              "label": "Sessions per day",
-                              "summary": "Sessions grew through the period, dipping each weekend, and stayed above the previous period every day.",
-                              "x": { "$ref": "data.overview.days" },
-                              "xType": "time",
-                              "area": true,
-                              "series": [
-                                { "name": "This period", "values": { "$ref": "data.overview.sessions" } },
-                                { "name": "Previous period", "values": { "$ref": "data.overview.sessionsPrevious" } }
-                              ],
-                              "format": "integer",
-                              "formatTick": "compact"
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "component": "Grid",
-                    "props": { "columns": { "base": 1, "lg": 2 }, "gap": "r4", "className": "items-start" },
-                    "children": [
                       {
                         "component": "Card",
                         "children": [
@@ -259,44 +260,39 @@
                             ]
                           }
                         ]
-                      }
-                    ]
-                  },
-                  {
-                    "component": "Card",
-                    "children": [
+                      },
                       {
-                        "component": "Card.Header",
+                        "component": "Card",
+                        "props": { "className": "@3xl:col-span-2" },
                         "children": [
-                          { "component": "Card.Title", "props": { "as": "h2" }, "children": ["When people shop"] },
                           {
-                            "component": "Card.Description",
-                            "children": ["Sessions by weekday and hour, store time. Empty cells had too few sessions to report."]
+                            "component": "Card.Header",
+                            "children": [
+                              { "component": "Card.Title", "props": { "as": "h2" }, "children": ["When people shop"] },
+                              {
+                                "component": "Card.Description",
+                                "children": ["Sessions by weekday and hour, store time. Empty cells had too few sessions to report."]
+                              }
+                            ]
+                          },
+                          {
+                            "component": "Card.Body",
+                            "children": [
+                              {
+                                "component": "Heatmap",
+                                "props": {
+                                  "label": "Sessions by weekday and hour",
+                                  "rows": { "$ref": "data.overview.weekdays" },
+                                  "columns": { "$ref": "data.overview.hours" },
+                                  "values": { "$ref": "data.overview.heat" },
+                                  "valueLabel": "Sessions",
+                                  "format": "integer"
+                                }
+                              }
+                            ]
                           }
                         ]
                       },
-                      {
-                        "component": "Card.Body",
-                        "children": [
-                          {
-                            "component": "Heatmap",
-                            "props": {
-                              "label": "Sessions by weekday and hour",
-                              "rows": { "$ref": "data.overview.weekdays" },
-                              "columns": { "$ref": "data.overview.hours" },
-                              "values": { "$ref": "data.overview.heat" },
-                              "valueLabel": "Sessions",
-                              "format": "integer"
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "component": "Grid",
-                    "props": { "columns": { "base": 1, "lg": 2 }, "gap": "r4", "className": "items-start" },
-                    "children": [
                       {
                         "component": "Card",
                         "children": [

@@ -1,12 +1,12 @@
 /**
- * Prop values resolved for a component: `$ref`, `$format` and `$node`
- * markers wherever they sit, handlers under `on…` keys turned into callbacks
+ * Prop values resolved for a component: `$ref`, `$format`, `$concat` and
+ * `$node` markers wherever they sit, handlers under `on…` keys turned into callbacks
  * on the runtime's dispatcher. What a `$ref` reaches is data: it is returned
  * as it is and never resolved again. A literal with nothing to resolve keeps
  * its identity, so a re-render hands a component the same object.
  */
 
-import { isForbiddenSegment, isFormatMarker, isHandler, isNodeMarker, isPlainObject, isRefMarker } from "../spec/guards";
+import { isConcatMarker, isForbiddenSegment, isFormatMarker, isHandler, isNodeMarker, isPlainObject, isRefMarker } from "../spec/guards";
 import { LIMITS } from "../spec/policy";
 import { appendPointer } from "../spec/pointer";
 import {
@@ -22,7 +22,7 @@ import type { Slot } from "./memo";
 import { DROP, setOwn } from "../spec/prop-path";
 import { propNodeScope, refScopeOf, type Scope } from "./scope";
 import type { RenderAt } from "./templates";
-import { valueText } from "../runtime/resolve";
+import { joinParts, valueText } from "../runtime/resolve";
 import { readValue } from "./text";
 
 /** A `$node` in a prop: its parent never reads it as a child, so it may carry a boundary. */
@@ -67,6 +67,10 @@ export class PropResolver {
     }
     if (isRefMarker(value)) return readValue(value.$ref, refScopeOf(this.scope));
     if (isFormatMarker(value)) return this.format(value, path, depth);
+    if (isConcatMarker(value)) {
+      const partsPath = appendPointer(path, "$concat");
+      return joinParts(value.$concat.map((part: unknown, index) => this.resolve(part, appendPointer(partsPath, index), depth + 1)));
+    }
     if (isNodeMarker(value)) {
       const nodePath = appendPointer(path, "$node");
       return this.render(value.$node, propNodeScope(this.scope, nodePath), PROP_NODE_SLOT);

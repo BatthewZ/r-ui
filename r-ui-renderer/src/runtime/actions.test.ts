@@ -77,6 +77,17 @@ describe("the dispatcher", () => {
     expect(view.codes()).toEqual([["invalid-ref", "/root/props/onClick/payload/path"]]);
   });
 
+  it("setState merges plain objects shallowly, and with `replace` stores the value as given", async () => {
+    const view = setup({ state: { filters: { region: "eu", status: ["failed"] } } });
+    await view.run({ action: "setState", payload: { path: "state.filters", value: { region: "us" } } });
+    expect(view.getState().filters).toEqual({ region: "us", status: ["failed"] });
+    await view.run({ action: "setState", payload: { path: "state.filters", value: { region: "apac" }, replace: true } });
+    expect(view.getState().filters).toEqual({ region: "apac" });
+    // `replace` is literal: a reference there is not read as true.
+    await view.run({ action: "setState", payload: { path: "state.filters", value: { q: "db" }, replace: { $ref: "state.filters.region" } } });
+    expect(view.getState().filters).toEqual({ region: "apac", q: "db" });
+  });
+
   it("runs a list in order and stops at the first failure", async () => {
     const view = setup();
     const result = view.run([
@@ -112,6 +123,26 @@ describe("the dispatcher", () => {
     expect(navigate.mock.calls).toEqual([["/services/7", { replace: true }]]);
 
     await expect(view.run({ action: "navigate", payload: { to: "JaVaScript:alert(1)" } })).rejects.toBeInstanceOf(ActionFailure);
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(view.codes()).toEqual([["refused-url", "/root/props/onClick/payload/to"]]);
+  });
+
+  it("$concat joins a payload's parts, and the joined URL is what navigate judges", async () => {
+    const navigate = vi.fn();
+    const toast = vi.fn();
+    const view = setup({ adapters: { navigate, toast } });
+    await view.run(
+      [
+        { action: "showToast", payload: { title: { $concat: [{ $ref: "event.value" }, " of ", 12, " saved"] } } },
+        { action: "navigate", payload: { to: { $concat: ["/services/", { $ref: "event.value" }] } } },
+      ],
+      { args: [3] },
+    );
+    expect(toast.mock.calls).toEqual([[{ title: "3 of 12 saved" }]]);
+    expect(navigate.mock.calls).toEqual([["/services/3", { replace: false }]]);
+    await expect(view.run({ action: "navigate", payload: { to: { $concat: ["java", { $ref: "event.value" }] } } }, { args: ["script:alert(1)"] })).rejects.toBeInstanceOf(
+      ActionFailure,
+    );
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(view.codes()).toEqual([["refused-url", "/root/props/onClick/payload/to"]]);
   });
@@ -190,6 +221,18 @@ describe("apiCall", () => {
     await view.run({ action: "apiCall", payload: { endpoint: "/api/save", method: "POST", body: { id: { $ref: "event.value" } } } }, { args: [9] });
     const [, post] = fetch.mock.calls[1] as [string, RequestInit];
     expect(post).toMatchObject({ method: "POST", body: '{"id":9}', headers: { "Content-Type": "application/json" } });
+  });
+
+  it("sends a list as repeated parameters and leaves out an object, reporting it", async () => {
+    const fetch = vi.fn(() => Promise.resolve(json({})));
+    const view = setup({ adapters: { fetch }, state: { tags: ["db", "eu west"], filter: { region: "eu" } } });
+    await view.run({
+      action: "apiCall",
+      payload: { endpoint: "/api/search", query: { tag: { $ref: "state.tags" }, kind: ["a", 2, null, true], filter: { $ref: "state.filter" }, page: 1 } },
+    });
+    const [url] = fetch.mock.calls[0] as unknown as [string];
+    expect(new URL(url).search).toBe("?tag=db&tag=eu+west&kind=a&kind=2&kind=true&page=1");
+    expect(view.codes()).toEqual([["unusable-value", "/root/props/onClick/payload/query/filter"]]);
   });
 
   it("on failure runs onError with { status, message, body }, then rejects with the response", async () => {

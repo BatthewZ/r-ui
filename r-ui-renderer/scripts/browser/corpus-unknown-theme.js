@@ -8,7 +8,7 @@
 // one. With an invented name, no theme rule matches and the contract's own
 // defaults apply. For each corpus document at `?view=<name>&theme=aurora`:
 //   1. `<html data-theme="aurora">` is set (the route applied the axis);
-//   2. not one renderer diagnostic in the page beyond the findings ledger's;
+//   2. not one renderer diagnostic in the page;
 //   3. the page's canvas and ink are the default theme's, read on the same
 //      document without the theme (so "renders" means "readable", not "no throw"),
 //      and the canvas and the ink differ.
@@ -31,7 +31,7 @@ async (page) => {
     const seen = await colours();
 
     if (seen.theme !== THEME) problems.push(`${name}: <html data-theme> is ${JSON.stringify(seen.theme)}, not "${THEME}"`);
-    for (const d of unledgered(name, await diagnostics(page))) problems.push(`${name}: diagnostic ${d.code} at ${d.path}: ${d.text}`);
+    for (const d of await diagnostics(page)) problems.push(`${name}: diagnostic ${d.code} at ${d.path}: ${d.text}`);
     if (seen.canvas !== reference.canvas || seen.ink !== reference.ink) {
       problems.push(`${name}: canvas/ink ${seen.canvas} / ${seen.ink} under "${THEME}", ${reference.canvas} / ${reference.ink} by default`);
     }

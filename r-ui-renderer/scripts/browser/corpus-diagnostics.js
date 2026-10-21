@@ -7,7 +7,7 @@
 // For each product and coverage document, loaded fresh at `?view=<name>` and
 // read once `<html data-renderer-ready>` is set:
 //   1. not one renderer diagnostic in `document.body` (overlays render outside
-//      the view), beyond the findings ledger's;
+//      the view);
 //   2. no console error and no uncaught error while it loaded and settled
 //      (React's development build reports bad nesting and duplicate keys there);
 //      the one image the media document shows as missing may 404;
@@ -23,7 +23,7 @@ async (page) => {
     await frames(page);
     stop();
 
-    for (const d of unledgered(name, await diagnostics(page))) problems.push(`${name}: diagnostic ${d.code} at ${d.path}: ${d.text}`);
+    for (const d of await diagnostics(page)) problems.push(`${name}: diagnostic ${d.code} at ${d.path}: ${d.text}`);
     for (const error of errors) problems.push(`${name}: ${error}`);
 
     const view = await page.evaluate(() => {

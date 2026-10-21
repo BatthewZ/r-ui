@@ -54,29 +54,35 @@
         }
       },
       {
-        "component": "Container",
-        "props": { "width": "page", "gutter": true },
+        "component": "Section",
+        "props": { "padding": "section-3" },
         "children": [
           {
-            "component": "LogoCloud",
-            "props": { "title": "Shipping with Pulse" },
+            "component": "Container",
+            "props": { "width": "page", "gutter": true },
             "children": [
               {
-                "component": "Image",
-                "props": { "src": "/fixtures/img/logo-northwind.svg", "alt": "Northwind", "width": 160, "height": 48 }
-              },
-              {
-                "component": "Image",
-                "props": { "src": "/fixtures/img/logo-lumen.svg", "alt": "Lumen Freight", "width": 160, "height": 48 }
-              },
-              {
-                "component": "Image",
-                "props": { "src": "/fixtures/img/logo-quarry.svg", "alt": "Quarry Supply Co.", "width": 160, "height": 48 }
-              },
-              { "component": "Image", "props": { "src": "/fixtures/img/logo-tessera.svg", "alt": "Tessera", "width": 160, "height": 48 } },
-              {
-                "component": "Image",
-                "props": { "src": "/fixtures/img/logo-halcyon.svg", "alt": "Halcyon Cold Chain", "width": 160, "height": 48 }
+                "component": "LogoCloud",
+                "props": { "title": "Shipping with Pulse" },
+                "children": [
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-northwind.svg", "alt": "Northwind", "width": 160, "height": 48 }
+                  },
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-lumen.svg", "alt": "Lumen Freight", "width": 160, "height": 48 }
+                  },
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-quarry.svg", "alt": "Quarry Supply Co.", "width": 160, "height": 48 }
+                  },
+                  { "component": "Image", "props": { "src": "/fixtures/img/logo-tessera.svg", "alt": "Tessera", "width": 160, "height": 48 } },
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-halcyon.svg", "alt": "Halcyon Cold Chain", "width": 160, "height": 48 }
+                  }
+                ]
               }
             ]
           }
@@ -369,24 +375,24 @@
                   "layout": "split",
                   "headingLevel": 2,
                   "title": "Get the monthly logistics briefing",
-                  "body": "Carrier performance across Europe and North America, one email a month. No product news.",
-                  "actions": {
-                    "$node": {
-                      "component": "EmailCapture",
-                      "props": {
-                        "description": "We send one email a month and never share your address.",
-                        "onSubmit": {
-                          "action": "apiCall",
-                          "payload": {
-                            "endpoint": "/fixtures/newsletter-signup.json",
-                            "method": "POST",
-                            "body": { "email": { "$ref": "event.value" } }
-                          }
+                  "body": "Carrier performance across Europe and North America, one email a month. No product news."
+                },
+                "children": [
+                  {
+                    "component": "EmailCapture",
+                    "props": {
+                      "description": "We send one email a month and never share your address.",
+                      "onSubmit": {
+                        "action": "apiCall",
+                        "payload": {
+                          "endpoint": "/fixtures/newsletter-signup.json",
+                          "method": "POST",
+                          "body": { "email": { "$ref": "event.value" } }
                         }
                       }
                     }
                   }
-                }
+                ]
               }
             ]
           }

@@ -83,6 +83,19 @@ describe("ids and names", () => {
     expect(view.reported).toEqual([]);
   });
 
+  it("keeps an id-reference name the component declares as its own, and drops the one it passes to the DOM", () => {
+    const view = renderTree({
+      component: "Stack",
+      children: [
+        { component: "MasonryGrid", props: { list: true }, children: [{ component: "Badge", children: ["One"] }] },
+        { component: "Toolbar", props: { "aria-label": "Format", "aria-labelledby": "heading" }, children: [] },
+      ],
+    });
+    expect(view.container.querySelector(".r-media-masonry")).toHaveAttribute("role", "list");
+    expect(screen.getByRole("toolbar", { name: "Format" })).not.toHaveAttribute("aria-labelledby");
+    expect(view.issuesOf("forbidden-prop")).toEqual([["/root/children/1/props/aria-labelledby", false]]);
+  });
+
   it("refuses a Field name that is not a field name", () => {
     const view = renderTree({ component: "Field", props: { name: "__proto__" }, children: [] });
     expect(view.issuesOf("invalid-prop-value")).toEqual([["/root/props/name", false]]);
@@ -130,6 +143,32 @@ describe("URLs", () => {
     const view = renderTree({ component: "Link", props: { href: { $ref: "data.url" } }, children: ["Open"] }, { data: { url: href } });
     expect(view.container.querySelector("[href]")).toBeNull();
     expect(view.issuesOf("refused-url")).toEqual([["/root/props/href", false]]);
+  });
+
+  it("joins a $concat's parts and judges the joined URL: `javascript:` assembled from parts is refused", () => {
+    const view = renderTree(
+      {
+        component: "Stack",
+        children: [
+          { component: "Link", props: { href: { $concat: ["mailto:", { $ref: "data.person.email" }, "?subject=Hello%20", { $ref: "data.person.name" }] } }, children: ["Mail"] },
+          { component: "Link", props: { href: { $concat: ["java", { $ref: "data.rest" }] } }, children: ["Sneaky"] },
+          { component: "Link", props: { href: { $concat: ["/people/", { $ref: "data.person.id" }, "?active=", true] } }, children: ["Profile"] },
+          { component: "Link", props: { href: { $concat: ["/people/", { $ref: "data.missing" }] } }, children: ["Nobody"] },
+          { component: "Image", props: { src: { $concat: ["https://tracker.test/", { $ref: "data.person.id" }, ".png"] }, alt: "Ada", width: 1, height: 1 } },
+        ],
+      },
+      { data: { person: { email: "ada@aurora.test", name: "Ada", id: 7 }, rest: "script:alert(1)" } },
+    );
+    expect(screen.getByText("Mail").closest("a")).toHaveAttribute("href", "mailto:ada@aurora.test?subject=Hello%20Ada");
+    expect(screen.getByText("Sneaky").closest("[href]")).toBeNull();
+    expect(screen.getByText("Profile").closest("a")).toHaveAttribute("href", "/people/7?active=true");
+    // A part that resolves to nothing leaves the whole value missing, never "/people/".
+    expect(screen.getByText("Nobody").closest("[href]")).toBeNull();
+    expect(view.container.querySelector("img")).toBeNull();
+    expect(view.issuesOf("refused-url")).toEqual([
+      ["/root/children/1/props/href", false],
+      ["/root/children/4/props/src", false],
+    ]);
   });
 
   it("keeps relative, http(s), mailto and tel hrefs", () => {
@@ -187,6 +226,9 @@ describe("images", () => {
     });
     const sources = [...view.container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
     expect(sources).toEqual(["/assets/a.png", "data:image/png;base64,AAAA"]);
+    // A refused picture is an error (the fallback shows), not one still on its way.
+    const states = [...view.container.querySelectorAll(".r-media-image")].map((root) => root.getAttribute("data-state"));
+    expect(states).toEqual(["error", "loading", "loading", "error"]);
     expect(view.issuesOf("refused-url")).toEqual([
       ["/root/children/0/props/src", false],
       ["/root/children/3/props/src", false],

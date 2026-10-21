@@ -20,6 +20,7 @@ export {
   isAction,
   isActionName,
   isComponentNode,
+  isConcatMarker,
   isCondNode,
   isEachNode,
   isFormatMarker,

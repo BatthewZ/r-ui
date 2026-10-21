@@ -36,6 +36,18 @@ export const CHILD_INSPECTION: CuratedTable<"childInspection"> = {
   LogoCloud: "count",
 };
 
+/** Parts that render alone, in their root's place: placed anywhere their root could be. */
+export const STANDALONE_PARTS: CuratedTable<"standalone"> = {
+  // MediaCard's loading state: it stands in for the whole card, never inside one.
+  "MediaCard.Skeleton": true,
+};
+
+/** Node props the component renders inside other components; parts there are placed as if inside them. */
+export const NODE_PROP_PARENTS: CuratedTable<"nodePropParents"> = {
+  // The overflow menu form: the Toolbar renders it in its "More" DropdownMenu's content.
+  "Toolbar.Item": { menu: ["DropdownMenu", "DropdownMenu.Content"] },
+};
+
 /** `children` is source text the component parses: written as text, joined verbatim. */
 export const TEXT_CHILDREN: CuratedTable<"textChildren"> = {
   Chip: true,

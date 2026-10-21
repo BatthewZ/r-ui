@@ -7,9 +7,8 @@
 // pointer, rows that shrink at compact, a stream that builds up frame by frame
 // without remounting) are settled in a real browser.
 //
-// Runs on bun: it reads the corpus and its findings ledger from their
-// TypeScript sources, so the checks get the document names and the
-// diagnostics the ledger excuses from the same place the unit tests do.
+// Runs on bun: it reads the corpus manifest from its TypeScript source, so the
+// checks get the document names from the same place the unit tests do.
 //
 // The target: by default the playground is built in development mode (React's
 // development build, so its warnings reach the console the checks collect)
@@ -49,9 +48,7 @@ import { dirname, join, relative } from "node:path";
 import { clearTimeout, setTimeout } from "node:timers";
 import { fileURLToPath } from "node:url";
 
-import { COVERAGE_EXAMPLES, EXAMPLES, PRODUCT_EXAMPLES } from "../src/examples/index.ts";
-import { FINDINGS, isFinding } from "../src/examples/findings.ts";
-import { validateViewSpec } from "../src/spec/validate.ts";
+import { COVERAGE_EXAMPLES, PRODUCT_EXAMPLES } from "../src/examples/index.ts";
 import { DEFAULT_LOCK, lockHolder, releaseLock, tryLock } from "./browser/lib/lock.mjs";
 import { loadScripts, parseArgs, planShards, RESERVE_GB, SESSION_GB, selectForChanges, selectScripts, shardCount } from "./browser/lib/plan.mjs";
 
@@ -137,15 +134,6 @@ if (chosen.length === 0) {
 }
 
 const corpus = { product: Object.keys(PRODUCT_EXAMPLES), coverage: Object.keys(COVERAGE_EXAMPLES) };
-/** Per document, the code and path of each issue its findings ledger excuses (the validator's paths are the renderer's). */
-const ledgered = Object.fromEntries(
-  Object.entries(EXAMPLES).flatMap(([name, document]) => {
-    const findings = FINDINGS[name] ?? [];
-    if (findings.length === 0) return [];
-    const issues = validateViewSpec(document).issues.filter((issue) => findings.some((finding) => isFinding(document, finding, issue)));
-    return [[name, issues.map(({ code, path }) => ({ code, path }))]];
-  }),
-);
 const prelude = readFileSync(join(PKG, "scripts/browser/lib/prelude.js"), "utf8");
 
 /** The script's `async (page) => …`, called in a scope holding the run's constants and the prelude, then `resetPage` whatever happened. */
@@ -155,7 +143,6 @@ function wrap(file, home) {
     "async (page) => {",
     `const BROWSER_CHECK_HOME = ${JSON.stringify(home)};`,
     `const CORPUS = ${JSON.stringify(corpus)};`,
-    `const LEDGERED = ${JSON.stringify(ledgered)};`,
     // playwright-cli's page waits for a navigation without limit, and a locator's wait for its own default.
     "page.setDefaultNavigationTimeout(30_000);",
     "page.setDefaultTimeout(15_000);",

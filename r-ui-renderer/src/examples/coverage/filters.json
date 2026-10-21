@@ -71,10 +71,7 @@
                 },
                 { "kind": "dateRange", "id": "placed", "label": "Placed", "placeholder": "Any time", "max": "2026-10-21" }
               ],
-              "onValueChange": [
-                { "action": "setState", "payload": { "path": "state.filters", "value": null } },
-                { "action": "setState", "payload": { "path": "state.filters", "value": { "$ref": "event.value" } } }
-              ]
+              "onValueChange": { "action": "setState", "payload": { "path": "state.filters", "value": { "$ref": "event.value" }, "replace": true } }
             }
           },
           {

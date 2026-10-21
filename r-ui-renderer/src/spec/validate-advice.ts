@@ -9,17 +9,15 @@
  */
 
 import { contractFor, DECLARED_PATHS, exclusionFor, LIBRARY_COMPONENTS } from "../contracts";
-import { nameRole, refPropKinds } from "./contract-facts";
+import { type DropReason, dropReason, isControlledValue, nameRole, refPropKinds } from "./contract-facts";
 import { makeIssue } from "./issue";
-import { isFormatMarker, isHandler, isName, isNodeMarker, isPlainObject, isRefMarker, nodeKind } from "./guards";
+import { isConcatMarker, isFormatMarker, isHandler, isName, isNodeMarker, isPlainObject, isRefMarker, nodeKind } from "./guards";
 import {
   CONSTRAINED_DATA_ATTRIBUTES,
   DATA_ATTRIBUTE_PATTERN,
   IMAGE_URL_PROPS,
   isAllowedDataAttribute,
   isAllowedDataValue,
-  isForbiddenProp,
-  isIdReferenceProp,
   LIMITS,
   lowerCaseProp,
   URL_PROPS,
@@ -66,9 +64,6 @@ export const FIELD_LIST_PROPS: { readonly [name: string]: readonly string[] } = 
   "Wizard.Step": ["fields"],
 };
 
-/** Props that fix a control's value, which detaches a Field binding. */
-const CONTROLLED_PROPS = new Set(["value", "checked", "defaultValue", "defaultChecked"]);
-
 export interface AdviceOptions {
   readonly contracts: ComponentContracts;
   readonly components: readonly string[];
@@ -99,7 +94,23 @@ const ADVISORY = new SchemaInterpreter(ADVISORY_DEFS);
 const STATE_ROOT = "state";
 
 function isMarker(value: unknown): boolean {
-  return isRefMarker(value) || isNodeMarker(value) || isFormatMarker(value);
+  return isRefMarker(value) || isNodeMarker(value) || isFormatMarker(value) || isConcatMarker(value);
+}
+
+/**
+ * The text a URL check can judge before render: a literal string, or the
+ * literal start of a `$concat` once it holds the scheme (`"mailto:"`), which
+ * no later part can change. Undefined when nothing is decided yet.
+ */
+function urlText(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (!isConcatMarker(value)) return undefined;
+  let start = "";
+  for (const part of value.$concat) {
+    if (typeof part !== "string" && typeof part !== "number" && typeof part !== "boolean") break;
+    start += String(part);
+  }
+  return /^\s*[a-z][a-z0-9+.-]*:/i.test(start) ? start : undefined;
 }
 
 const quote = (value: unknown) => JSON.stringify(value);
@@ -192,6 +203,7 @@ class Advisor {
     if (!isPlainObject(binding)) return;
     if (binding.type === "api" && typeof binding.endpoint === "string") this.endpoint(binding.endpoint, appendPointer(path, "endpoint"));
     const stateOnly: Scope = { ...ROOT_SCOPE, inHandler: false };
+    if (binding.type === "api") this.query(binding.query, appendPointer(path, "query"));
     for (const key of ["query", "body", "params"]) {
       if (binding[key] !== undefined) this.value(binding[key], appendPointer(path, key), stateOnly, { stateOnly: true });
     }
@@ -314,7 +326,7 @@ class Advisor {
 
   private placement(name: string, contract: ComponentContract | undefined, at: string, scope: Scope): void {
     const dot = name.indexOf(".");
-    if (dot !== -1) {
+    if (dot !== -1 && contract?.standalone !== true) {
       const root = name.slice(0, dot);
       if (this.known.has(root) && !scope.ancestors.includes(root)) {
         this.warn("misplaced-part", at, `\`${name}\` belongs inside a \`${root}\`.`);
@@ -387,17 +399,25 @@ class Advisor {
     own: Scope,
     inner: Scope,
   ): void {
-    const templates = new Set<string>();
+    const walked = new Set<string>();
     if (contract !== undefined) {
       for (const [propPath, names] of Object.entries(contract.templateProps ?? {})) {
         for (const found of valuesAt(props, propPath, path)) {
-          templates.add(found.path);
+          walked.add(found.path);
           if (!isNodeMarker(found.value)) {
             this.warn("invalid-prop-value", found.path, `A row template is a \`{ "$node": … }\`; ${list(names)} are in scope inside it.`);
             continue;
           }
           const vars = new Set([...inner.vars, ...names]);
           this.node(found.value.$node, appendPointer(found.path, "$node"), { ...inner, vars });
+        }
+      }
+      for (const [propPath, parents] of Object.entries(contract.nodePropParents ?? {})) {
+        for (const found of valuesAt(props, propPath, path)) {
+          if (!isNodeMarker(found.value) || walked.has(found.path)) continue;
+          walked.add(found.path);
+          const placed = { ...inner, depth: inner.depth + 1, ancestors: [...inner.ancestors, ...parents] };
+          this.node(found.value.$node, appendPointer(found.path, "$node"), placed);
         }
       }
       this.contractPaths(contract, props, path);
@@ -408,7 +428,7 @@ class Advisor {
       if (value === undefined) continue;
       const at = appendPointer(path, key);
       if (contract !== undefined && !this.prop(name, contract, key, value, at, own, inner)) continue;
-      this.entry(key, value, at, inner, { templates });
+      this.entry(key, value, at, inner, { walked });
     }
   }
 
@@ -423,8 +443,9 @@ class Advisor {
     inner: Scope,
   ): boolean {
     const lower = lowerCaseProp(key);
-    if (isForbiddenProp(key)) {
-      this.warn("forbidden-prop", at, `\`${key}\` is dropped everywhere.`);
+    const dropped = dropReason(contract, key);
+    if (dropped !== undefined) {
+      this.warn("forbidden-prop", at, dropMessage(dropped, name, key));
       return false;
     }
     if (contract.formProps?.includes(key)) {
@@ -432,25 +453,8 @@ class Advisor {
       else if (!this.forms.has(value)) this.undeclared(at, `No form \`${value}\` is declared in \`forms\`.`, value, this.forms.keys());
       return false;
     }
-    const role = lower === "name" ? nameRole(contract) : undefined;
-    if (role === "field" && key === "name") {
+    if (key === "name" && nameRole(contract) === "field") {
       if (!isMarker(value) && !isName(value)) this.warn("invalid-prop-value", at, "`name` is a field name: letters, digits and `_`, not starting with a digit.");
-      return false;
-    }
-    if (role === "dom") {
-      this.warn("forbidden-prop", at, `\`${key}\` is dropped: ${name}'s \`name\` is a DOM name, which documents never set (a Field names its control).`);
-      return false;
-    }
-    if (isIdReferenceProp(key)) {
-      this.warn("forbidden-prop", at, `\`${key}\` is dropped: ids and what points at them are wired by the renderer.`);
-      return false;
-    }
-    if (contract.droppedProps?.includes(key)) {
-      this.warn("forbidden-prop", at, `\`${key}\` is dropped: a document cannot set it on ${name}.`);
-      return false;
-    }
-    if (contract.dialog && key === "open") {
-      this.warn("forbidden-prop", at, "The renderer owns `open`; seed it with `defaultOpen` and change it with `openDialog`/`closeDialog`.");
       return false;
     }
     if (lower.startsWith("data-")) {
@@ -476,7 +480,7 @@ class Advisor {
       this.slotClasses(name, contract, value, at);
       return false;
     }
-    if (own.boundField && CONTROLLED_PROPS.has(key) && !name.startsWith("Field.")) {
+    if (own.boundField && isControlledValue(contract, key) && !name.startsWith("Field.")) {
       this.warn("controlled-in-field", at, `\`${key}\` on a control inside a bound Field detaches it from the form; leave it out.`);
     }
     if (!isMarker(value)) this.literal(name, contract, key, value, at, inner);
@@ -545,10 +549,10 @@ class Advisor {
       for (const { path: at, value } of valuesAt(props, propPath, path)) this.date(value, kind, at);
     }
     for (const propPath of contract.urlProps ?? []) {
-      for (const { path: at, value } of valuesAt(props, propPath, path)) if (typeof value === "string") this.url(value, at, false);
+      for (const { path: at, value } of valuesAt(props, propPath, path)) this.urlValue(value, at, false);
     }
     for (const propPath of contract.imageProps ?? []) {
-      for (const { path: at, value } of valuesAt(props, propPath, path)) if (typeof value === "string") this.url(value, at, true);
+      for (const { path: at, value } of valuesAt(props, propPath, path)) this.urlValue(value, at, true);
     }
     for (const propPath of contract.droppedProps ?? []) {
       if (!propPath.includes(".") && !propPath.includes("[")) continue;
@@ -683,7 +687,7 @@ class Advisor {
       return;
     }
     const lower = lowerCaseProp(key);
-    if (typeof value === "string" && URL_NAMES.has(lower) && !walk.stateOnly) this.url(value, at, IMAGE_NAMES.has(lower));
+    if (URL_NAMES.has(lower) && !walk.stateOnly) this.urlValue(value, at, IMAGE_NAMES.has(lower));
     this.value(value, at, scope, walk);
   }
 
@@ -691,10 +695,13 @@ class Advisor {
     if (isRefMarker(value)) {
       this.ref(value.$ref, appendPointer(at, "$ref"), scope, walk.stateOnly);
     } else if (isNodeMarker(value)) {
-      if (walk.templates?.has(at) || walk.stateOnly) return;
+      if (walk.walked?.has(at) || walk.stateOnly) return;
       this.node(value.$node, appendPointer(at, "$node"), { ...scope, depth: scope.depth + 1 });
     } else if (isFormatMarker(value)) {
       this.format(value.$format, appendPointer(at, "$format"), scope);
+    } else if (isConcatMarker(value)) {
+      const parts = appendPointer(at, "$concat");
+      value.$concat.forEach((part: unknown, index) => this.value(part, appendPointer(parts, index), scope, walk));
     } else if (Array.isArray(value)) {
       value.forEach((item: unknown, index) => this.value(item, appendPointer(at, index), scope, walk));
     } else if (isPlainObject(value)) {
@@ -807,14 +814,15 @@ class Advisor {
           }
           return;
         case "navigate":
-          if (typeof payload.to === "string") this.url(payload.to, field("to"), false);
-          else this.value(payload.to, field("to"), scope);
+          this.urlValue(payload.to, field("to"), false);
+          if (typeof payload.to !== "string") this.value(payload.to, field("to"), scope);
           return;
         case "showToast":
           for (const key of ["title", "description"]) this.value(payload[key], field(key), scope);
           return;
         case "apiCall":
           if (typeof payload.endpoint === "string") this.endpoint(payload.endpoint, field("endpoint"));
+          this.query(payload.query, field("query"));
           this.value(payload.query, field("query"), scope);
           this.value(payload.body, field("body"), scope);
           for (const key of ["onSuccess", "onError"]) {
@@ -834,6 +842,22 @@ class Advisor {
           return;
       }
     });
+  }
+
+  /** Query parameters written as objects: they conform, but have no query-string form. */
+  private query(query: unknown, at: string): void {
+    if (!isPlainObject(query)) return;
+    for (const [name, value] of Object.entries(query)) {
+      if (isPlainObject(value) && !isMarker(value)) {
+        this.warn("unusable-value", appendPointer(at, name), "An object has no query-string form, so it is left out: give a scalar, or a list of them (one parameter per item).");
+      }
+    }
+  }
+
+  /** A URL value's checks, on what can be judged before render (`urlText`); the origin only on a whole literal. */
+  private urlValue(value: unknown, at: string, image: boolean): void {
+    const text = urlText(value);
+    if (text !== undefined) this.url(text, at, image && typeof value === "string");
   }
 
   private url(raw: string, at: string, image: boolean): void {
@@ -863,10 +887,25 @@ class Advisor {
 }
 
 interface Walk {
-  /** Pointers of row templates, already walked with their names in scope. */
-  readonly templates?: ReadonlySet<string>;
+  /** Pointers of node props already walked in their own scope (row templates, nodes placed in other parents). */
+  readonly walked?: ReadonlySet<string>;
   /** Inside a data binding: references may read `state.…` only, and nothing renders. */
   readonly stateOnly?: boolean;
+}
+
+function dropMessage(reason: DropReason, name: string, key: string): string {
+  switch (reason) {
+    case "forbidden":
+      return `\`${key}\` is dropped everywhere.`;
+    case "dom-name":
+      return `\`${key}\` is dropped: ${name}'s \`name\` is a DOM name, which documents never set (a Field names its control).`;
+    case "id-reference":
+      return `\`${key}\` is dropped: ids and what points at them are wired by the renderer.`;
+    case "dropped":
+      return `\`${key}\` is dropped: a document cannot set it on ${name}.`;
+    case "dialog-open":
+      return "The renderer owns `open`; seed it with `defaultOpen` and change it with `openDialog`/`closeDialog`.";
+  }
 }
 
 function lowerCaseLast(pointer: string): string {

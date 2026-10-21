@@ -1,14 +1,15 @@
 // @covers stream, corpus
 // @flags  timing
-// @cost   25
+// @cost   30
 //
 // Browser check: a dashboard streamed through the parser, one push per real
-// animation frame (`?view=ops-dashboard&stream=96`), builds up in place.
+// animation frame (`?view=ops-dashboard&stream=32`), builds up in place.
 //
 // A probe installed before the page's own scripts samples the view on every
 // frame until `<html data-renderer-ready>`. It asserts:
 //   1. progressive: content shows on many frames before the document is
-//      complete, and the page heading is seen part-written (text streams in);
+//      complete, and the page's 68-character subtitle is seen part-written
+//      (text streams in): at 32 characters a frame, a push must end inside it;
 //   2. no remount: the view root is one element from its first frame to the
 //      last, and every anchor seen on the way (headings, tables, figures) is
 //      still in the page at the end, the same element;
@@ -37,8 +38,7 @@ async (page) => {
         for (const anchor of root.querySelectorAll("h1, h2, table, [role=figure], figure")) {
           if (!seen.anchors.includes(anchor)) seen.anchors.push(anchor);
         }
-        const h1 = root.querySelector("h1");
-        if (h1) seen.headings.add(h1.textContent);
+        for (const text of root.querySelectorAll("h1, p")) seen.headings.add(text.textContent);
       }
       const settled = seen.frames.filter((f) => f.ready).length;
       if (settled >= 3) seen.done = true;
@@ -52,7 +52,7 @@ async (page) => {
     await page.goto("about:blank");
     await page.goto(`${BROWSER_CHECK_HOME}?view=__probe__`);
     await page.evaluate((key) => sessionStorage.setItem(key, "1"), KEY);
-    await page.goto(viewUrl(NAME, { stream: 96 }));
+    await page.goto(viewUrl(NAME, { stream: 32 }));
     await waitForReady(page, { timeout: 60_000 });
     await page.waitForFunction(() => window.__corpusStreamProbe?.done === true, null, { timeout: 5_000 });
 
@@ -82,10 +82,11 @@ async (page) => {
     });
 
     // 1. progressive
-    const title = "Production operations";
+    const subtitle = "Last 14 days across six regions. Figures refresh every five minutes.";
     if (result.partialFrames < 10) problems.push(`only ${result.partialFrames} frames showed part of the document (of ${result.frames})`);
-    if (!result.headings.some((h) => h.length > 0 && h.length < title.length && title.startsWith(h))) {
-      problems.push(`the heading was never seen part-written: ${JSON.stringify(result.headings.slice(0, 5))}`);
+    if (!result.headings.includes(subtitle)) problems.push("harness: the subtitle was never seen whole; the probe is not watching it");
+    if (!result.headings.some((h) => h.length > 0 && h.length < subtitle.length && subtitle.startsWith(h))) {
+      problems.push(`the subtitle was never seen part-written: ${JSON.stringify(result.headings.filter((h) => h.startsWith("Last")).slice(0, 5))}`);
     }
     // 2. no remount
     if (result.roots !== 1 || !result.sameRoot) problems.push(`the view root was replaced (${result.roots} roots seen)`);
@@ -105,7 +106,7 @@ async (page) => {
       problems.push(`the streamed page differs from the whole one at character ${at}: …${result.text.slice(at, at + 60)}… vs …${whole.slice(at, at + 60)}…`);
     }
 
-    return report(problems, `${result.frames} frames, ${result.partialFrames} partial, ${result.anchors} anchors kept, heading seen ${result.headings.length} ways`);
+    return report(problems, `${result.frames} frames, ${result.partialFrames} partial, ${result.anchors} anchors kept, ${result.headings.length} paragraph and heading texts seen`);
   } finally {
     // Back on the playground's origin (a failure may have left the tab elsewhere) to take the key away.
     await page.goto(`${BROWSER_CHECK_HOME}?view=__probe__`);

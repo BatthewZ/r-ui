@@ -486,6 +486,38 @@
       ],
       "additionalProperties": false
     },
+    "ConcatMarker": {
+      "title": "$concat marker",
+      "type": "object",
+      "properties": {
+        "$concat": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "anyOf": [
+              {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean"
+                ]
+              },
+              {
+                "$ref": "#/$defs/RefMarker"
+              },
+              {
+                "$ref": "#/$defs/FormatMarker"
+              }
+            ]
+          },
+          "description": "Parts joined into one string: text, numbers and booleans, `$ref` and `$format` markers."
+        }
+      },
+      "required": [
+        "$concat"
+      ],
+      "additionalProperties": false
+    },
     "PropValue": {
       "anyOf": [
         {
@@ -512,6 +544,9 @@
           "$ref": "#/$defs/FormatMarker"
         },
         {
+          "$ref": "#/$defs/ConcatMarker"
+        },
+        {
           "type": "object",
           "patternProperties": {
             "^on[A-Z]": {
@@ -526,7 +561,7 @@
               "type": "object",
               "propertyNames": {
                 "type": "string",
-                "pattern": "^(?!(?:\\$ref|\\$node|\\$format)$)"
+                "pattern": "^(?!(?:\\$ref|\\$node|\\$format|\\$concat)$)"
               }
             },
             {
@@ -534,10 +569,10 @@
               "minProperties": 2
             }
           ],
-          "description": "An object whose only key is $ref or $node or $format is that marker."
+          "description": "An object whose only key is $ref or $node or $format or $concat is that marker."
         }
       ],
-      "description": "JSON, where an object whose only key is $ref, $node or $format is that marker."
+      "description": "JSON, where an object whose only key is $ref, $node, $format or $concat is that marker."
     },
     "Props": {
       "type": "object",
@@ -567,6 +602,9 @@
                 },
                 "value": {
                   "$ref": "#/$defs/PropValue"
+                },
+                "replace": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -648,6 +686,9 @@
                     },
                     {
                       "$ref": "#/$defs/RefMarker"
+                    },
+                    {
+                      "$ref": "#/$defs/ConcatMarker"
                     }
                   ]
                 },
@@ -860,6 +901,9 @@
           "$ref": "#/$defs/FormatMarker"
         },
         {
+          "$ref": "#/$defs/ConcatMarker"
+        },
+        {
           "type": "object",
           "patternProperties": {
             "^on[A-Z]": {
@@ -874,7 +918,7 @@
               "type": "object",
               "propertyNames": {
                 "type": "string",
-                "pattern": "^(?!(?:\\$ref|\\$node|\\$format)$)"
+                "pattern": "^(?!(?:\\$ref|\\$node|\\$format|\\$concat)$)"
               }
             },
             {
@@ -882,7 +926,7 @@
               "minProperties": 2
             }
           ],
-          "description": "An object whose only key is $ref or $node or $format is that marker.",
+          "description": "An object whose only key is $ref or $node or $format or $concat is that marker.",
           "propertyNames": {
             "type": "string",
             "pattern": "^(?!action$)"
@@ -900,6 +944,9 @@
         },
         {
           "$ref": "#/$defs/FormatMarker"
+        },
+        {
+          "$ref": "#/$defs/ConcatMarker"
         }
       ]
     },
@@ -907,6 +954,9 @@
       "type": "object",
       "additionalProperties": {
         "anyOf": [
+          {
+            "$ref": "#/$defs/RefMarker"
+          },
           {
             "type": [
               "null",
@@ -916,7 +966,48 @@
             ]
           },
           {
-            "$ref": "#/$defs/RefMarker"
+            "$ref": "#/$defs/ConcatMarker"
+          },
+          {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RefMarker"
+                },
+                {
+                  "type": [
+                    "null",
+                    "boolean",
+                    "number",
+                    "string"
+                  ]
+                },
+                {
+                  "$ref": "#/$defs/ConcatMarker"
+                }
+              ]
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/$defs/Json"
+            },
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "pattern": "^(?!(?:\\$ref|\\$concat)$)"
+                }
+              },
+              {
+                "type": "object",
+                "minProperties": 2
+              }
+            ],
+            "description": "An object whose only key is $ref or $concat is that marker."
           }
         ]
       }

@@ -9,6 +9,7 @@ import {
   type Action,
   type ActionName,
   type ComponentNode,
+  type ConcatMarker,
   type CondNode,
   type EachNode,
   FORBIDDEN_SEGMENTS,
@@ -51,6 +52,10 @@ export function isNodeMarker(value: unknown): value is NodeMarker {
 
 export function isFormatMarker(value: unknown): value is FormatMarker {
   return isSoleKey(value, "$format") && isPlainObject(value.$format);
+}
+
+export function isConcatMarker(value: unknown): value is ConcatMarker {
+  return isSoleKey(value, "$concat") && Array.isArray(value.$concat);
 }
 
 const ACTIONS: ReadonlySet<string> = new Set<string>(ACTION_NAMES);

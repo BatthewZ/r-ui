@@ -83,7 +83,8 @@ export const SINK_FINDINGS: { readonly [finding: string]: readonly SinkClassific
   "components/media/Lightbox.tsx url src={item.src}": [{ component: "Lightbox", prop: "items[].src" }],
   "components/media/Lightbox.tsx url srcSet={item.srcSet}": [{ component: "Lightbox", prop: "items[].srcSet" }],
   "components/navigation/AppShell.tsx url href={`#${mainId}`}": [{ excluded: "AppShell" }],
-  "components/navigation/NavList.tsx url href={safeUrl(given) || undefined}": [{ component: "NavList.Item", prop: "href" }],
+  "components/navigation/Breadcrumbs.tsx url href": [{ component: "Breadcrumbs.Item", prop: "href" }],
+  "components/navigation/NavLink.tsx url href": [{ component: "NavList.Item", prop: "href" }, { excluded: "AppShell.NavItem" }],
   // `getHref` is a function, so a document cannot set it and Pagination stays in button mode.
   "components/navigation/Pagination.tsx url href={getHref(slot)}": [{ component: "Pagination", prop: "getHref" }],
   "components/navigation/Pagination.tsx url href={getHref(target)}": [{ component: "Pagination", prop: "getHref" }],

@@ -15,7 +15,7 @@ import { defaultAllowUrl, resolveUrl, safeUrl } from "../spec/url-policy";
 import type { RendererAdapters } from "./adapters";
 import type { ActionDispatcher, DialogState, IssueReporter, RefRoots } from "./context";
 import { readEventArgs, readEventValue } from "./event-value";
-import { performRequest, prepareRequest } from "./request";
+import { performRequest, prepareRequest, UNUSABLE_QUERY } from "./request";
 import { type FormatValue, plainFormat, type RefScope, resolveValue, valueText } from "./resolve";
 import type { SetStateOptions } from "./state";
 
@@ -119,7 +119,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     switch (action.action) {
       case "setState": {
         const target = read("path");
-        if (typeof target !== "string" || !deps.setState(target, read("value"))) {
+        if (typeof target !== "string" || !deps.setState(target, read("value"), { replace: read("replace") === true })) {
           fail("invalid-ref", at("path"), "setState writes to a `state.…` path.");
         }
         return;
@@ -204,6 +204,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     if (fetcher === undefined) fail("missing-adapter", path, "The host provides no `fetch` adapter; nothing was sent.");
     const prepared = prepareRequest({ endpoint, method, query: read("query"), body: read("body") }, adapters);
     if (!prepared.ok) fail("refused-url", at("endpoint"), prepared.message);
+    for (const param of prepared.unusable) deps.report(makeIssue("unusable-value", appendPointer(at("query"), param), UNUSABLE_QUERY));
 
     const outcome = await performRequest(fetcher, prepared.url, prepared.init);
     const payloadPath = appendPointer(path, "payload");

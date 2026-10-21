@@ -320,7 +320,7 @@
                                     "children": [
                                       {
                                         "component": "Field",
-                                        "props": { "name": "weeklyDigest", "orientation": "horizontal" },
+                                        "props": { "name": "weeklyDigest" },
                                         "children": [
                                           { "component": "Switch", "children": ["Weekly digest"] },
                                           {

@@ -84,6 +84,6 @@ async (page) => {
     page.off("request", onRequest);
   }
 
-  for (const d of unledgered("settings-form", await diagnostics(page))) problems.push(`diagnostic ${d.code} at ${d.path}: ${d.text}`);
+  for (const d of await diagnostics(page)) problems.push(`diagnostic ${d.code} at ${d.path}: ${d.text}`);
   return report(problems, "modal in the top layer, the page behind inert, a real click, Escape closes, the form inside validates and submits");
 };

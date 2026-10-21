@@ -210,8 +210,8 @@
             ]
           },
           {
-            "component": "Section",
-            "props": { "as": "section", "padding": "section-3", "aria-label": "Services" },
+            "component": "Stack",
+            "props": { "as": "section", "aria-label": "Services" },
             "children": [
               {
                 "component": "Stack",
@@ -247,10 +247,7 @@
                         },
                         { "kind": "search", "id": "q", "label": "Search", "placeholder": "Service or owner" }
                       ],
-                      "onValueChange": [
-                        { "action": "setState", "payload": { "path": "state.filters", "value": null } },
-                        { "action": "setState", "payload": { "path": "state.filters", "value": { "$ref": "event.value" } } }
-                      ]
+                      "onValueChange": { "action": "setState", "payload": { "path": "state.filters", "value": { "$ref": "event.value" }, "replace": true } }
                     }
                   },
                   {
@@ -371,8 +368,8 @@
             ]
           },
           {
-            "component": "Section",
-            "props": { "as": "section", "padding": "section-3", "aria-label": "Open incidents" },
+            "component": "Stack",
+            "props": { "as": "section", "aria-label": "Open incidents" },
             "children": [
               {
                 "component": "Stack",

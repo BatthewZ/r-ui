@@ -135,7 +135,20 @@ export interface FormatMarker {
   readonly $format: FormatOptions & { readonly value: PropValue };
 }
 
-export type Marker = RefMarker | NodeMarker | FormatMarker;
+/** A literal, or a marker that resolves to a string, number or boolean. */
+export type ConcatPart = string | number | boolean | RefMarker | FormatMarker;
+
+/**
+ * A string built from its parts, joined with nothing between them. A part
+ * that resolves to anything but a string, number or boolean leaves the whole
+ * value missing. URL and image rules judge the joined string. The object's
+ * only key.
+ */
+export interface ConcatMarker {
+  readonly $concat: readonly ConcatPart[];
+}
+
+export type Marker = RefMarker | NodeMarker | FormatMarker | ConcatMarker;
 
 /**
  * Any value a prop may hold. Markers resolve wherever they appear; an action
@@ -177,14 +190,22 @@ export type ToastTone = (typeof TOAST_TONES)[number];
 
 export type Dynamic<T> = T | RefMarker;
 
-/** Query string values; `$ref` resolves at the moment of the request. */
-export type QueryParams = { readonly [name: string]: Dynamic<string | number | boolean | null> };
+type QueryScalar = Dynamic<string | number | boolean | null> | ConcatMarker;
+
+/**
+ * Query string values; `$ref` resolves at the moment of the request. A list
+ * is sent as one parameter per item (`?tag=a&tag=b`); `null` is left out; an
+ * object has no query-string form and is left out (`unusable-value`).
+ */
+export type QueryParams = { readonly [name: string]: QueryScalar | readonly QueryScalar[] | JsonObject };
 
 export interface SetStatePayload {
   /** Literal. `state.` then a path; missing objects on the way are created. */
   readonly path: string;
   /** Shallow-merged into the current value when both are plain objects; else replaces it. */
   readonly value: PropValue;
+  /** Literal. Replace the current value even when both are plain objects (no merge). */
+  readonly replace?: boolean;
 }
 
 export interface FormPayload {
@@ -194,13 +215,13 @@ export interface FormPayload {
 
 export interface NavigatePayload {
   /** Resolved, then checked against the URL scheme allowlist. */
-  readonly to: Dynamic<string>;
+  readonly to: Dynamic<string> | ConcatMarker;
   readonly replace?: boolean;
 }
 
 export interface ShowToastPayload {
-  readonly title: Dynamic<string> | FormatMarker;
-  readonly description?: Dynamic<string> | FormatMarker;
+  readonly title: Dynamic<string> | FormatMarker | ConcatMarker;
+  readonly description?: Dynamic<string> | FormatMarker | ConcatMarker;
   readonly tone?: ToastTone;
 }
 
@@ -240,7 +261,7 @@ export type Handler = Action | readonly Action[];
 
 /** Payload keys that are read literally, never resolved, per action. */
 export const LITERAL_PAYLOAD_KEYS: { readonly [A in ActionName]: readonly string[] } = {
-  setState: ["path"],
+  setState: ["path", "replace"],
   submitForm: ["form"],
   resetForm: ["form"],
   navigate: ["replace"],
@@ -626,6 +647,14 @@ export interface ComponentContract {
   readonly coercions?: { readonly [prop: string]: PropCoercion };
   /** Present when the component reads its children; nothing may sit between them. */
   readonly childInspection?: ChildInspection;
+  /** A part that renders alone, in its root's place (a loading stand-in): it needs no enclosing root. */
+  readonly standalone?: true;
+  /**
+   * Node props the component renders inside other components, with those
+   * components outermost first (Toolbar.Item's `menu` sits in the overflow
+   * `DropdownMenu`'s content): a node there is placed as if inside them.
+   */
+  readonly nodePropParents?: { readonly [path: PropPath]: readonly string[] };
   /** Props that choose an element, with the tags each allows. */
   readonly elementProps?: { readonly [prop: string]: readonly string[] };
   /** Props interpolated into `h${n}`, with the levels each allows. */

@@ -84,6 +84,14 @@ const STATIC_TOKEN_UTILITIES = [
 
 const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
+/**
+ * The container sizes a Grid's `columns` map steps at, measured on the Grid's
+ * own width. A cell spans by the same steps (`@3xl:col-span-2` in a grid of
+ * `{ "base": 1, "@3xl": 3 }`), up to the Grid's six columns, so a span never
+ * forces implicit columns once the grid narrows.
+ */
+const GRID_CONTAINER_SIZES = ["@sm", "@md", "@lg", "@xl", "@2xl", "@3xl", "@4xl", "@5xl"];
+
 /** Layout: arrangement, never size or colour. */
 export const LAYOUT_UTILITIES = [
   ...["block", "inline-block", "inline", "flex", "inline-flex", "grid", "hidden", "sr-only"],
@@ -91,6 +99,7 @@ export const LAYOUT_UTILITIES = [
   ...range(1, 12).map((n) => `grid-cols-${n}`),
   ...range(1, 12).map((n) => `col-span-${n}`),
   "col-span-full",
+  ...GRID_CONTAINER_SIZES.flatMap((size) => range(2, 6).map((n) => `${size}:col-span-${n}`)),
   ...["start", "center", "end", "baseline", "stretch"].map((v) => `items-${v}`),
   ...["start", "center", "end", "between"].map((v) => `justify-${v}`),
   ...["start", "center", "end", "stretch"].map((v) => `self-${v}`),

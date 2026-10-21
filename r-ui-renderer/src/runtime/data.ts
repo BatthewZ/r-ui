@@ -8,7 +8,7 @@ import { type BindingStatus, type IssueCode, type JsonValue } from "../spec/type
 import type { RendererAdapters } from "./adapters";
 import type { IssueReporter } from "./context";
 import { toJsonValue } from "./event-value";
-import { performRequest, prepareRequest } from "./request";
+import { performRequest, prepareRequest, UNUSABLE_QUERY } from "./request";
 import { plainFormat, resolveValue } from "./resolve";
 
 export interface DataBindingsOptions {
@@ -75,6 +75,9 @@ function planBinding(name: string, binding: unknown, options: DataBindingsOption
       );
       if (!prepared.ok) return refuse("refused-url", prepared.message);
       const { url, init } = prepared;
+      for (const param of prepared.unusable) {
+        options.report(makeIssue("unusable-value", appendPointer(appendPointer(path, "query"), param), UNUSABLE_QUERY));
+      }
       return {
         kind: "request",
         key: JSON.stringify(["api", url, init.method, init.body ?? null]),

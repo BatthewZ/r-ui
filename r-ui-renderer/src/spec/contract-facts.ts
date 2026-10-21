@@ -3,6 +3,7 @@
  * the validator (which warns about it) must read the same way.
  */
 
+import { isForbiddenProp, isIdReferenceProp, lowerCaseProp } from "./policy";
 import type { ComponentContract } from "./types";
 
 /**
@@ -60,4 +61,48 @@ export function refPropKinds(contract: ComponentContract, prop: string): readonl
   const members = unionMembers(type);
   if (!members.some((member) => member.startsWith("RefObject<"))) return undefined;
   return [...new Set(members.flatMap((member) => jsonKind(member) ?? []))];
+}
+
+/**
+ * Whether `prop`, an id-reference name (`list`, `form`, `aria-labelledby`, …),
+ * is the component's own prop rather than the DOM attribute: the contract
+ * declares it with a type no id reference can have (MasonryGrid's boolean
+ * `list`). A string-typed one reaches the attribute and is dropped.
+ */
+function ownsIdReference(contract: ComponentContract | undefined, prop: string): boolean {
+  const type = contract?.props?.find((doc) => doc.name === prop)?.type;
+  return type !== undefined && !unionMembers(type).some((member) => jsonKind(member) === "string");
+}
+
+/** Why the renderer drops a document's `prop`. */
+export type DropReason = "forbidden" | "dom-name" | "id-reference" | "dropped" | "dialog-open";
+
+/**
+ * Why a document's `prop` never reaches the component, or undefined when it
+ * may. The renderer drops, the validator warns (`forbidden-prop`) and the
+ * contracts and reference leave out exactly these, in this order: forbidden
+ * everywhere; a prop naming a form always passes; a DOM `name`; an id
+ * reference the component does not own; the contract's drops; a dialog's
+ * `open`, which the renderer holds.
+ */
+export function dropReason(contract: ComponentContract | undefined, prop: string): DropReason | undefined {
+  if (isForbiddenProp(prop)) return "forbidden";
+  if (contract?.formProps?.includes(prop)) return undefined;
+  if (lowerCaseProp(prop) === "name" && nameRole(contract) === "dom") return "dom-name";
+  if (isIdReferenceProp(prop) && !ownsIdReference(contract, prop)) return "id-reference";
+  if (contract?.droppedProps?.includes(prop)) return "dropped";
+  if (contract?.dialog === true && prop === "open") return "dialog-open";
+  return undefined;
+}
+
+const CONTROLLED_PROPS: ReadonlySet<string> = new Set(["value", "checked", "defaultValue", "defaultChecked"]);
+
+/**
+ * Whether `prop` fixes a control's value, which detaches a Field binding: a
+ * value prop the contract does not require. A required `value` is the
+ * component's identity (a Radio's, a SegmentedControl.Item's), not a control
+ * being driven: a controlled value is always optional.
+ */
+export function isControlledValue(contract: ComponentContract | undefined, prop: string): boolean {
+  return CONTROLLED_PROPS.has(prop) && contract?.props?.find((doc) => doc.name === prop)?.required !== true;
 }

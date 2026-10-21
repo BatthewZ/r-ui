@@ -9,11 +9,11 @@ import { describe, expect, it } from "vitest";
 
 import { isExportedComponent } from "../registry/registry";
 import { BUILTIN_CONTRACTS } from "../spec/builtins";
-import { URL_PROPS as UNIVERSAL_URL_PROPS } from "../spec/policy";
+import { isIdReferenceProp, URL_PROPS as UNIVERSAL_URL_PROPS } from "../spec/policy";
 import type { ComponentContract, PropPath } from "../spec/types";
-import { nameRole } from "../spec/contract-facts";
+import { dropReason, nameRole } from "../spec/contract-facts";
 import { ALWAYS_DROPPED, DROPPED_PROPS, ELEMENT_PROPS, HEADING_LEVEL_PROPS } from "./curated/sinks";
-import { DOM_NAMES, FIELD_NAMES, OWN_NAMES } from "./curated/structure";
+import { DOM_NAMES, FIELD_NAMES, NODE_PROP_PARENTS, OWN_NAMES, STANDALONE_PARTS } from "./curated/structure";
 import { DATES_READ_AS_TEXT, DOCUMENT_PROPS } from "./curated/values";
 import {
   bridgedPaths,
@@ -177,6 +177,18 @@ describe("curated tables against the library's declarations", () => {
       .filter(({ name, path }) => !declares(DECLARED_PATHS[name], name, path))
       .map(({ table, name, path }) => `${table}: ${name}.${path}`);
     expect(drift).toEqual([]);
+  });
+
+  it("place stand-in parts and node-prop parents by real names: a stand-in is a part, a parent a contract, the prop a node prop", () => {
+    const problems: string[] = [];
+    for (const name of Object.keys(STANDALONE_PARTS)) if (!name.includes(".")) problems.push(`${name}: a stand-in is a part`);
+    for (const [name, props] of Object.entries(NODE_PROP_PARENTS)) {
+      for (const [prop, parents] of Object.entries(props)) {
+        if (!(defaultContracts[name]?.nodeProps ?? []).includes(prop)) problems.push(`${name}.${prop}: not a node prop`);
+        for (const parent of parents) if (!Object.hasOwn(defaultContracts, parent)) problems.push(`${name}.${prop}: ${parent} is no contract`);
+      }
+    }
+    expect(problems).toEqual([]);
   });
 
   it("goes red on a renamed prop", () => {
@@ -370,7 +382,7 @@ describe("the assembled contracts", () => {
       const dropped = contract.droppedProps ?? [];
       const replaced = (DOCUMENT_PROPS[name] ?? []).map((p) => p.name);
       for (const prop of generated.props) {
-        if (dropped.includes(prop.name) || replaced.includes(prop.name)) continue;
+        if (dropReason(contract, prop.name) !== undefined || replaced.includes(prop.name)) continue;
         expect(contract.props, `${name}.${prop.name}`).toContainEqual(prop);
       }
       expect(contract.category).toBe(generated.category);
@@ -390,11 +402,27 @@ describe("the assembled contracts", () => {
     for (const [name, contract] of Object.entries(BUILTIN_CONTRACTS)) expect(defaultContracts[name]).toBe(contract);
   });
 
-  it("never list a dropped prop as settable", () => {
+  it("never list a prop the renderer drops as settable", () => {
+    const listed: string[] = [];
     for (const [name, contract] of Object.entries(defaultContracts)) {
       const settable = new Set((contract.props ?? []).map((p) => p.name));
       for (const path of contract.droppedProps ?? []) expect(settable.has(path), `${name}.${path}`).toBe(false);
+      for (const prop of settable) if (dropReason(contract, prop) !== undefined) listed.push(`${name}.${prop}`);
     }
+    expect(listed).toEqual([]);
+    // The library declares these, and a document still cannot set them.
+    for (const [name, prop] of [["Toolbar", "aria-labelledby"], ["Link", "aria-describedby"], ["TreeView", "aria-labelledby"], ["RadioGroup", "name"], ["Dialog", "open"]]) {
+      expect(LIBRARY_COMPONENTS[name as string]?.props.some((doc) => doc.name === prop), `${name}.${prop} declared`).toBe(true);
+      expect(defaultContracts[name as string]?.props?.some((doc) => doc.name === prop), `${name}.${prop} listed`).toBe(false);
+    }
+  });
+
+  it("keep an id-reference name only where the library declares it as the component's own (no id reference's type)", () => {
+    const owned: string[] = [];
+    for (const [name, contract] of Object.entries(defaultContracts)) {
+      for (const prop of contract.props ?? []) if (isIdReferenceProp(prop.name)) owned.push(`${name}.${prop.name}`);
+    }
+    expect(owned.sort()).toEqual(["Form.form", "MasonryGrid.list", "Wizard.form"]);
   });
 
   it("route every curated URL through a URL rule, judged case-insensitively", () => {

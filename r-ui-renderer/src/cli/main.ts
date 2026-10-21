@@ -118,6 +118,8 @@ const CONTRACT_FIELD_TYPES: { readonly [K in keyof Required<ComponentContract>]:
   eventValue: "object",
   coercions: "object",
   childInspection: "string",
+  standalone: "boolean",
+  nodePropParents: "object",
   elementProps: "object",
   headingLevelProps: "object",
   sensitive: "boolean",

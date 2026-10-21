@@ -180,7 +180,13 @@
                                                 {
                                                   "component": "Text",
                                                   "props": { "as": "span", "size": "body-2", "className": "truncate" },
-                                                  "children": [{ "$ref": "person.email" }]
+                                                  "children": [
+                                                    {
+                                                      "component": "Link",
+                                                      "props": { "href": { "$concat": ["mailto:", { "$ref": "person.email" }] } },
+                                                      "children": [{ "$ref": "person.email" }]
+                                                    }
+                                                  ]
                                                 },
                                                 {
                                                   "component": "CopyButton",

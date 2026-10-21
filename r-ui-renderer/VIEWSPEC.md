@@ -66,11 +66,13 @@ A prop holds JSON, or one of these markers. A marker is an object whose **only**
 ```jsonc
 { "$ref": "data.user.name" }                                 // the value at a path
 { "$format": { "value": { "$ref": "row.cost" }, "style": "currency", "currency": "EUR" } }  // formatted text
+{ "$concat": ["mailto:", { "$ref": "person.email" }] }       // one string built from parts
 { "$node": { "component": "Badge", "children": ["New"] } }   // a node where a component takes one
 { "action": "showToast", "payload": { "title": "Saved" } }   // a handler (on…  props only)
 ```
 
 - **Markers resolve anywhere** inside props, at any depth, including inside arrays and objects.
+- **`$concat`** joins its parts into one string, with nothing between them. A part is text, a number, a boolean, or a `$ref` or `$format` marker that resolves to one of those; when a part resolves to anything else (missing, `null`, an object), the whole value is missing and the prop is left out. It works in props and in action payloads, never as a node. URL and image rules judge the joined string, so `"java"` and `"script:…"` joined are refused like the literal.
 - **Handlers** are values under keys spelled `on` + capital (`onClick`, `onValueChange`, `onSelect`), at any depth. A handler is one action (`{ "action", "payload" }` and no other key) or a non-empty array of them. Under an `on…` key, an object with an `action` key, alone or in an array, must be a valid handler (an error otherwise); anything else there is dropped (`forbidden-prop`). An action object under any other key is ordinary data.
 - **Text or a node.** A prop the component takes as a React node accepts a string directly (`"header": "Revenue"`) or a `$node`.
 - **Row templates.** Some props take a template that the component calls per row (a DataTable column's `cell`, `rowActions`, `renderDetail`, `bulkActions`). Write them as `$node`; the names in scope are listed per component (`row`, `rowIndex`, `value`, `selectedKeys`).
@@ -128,11 +130,11 @@ There is no shorthand: a path always starts with one of these roots. An inner `$
 ]
 ```
 
-A list runs in order, each action awaited; one that fails stops the rest. A `submitForm` on an invalid form fails quietly: the form shows its errors and the rest of the list does not run. An `apiCall` without the host's `fetch` reports `missing-adapter` and fails; a `showToast` without the host's toast reports `missing-adapter` and the list carries on. Payload values resolve `$ref`, `$format` and `event` at the moment the handler runs, except the **literal** keys in the table, which are read as written so that fetched data never decides what the view does or where a request goes.
+A list runs in order, each action awaited; one that fails stops the rest. A `submitForm` on an invalid form fails quietly: the form shows its errors and the rest of the list does not run. An `apiCall` without the host's `fetch` reports `missing-adapter` and fails; a `showToast` without the host's toast reports `missing-adapter` and the list carries on. Payload values resolve `$ref`, `$format`, `$concat` and `event` at the moment the handler runs, except the **literal** keys in the table, which are read as written so that fetched data never decides what the view does or where a request goes.
 
 | Action | Payload | Effect |
 | --- | --- | --- |
-| `setState` | **`path`**, `value` | writes `value` at `path` (`"state.filters.region"`); missing objects on the way are created. When the current and the new value are both plain objects they merge shallowly; otherwise the value is replaced. Set a key to `null` to clear it. |
+| `setState` | **`path`**, `value`, **`replace`** | writes `value` at `path` (`"state.filters.region"`); missing objects on the way are created. When the current and the new value are both plain objects they merge shallowly; otherwise the value is replaced. `"replace": true` replaces a plain object too, so a key the new value lacks is gone (store a component's whole record value this way). Set a key to `null` to clear it. |
 | `submitForm` | **`form`** | validates the form, then runs its `onSubmit` |
 | `resetForm` | **`form`** | back to the initial values (re-reading any that `$ref` data), errors cleared |
 | `navigate` | `to`, **`replace`** | through the host's navigation; `to` must pass the URL rules (Safety) |
@@ -140,7 +142,7 @@ A list runs in order, each action awaited; one that fails stops the rest. A `sub
 | `apiCall` | **`endpoint`**, **`method`**, `query`, `body`, **`into`**, **`onSuccess`**, **`onError`** | a request through the host's `fetch` (see Network) |
 | `openDialog` / `closeDialog` | **`dialogId`** | opens or closes the dialog component whose `dialogId` prop matches |
 
-**`apiCall`.** `method` is `GET` (default), `POST`, `PUT`, `PATCH` or `DELETE`. `query` becomes the query string; `body` is sent as JSON (not with `GET` or `DELETE`). The response is parsed as JSON when it says so, else as text. `into` (`"state.result"`) stores it, replacing what was there (no merge). `onSuccess` runs with `event.value` = the response; `onError` with `event.value` = `{ "status": number | null, "message": string, "body": … }`, and then the call fails (a form waiting on it stays unsubmitted). A failure with no `onError` reports `action-failed`; with one, the handler is the report. When an `apiCall` that a form's `onSubmit` ran fails with a body of the shape `{ "errors": { "<field>": "message" } }`, those messages show on the form's fields.
+**`apiCall`.** `method` is `GET` (default), `POST`, `PUT`, `PATCH` or `DELETE`. `query` becomes the query string (see Network for its values); `body` is sent as JSON (not with `GET` or `DELETE`). The response is parsed as JSON when it says so, else as text. `into` (`"state.result"`) stores it, replacing what was there (no merge). `onSuccess` runs with `event.value` = the response; `onError` with `event.value` = `{ "status": number | null, "message": string, "body": … }`, and then the call fails (a form waiting on it stays unsubmitted). A failure with no `onError` reports `action-failed`; with one, the handler is the report. When an `apiCall` that a form's `onSubmit` ran fails with a body of the shape `{ "errors": { "<field>": "message" } }`, those messages show on the form's fields.
 
 **`event`.** Inside a handler, `event.value` is the first thing the component reported, made JSON: a DOM event becomes its control's value (`checked` for a checkbox or radio), a Set an array, a date `"YYYY-MM-DD"` (an instant: ISO with its offset), a date range `{ "start", "end" }`. `event.args.0`, `event.args.1`… are every argument, made JSON the same way. `event` is not carried into `onSuccess`/`onError`, which get their own. Prefer a component's uncontrolled seed (`defaultValue`, `defaultOpen`) where it has one: it needs no state at all.
 
@@ -256,9 +258,17 @@ The renderer provides three components the library leaves to the page. They are 
 
 `className` styles a component's own outermost element; `classNames` styles its named inner parts (`{ "classNames": { "label": "…" } }`, keys per component). Both win over the component's own classes. Prefer a real prop (`variant`, `size`, `tone`, `gap`) where one exists.
 
-**Only classes in the vocabulary work.** A class is CSS only if the host's stylesheet already contains it, and a document arrives long after that stylesheet was built, so any other class styles nothing, silently. The vocabulary is the design system's token utilities (spacing `p-r3`, `gap-r4`; type `text-body-2`, `text-h3`; colour `text-fg-secondary`, `bg-surface-1`; `rounded-md`, `shadow-sm`, `border`) and a short list of layout utilities. There are no raw sizes or colours (`p-4`, `text-sm`, `bg-blue-500`, `w-[37%]`). The validator warns on any other class (`unknown-class`). Spacing steps run `r1` (largest) to `r6` (smallest).
+**Only classes in the vocabulary work.** A class is CSS only if the host's stylesheet already contains it, and a document arrives long after that stylesheet was built, so any other class styles nothing, silently. The vocabulary is the design system's token utilities (spacing `p-r3`, `gap-r4`; type `text-body-2`, `text-h3`; colour `text-fg-secondary`, `bg-surface-1`; `rounded-md`, `shadow-sm`, `border`) and a short list of layout utilities. A Grid cell's span can step with the Grid's own width, as its `columns` map does: `@3xl:col-span-2` spans two columns from 48rem, one below (never a plain `col-span-2` in a grid that narrows to one column). There are no raw sizes or colours (`p-4`, `text-sm`, `bg-blue-500`, `w-[37%]`). The validator warns on any other class (`unknown-class`). Spacing steps run `r1` (largest) to `r6` (smallest).
 
 <!-- GENERATED:classes -->
+- `@2xl:col-span-2` `@2xl:col-span-3` `@2xl:col-span-4` `@2xl:col-span-5` `@2xl:col-span-6`
+- `@3xl:col-span-2` `@3xl:col-span-3` `@3xl:col-span-4` `@3xl:col-span-5` `@3xl:col-span-6`
+- `@4xl:col-span-2` `@4xl:col-span-3` `@4xl:col-span-4` `@4xl:col-span-5` `@4xl:col-span-6`
+- `@5xl:col-span-2` `@5xl:col-span-3` `@5xl:col-span-4` `@5xl:col-span-5` `@5xl:col-span-6`
+- `@lg:col-span-2` `@lg:col-span-3` `@lg:col-span-4` `@lg:col-span-5` `@lg:col-span-6`
+- `@md:col-span-2` `@md:col-span-3` `@md:col-span-4` `@md:col-span-5` `@md:col-span-6`
+- `@sm:col-span-2` `@sm:col-span-3` `@sm:col-span-4` `@sm:col-span-5` `@sm:col-span-6`
+- `@xl:col-span-2` `@xl:col-span-3` `@xl:col-span-4` `@xl:col-span-5` `@xl:col-span-6`
 - `aspect-square` `aspect-video`
 - `bg-accent` `bg-accent-hover` `bg-canvas` `bg-primary` `bg-primary-active` `bg-primary-hover` `bg-scrim` `bg-selection` `bg-status-error` `bg-status-error-bg` `bg-status-info` `bg-status-info-bg` `bg-status-success` `bg-status-success-bg` `bg-status-warning` `bg-status-warning-bg` `bg-surface-0` `bg-surface-1` `bg-surface-2` `bg-surface-3`
 - `border` `border-0` `border-accent` `border-b` `border-border` `border-border-strong` `border-e` `border-s` `border-status-error` `border-status-info` `border-status-success` `border-status-warning` `border-t` `border-x` `border-y`
@@ -316,6 +326,7 @@ The renderer provides three components the library leaves to the page. They are 
 
 - Nothing is requested unless the host provides `fetch`. Without it, `api` bindings and `apiCall` send nothing and report `missing-adapter`.
 - `endpoint` is relative or same-origin unless the host allows more. Origins are judged on the resolved URL, never on how the string starts.
+- A `query` value is a string, number or boolean; a list of them sends one parameter per item (`"tag": ["db", "eu"]` → `?tag=db&tag=eu`); `null` leaves the parameter out. An object has no query-string form: it is left out (`unusable-value`), whether written or read by `$ref`.
 - Every image a document makes the browser load (`src`, `srcSet`, `poster`, avatar and logo URLs, at any depth) must pass the host's image policy: by default same-origin, or a `data:` PNG, JPEG, GIF, WebP or AVIF. A refused image shows its fallback and loads nothing.
 - Markdown shows an image only from a URL prefix the host lists (`markdownImageAllowlist`); otherwise its alt text. A document's own `imageAllowlist` is dropped.
 
@@ -380,10 +391,10 @@ The renderer provides three components the library leaves to the page. They are 
 | Component | Parts | Props | Notes |
 | --- | --- | --- | --- |
 | `Container` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `gutter?`: boolean · `width?`: "measure" \| "page" \| "full" |  |
-| `Grid` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `columns?`: GridColumns \| GridColumnMap · `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `minColumn?`: "sm" \| "md" \| "lg" · `rowGap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" |  |
+| `Grid` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `columns?`: GridColumns \| GridColumnMap · `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `minColumn?`: "sm" \| "md" \| "lg" · `rowGap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" | `columns` is a count (1–6) or a map by the Grid's own width: `{ "base": 1, "@3xl": 3 }` (`@sm` 24rem, `@md` 28, `@lg` 32, `@xl` 36, `@2xl` 42, `@3xl` 48, `@4xl` 56, `@5xl` 64). A cell spans by the same steps: `@3xl:col-span-2`. |
 | `Inline` | — | `align?`: "start" \| "center" \| "end" \| "stretch" \| "baseline" · `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `justify?`: "start" \| "center" \| "end" \| "between" · `rowGap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `wrap?`: boolean |  |
 | `Prose` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `measure?`: boolean |  |
-| `ScrollPanel` | `.Body` `.Footer` | — | Scrolls only when its parent bounds its height; the class vocabulary holds no heights. |
+| `ScrollPanel` | `.Body` `.Footer` | — | Scrolls only when its height is bounded: a parent with a height (`h-full` fills one); the vocabulary holds no free heights. |
 | `ScrollPanel.Body` | — | — |  |
 | `ScrollPanel.Footer` | — | — |  |
 | `Section` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `padding?`: "section-1" \| "section-2" \| "section-3" · `variant?`: "plain" \| "band" |  |
@@ -617,13 +628,13 @@ The renderer provides three components the library leaves to the page. They are 
 | `Image` | — | `alt`: string · `height`: number · `src`: string \| null · `width`: number · `fit?`: "cover" \| "contain" · `onError?`: handler · `onLoad?`: handler · `placeholder?`: string · `placeholderColor?`: string · `priority?`: boolean · `radius?`: "none" \| "sm" \| "md" \| "lg" \| "xl" · `ratio?`: "intrinsic" \| "fill" \| "wide" \| "classic" \| "square" \| "portrait" · `sizes?`: string · `srcSet?`: string | `width` and `height` are the file's intrinsic size and are required; every URL passes the host's image policy. |
 | `Lightbox` | `.Trigger` | `items`: LightboxItem[] · `label`: string · `defaultIndex?`: number · `defaultOpen?`: boolean · `index?`: number · `labels?`: LabelsProp<LightboxLabels> · `onIndexChange?`: handler · `onOpenChange?`: handler · `open?`: boolean |  |
 | `Lightbox.Trigger` | — | `index`: number |  |
-| `MasonryGrid` | — | `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `maxColumns?`: number · `minColumn?`: "sm" \| "md" \| "lg" |  |
+| `MasonryGrid` | — | `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `list?`: boolean · `maxColumns?`: number · `minColumn?`: "sm" \| "md" \| "lg" |  |
 
 ### Marketing
 
 | Component | Parts | Props | Notes |
 | --- | --- | --- | --- |
-| `CallToAction` | — | `title`: node · `actions?`: node · `body?`: node · `headingLevel?`: 1 \| 2 \| 3 \| 4 \| 5 \| 6 · `layout?`: "stacked" \| "split" · `variant?`: "plain" \| "band" |  |
+| `CallToAction` | — | `title`: node · `actions?`: node · `body?`: node · `headingLevel?`: 1 \| 2 \| 3 \| 4 \| 5 \| 6 · `layout?`: "stacked" \| "split" · `variant?`: "plain" \| "band" | `actions` holds its buttons; a sign-up form (`EmailCapture`) goes in its children. |
 | `Carousel` | `.Slide` | `label`: string · `autoplay?`: boolean \| number · `dots?`: boolean · `labels?`: LabelsProp<CarouselLabels> · `perView?`: 1 \| 2 \| 3 \| 4 | Its children must be `Carousel.Slide` nodes (a `$each` of them is fine), with nothing between. |
 | `Carousel.Slide` | — | — |  |
 | `EmailCapture` | — | `onSubmit`: handler · `consent?`: node · `consentRequired?`: boolean · `defaultValue?`: string · `description?`: node · `disabled?`: boolean · `hideLabel?`: boolean · `honeypot?`: boolean \| string · `labels?`: LabelsProp<EmailCaptureLabels> |  |

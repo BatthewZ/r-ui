@@ -6,15 +6,26 @@ export interface RequestPlan {
   /** Literal, as the document wrote it. */
   readonly endpoint: string;
   readonly method: string;
-  /** Resolved values; non-scalars are left out of the query string. */
+  /** Resolved values: scalars, and lists of them as repeated parameters; `null` and objects are left out. */
   readonly query?: unknown;
   /** Resolved; sent as JSON except with GET and DELETE. */
   readonly body?: unknown;
 }
 
 export type PreparedRequest =
-  | { readonly ok: true; readonly url: string; readonly init: RequestInit }
+  | {
+      readonly ok: true;
+      readonly url: string;
+      readonly init: RequestInit;
+      /** Query parameters left out because they have no query-string form (an object, or a list holding one). */
+      readonly unusable: readonly string[];
+    }
   | { readonly ok: false; readonly message: string };
+
+type Scalar = string | number | boolean;
+const isScalar = (value: unknown): value is Scalar => typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+
+export const UNUSABLE_QUERY = "An object has no query-string form; this parameter was left out.";
 
 const NO_BODY: ReadonlySet<string> = new Set(["GET", "DELETE"]);
 
@@ -29,11 +40,15 @@ export function prepareRequest(plan: RequestPlan, adapters: RendererAdapters): P
   const allow = adapters.allowUrl ?? ((candidate: URL) => defaultAllowUrl(candidate));
   if (!allow(url)) return { ok: false, message: `Requests to ${url.origin} are not allowed.` };
 
+  const unusable: string[] = [];
   if (typeof plan.query === "object" && plan.query !== null && !Array.isArray(plan.query)) {
     for (const [name, value] of Object.entries(plan.query)) {
-      if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-        url.searchParams.append(name, String(value));
+      const items: readonly unknown[] = Array.isArray(value) ? value : [value];
+      if (!items.every((item) => item === null || item === undefined || isScalar(item))) {
+        unusable.push(name);
+        continue;
       }
+      for (const item of items) if (isScalar(item)) url.searchParams.append(name, String(item));
     }
   }
 
@@ -42,7 +57,7 @@ export function prepareRequest(plan: RequestPlan, adapters: RendererAdapters): P
     init.headers = { "Content-Type": "application/json" };
     init.body = JSON.stringify(plan.body);
   }
-  return { ok: true, url: url.href, init };
+  return { ok: true, url: url.href, init, unusable };
 }
 
 export type RequestOutcome =
