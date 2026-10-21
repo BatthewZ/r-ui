@@ -629,7 +629,8 @@
                     "$ref": "data.status.incidents"
                   },
                   "order": "newest-first",
-                  "headingLevel": 3
+                  "groupByDay": false,
+                  "timeFormat": "absolute"
                 }
               }
             ]

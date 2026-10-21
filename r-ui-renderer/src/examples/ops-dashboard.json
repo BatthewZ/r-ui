@@ -399,7 +399,7 @@
                       "props": {
                         "icon": "circle-check",
                         "title": "No open incidents",
-                        "description": "The last incident was resolved 3 days ago."
+                        "description": "The last incident was resolved on 18 October 2026."
                       }
                     }
                   }

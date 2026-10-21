@@ -121,6 +121,42 @@ describe.each(ALL)("%s", (name) => {
   });
 });
 
+describe("a product document reads the same whenever it is viewed", () => {
+  let dialogs: ReturnType<typeof stubDialog>;
+  let popovers: ReturnType<typeof stubPopover>;
+  beforeEach(() => {
+    dialogs = stubDialog();
+    popovers = stubPopover();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    dialogs.restore();
+    popovers.restore();
+  });
+
+  /** The page's text with the clock at `instant`. */
+  async function textAt(name: ProductExampleName, instant: string): Promise<string | null> {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(instant) });
+    const fixtures = fixtureFetch();
+    const { container, unmount } = render(
+      <ViewRenderer spec={exampleSpec(name)} adapters={{ fetch: fixtures.fetch, toast: vi.fn(), navigate: vi.fn() }} icons={icons} />,
+    );
+    await act(async () => {
+      await fixtures.settled();
+    });
+    await act(async () => {});
+    const text = container.textContent;
+    unmount();
+    vi.useRealTimers();
+    return text;
+  }
+
+  // Before the documents' own instants, and years after them.
+  it.each(PRODUCTS)("%s", async (name) => {
+    expect(await textAt(name, "2026-10-20T06:00:00Z")).toBe(await textAt(name, "2031-06-01T12:00:00Z"));
+  });
+});
+
 /**
  * The control documents are excused from the zero-issue rule by name, and only
  * from it: each conforms and renders exactly the diagnostics it declares, so a

@@ -124,30 +124,39 @@ export class ZodBuilder {
     }
     for (const key of required) shape[key] ??= z.unknown().refine((value) => value !== undefined, `Missing ${key}`);
 
+    const object = z.object(shape).catchall(z.unknown());
+    const checks = [this.restChecks(schema, shape), this.keyChecks(schema)].filter((check) => check !== undefined);
+    if (checks.length === 0) return object;
+    // `z.object` takes any non-array object. The validator takes a plain one only, and
+    // an intersection throws when it cannot merge the two sides' outputs, which a
+    // class instance's would not; so its failure is fatal.
+    const plain = z.unknown().superRefine((value, ctx) => {
+      if (!isPlainObject(value)) ctx.addIssue({ code: "custom", message: "Expected a plain object", fatal: true });
+    });
+    return allOf([object, plain, ...checks]);
+  }
+
+  /**
+   * `patternProperties` and `additionalProperties`, which judge the keys beyond
+   * `properties`. Read off the input: Zod's objects drop an own `__proto__`
+   * before a refinement on them sees it. Not Zod's strict or catchall objects,
+   * which would hold a key whose value is undefined to the rule; the validator
+   * counts it absent, as JSON does.
+   */
+  private restChecks(schema: SchemaDef, declared: Record<string, z.ZodType>): z.ZodType | undefined {
     const patterns = Object.entries(schema.patternProperties ?? {}).map(([pattern, value]) => [this.regex(pattern), this.build(value)] as const);
     const additional = schema.additionalProperties;
-    let object: z.ZodType;
-    // Keys beyond `properties` are checked here rather than by Zod's strict or
-    // catchall objects, which would hold a key whose value is undefined to the
-    // rule; the validator counts it absent, as JSON does.
-    if (patterns.length === 0 && additional === undefined) {
-      object = z.object(shape).catchall(z.unknown());
-    } else {
-      const rest = additional === undefined || additional === false ? additional : this.build(additional);
-      object = z
-        .object(shape)
-        .catchall(z.unknown())
-        .superRefine((value, ctx) => {
-          for (const key of Object.keys(value)) {
-            if (Object.hasOwn(shape, key) || value[key] === undefined) continue;
-            const child = patterns.find(([pattern]) => pattern.test(key))?.[1] ?? rest;
-            if (child === false) ctx.addIssue({ code: "custom", message: `Unknown key ${key}`, path: [key] });
-            else if (child !== undefined) relay(ctx, child.safeParse(value[key]), [key]);
-          }
-        });
-    }
-    const keys = this.keyChecks(schema);
-    return keys === undefined ? object : z.intersection(object, keys);
+    if (patterns.length === 0 && additional === undefined) return undefined;
+    const rest = additional === undefined || additional === false ? additional : this.build(additional);
+    return z.unknown().superRefine((value, ctx) => {
+      if (!isPlainObject(value)) return;
+      for (const key of Object.keys(value)) {
+        if (Object.hasOwn(declared, key) || value[key] === undefined) continue;
+        const child = patterns.find(([pattern]) => pattern.test(key))?.[1] ?? rest;
+        if (child === false) ctx.addIssue({ code: "custom", message: `Unknown key ${key}`, path: [key] });
+        else if (child !== undefined) relay(ctx, child.safeParse(value[key]), [key]);
+      }
+    });
   }
 
   /** `propertyNames` and `minProperties`, which constrain an object's keys. */

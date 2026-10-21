@@ -270,8 +270,8 @@
                           "label": "Incident timeline",
                           "events": { "$ref": "data.incident.events" },
                           "order": "oldest-first",
-                          "timeFormat": "absolute",
-                          "headingLevel": 3
+                          "groupByDay": false,
+                          "timeFormat": "absolute"
                         }
                       }
                     ]

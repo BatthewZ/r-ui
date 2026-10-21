@@ -155,6 +155,14 @@ const BROKEN: [string, Json][] = [
   ["bad density", edit(SINK as unknown as Json, at("density"), () => "cosy")],
   ["state name with a dot", edit(SINK as unknown as Json, at("state", "a.b"), () => 1)],
   ["state __proto__", edit(SINK as unknown as Json, at("state", "__proto__"), () => 1)],
+  ["state prototype", edit(SINK as unknown as Json, at("state", "prototype"), () => 1)],
+  ["an own __proto__ at the root", edit(SINK as unknown as Json, at("__proto__"), () => ({ version: 2 }))],
+  ["constructor at the root", edit(SINK as unknown as Json, at("constructor"), () => 1)],
+  ["an own __proto__ in a theme", edit(SINK as unknown as Json, at("theme", "__proto__"), () => ({ scheme: "dark" }))],
+  ["an own __proto__ among theme roles", edit(SINK as unknown as Json, at("theme", "tokens", "__proto__"), () => "#000")],
+  ["prototype among theme roles", edit(SINK as unknown as Json, at("theme", "tokens", "prototype"), () => "#000")],
+  ["an own __proto__ in an action payload", edit(SINK as unknown as Json, at("root", "children", 14, "props", "onClick", 2, "payload", "__proto__"), () => 1)],
+  ["an own __proto__ in a condition", edit(SINK as unknown as Json, at("root", "children", 10, "$cond", "__proto__"), () => 1)],
   ["binding type", edit(SINK as unknown as Json, at("data", "services", "type"), () => "rest")],
   ["binding method", edit(SINK as unknown as Json, at("data", "services", "method"), () => "DELETE")],
   ["query list holding an object", edit(SINK as unknown as Json, at("data", "services", "query", "x"), () => ["a", { a: 1 }])],
@@ -198,6 +206,8 @@ const BENT: [string, Json][] = [
   ["an action as data", edit(SINK as unknown as Json, at("root", "children", 15, "props", "nothing"), () => ({ action: "nope" }))],
   ["a list of non-actions under on…", edit(SINK as unknown as Json, at("root", "children", 15, "props", "onEmpty"), () => [1, { a: 2 }])],
   ["unknown component (a warning)", edit(SINK as unknown as Json, at("root", "children", 16, "component"), () => "Nope")],
+  ["an own __proto__, constructor and prototype among props (dropped, a warning)", ["__proto__", "constructor", "prototype"].reduce<Json>((doc, key) => edit(doc, at("root", "children", 15, "props", key), () => ({ $ref: "state.tab" })), SINK as unknown as Json)],
+  ["an own __proto__ in state's data", edit(SINK as unknown as Json, at("state", "filters", "__proto__"), () => ({ region: 1 }))],
   ["an empty theme", edit(SINK as unknown as Json, at("theme"), () => ({}))],
   ["a theme of a scheme alone", edit(SINK as unknown as Json, at("theme"), () => ({ scheme: "light" }))],
   ["alpha in each spelling on a translucent role", edit(edit(SINK as unknown as Json, at("theme", "tokens", "--C-SCRIM"), () => "oklch(0.1 0 0 / none)"), at("theme", "tokens", "--C-BORDER"), () => "#FFFFFF1F")],
@@ -256,6 +266,8 @@ const REPLACEMENTS: Json[] = [
   "submitForm",
   "GET",
   2,
+  // An own `__proto__`, as JSON.parse makes it.
+  JSON.parse('{"__proto__": {"version": 2}}') as Json,
 ];
 
 function mutate(doc: Json, next: () => number): Json {
@@ -305,6 +317,17 @@ describe("the validator, ./zod and schema.json agree on conformance", () => {
     const present = { version: 2, title: "t", root: "x", extra: null };
     expect(validateViewSpec(present).ok).toBe(false);
     expect(viewSpecSchema.safeParse(present).success).toBe(false);
+  });
+
+  it("rejects a class instance where an object goes, as the validator does, without throwing", () => {
+    class Holder {
+      a = 1;
+    }
+    const docs: unknown[] = [Object.assign(new Holder(), { version: 2, title: "t", root: "x" }), { version: 2, title: "t", root: "x", state: new Holder() }];
+    for (const doc of docs) {
+      expect(validateViewSpec(doc).ok).toBe(false);
+      expect(viewSpecSchema.safeParse(doc).success).toBe(false);
+    }
   });
 
   it("agrees on thousands of random mutations, which land on both answers", { timeout: 60_000 }, () => {
