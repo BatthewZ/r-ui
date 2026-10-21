@@ -22,12 +22,29 @@
 }
 
 /* ── Container ──────────────────────────────────────────────────────────────
-   content-box, so the cap (`max-w-measure` / `max-w-page`) is the CONTENT width
-   and the gutter sits outside it: a `measure` container holds exactly one
-   reading line at every gutter size. */
+   The whole parent (`inline-size: 100%`, border-box), so no padding can push it
+   past the parent; not `auto`, because auto inline margins make a flex or grid
+   item shrink to fit, and a size container inside (Grid's wrapper, a Card) gives
+   it no width to fit. The cap is the CONTENT width: with the gutter it caps the
+   box at cap + both gutters, so a `measure` container holds exactly one reading
+   line at every gutter size. Any other padding narrows the content instead.
+   The auto margins centre what the cap leaves. */
 .r-layout-container {
-  box-sizing: content-box;
+  box-sizing: border-box;
+  inline-size: 100%;
   margin-inline: auto;
+}
+.r-layout-container-page {
+  max-inline-size: var(--PAGE-MAX);
+}
+.r-layout-container-measure {
+  max-inline-size: var(--MEASURE);
+}
+.r-layout-container-gutter.r-layout-container-page {
+  max-inline-size: calc(var(--PAGE-MAX) + 2 * var(--GUTTER));
+}
+.r-layout-container-gutter.r-layout-container-measure {
+  max-inline-size: calc(var(--MEASURE) + 2 * var(--GUTTER));
 }
 
 /* ── Splitter ───────────────────────────────────────────────────────────────

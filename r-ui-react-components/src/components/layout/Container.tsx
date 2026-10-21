@@ -13,7 +13,10 @@ export type ContainerWidth = "measure" | "page" | "full";
 export type ContainerProps<C extends ElementType = "div"> = PolymorphicProps<
   C,
   {
-    /** The cap on the content's inline size. Default `page`. */
+    /**
+     * The cap on the content's inline size, the gutter outside it. A padding of your
+     * own in `className` narrows the content inside the same box. Default `page`.
+     */
     width?: ContainerWidth;
     /** Pad the sides with the fluid page gutter (`--GUTTER`). Default `true`. */
     gutter?: boolean;
@@ -21,12 +24,16 @@ export type ContainerProps<C extends ElementType = "div"> = PolymorphicProps<
 >;
 
 const WIDTH: Record<ContainerWidth, string> = {
-  measure: "max-w-measure",
-  page: "max-w-page",
+  measure: "r-layout-container-measure",
+  page: "r-layout-container-page",
   full: "",
 };
 
-/** Centres content at a capped width, with the fluid page gutter at the sides. */
+/**
+ * Fills its parent's inline size up to the cap (the cap is the content width; the
+ * fluid page gutter sits outside it) and centres there, in a block, flex or grid
+ * parent. Never wider than the parent, whatever pads it.
+ */
 export function Container<C extends ElementType = "div">({
   as,
   width = "page",
@@ -37,7 +44,7 @@ export function Container<C extends ElementType = "div">({
   const Component: ElementType = as ?? "div";
   return (
     <Component
-      className={cn("r-layout-container", WIDTH[width], gutter && "px-gutter", className)}
+      className={cn("r-layout-container", WIDTH[width], gutter && "r-layout-container-gutter px-gutter", className)}
       {...props}
     />
   );
