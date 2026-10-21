@@ -4,8 +4,8 @@
  * its test.
  */
 
-import type { ViewEnv } from "./scope";
+import type { ResolvedPolicy } from "../runtime/context";
 
-export const HOST_PROPS: { readonly [component: string]: { readonly [prop: string]: (env: ViewEnv) => unknown } } = {
-  Markdown: { imageAllowlist: (env) => env.markdownImageAllowlist },
+export const HOST_PROPS: { readonly [component: string]: { readonly [prop: string]: (policy: ResolvedPolicy) => unknown } } = {
+  Markdown: { imageAllowlist: (policy) => policy.markdownImages },
 };

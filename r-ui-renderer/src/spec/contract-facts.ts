@@ -3,8 +3,9 @@
  * the validator (which warns about it) must read the same way.
  */
 
+import { ownValue } from "./guards";
 import { isForbiddenProp, isIdReferenceProp, lowerCaseProp } from "./policy";
-import type { ComponentContract, PropDoc } from "./types";
+import type { ComponentContract, HostPolicy, PropDoc } from "./types";
 
 /**
  * What `name` means on a component. `dom`: a form control's DOM name, dropped,
@@ -122,4 +123,42 @@ const CONTROLLED_PROPS: ReadonlySet<string> = new Set(["value", "checked", "defa
  */
 export function isControlledValue(contract: ComponentContract | undefined, prop: string): boolean {
   return CONTROLLED_PROPS.has(prop) && propDoc(contract, prop)?.required !== true;
+}
+
+/** Whether the host's `allowSensitive` lets `component` ask for a secret: all (`true`), none (absent, `false`), or the listed names. */
+export function sensitiveAllowed(policy: HostPolicy, component: string): boolean {
+  const allowed = policy.allowSensitive ?? false;
+  return allowed === true || (Array.isArray(allowed) && allowed.includes(component));
+}
+
+/** `autoComplete` tokens that ask the browser for a secret. */
+const SENSITIVE_AUTOCOMPLETE = /^(?:current-password|new-password|one-time-code|cc-[a-z-]+)$/;
+
+/**
+ * Whether a prop's value turns a control into one that asks for a secret: a
+ * password `type`, or an `autoComplete` naming a password, a one-time code or
+ * card details. The node is refused like a sensitive component
+ * (`sensitive-component`) unless the host's `allowSensitive` allows
+ * `component`; the judgement itself reads only the prop and its value.
+ */
+export function isSensitiveValue(component: string, prop: string, value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  const lower = lowerCaseProp(prop);
+  if (lower === "type") return value.trim().toLowerCase() === "password";
+  if (lower !== "autocomplete") return false;
+  return value
+    .toLowerCase()
+    .split(/\s+/)
+    .some((token) => SENSITIVE_AUTOCOMPLETE.test(token));
+}
+
+/**
+ * Whether the renderer refuses a resolved `value` for `prop`: a `type`
+ * outside the contract's closed set, which would turn a native control into
+ * another one (a file picker, a hidden field) the format has no value for.
+ */
+export function isRefusedValue(contract: ComponentContract | undefined, prop: string, value: unknown): boolean {
+  if (prop !== "type") return false;
+  const allowed = contract?.propEnums === undefined ? undefined : ownValue(contract.propEnums, "type");
+  return allowed !== undefined && !allowed.some((option) => option === value);
 }

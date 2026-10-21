@@ -1,7 +1,8 @@
 /**
  * Shape tests for the format's markers, nodes and handlers. Own properties
  * only, and a marker is an object whose ONLY key is the marker's: a row that
- * happens to carry a `$ref` field among others is data.
+ * happens to carry a `$ref` field among others is data. A member whose value
+ * is `undefined` is absent, as JSON (and the schema) would have it.
  */
 
 import {
@@ -38,8 +39,27 @@ export function isName(value: unknown): value is string {
   return typeof value === "string" && NAME_PATTERN.test(value) && !FORBIDDEN.has(value);
 }
 
+/** `record[key]` when `key` is the record's own property: never an inherited one (`constructor`, `__proto__`). */
+export function ownValue<T>(record: Readonly<Record<string, T>>, key: string): T | undefined {
+  return Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
+/** Whether `value` is one of `list`'s members: the one test for every closed set. */
+export function isOneOf<T extends string>(list: readonly T[], value: unknown): value is T {
+  return typeof value === "string" && (list as readonly string[]).includes(value);
+}
+
+/** Own keys whose value is not `undefined`. */
+function presentKeys(value: Record<string, unknown>): string[] {
+  return Object.keys(value).filter((key) => value[key] !== undefined);
+}
+
+function has(value: Record<string, unknown>, key: string): boolean {
+  return Object.hasOwn(value, key) && value[key] !== undefined;
+}
+
 function isSoleKey(value: unknown, key: string): value is Record<string, unknown> {
-  return isPlainObject(value) && Object.hasOwn(value, key) && Object.keys(value).length === 1;
+  return isPlainObject(value) && has(value, key) && presentKeys(value).length === 1;
 }
 
 export function isRefMarker(value: unknown): value is RefMarker {
@@ -67,7 +87,7 @@ export function isActionName(value: unknown): value is ActionName {
 /** `{ action, payload? }` with a known action and nothing else. */
 export function isAction(value: unknown): value is Action {
   if (!isPlainObject(value) || !isActionName(value.action)) return false;
-  return Object.keys(value).every((key) => key === "action" || key === "payload");
+  return presentKeys(value).every((key) => key === "action" || key === "payload");
 }
 
 export function isHandler(value: unknown): value is Handler {
@@ -90,7 +110,7 @@ export function nodeKind(value: unknown): NodeKind | null {
   if (!isPlainObject(value)) return null;
   let kind: NodeKind | null = null;
   for (const [key, name] of DISCRIMINATORS) {
-    if (!Object.hasOwn(value, key)) continue;
+    if (!has(value, key)) continue;
     if (kind !== null) return null;
     kind = name;
   }

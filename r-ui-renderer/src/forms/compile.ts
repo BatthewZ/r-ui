@@ -2,7 +2,9 @@ import { type StandardSchemaIssue, type StandardSchemaV1, toISODate } from "@bat
 
 import { toJsonValue } from "../runtime/event-value";
 import { parseIsoDate } from "../spec/dates";
-import { isForbiddenSegment, isName, isPlainObject, isRefMarker } from "../spec/guards";
+import { coerceFieldValue, numberOf } from "../spec/form-values";
+import { isForbiddenSegment, isName, isOneOf, isPlainObject, isRefMarker, ownValue } from "../spec/guards";
+import { patternProblem } from "../spec/patterns";
 import { toPointer } from "../spec/pointer";
 import { LIMITS } from "../spec/policy";
 import {
@@ -24,25 +26,18 @@ interface CompiledField {
   readonly key: string;
   readonly type: FieldType;
   readonly rules: FieldRules;
-  /** Null when the def's `pattern` is not a valid regular expression: the rule then always fails. */
-  readonly pattern: RegExp | null | undefined;
+  /** Why the def's `pattern` may not run (it does not compile, or could backtrack catastrophically): the rule then always fails. */
+  readonly pattern: RegExp | { readonly problem: string } | undefined;
   readonly message: string | undefined;
   readonly messages: { readonly [R in RuleName]?: string };
   /** As the def wrote it: a literal or a `$ref`. */
   readonly initialValue: unknown;
 }
 
-function isFieldType(value: unknown): value is FieldType {
-  return FIELD_TYPES.some((type) => type === value);
-}
-
-function compilePattern(source: unknown): RegExp | null | undefined {
+function compilePattern(source: unknown): CompiledField["pattern"] {
   if (typeof source !== "string") return undefined;
-  try {
-    return new RegExp(source);
-  } catch {
-    return null;
-  }
+  const problem = patternProblem(source);
+  return problem === undefined ? new RegExp(source) : { problem };
 }
 
 function textEntries(value: unknown): { readonly [rule: string]: string } {
@@ -60,7 +55,7 @@ function compileFields(def: FormDef): CompiledField[] {
     const rules: FieldRules = isPlainObject(field.rules) ? field.rules : {};
     out.push({
       key,
-      type: isFieldType(field.type) ? field.type : "text",
+      type: isOneOf(FIELD_TYPES, field.type) ? field.type : "text",
       rules,
       pattern: compilePattern(rules.pattern),
       message: typeof field.message === "string" ? field.message : undefined,
@@ -91,15 +86,6 @@ function datesOf(value: unknown, type: FieldType): string[] {
   return days.map(toISODate);
 }
 
-function numberOf(value: unknown): number | undefined {
-  if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
-  if (typeof value === "string" && value.trim() !== "") {
-    const number = Number(value);
-    return Number.isFinite(number) ? number : undefined;
-  }
-  return undefined;
-}
-
 function sizeOf(value: unknown): number | undefined {
   if (typeof value === "string") return [...value].length;
   if (Array.isArray(value)) return value.length;
@@ -123,8 +109,8 @@ function check(field: CompiledField, value: unknown): string | undefined {
   }
 
   if (field.pattern !== undefined && typeof value === "string") {
-    // The pattern is the document's and the input the user's: a capped input bounds catastrophic backtracking.
-    if (field.pattern === null || value.length > LIMITS.patternInput || !field.pattern.test(value)) {
+    // The pattern is the document's and the input the user's: a refused shape and a capped input bound its backtracking.
+    if (!(field.pattern instanceof RegExp) || value.length > LIMITS.patternInput || !field.pattern.test(value)) {
       return say("pattern", "This does not match the expected format.");
     }
   }
@@ -177,7 +163,7 @@ export function compileFormSchema(def: FormDef): StandardSchemaV1<FormValues, Fo
         const values: FormValues = isPlainObject(input) ? input : {};
         const issues: StandardSchemaIssue[] = [];
         for (const field of fields) {
-          const message = check(field, Object.hasOwn(values, field.key) ? values[field.key] : undefined);
+          const message = check(field, ownValue(values, field.key));
           if (message !== undefined) issues.push({ message, path: [field.key] });
         }
         return issues.length > 0 ? { issues } : { value: toOutput(values, types) };
@@ -186,27 +172,12 @@ export function compileFormSchema(def: FormDef): StandardSchemaV1<FormValues, Fo
   };
 }
 
-function toDate(value: unknown): Date | null {
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  return typeof value === "string" ? parseIsoDate(value) : null;
-}
-
 /** A JSON value as the field type's control holds it; the type's empty value when it does not fit. */
 function coerceIn(type: FieldType, value: unknown): unknown {
-  switch (type) {
-    case "text":
-      return typeof value === "string" ? value : typeof value === "number" && Number.isFinite(value) ? String(value) : "";
-    case "number":
-      return numberOf(value) ?? null;
-    case "boolean":
-      return value === true;
-    case "date":
-      return toDate(value);
-    case "dateRange":
-      return isPlainObject(value) ? { start: toDate(value.start), end: toDate(value.end) } : null;
-    case "list":
-      return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-  }
+  const coerced = coerceFieldValue(type, value);
+  if (coerced.ok) return coerced.value;
+  const empty = coerceFieldValue(type, undefined);
+  return empty.ok ? empty.value : null;
 }
 
 /**
@@ -228,19 +199,20 @@ export function formDefRefs(def: FormDef): string[] {
 
 /** Rules that can never pass as written, by JSON Pointer under the def. */
 export function formDefProblems(def: FormDef): { readonly path: string; readonly message: string }[] {
-  return compileFields(def)
-    .filter((field) => field.pattern === null)
-    .map((field) => ({
-      path: toPointer(["fields", field.key, "rules", "pattern"]),
-      message: `The pattern for "${field.key}" is not a valid regular expression; the field can never pass.`,
-    }));
+  return compileFields(def).flatMap(({ key, pattern }) =>
+    pattern === undefined || pattern instanceof RegExp
+      ? []
+      : [{ path: toPointer(["fields", key, "rules", "pattern"]), message: `The pattern for "${key}" cannot be used, so the field can never pass: ${pattern.problem}` }],
+  );
 }
 
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+/** `value` as JSON with sorted keys; past `LIMITS.jsonDepth` a value hashes as `…` rather than overflow the stack. */
+function canonicalJson(value: unknown, depth = 0): string {
+  if (depth > LIMITS.jsonDepth) return '"…"';
+  if (Array.isArray(value)) return `[${value.map((item: unknown) => canonicalJson(item, depth + 1)).join(",")}]`;
   if (isPlainObject(value)) {
     const keys = Object.keys(value).sort();
-    return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+    return `{${keys.map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key], depth + 1)}`).join(",")}}`;
   }
   return JSON.stringify(value) ?? "null";
 }

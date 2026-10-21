@@ -22,7 +22,7 @@ function outDir(name) {
 afterAll(() => rmSync(SCRATCH, { recursive: true, force: true }));
 
 describe("derive-contracts", { timeout: 60_000 }, () => {
-  it("reads props, value sets, slots, node props, Dates, callbacks and parts off a library's declarations", () => {
+  it("reads props, value sets, closed records, slots, node props, Dates, callbacks and parts off a library's declarations", () => {
     const out = outDir("good");
     const written = run("--library", join(FIXTURES, "good"), "--out", out);
     expect(written.stderr).toBe("");
@@ -36,11 +36,15 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
         { name: "format", type: "(value: number) => string", required: false },
         { name: "label", type: "ReactNode", required: true },
         { name: "onTurn", type: "(at: Date) => void", required: false },
+        { name: "pin", type: "{ at: number; hint?: string }", required: false },
         { name: "size", type: '"small" | "large"', required: false },
+        { name: "steps", type: 'number | ({ base?: number } & Partial<Record<"@sm" | "@md", number>>)', required: false },
         { name: "when", type: "Date", required: false },
       ],
       slots: ["face", "needle"],
       propEnums: { size: ["small", "large"] },
+      // A record of optional keys is closed; an object with a required key (`pin`) is not a record.
+      recordKeys: { steps: ["@md", "@sm", "base"] },
       nodeProps: ["label"],
       nativeAttributes: true,
     });
@@ -52,7 +56,7 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
     expect(JSON.parse(readFileSync(join(out, "prop-docs.json"), "utf8"))).toEqual({ Dial: [{ name: "size", description: "How big." }] });
     const paths = JSON.parse(readFileSync(join(out, "declared-paths.json"), "utf8"));
     expect(paths.Dial).toEqual({
-      paths: ["format", "label", "onTurn", "size", "when"],
+      paths: ["format", "label", "onTurn", "pin", "pin.at", "pin.hint", "size", "steps", "steps.base", "when"],
       functions: ["format", "onTurn"],
       dates: ["when"],
       dateCallbacks: ["onTurn"],

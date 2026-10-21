@@ -2,14 +2,17 @@
 // shipped VIEWSPEC.md and `scripts/gen-viewspec.mjs` to the file on disk.
 
 import { defaultContracts } from "../contracts";
+import { ownValue } from "../spec/guards";
 import type { ComponentContracts } from "../spec/types";
 import { CLASS_VOCABULARY, ICON_NAMES } from "../spec/vocabulary";
 import { renderComponentTables, renderSlotTable } from "./components";
-import { renderClasses, renderIcons, renderIssueCodes, renderNotAddressable } from "./lists";
+import { renderClasses, renderIcons, renderIssueCodes, renderNotAddressable, renderSafety } from "./lists";
 import { emptyRegions, fillRegions } from "./regions";
 import { scopeContracts } from "./scope";
 
 export interface RegionOptions {
+  /** The contracts to document; `defaultContracts` when absent (extend it with `extendContracts`). */
+  readonly contracts?: ComponentContracts;
   /**
    * Props listed per component before "+n more"; `false` (the default) lists
    * every one. A limit is a concession to breadth: a scoped reference should
@@ -18,15 +21,13 @@ export interface RegionOptions {
   readonly propLimit?: number | false;
   /** Each prop's one-sentence description beside it (larger; worth it for a narrow scope). */
   readonly describeProps?: boolean;
-  /** The host's icon names, as given to the validator's `icons`; the shipped set when absent. */
-  readonly icons?: readonly string[];
+  /** The host's icon names, as given to the validator's `iconNames`; the shipped set when absent. */
+  readonly iconNames?: readonly string[];
   /** The host's class vocabulary, as given to the validator's `classes`; the shipped one when absent. */
   readonly classes?: readonly string[];
 }
 
 export interface ReferenceOptions extends RegionOptions {
-  /** The contracts to document; `defaultContracts` when absent (extend it with `extendContracts`). */
-  readonly contracts?: ComponentContracts;
   /** Only these components. A part brings its root and a root all its parts; an unknown name throws. */
   readonly include?: readonly string[];
 }
@@ -42,10 +43,12 @@ export interface ReferenceRegions {
   readonly notAddressable: string;
   readonly icons: string;
   readonly classes: string;
+  /** The props dropped everywhere, the URL props and the limits, from the renderer's policy. */
+  readonly safety: string;
 }
 
-export function renderReferenceRegions(contracts: ComponentContracts, options: RegionOptions = {}): ReferenceRegions {
-  const { propLimit = false, describeProps = false, icons = ICON_NAMES, classes = CLASS_VOCABULARY } = options;
+export function renderReferenceRegions(options: RegionOptions = {}): ReferenceRegions {
+  const { contracts = defaultContracts, propLimit = false, describeProps = false, iconNames = ICON_NAMES, classes = CLASS_VOCABULARY } = options;
   if (propLimit !== false && !(Number.isInteger(propLimit) && propLimit > 0)) {
     throw new Error(`propLimit must be a positive integer or false, not ${String(propLimit)}.`);
   }
@@ -54,15 +57,16 @@ export function renderReferenceRegions(contracts: ComponentContracts, options: R
     slots: renderSlotTable(contracts),
     issueCodes: renderIssueCodes(),
     notAddressable: renderNotAddressable(),
-    icons: renderIcons(icons),
+    icons: renderIcons(iconNames),
     classes: renderClasses(classes),
+    safety: renderSafety(),
   };
 }
 
 /** Components the prose's examples author (`"component": "X"`) that `contracts` does not document. */
 function undocumentedInProse(prose: string, contracts: ComponentContracts): string[] {
   const authored = [...emptyRegions(prose).matchAll(/"component":\s*"([\w.]+)"/g)].map((match) => match[1] as string);
-  return [...new Set(authored)].filter((name) => !Object.hasOwn(contracts, name));
+  return [...new Set(authored)].filter((name) => ownValue(contracts, name) === undefined);
 }
 
 /**
@@ -83,7 +87,7 @@ function scopeWarning(names: readonly string[]): string {
 export function renderDocument(prose: string, options: ReferenceOptions = {}): string {
   const { contracts = defaultContracts, include, ...rest } = options;
   const scoped = include === undefined ? contracts : scopeContracts(contracts, include);
-  const regions = renderReferenceRegions(scoped, rest);
+  const regions = renderReferenceRegions({ ...rest, contracts: scoped });
   const undocumented = undocumentedInProse(prose, scoped);
   const components = [
     ...(undocumented.length > 0 ? [scopeWarning(undocumented)] : []),
@@ -96,5 +100,6 @@ export function renderDocument(prose: string, options: ReferenceOptions = {}): s
     components,
     "not-addressable": regions.notAddressable,
     icons: regions.icons,
+    safety: regions.safety,
   });
 }

@@ -36,7 +36,7 @@ describe("createFixtureFetch", () => {
   it.each([
     ["a path outside /fixtures/", `${origin}/api/services`],
     ["another origin", "https://elsewhere.example/fixtures/services.json"],
-    ["a path that climbs out", `${origin}/fixtures/../secret.json`],
+    ["a path that climbs out, its dots encoded", `${origin}/fixtures/%2e%2e/secret.json`],
     ["a near miss", `${origin}/fixtures-old/services.json`],
   ])("answers 404 for %s without a request", async (_, url) => {
     const load = vi.fn(async () => json({}));

@@ -320,7 +320,7 @@ The renderer provides three components the library leaves to the page. They are 
 - `name` on a form control (`Input`, `Select`, `Slider`, `RadioGroup`, anything that submits a DOM name) is dropped (`forbidden-prop`): the `Field` around it names the control. `Field`'s `name` is the form field it binds. Everywhere else `name` is the component's own (`Avatar`'s person, `Icon`'s glyph) and passes on as written.
 - Name a control without a visible label with `aria-label`.
 - Dialog components take a `dialogId` (a name) that `openDialog` and `closeDialog` match; the renderer owns their open state: `open` is dropped (`forbidden-prop`), and `defaultOpen` seeds it.
-- `data-*` attributes pass through with string, number or boolean values. `data-density` takes `comfortable` or `compact`; `data-theme` and `data-input` are dropped (the host owns those axes).
+- `data-*` attributes pass through with string, number or boolean values, to a component that renders an element of its own; on one that does not (a `Dialog`), put them on the part that does (`Dialog.Content`). `data-density` takes `comfortable` or `compact`; `data-theme` and `data-input` are dropped (the host owns those axes).
 
 ## Network and images
 
@@ -332,19 +332,24 @@ The renderer provides three components the library leaves to the page. They are 
 
 ## Sensitive components
 
-`PasswordInput` and `OTPInput` render only when the host allows them; otherwise they render a diagnostic (`sensitive-component`). Ask for credentials only in views the host built for that.
+`PasswordInput` and `OTPInput` render only when the host allows them, and so does any control given a password `type` or an `autoComplete` of `current-password`, `new-password`, `one-time-code` or a `cc-…` token; otherwise they render a diagnostic (`sensitive-component`). Ask for credentials only in views the host built for that.
 
 ## Safety
 
-- Dropped everywhere, in any casing: `dangerouslySetInnerHTML`, `srcDoc`, `style`, `formAction`, `formMethod`, `formTarget`, `formEncType`, `formNoValidate`, `ref`, `key`, `__proto__`, `constructor`, `prototype`, and any `on…` value that is not a handler. A `Form` takes no `action` or `method`.
-- A URL is kept only when relative, or `http:`, `https:`, `mailto:`, `tel:`, or a `data:` raster image; this applies to `href`, `src`, `srcSet`, `poster`, `cite`, `action`, `to` and to every component prop that becomes one (including URLs inside items), judged on the resolved value.
+- A `Form` takes no `action` or `method`.
+- A URL is kept only when relative, or `http:`, `https:`, `mailto:`, `tel:`, or a `data:` raster image, judged on the resolved value; this applies to the URL props below and to every component prop that becomes one (including URLs inside items).
 - Props that choose an element (`as`, a heading level) take only the values listed per component.
-- Limits: nodes nest at most 50 deep (deeper renders a diagnostic); handlers chain at most 5 deep.
 - The renderer degrades instead of failing: a bad node renders a small diagnostic in its place and the rest of the view is unaffected.
+
+<!-- GENERATED:safety -->
+- Dropped everywhere, compared in any casing: `dangerouslysetinnerhtml`, `srcdoc`, `style`, `formaction`, `formmethod`, `formtarget`, `formenctype`, `formnovalidate`, `ping`, `ref`, `key`, `__proto__`, `constructor`, `prototype`; any name containing `:` (`xlink:href`); and any `on…` value that is not a handler.
+- URL props on every component, compared in any casing: `href`, `src`, `srcset`, `poster`, `cite`, `action`, `background`, `xlinkhref`, `to`. Of these, `src`, `srcset`, `poster` load images and pass the host's image policy.
+- Limits: nodes nest at most 50 deep (deeper renders a diagnostic); handlers chain at most 5 deep and run at most 10 actions each; arrays and objects nest at most 256 deep (deeper refuses the whole document); a `pattern` rule tests at most 1000 characters; `title` is at most 200 characters.
+<!-- /GENERATED:safety -->
 
 ## Issues
 
-`validateViewSpec` and the renderer report issues as `{ "code", "path", "severity", "message", "suggestion"? }`. `path` is a JSON Pointer into the document (`/root/children/2/props/href`; `""` is the document). An **error** means the document does not conform; a **warning** means it conforms but something will be dropped, refused or will not work. Fix both. A document nested thousands of levels deep is not checked at all: `too-deep`, an error.
+`validateViewSpec` and the renderer report issues as `{ "code", "path", "severity", "message", "suggestion"? }`. `path` is a JSON Pointer into the document (`/root/children/2/props/href`; `""` is the document). An **error** means the document does not conform; a **warning** means it conforms but something will be dropped, refused or will not work. Fix both. A document whose arrays and objects nest past the limit under Safety is refused whole: `too-deep`, an error.
 
 <!-- GENERATED:issue-codes -->
 | Code | Severity | Meaning |
@@ -358,7 +363,7 @@ The renderer provides three components the library leaves to the page. They are 
 | `invalid-node` | error | A node matches none of the node shapes. |
 | `invalid-ref` | error | A reference path is malformed. |
 | `invalid-name` | error | A name breaks the name rules or is reserved. |
-| `too-deep` | error | Nested beyond what a checker's call stack can walk (thousands of levels); not validated. |
+| `too-deep` | error | Arrays and objects nested past `LIMITS.jsonDepth`; neither validated nor rendered. |
 | `limit-exceeded` | warning | Past a limit (depth, handler chain); the excess is not rendered or run. |
 | `undeclared-name` | warning | A reference, form, field, dialog or binding name nothing declares. |
 | `unknown-component` | warning | A component name nothing registers. |
@@ -646,7 +651,7 @@ The renderer provides three components the library leaves to the page. They are 
 | `HowItWorks` | `.Step` | `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `label?`: string · `orientation?`: "auto" \| "horizontal" \| "vertical" |  |
 | `HowItWorks.Step` | — | `title`: node · `media?`: node |  |
 | `LogoCloud` | — | `colorOnHover?`: boolean · `labels?`: LabelsProp<LogoCloudLabels> · `marquee?`: boolean \| number · `title?`: node | Each logo is an `Image` node with a meaningful `alt`. |
-| `MediaCard` | `.Skeleton` | `href`: string · `title`: node · `actions?`: node · `badge?`: node · `description?`: node · `image?`: MediaCardImage · `meta?`: node · `ratio?`: "wide" \| "classic" \| "square" \| "portrait" · `titleAs?`: "h2" \| "h3" \| "h4" \| "h5" \| "h6" |  |
+| `MediaCard` | `.Skeleton` | `title`: node · `actions?`: node · `badge?`: node · `description?`: node · `href?`: string · `image?`: MediaCardImage · `meta?`: node · `ratio?`: "wide" \| "classic" \| "square" \| "portrait" · `titleAs?`: "h2" \| "h3" \| "h4" \| "h5" \| "h6" |  |
 | `MediaCard.Skeleton` | — | `label?`: string · `ratio?`: "wide" \| "classic" \| "square" \| "portrait" |  |
 | `Pricing` | — | `currency`: ISO 4217 code · `plans`: PricingPlan[] · `billing?`: "monthly" \| "annual" · `currencyDisplay?`: "symbol" \| "narrowSymbol" \| "code" · `defaultBilling?`: "monthly" \| "annual" · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `labels?`: LabelsProp<PricingLabels> · `loading?`: boolean · `onBillingChange?`: handler | `currency` is an ISO 4217 code (`"EUR"`); amounts are numbers. |
 | `PricingTable` | — | `groups`: PricingTableGroup[] · `plans`: Pick<PricingPlan, "id" \| "name" \| "highlighted" \| "badge">[] · `labels?`: LabelsProp<PricingLabels> |  |

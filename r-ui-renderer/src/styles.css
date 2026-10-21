@@ -67,10 +67,59 @@
 /* /GENERATED:class-vocabulary */
 
 @layer components {
+  /* Containment keeps a document's own className (`fixed inset-0`) inside the
+     view's box and paint: fixed descendants position against the view and are
+     clipped to it. A modal dialog or popover renders on the top layer, which
+     no containment clips. */
   .r-renderer-view {
     display: block;
     min-inline-size: 0;
+    contain: layout paint;
+    isolation: isolate;
   }
+
+  /* The built-ins (Text, Heading, Icon). Their look is these rules rather than
+     utilities on the element, so any utility in a document's className wins.
+     The type scale and layout come from the contract's own utilities. */
+  .r-renderer-text,
+  .r-renderer-heading {
+    @apply min-w-0 break-words;
+  }
+
+  .r-renderer-heading {
+    color: var(--C-TEXT-PRIMARY);
+  }
+
+  .r-renderer-icon {
+    @apply size-icon shrink-0;
+  }
+
+  .r-renderer-text-body-1 { @apply text-body-1; }
+  .r-renderer-text-body-2 { @apply text-body-2; }
+  .r-renderer-text-body-3 { @apply text-body-3; }
+
+  .r-renderer-heading-h1 { @apply text-h1; }
+  .r-renderer-heading-h2 { @apply text-h2; }
+  .r-renderer-heading-h3 { @apply text-h3; }
+  .r-renderer-heading-h4 { @apply text-h4; }
+  .r-renderer-heading-h5 { @apply text-h5; }
+  .r-renderer-heading-h6 { @apply text-h6; }
+
+  .r-renderer-weight-normal { @apply font-normal; }
+  .r-renderer-weight-medium { @apply font-medium; }
+  .r-renderer-weight-semibold { @apply font-semibold; }
+
+  /* After the heading's default colour, which a tone replaces. Serious and
+     stale are the component library's ink pairs, blended by the scheme. */
+  .r-renderer-tone-primary { color: var(--C-TEXT-PRIMARY); }
+  .r-renderer-tone-secondary { color: var(--C-TEXT-SECONDARY); }
+  .r-renderer-tone-muted { color: var(--C-TEXT-MUTED); }
+  .r-renderer-tone-error { color: var(--C-TEXT-ERROR); }
+  .r-renderer-tone-success { color: var(--C-TEXT-SUCCESS); }
+  .r-renderer-tone-warning { color: var(--C-TEXT-WARNING); }
+  .r-renderer-tone-info { color: var(--C-TEXT-INFO); }
+  .r-renderer-tone-serious { color: color-mix(in oklch, var(--C-TEXT-SERIOUS-LIGHT), var(--C-TEXT-SERIOUS-DARK) calc(var(--SCHEME-DARK) * 100%)); }
+  .r-renderer-tone-stale { color: color-mix(in oklch, var(--C-TEXT-STALE-LIGHT), var(--C-TEXT-STALE-DARK) calc(var(--SCHEME-DARK) * 100%)); }
 
   .r-renderer-diagnostic {
     display: block;

@@ -7,6 +7,7 @@
 
 import { BUILTIN_CONTRACTS } from "../spec/builtins";
 import { dropReason } from "../spec/contract-facts";
+import { ownValue } from "../spec/guards";
 import type { ComponentContract, ComponentContracts, PropDoc, PropPath } from "../spec/types";
 import { type Exclusion, NOT_ADDRESSABLE } from "./curated/not-addressable";
 import { NOTES } from "./curated/notes";
@@ -53,6 +54,8 @@ export interface GeneratedComponent {
   readonly category: string;
   readonly props: readonly PropDoc[];
   readonly propEnums?: { readonly [prop: string]: readonly (string | number)[] };
+  /** Object props whose keys are a closed set. */
+  readonly recordKeys?: { readonly [prop: string]: readonly string[] };
   readonly slots?: readonly string[];
   readonly nodeProps?: readonly PropPath[];
   readonly nativeAttributes?: boolean;
@@ -106,11 +109,8 @@ export const CURATED_FIELDS = {
 
 /** The exclusion that covers `name`: its own, or its root's for a part. */
 export function exclusionFor(name: string): Exclusion | undefined {
-  if (Object.hasOwn(NOT_ADDRESSABLE, name)) return NOT_ADDRESSABLE[name];
   const dot = name.indexOf(".");
-  if (dot === -1) return undefined;
-  const root = name.slice(0, dot);
-  return Object.hasOwn(NOT_ADDRESSABLE, root) ? NOT_ADDRESSABLE[root] : undefined;
+  return ownValue(NOT_ADDRESSABLE, name) ?? (dot === -1 ? undefined : ownValue(NOT_ADDRESSABLE, name.slice(0, dot)));
 }
 
 /** `path` is `ancestor` or lies under it. */
@@ -170,6 +170,8 @@ function assemble(name: string, library: GeneratedComponent): ComponentContract 
   if (library.slots) record.slots = library.slots;
   const enums = Object.entries(library.propEnums ?? {}).filter(([prop]) => !dropped.includes(prop));
   if (enums.length > 0) record.propEnums = Object.fromEntries(enums);
+  const records = Object.entries(library.recordKeys ?? {}).filter(([prop]) => !dropped.includes(prop));
+  if (records.length > 0) record.recordKeys = Object.fromEntries(records);
   const nodes = (library.nodeProps ?? []).filter((path) => !dropped.some((d) => isWithin(path, d)));
   if (nodes.length > 0) record.nodeProps = nodes;
   if (dropped.length > 0) record.droppedProps = dropped;
@@ -200,7 +202,7 @@ export const defaultContracts: ComponentContracts = assembleAll();
 
 /** The contract for `name`, own properties only (`"toString"` names nothing). */
 export function contractFor(contracts: ComponentContracts, name: string): ComponentContract | undefined {
-  return Object.hasOwn(contracts, name) ? contracts[name] : undefined;
+  return ownValue(contracts, name);
 }
 
 /**

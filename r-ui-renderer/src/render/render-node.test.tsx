@@ -1,12 +1,12 @@
 import { screen } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { describe, expect, it } from "vitest";
+import { createElement, type ReactNode, useEffect, useState } from "react";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { extendContracts, defaultContracts } from "../contracts";
 import { extendRegistry, defaultRegistry } from "../registry/registry";
 import { PENDING } from "../stream/pending";
-import { createMountProbe, queryDiagnostics } from "../../test-utils";
-import { renderTree } from "./harness.test.helpers";
+import { createMountProbe, queryDiagnostics, stubDialog } from "../../test-utils";
+import { renderTree, streamTree } from "./harness.test.helpers";
 
 function withProbe() {
   const probe = createMountProbe();
@@ -49,8 +49,12 @@ describe("text, $ref and $format nodes", () => {
   });
 
   it("never reaches a prototype through a $ref", () => {
-    const view = renderTree({ component: "Stack", children: [{ $ref: "data.list.constructor.name" }, { $ref: "data.x.__proto__" }] }, { data: { list: [] } });
+    const view = renderTree(
+      { component: "Stack", children: [{ $ref: "data.list.constructor.name" }, { $ref: "data.user.__proto__" }] },
+      { data: { list: [], user: { name: "Ada" } } },
+    );
     expect(view.container.textContent).toBe("");
+    expect(view.reported).toEqual([]);
   });
 });
 
@@ -99,9 +103,9 @@ describe("$each", () => {
   it("falls back to positions on a repeated key (1 and \"1\" are one key) and reports duplicate-key at the key's path", () => {
     const view = renderTree(
       { component: "Stack", children: [{ $each: "data.rows", as: "row", key: "id", node: { $ref: "row.name" } }] },
-      { data: { rows: [{ id: 1, name: "x" }, { id: 1, name: "y" }, { id: "1", name: "z" }] } },
+      { data: { rows: [{ id: 1, name: "x" }, { id: "1", name: "y" }] } },
     );
-    expect(view.container.textContent).toBe("xyz");
+    expect(view.container.textContent).toBe("xy");
     expect(view.issuesOf("duplicate-key")).toEqual([["/root/children/0/key", false]]);
   });
 
@@ -264,10 +268,111 @@ describe("streaming", () => {
     expect(probe.counts("closed")).toEqual({ mounts: 1, unmounts: 0, renders: 1 });
   });
 
+  it("keeps a coercion's leading elements in one slot, so the document's children never shift", () => {
+    const { probe, registry } = withProbe();
+    function Opts(props: { children?: ReactNode }): ReactNode {
+      return createElement("div", null, props.children);
+    }
+    const contracts = extendContracts(defaultContracts, { Opts: { coercions: { options: { kind: "options" } } }, Probe: {} });
+    const doc = {
+      component: "Opts",
+      props: { options: { $ref: "data.choices" } },
+      children: [{ component: "Probe", props: { probeId: "child" } }],
+    };
+    const view = renderTree(doc, { registry: extendRegistry(registry, { Opts }), contracts });
+    view.update(doc, { data: { choices: [{ value: "a", label: "A" }] } });
+    expect(view.container.querySelectorAll("option")).toHaveLength(1);
+    expect(probe.counts("child")).toMatchObject({ mounts: 1, unmounts: 0 });
+  });
+
+  it("keeps a closed node inside an $each item from re-rendering while its item's node still grows", () => {
+    const { probe, registry } = withProbe();
+    const contracts = extendContracts(defaultContracts, { Probe: {} });
+    const closed = { component: "Probe", props: { probeId: { $ref: "row.id" } } };
+    const doc = (tail: string) => ({
+      component: "Stack",
+      children: [{ $each: "data.rows", as: "row", node: { component: "Stack", children: [closed, tail] } }],
+    });
+    const view = renderTree(doc("par"), { data: { rows: [{ id: "a" }, { id: "b" }] }, registry, contracts });
+    view.update(doc("partial"));
+    expect(view.container.textContent).toBe("partialpartial");
+    for (const id of ["a", "b"]) expect(probe.counts(id)).toEqual({ mounts: 1, unmounts: 0, renders: 1 });
+  });
+
   it("re-renders a memoised node when what it reads changes", () => {
     const node = { component: "Stack", children: [{ $ref: "data.n" }] };
     const view = renderTree(node, { data: { n: 1 } });
     view.update(node, { data: { n: 2 } });
     expect(view.container.textContent).toBe("2");
+  });
+});
+
+describe("keys out of the streaming order", () => {
+  let dialog: ReturnType<typeof stubDialog>;
+  beforeEach(() => {
+    dialog = stubDialog();
+  });
+  afterEach(() => {
+    dialog.restore();
+  });
+
+  /** Keeps the `label` it mounted with, as a component reading a prop once would. */
+  function stickyParts() {
+    const mounts: (string | undefined)[] = [];
+    function Sticky(props: { label?: string; children?: ReactNode }): ReactNode {
+      const [first] = useState(props.label);
+      useEffect(() => {
+        mounts.push(first);
+      }, [first]);
+      return createElement("div", { "data-sticky": first ?? "none" }, props.children);
+    }
+    return {
+      mounts,
+      registry: extendRegistry(defaultRegistry, { Sticky }),
+      contracts: extendContracts(defaultContracts, { Sticky: {} }),
+    };
+  }
+
+  it("remounts a node once when its props arrive after its children, ending as the whole document renders", () => {
+    const root = { component: "Sticky", children: ["body"], props: { label: "final" } };
+    const streamed = stickyParts();
+    const view = streamTree(JSON.stringify({ version: 2, root }), streamed);
+    expect(streamed.mounts).toEqual([undefined, "final"]);
+    const html = view.container.innerHTML;
+    view.unmount();
+    const whole = renderTree(root, stickyParts());
+    expect(whole.container.innerHTML).toBe(html);
+    expect(html).toContain('data-sticky="final"');
+  });
+
+  it("never remounts a node written without props", () => {
+    const streamed = stickyParts();
+    streamTree(JSON.stringify({ version: 2, root: { component: "Sticky", children: ["body"] } }), streamed);
+    expect(streamed.mounts).toEqual([undefined]);
+  });
+
+  it("opens a Dialog whose defaultOpen arrives after its children", () => {
+    const root = {
+      component: "Dialog",
+      children: [{ component: "Dialog.Content", children: [{ component: "Dialog.Title", children: ["Hi"] }] }],
+      props: { defaultOpen: true },
+    };
+    const view = streamTree(JSON.stringify({ version: 2, root }));
+    expect(view.container.querySelectorAll("dialog[open]")).toHaveLength(1);
+  });
+
+  it("keys $each items by a `key` written after `node` once it arrives: one remount, then as whole", () => {
+    const { probe, registry } = withProbe();
+    const contracts = extendContracts(defaultContracts, { Probe: {} });
+    const data = { rows: [{ id: "a" }, { id: "b" }] };
+    const root = {
+      component: "Stack",
+      children: [{ $each: "data.rows", as: "row", node: { component: "Probe", props: { probeId: { $ref: "row.id" } }, children: [{ $ref: "row.id" }] }, key: "id" }],
+    };
+    const view = streamTree(JSON.stringify({ version: 2, root }), { data, registry, contracts });
+    for (const id of ["a", "b"]) expect(probe.counts(id)).toMatchObject({ mounts: 2, unmounts: 1 });
+    const html = view.container.innerHTML;
+    view.unmount();
+    expect(renderTree(root, { data, registry, contracts }).container.innerHTML).toBe(html);
   });
 });

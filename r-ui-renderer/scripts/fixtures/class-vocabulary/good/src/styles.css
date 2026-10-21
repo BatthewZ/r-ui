@@ -4,5 +4,6 @@
   .r-renderer-ok {
     padding: 0 var(--R-SIZE-4);
     border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+    color: color-mix(in oklch, var(--C-TEXT-SERIOUS-LIGHT), var(--C-TEXT-SERIOUS-DARK) calc(var(--SCHEME-DARK) * 100%));
   }
 }

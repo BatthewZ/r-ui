@@ -3,13 +3,15 @@
  * a value a host built. Text that does not parse becomes one `invalid-json`
  * issue placed by line and column in the text as given; a value that is not
  * JSON (a cycle, a function, a Date, `NaN`) becomes `invalid-type` at the first
- * place it stops being JSON.
+ * place it stops being JSON, and one nested past `LIMITS.jsonDepth` becomes
+ * `too-deep` there.
  */
 
 import { stripCodeFence } from "../stream/fence";
 import { parsePartialViewSpec } from "../stream/parser";
 import { isPlainObject } from "./guards";
 import { appendPointer } from "./pointer";
+import { LIMITS } from "./policy";
 import type { Issue } from "./types";
 import { makeIssue } from "./issue";
 
@@ -56,13 +58,14 @@ export function parseText(text: string): ParsedInput {
 }
 
 /**
- * The first place `value` is not JSON, or undefined. Iterative, so a deep
- * value cannot overflow the stack here; `undefined` members of an object count
- * as absent, as `JSON.stringify` treats them.
+ * The first place `value` is not JSON or nests arrays and objects past
+ * `LIMITS.jsonDepth`, or undefined. Iterative, so a deep value cannot
+ * overflow the stack here; `undefined` members of an object count as absent,
+ * as `JSON.stringify` treats them.
  */
 export function findNonJson(value: unknown): Issue | undefined {
   const onPath = new Set<object>();
-  const stack: { value: unknown; path: string; exit?: object }[] = [{ value, path: "" }];
+  const stack: { value: unknown; path: string; depth: number; exit?: object }[] = [{ value, path: "", depth: 1 }];
   for (let frame = stack.pop(); frame !== undefined; frame = stack.pop()) {
     if (frame.exit !== undefined) {
       onPath.delete(frame.exit);
@@ -80,18 +83,22 @@ export function findNonJson(value: unknown): Issue | undefined {
       return makeIssue("invalid-type", frame.path, `Not JSON: ${what}.`);
     }
     if (onPath.has(item)) return makeIssue("invalid-type", frame.path, "Not JSON: the value contains itself.");
+    if (frame.depth > LIMITS.jsonDepth) {
+      return makeIssue("too-deep", frame.path, `Arrays and objects nest more than ${LIMITS.jsonDepth} deep here; the document is refused whole.`);
+    }
     onPath.add(item);
-    stack.push({ value: undefined, path: frame.path, exit: item });
+    const depth = frame.depth + 1;
+    stack.push({ value: undefined, path: frame.path, depth, exit: item });
     if (isArray) {
       for (let index = item.length - 1; index >= 0; index -= 1) {
         const element: unknown = item[index];
         if (element === undefined) return makeIssue("invalid-type", appendPointer(frame.path, index), "Not JSON: undefined.");
-        stack.push({ value: element, path: appendPointer(frame.path, index) });
+        stack.push({ value: element, path: appendPointer(frame.path, index), depth });
       }
     } else {
       const record = item as Record<string, unknown>;
       for (const key of Object.keys(record).reverse()) {
-        if (record[key] !== undefined) stack.push({ value: record[key], path: appendPointer(frame.path, key) });
+        if (record[key] !== undefined) stack.push({ value: record[key], path: appendPointer(frame.path, key), depth });
       }
     }
   }

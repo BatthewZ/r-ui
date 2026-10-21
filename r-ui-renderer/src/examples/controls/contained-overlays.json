@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "title": "Control: a document that reaches for the whole page",
+  "description": "A card that asks to cover the page (fixed, inset 0, above the sticky layer), holding a tooltip, a popover and a dialog.",
+  "root": {
+    "component": "Stack",
+    "props": { "gap": "r4", "className": "p-r3" },
+    "children": [
+      { "component": "Heading", "props": { "level": 1, "size": "h3" }, "children": ["Shipment notes"] },
+      { "component": "Text", "children": ["Notes and confirmations for shipment SHP-2026-0042."] },
+      {
+        "component": "Card",
+        "props": { "className": "fixed inset-0 z-sticky bg-surface-1 p-r4", "data-control": "cover" },
+        "children": [
+          {
+            "component": "Inline",
+            "props": { "gap": "r5", "align": "center" },
+            "children": [
+              {
+                "component": "Tooltip",
+                "props": { "content": "Notes are kept for ninety days after delivery", "placement": "bottom" },
+                "children": [{ "component": "IconButton", "props": { "icon": "info", "label": "About notes", "variant": "ghost" } }]
+              },
+              {
+                "component": "Popover",
+                "props": { "placement": "bottom-start" },
+                "children": [
+                  { "component": "Popover.Trigger", "props": { "variant": "secondary" }, "children": ["Add a note"] },
+                  {
+                    "component": "Popover.Content",
+                    "props": { "aria-label": "New note" },
+                    "children": [
+                      {
+                        "component": "Stack",
+                        "props": { "gap": "r5" },
+                        "children": [
+                          { "component": "Text", "props": { "size": "body-2" }, "children": ["Everyone handling this shipment sees its notes."] },
+                          { "component": "Textarea", "props": { "aria-label": "Note", "rows": 6 } },
+                          { "component": "Popover.Close", "props": { "variant": "primary" }, "children": ["Save note"] }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Dialog",
+                "props": { "dialogId": "confirmDelivery" },
+                "children": [
+                  { "component": "Dialog.Trigger", "props": { "variant": "secondary" }, "children": ["Confirm delivery"] },
+                  {
+                    "component": "Dialog.Content",
+                    "children": [
+                      { "component": "Dialog.Header", "children": [{ "component": "Dialog.Title", "children": ["Confirm delivery"] }] },
+                      { "component": "Dialog.Body", "children": [{ "component": "Text", "children": ["The customer is told the shipment arrived at 14:20."] }] },
+                      { "component": "Dialog.Footer", "children": [{ "component": "Dialog.Close", "props": { "variant": "secondary" }, "children": ["Close"] }] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -3,9 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Issue } from "../spec/types";
 import type { RendererAdapters, SourceRequest } from "./adapters";
+import type { ResolvedPolicy } from "./context";
 import { useDataBindings } from "./data";
+import { DEFAULT_POLICY, resolvePolicy } from "./policy";
 
 const NOTHING: ReadonlySet<string> = new Set();
+const NO_STATE = Object.freeze({});
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -22,6 +25,7 @@ function deferred<T>() {
 interface Props {
   bindings: unknown;
   adapters: RendererAdapters;
+  policy?: ResolvedPolicy;
   state?: { readonly [key: string]: unknown };
   pending?: ReadonlySet<string>;
 }
@@ -30,7 +34,8 @@ function mount(initial: Props) {
   const issues: Issue[] = [];
   const report = (issue: Issue) => void issues.push(issue);
   const hook = renderHook(
-    ({ bindings, adapters, state = {}, pending = NOTHING }: Props) => useDataBindings(bindings, { adapters, state, pending, report }),
+    ({ bindings, adapters, policy = DEFAULT_POLICY, state = NO_STATE, pending = NOTHING }: Props) =>
+      useDataBindings(bindings, { adapters, policy, state, pending, report }),
     { initialProps: initial },
   );
   return { ...hook, issues, codes: () => issues.map((issue) => [issue.code, issue.path]) };
@@ -52,6 +57,29 @@ describe("useDataBindings", () => {
     view.rerender({ bindings: { summary: { type: "static", value: { uptime: 2 } } }, adapters: {}, pending: NOTHING });
     expect(view.result.current.data).toEqual({ summary: { uptime: 2 } });
     expect(view.result.current.status).toBe(first.status);
+  });
+
+  it("plans each binding once while the rest of the document streams in, and again when one more closes", () => {
+    const allowUrl = vi.fn(() => true);
+    const policy = resolvePolicy({ allowUrl });
+    const adapters: RendererAdapters = { fetch: () => new Promise<Response>(() => {}) };
+    const bindings = { services: { type: "api", endpoint: "/api/services" }, regions: { type: "api", endpoint: "/api/regions" } };
+    const view = mount({ bindings, adapters, policy, pending: new Set(["", "/data", "/data/regions"]) });
+    expect(allowUrl).toHaveBeenCalledTimes(1);
+    for (const open of ["/root", "/root/children", "/root/children/0", "/root/children/1"]) {
+      view.rerender({ bindings, adapters, policy, pending: new Set(["", open]) });
+    }
+    // Once more when `regions` closed (both bindings planned), then nothing per chunk.
+    expect(allowUrl).toHaveBeenCalledTimes(3);
+  });
+
+  it("ignores a binding whose name is not a name, such as an own __proto__, and says so", () => {
+    const bindings: unknown = JSON.parse('{"__proto__":{"type":"static","value":{"polluted":true}},"ok":{"type":"static","value":1}}');
+    const view = mount({ bindings, adapters: {} });
+    expect(Object.keys(view.result.current.data)).toEqual(["ok"]);
+    expect(Object.getPrototypeOf(view.result.current.data)).toBe(Object.prototype);
+    expect(({} as { polluted?: unknown }).polluted).toBeUndefined();
+    expect(view.codes()).toEqual([["invalid-name", "/data/__proto__"]]);
   });
 
   it("sends nothing without a fetch adapter and reports missing-adapter", () => {

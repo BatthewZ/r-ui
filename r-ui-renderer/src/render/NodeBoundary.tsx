@@ -1,8 +1,9 @@
 import { Component, type ReactNode } from "react";
 
 import type { IssueReporter } from "../runtime/context";
+import { errorMessage } from "../spec/errors";
 import { makeIssue } from "../spec/issue";
-import { diagnosticElement, errorMessage } from "./diagnostic";
+import { diagnosticElement } from "./diagnostic";
 
 export interface NodeBoundaryProps {
   /** JSON Pointer of the node it contains. */

@@ -52,6 +52,7 @@ import {
   type ViewSpec,
 } from "./types";
 import { LIMITS } from "./policy";
+import { ownValue } from "./guards";
 
 export type JsonType = "null" | "boolean" | "number" | "integer" | "string" | "array" | "object";
 
@@ -116,7 +117,7 @@ const DEF_PREFIX = "#/$defs/";
 /** The definition a `$ref` names in `defs`, with its name. Throws when it names none. */
 export function lookupRef(defs: SchemaDefs, target: string): { readonly name: string; readonly def: SchemaDef } {
   const name = target.startsWith(DEF_PREFIX) ? target.slice(DEF_PREFIX.length) : undefined;
-  const def = name === undefined || !Object.hasOwn(defs, name) ? undefined : defs[name];
+  const def = name === undefined ? undefined : ownValue(defs, name);
   if (name === undefined || def === undefined) throw new Error(`Schema $ref ${target} names no definition.`);
   return { name, def };
 }

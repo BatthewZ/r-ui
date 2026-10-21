@@ -3,15 +3,11 @@ import { type ReactNode, useLayoutEffect, useMemo, useRef, useState, useSyncExte
 
 import { ActionFailure } from "../runtime/actions";
 import type { ActionDispatcher, IssueReporter, RefRoots, StreamingState } from "../runtime/context";
-import { isHandler, isName, isPlainObject } from "../spec/guards";
+import { isHandler, isName, isOneOf, isPlainObject, ownValue } from "../spec/guards";
 import { appendPointer } from "../spec/pointer";
 import { parseRefPath, readRef } from "../spec/ref-path";
 import { makeIssue } from "../spec/issue";
-import {
-  type FormDef,
-  VALIDATION_TRIGGERS,
-  type ValidationTrigger,
-} from "../spec/types";
+import { type FormDef, VALIDATION_TRIGGERS } from "../spec/types";
 import { compileFormSchema, formDefaults, formDefHash, formDefProblems, formDefRefs } from "./compile";
 import type { FormRegistry, FormsSnapshot, ViewFormApi } from "./registry";
 
@@ -31,17 +27,13 @@ export interface FormsRootProps {
   readonly children: (forms: FormsSnapshot) => ReactNode;
 }
 
-function isTrigger(value: unknown): value is ValidationTrigger {
-  return VALIDATION_TRIGGERS.some((trigger) => trigger === value);
-}
-
 /** Whether every `data.…` an initial value reads has loaded or failed. */
 function refsSettled(def: FormDef, roots: Roots): boolean {
   return formDefRefs(def).every((path) => {
     const parsed = parseRefPath(path);
     if (parsed?.root !== "data") return true;
     const binding = parsed.segments[0];
-    return binding === undefined || !Object.hasOwn(roots.status, binding) || roots.status[binding] !== "loading";
+    return binding === undefined || ownValue(roots.status, binding) !== "loading";
   });
 }
 
@@ -85,8 +77,8 @@ function FormHost({ name, def, complete, roots, dispatch, registry }: FormHostPr
   const api = useForm({
     defaultValues,
     schema,
-    validateOn: isTrigger(def.validateOn) ? def.validateOn : undefined,
-    revalidateOn: isTrigger(def.revalidateOn) ? def.revalidateOn : undefined,
+    validateOn: isOneOf(VALIDATION_TRIGGERS, def.validateOn) ? def.validateOn : undefined,
+    revalidateOn: isOneOf(VALIDATION_TRIGGERS, def.revalidateOn) ? def.revalidateOn : undefined,
     onSubmit: async (output, helpers) => {
       const handler = latest.current.def.onSubmit;
       if (!isHandler(handler)) return;

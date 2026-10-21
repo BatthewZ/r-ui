@@ -6,11 +6,6 @@ import type { Issue, IssueCode } from "../spec/types";
 import type { Slot } from "./memo";
 import type { Scope } from "./scope";
 
-/** What a caught throw says, as a diagnostic's message. */
-export function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /** The element that shows `issue` where its node would have been. */
 export function diagnosticElement(issue: Issue, key?: string, extraClass?: string): ReactElement {
   // A span, so it is valid inside phrasing content too; the stylesheet makes it a block.

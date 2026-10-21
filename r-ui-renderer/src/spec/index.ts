@@ -4,49 +4,19 @@
 
 export * from "./types";
 export {
-  CONSTRAINED_DATA_ATTRIBUTES,
   DATA_ATTRIBUTE_PATTERN,
   DROPPED_DATA_ATTRIBUTES,
   FORBIDDEN_PROPS,
   ID_REFERENCE_PROPS,
   IMAGE_URL_PROPS,
   isForbiddenProp,
-  isIdReferenceProp,
   LIMITS,
-  lowerCaseProp,
   URL_PROPS,
 } from "./policy";
-export {
-  isAction,
-  isActionName,
-  isComponentNode,
-  isConcatMarker,
-  isCondNode,
-  isEachNode,
-  isFormatMarker,
-  isHandler,
-  isNodeMarker,
-  isPlainObject,
-  isRefMarker,
-  type NodeKind,
-  nodeKind,
-} from "./guards";
-export { parseRefPath, readRef, type RefPath, walkSegments } from "./ref-path";
-export { appendPointer, parsePointer, toPointer } from "./pointer";
-export { defaultAllowImageUrl, defaultAllowUrl, NO_LOCATION_BASE, resolveUrl, safeUrl } from "./url-policy";
-export { BUILTIN_CONTRACTS } from "./builtins";
+export { defaultAllowImageUrl, defaultAllowUrl, resolveUrl, safeUrl } from "./url-policy";
 export { CLASS_VOCABULARY, ICON_NAMES } from "./vocabulary";
-export {
-  contractFor,
-  defaultContracts,
-  EXCLUSION_REASONS,
-  type Exclusion,
-  type ExclusionReason,
-  exclusionFor,
-  extendContracts,
-  NOT_ADDRESSABLE,
-} from "../contracts";
-export { listComponentNames } from "../registry/names";
+export { contractFor, defaultContracts, extendContracts, NOT_ADDRESSABLE } from "../contracts";
+export { stripCodeFence } from "../stream/fence";
 export { type ValidateOptions, validateViewSpec } from "./validate";
 export { type FormatIssuesOptions, formatIssuesForModel } from "./format-issues";
 export { createValidationHandler, type ValidationHandlerOptions, type ValidationResponseBody } from "./handler";

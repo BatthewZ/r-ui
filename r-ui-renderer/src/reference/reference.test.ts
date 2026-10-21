@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 
 import { defaultContracts, extendContracts, LIBRARY_COMPONENTS, NOT_ADDRESSABLE } from "../contracts";
 import { isDocumentProp } from "../spec/contract-facts";
+import { FORBIDDEN_PROPS, isForbiddenProp, LIMITS, URL_PROPS } from "../spec/policy";
 import type { ComponentContracts } from "../spec/types";
 import { validateViewSpec } from "../spec/validate";
 import { CLASS_VOCABULARY, ICON_NAMES } from "../spec/vocabulary";
@@ -16,7 +17,7 @@ import { emptyRegions, fillRegions, regionNames } from "./regions";
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SHIPPED = readFileSync(join(PKG, "VIEWSPEC.md"), "utf8");
-const MARKERS = ["classes", "issue-codes", "components", "not-addressable", "icons"];
+const MARKERS = ["classes", "safety", "issue-codes", "components", "not-addressable", "icons"];
 
 function region(doc: string, name: string): string {
   const match = new RegExp(`<!-- GENERATED:${name} -->\\n([\\s\\S]*?)\\n<!-- /GENERATED:${name} -->`).exec(doc);
@@ -31,9 +32,10 @@ describe("renderViewSpecReference", () => {
     const doc = renderViewSpecReference();
     expect(doc).toBe(SHIPPED);
     expect(regionNames(doc)).toEqual(MARKERS);
-    const regions = renderReferenceRegions(defaultContracts);
+    const regions = renderReferenceRegions();
     const expected = {
       classes: regions.classes,
+      safety: regions.safety,
       "issue-codes": regions.issueCodes,
       components: `${regions.components}\n\n${regions.slots}`,
       "not-addressable": regions.notAddressable,
@@ -47,10 +49,10 @@ describe("renderViewSpecReference", () => {
 
   it("scoped, changes every region a scope or a host list reaches and keeps the other two whole", () => {
     const unscoped = renderViewSpecReference();
-    const scoped = renderViewSpecReference({ include: ["Tabs.Panel", "Badge"], icons: ["check", "x"], classes: ["p-r1", "gap-r2"] });
+    const scoped = renderViewSpecReference({ include: ["Tabs.Panel", "Badge"], iconNames: ["check", "x"], classes: ["p-r1", "gap-r2"] });
     for (const name of ["components", "icons", "classes"]) expect(region(scoped, name), name).not.toBe(region(unscoped, name));
     // Absent from the format, not from this scope: the warning stays where a narrow scope needs it most.
-    for (const name of ["issue-codes", "not-addressable"]) expect(region(scoped, name), name).toBe(region(unscoped, name));
+    for (const name of ["safety", "issue-codes", "not-addressable"]) expect(region(scoped, name), name).toBe(region(unscoped, name));
     expect(region(scoped, "icons")).toBe("`check` `x`");
     expect(region(scoped, "classes")).toBe("- `gap-r2` `p-r1`");
     expect(emptyRegions(scoped)).toBe(emptyRegions(unscoped));
@@ -90,7 +92,7 @@ describe("renderViewSpecReference", () => {
     const components = region(renderViewSpecReference({ include: ["Kbd"] }), "components");
     expect(components).toContain("_No component in this reference takes `classNames`._");
     expect(components).not.toContain("| Component | Keys |");
-    const empty = renderViewSpecReference({ include: ["Kbd"], icons: [], classes: [] });
+    const empty = renderViewSpecReference({ include: ["Kbd"], iconNames: [], classes: [] });
     expect(region(empty, "icons")).toMatch(/^_This icon set is empty/);
     expect(region(empty, "classes")).toMatch(/^_The class vocabulary is empty/);
   });
@@ -99,7 +101,7 @@ describe("renderViewSpecReference", () => {
     const sentences = [
       region(renderViewSpecReference({ include: ["Kbd"] }), "components").split("\n")[0],
       region(renderViewSpecReference({ include: ["Kbd"] }), "components").split("\n").at(-1),
-      region(renderViewSpecReference({ include: ["Kbd"], icons: [] }), "icons"),
+      region(renderViewSpecReference({ include: ["Kbd"], iconNames: [] }), "icons"),
       region(renderViewSpecReference({ include: ["Kbd"], classes: [] }), "classes"),
     ];
     expect(sentences[0]).toContain("This reference is scoped");
@@ -122,7 +124,7 @@ describe("the component tables", () => {
 
   it("a category no title names still renders, after the named ones", () => {
     const host = extendContracts(defaultContracts, { Gauge: { category: "gadgets", props: [{ name: "turn", type: "number", required: true }] } });
-    const tables = renderReferenceRegions(host).components;
+    const tables = renderReferenceRegions({ contracts: host }).components;
     expect(tables.indexOf("### Motion")).toBeGreaterThan(0);
     expect(tables.indexOf("### gadgets")).toBeGreaterThan(tables.indexOf("### Motion"));
     expect(tables).toContain("| `Gauge` | — | `turn`: number |  |");
@@ -177,13 +179,13 @@ describe("the component tables", () => {
   });
 
   it("propLimit hides the tail behind a count; describeProps adds each prop's sentence", () => {
-    const limited = renderReferenceRegions(defaultContracts, { propLimit: 2 }).components;
+    const limited = renderReferenceRegions({ propLimit: 2 }).components;
     const row = limited.split("\n").find((line) => line.startsWith(rowFor("DataTable"))) ?? "";
     const total = (defaultContracts.DataTable?.props ?? []).filter((prop) => isDocumentProp(defaultContracts.DataTable ?? { category: "" }, prop.name)).length;
     expect(row).toContain(` · +${total - 2} more |`);
-    for (const bad of [0, -1, 1.5, Number.NaN]) expect(() => renderReferenceRegions(defaultContracts, { propLimit: bad })).toThrow("propLimit");
+    for (const bad of [0, -1, 1.5, Number.NaN]) expect(() => renderReferenceRegions({ propLimit: bad })).toThrow("propLimit");
 
-    const described = renderReferenceRegions(scopeContracts(defaultContracts, ["Accordion", "DataTable"]), { describeProps: true }).components;
+    const described = renderReferenceRegions({ contracts: scopeContracts(defaultContracts, ["Accordion", "DataTable"]), describeProps: true }).components;
     // From the generated prop docs, and from a curated document prop.
     expect(described).toContain("`collapsible?`: boolean — Whether the open item can be closed again, leaving none open.<br>");
     expect(described).toContain("`rowKey?`: string — A field path whose value identifies a row");
@@ -192,6 +194,14 @@ describe("the component tables", () => {
 });
 
 describe("the list regions", () => {
+  it("safety lists the policy the renderer enforces: every forbidden prop, the URL props, the limits", () => {
+    const safety = region(SHIPPED, "safety");
+    for (const prop of FORBIDDEN_PROPS) expect(safety).toContain(`\`${prop}\``);
+    const [, urls = ""] = /URL props on every component[^:]*: ([^.]*)\./.exec(safety) ?? [];
+    expect(urls.split(", ")).toEqual(URL_PROPS.filter((prop) => !isForbiddenProp(prop)).map((prop) => `\`${prop}\``));
+    for (const limit of Object.values(LIMITS)) expect(safety).toContain(` ${limit} `);
+  });
+
   it("issue codes carry severity and mark the render-only ones", () => {
     const codes = region(SHIPPED, "issue-codes");
     expect(codes).toContain("| `invalid-json` | error | The text is not JSON. |");

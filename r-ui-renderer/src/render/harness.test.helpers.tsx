@@ -17,9 +17,12 @@ import { icons as defaultIcons } from "../icons";
 import type { IconSet } from "../icons/types";
 import { type ComponentRegistry, defaultRegistry } from "../registry/registry";
 import type { RendererAdapters } from "../runtime/adapters";
-import type { DispatchContext, FormHandles, RefRoots, RenderContext, StreamingState } from "../runtime/context";
+import type { DispatchContext, FormHandles, RefRoots, RenderContext, ResolvedPolicy, StreamingState } from "../runtime/context";
 import { useDialogState } from "../runtime/dialogs";
-import type { ComponentContracts, Handler, Issue } from "../spec/types";
+import { resolvePolicy } from "../runtime/policy";
+import type { ComponentContracts, Handler, HostPolicy, Issue } from "../spec/types";
+import { createViewSpecParser } from "../stream/parser";
+import type { StreamSnapshot } from "../stream/snapshot";
 import { IconSetContext } from "./icon-context";
 import { renderNode } from "./render-node";
 import { createRootScope, DEFAULT_VIEW_ENV, type ViewEnv } from "./scope";
@@ -38,7 +41,7 @@ export interface TreeOptions {
   readonly contracts?: ComponentContracts;
   readonly icons?: IconSet;
   readonly adapters?: RendererAdapters;
-  readonly allowSensitive?: boolean | readonly string[];
+  readonly policy?: HostPolicy;
   readonly streaming?: Partial<StreamingState>;
   readonly env?: Partial<ViewEnv>;
   readonly namespace?: string;
@@ -50,6 +53,8 @@ export type Dispatch = (handler: Handler, context: DispatchContext) => Promise<v
 
 const NOTHING: ReadonlySet<string> = new Set();
 const NO_ADAPTERS: RendererAdapters = {};
+const NO_FORMS: FormHandles = {};
+const NO_VALUES: { readonly [name: string]: never } = {};
 
 export function renderTree(root: unknown, initial: TreeOptions = {}) {
   const reported: Reported[] = [];
@@ -64,6 +69,7 @@ export function renderTree(root: unknown, initial: TreeOptions = {}) {
     readonly roots: RefRoots;
     readonly env: ViewEnv;
     readonly forms: FormHandles;
+    readonly policy: ResolvedPolicy;
   }
 
   function Host(props: { root: unknown; options: TreeOptions; derived: Derived }): ReactNode {
@@ -75,7 +81,7 @@ export function renderTree(root: unknown, initial: TreeOptions = {}) {
       contracts: options.contracts ?? defaultContracts,
       icons,
       adapters: options.adapters ?? NO_ADAPTERS,
-      allowSensitive: options.allowSensitive ?? false,
+      policy: derived.policy,
       roots: derived.roots,
       forms: derived.forms,
       dialogs,
@@ -87,14 +93,17 @@ export function renderTree(root: unknown, initial: TreeOptions = {}) {
     return <IconSetContext value={icons}>{renderNode(props.root, createRootScope(ctx, derived.env))}</IconSetContext>;
   }
 
-  const derive = (options: TreeOptions): Derived => ({
-    roots: { data: options.data ?? {}, status: {}, state: options.state ?? {}, forms: options.formsValues ?? {} },
-    env: { ...DEFAULT_VIEW_ENV, ...options.env },
-    forms: options.forms ?? {},
+  // An update rebuilds only what it changes: a fresh env or forms object would
+  // miss every memo entry and hide a memo that ignores the roots.
+  const derive = (options: TreeOptions, changed: TreeOptions, previous?: Derived): Derived => ({
+    roots: { data: options.data ?? NO_VALUES, status: NO_VALUES, state: options.state ?? NO_VALUES, forms: options.formsValues ?? NO_VALUES },
+    env: previous === undefined || changed.env !== undefined ? { ...DEFAULT_VIEW_ENV, ...options.env } : previous.env,
+    forms: previous === undefined || changed.forms !== undefined ? (options.forms ?? NO_FORMS) : previous.forms,
+    policy: previous === undefined || changed.policy !== undefined ? resolvePolicy(options.policy) : previous.policy,
   });
 
   let options = initial;
-  let derived = derive(initial);
+  let derived = derive(initial, initial);
   const element = <Host root={root} options={options} derived={derived} />;
   const result: RenderResult = initial.throws === true ? renderThrowing(element) : render(element);
   return {
@@ -109,9 +118,22 @@ export function renderTree(root: unknown, initial: TreeOptions = {}) {
     update(next: unknown, changed?: TreeOptions) {
       if (changed !== undefined) {
         options = { ...options, ...changed };
-        derived = derive(options);
+        derived = derive(options, changed, derived);
       }
       result.rerender(<Host root={next} options={options} derived={derived} />);
     },
   };
+}
+
+/** `text` (a whole document) streamed one character at a time into `renderTree`, then ended. */
+export function streamTree(text: string, options: TreeOptions = {}) {
+  const parser = createViewSpecParser();
+  const streaming = (snapshot: StreamSnapshot) => ({ complete: snapshot.complete, pending: snapshot.pending });
+  const view = renderTree(undefined, { ...options, streaming: streaming(parser.snapshot) });
+  const show = (snapshot: StreamSnapshot) => {
+    view.update(snapshot.spec?.root, { streaming: streaming(snapshot) });
+  };
+  for (const char of text) show(parser.push(char));
+  show(parser.end());
+  return view;
 }

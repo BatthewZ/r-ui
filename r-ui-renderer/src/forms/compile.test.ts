@@ -66,6 +66,17 @@ describe("compileFormSchema", () => {
     expect(formDefProblems(def).map((problem) => problem.path)).toEqual(["/fields/text/rules/pattern"]);
   });
 
+  it("never runs a pattern that can backtrack catastrophically: it can never pass, and is reported", () => {
+    const def: FormDef = { fields: { text: { rules: { pattern: "^(a+)+$" } } } };
+    const started = performance.now();
+    expect(errors(def, { text: `${"a".repeat(40)}!` })).toEqual({ text: "This does not match the expected format." });
+    expect(errors(def, { text: "aaa" })).toEqual({ text: "This does not match the expected format." });
+    expect(performance.now() - started).toBeLessThan(500);
+    const [problem] = formDefProblems(def);
+    expect(problem?.path).toBe("/fields/text/rules/pattern");
+    expect(problem?.message).toContain('"text"');
+  });
+
   it("bounds numbers (and numeric text) and dates by their ISO day", () => {
     const def: FormDef = {
       fields: {
@@ -103,7 +114,7 @@ describe("ISO ⇄ Date round trip", () => {
 });
 
 describe("formDefaults", () => {
-  it("gives each type its empty value and coerces what does not fit", () => {
+  it("gives each type its empty value, coerces what fits and empties what does not (the validator's rule)", () => {
     const def: FormDef = {
       fields: {
         name: {},
@@ -114,7 +125,7 @@ describe("formDefaults", () => {
         tags: { type: "list", initialValue: ["a", 2, "b"] },
       },
     };
-    expect(formDefaults(def, () => undefined)).toEqual({ name: "", seats: 12, on: false, start: null, span: null, tags: ["a", "b"] });
+    expect(formDefaults(def, () => undefined)).toEqual({ name: "", seats: 12, on: false, start: null, span: null, tags: [] });
   });
 
   it("reads dates with the format's one strict parser: what the validator calls a date and nothing looser", () => {
@@ -128,7 +139,7 @@ describe("formDefaults", () => {
     const values = formDefaults(def, () => undefined);
     expect(values.loose).toBeNull();
     expect(values.padded).toBeNull();
-    expect((values.span as { start: Date | null; end: Date | null }).end).toBeNull();
+    expect(values.span).toBeNull();
   });
 
   it("reads a $ref initial value through the resolver", () => {
@@ -155,5 +166,12 @@ describe("formDefHash", () => {
     const c: FormDef = { fields: { name: { rules: { required: false } } }, validateOn: "blur" };
     expect(formDefHash(a)).toBe(formDefHash(b));
     expect(formDefHash(a)).not.toBe(formDefHash(c));
+  });
+
+  it("hashes a value nested thousands of levels deep without overflowing the stack", () => {
+    let deep: unknown = 1;
+    for (let level = 0; level < 20_000; level += 1) deep = { a: deep };
+    const def = { fields: { a: { initialValue: deep } } } as unknown as FormDef;
+    expect(formDefHash(def)).toMatch(/^[0-9a-z]+$/);
   });
 });

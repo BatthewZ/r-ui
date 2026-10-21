@@ -24,7 +24,8 @@ describe("the browser checks' headers", () => {
     const scripts = loadScripts(PKG);
     expect(scripts.length).toBeGreaterThan(0);
     expect(scripts.filter((s) => s.tags.problems.length > 0).map((s) => [s.name, s.tags.problems])).toEqual([]);
-    for (const s of scripts) expect(s.name.startsWith("corpus-"), s.name).toBe(true);
+    // corpus-: drives documents at `?view=`; playground-: drives the playground's own routes.
+    for (const s of scripts) expect(/^(corpus|playground)-/.test(s.name), s.name).toBe(true);
   });
 });
 

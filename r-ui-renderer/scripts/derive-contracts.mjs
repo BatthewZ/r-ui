@@ -303,6 +303,29 @@ function elementTypes(ctx, type) {
   return out.filter(Boolean);
 }
 
+const isDeclaredInTypes = (symbol) => (symbol.declarations ?? []).some((d) => d.getSourceFile().fileName.includes(`${sep}@types${sep}`));
+
+/**
+ * The keys of the closed record a prop takes, or null: every object member of
+ * its type has only optional keys and no index signature (`{ base?: N } &
+ * Partial<Record<"@sm" | …, N>>`), other members being non-objects (`N`).
+ * React's own attribute bags (`CSSProperties`) are not records a document writes.
+ */
+function recordKeys(ctx, types) {
+  const keys = new Set();
+  for (const type of types) {
+    for (const part of members(type)) {
+      if (!(part.flags & ts.TypeFlags.Object) && !part.isIntersection()) continue;
+      if (ctx.checker.isArrayType(part) || ctx.checker.isTupleType(part) || part.getCallSignatures().length > 0) return null;
+      if (ctx.checker.getIndexInfoOfType(part, ts.IndexKind.String)) return null;
+      const properties = ctx.checker.getPropertiesOfType(part);
+      if (properties.length === 0 || properties.some((p) => !(p.flags & ts.SymbolFlags.Optional) || isDeclaredInTypes(p))) return null;
+      for (const property of properties) keys.add(property.name);
+    }
+  }
+  return keys.size > 0 ? [...keys].sort() : null;
+}
+
 /** Value types behind a string index signature (`Record<string, X>`): the `.*` step. */
 function indexValueTypes(ctx, type) {
   const out = [];
@@ -408,6 +431,7 @@ function describe(ctx, name, classNamesSeen) {
 
   const properties = collectProperties(ctx, propsType);
   const enums = {};
+  const records = {};
   let native = false;
   let domName = false;
   const readNative = (prop, entry) => {
@@ -446,6 +470,8 @@ function describe(ctx, name, classNamesSeen) {
     record.props.push({ name: prop, type: texts.join(" | "), required: entry.required });
     const sets = entry.symbols.map((s, i) => literalSet(checker, s, types[i]));
     if (sets.every(Boolean)) enums[prop] = [...new Set(sets.flat())];
+    const keys = recordKeys(ctx, types);
+    if (keys) records[prop] = keys;
     if (types.some((t) => takesNode(ctx, t))) sink.nodes.add(prop);
     if (types.every(onlyFunctions)) sink.functions.add(prop);
     for (const t of types) for (const kind of onlyFunctions(t) ? callbackKinds(ctx, t) : []) sink.callbacks[kind]?.add(prop);
@@ -461,6 +487,7 @@ function describe(ctx, name, classNamesSeen) {
   }
   record.props.sort((a, b) => a.name.localeCompare(b.name));
   if (Object.keys(enums).length > 0) record.propEnums = Object.fromEntries(Object.entries(enums).sort(([a], [b]) => a.localeCompare(b)));
+  if (Object.keys(records).length > 0) record.recordKeys = Object.fromEntries(Object.entries(records).sort(([a], [b]) => a.localeCompare(b)));
   if (record.slots) record.slots.sort();
   if (sink.nodes.size > 0) record.nodeProps = [...sink.nodes].sort();
   if (native) record.nativeAttributes = true;

@@ -22,10 +22,13 @@ describe("verify:class-vocabulary", { timeout: 60_000 }, () => {
     expect(out).toContain(".r-renderer-x { color: #fff }: a raw colour");
     expect(out).toContain("reads --NOPE-TOKEN, which no token declares");
     expect(out).toContain("the class `aurora-card` lacks the r-renderer- prefix");
+    // Only the prescribed scheme blend reads `100%` as a token's share; any other percentage is a length.
+    expect(out).toContain(".r-renderer-blend { color: color-mix(in oklch, var(--C-TEXT-SERIOUS-LIGHT), var(--C-TEXT-SERIOUS-DARK) calc(var(--SCHEME-DARK) * 50%)) }: a raw length");
+    expect(out).toContain(".r-renderer-blend { width: 100% }: a raw length");
     // `0px` is no length, and a token read is fine.
     expect(out).not.toContain("border-width");
     expect(out).not.toContain("p-r3");
-    expect(out).toMatch(/— 9 problem\(s\)/);
+    expect(out).toMatch(/— 11 problem\(s\)/);
   });
 
   it("passes token-only CSS whose vocabulary compiles", () => {

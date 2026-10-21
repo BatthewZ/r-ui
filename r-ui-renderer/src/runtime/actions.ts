@@ -1,19 +1,13 @@
 import type { FormRegistry } from "../forms/registry";
-import { isAction, isHandler, isName, isPlainObject } from "../spec/guards";
+import { errorMessage } from "../spec/errors";
+import { isAction, isHandler, isName, isOneOf, isPlainObject, ownValue } from "../spec/guards";
 import { appendPointer } from "../spec/pointer";
 import { LIMITS } from "../spec/policy";
 import { makeIssue } from "../spec/issue";
-import {
-  HTTP_METHODS,
-  type IssueCode,
-  type JsonValue,
-  LITERAL_PAYLOAD_KEYS,
-  TOAST_TONES,
-  type ToastTone,
-} from "../spec/types";
-import { defaultAllowUrl, resolveUrl, safeUrl } from "../spec/url-policy";
+import { HTTP_METHODS, type IssueCode, type JsonValue, LITERAL_PAYLOAD_KEYS, TOAST_TONES } from "../spec/types";
+import { resolveUrl, safeUrl } from "../spec/url-policy";
 import type { RendererAdapters } from "./adapters";
-import type { ActionDispatcher, DialogState, IssueReporter, RefRoots } from "./context";
+import type { ActionDispatcher, DialogState, IssueReporter, RefRoots, ResolvedPolicy } from "./context";
 import { readEventArgs, readEventValue } from "./event-value";
 import { performRequest, prepareRequest, UNUSABLE_QUERY } from "./request";
 import { type FormatValue, plainFormat, type RefScope, resolveValue, valueText } from "./resolve";
@@ -28,6 +22,8 @@ export interface DispatcherDeps {
   readonly dialogs: DialogState;
   /** The host's adapters as of the latest render. */
   readonly getAdapters: () => RendererAdapters;
+  /** The host's policy as of the latest render. */
+  readonly getPolicy: () => ResolvedPolicy;
   readonly report: IssueReporter;
   readonly isComplete: () => boolean;
   /** `$format` in payloads; without it a value formats as plain text. */
@@ -58,13 +54,6 @@ export class ActionFailure extends Error {
 
 type EventScope = { readonly value: unknown; readonly args: readonly unknown[] };
 
-const TONES: ReadonlySet<string> = new Set<string>(TOAST_TONES);
-const METHODS: ReadonlySet<string> = new Set<string>(HTTP_METHODS);
-
-function isToastTone(value: unknown): value is ToastTone {
-  return typeof value === "string" && TONES.has(value);
-}
-
 export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
   const format = deps.format ?? plainFormat;
 
@@ -89,7 +78,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
         await runAction(action, actionPath, vars, event, depth);
       } catch (error) {
         if (error instanceof ActionFailure) throw error;
-        fail("action-failed", actionPath, error instanceof Error ? error.message : "The action failed.");
+        fail("action-failed", actionPath, errorMessage(error));
       }
     }
   }
@@ -112,15 +101,15 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     const at = (key: string) => appendPointer(payloadPath, key);
     const literal: readonly string[] = LITERAL_PAYLOAD_KEYS[action.action];
     const read = (key: string): unknown => {
-      if (!Object.hasOwn(payload, key)) return undefined;
-      return literal.includes(key) ? payload[key] : resolveValue(payload[key], scopeFor(vars, event), format);
+      const value = ownValue(payload, key);
+      return value === undefined || literal.includes(key) ? value : resolveValue(value, scopeFor(vars, event), format);
     };
 
     switch (action.action) {
       case "setState": {
         const target = read("path");
         if (typeof target !== "string" || !deps.setState(target, read("value"), { replace: read("replace") === true })) {
-          fail("invalid-ref", at("path"), "setState writes to a `state.…` path.");
+          fail("invalid-ref", at("path"), "setState writes to a `state.…` path, and into a list at most one past its end.");
         }
         return;
       }
@@ -138,7 +127,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
         return;
       }
       case "navigate":
-        return navigate(read("to"), read("replace") === true, at("to"));
+        return navigate(read("to"), read("replace") === true, path, at("to"));
       case "showToast": {
         const title = valueText(read("title")) ?? undefined;
         if (title === undefined) fail("invalid-value", at("title"), "showToast needs a text `title`.");
@@ -152,7 +141,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
         toast({
           title,
           ...(description === undefined ? {} : { description }),
-          ...(isToastTone(tone) ? { tone } : {}),
+          ...(isOneOf(TOAST_TONES, tone) ? { tone } : {}),
         });
         return;
       }
@@ -170,20 +159,17 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     }
   }
 
-  function navigate(to: unknown, replace: boolean, path: string): void {
+  function navigate(to: unknown, replace: boolean, path: string, toPath: string): void {
     const safe = typeof to === "string" ? safeUrl(to) : "";
-    if (safe === "") fail("refused-url", path, "navigate needs a URL with an allowed scheme.");
+    const url = safe === "" ? null : resolveUrl(safe);
+    if (url === null) fail("refused-url", toPath, "navigate needs a URL with an allowed scheme.");
+    if (!deps.getPolicy().allowUrl(url)) fail("refused-url", toPath, `Navigation to ${url.origin} is not allowed.`);
     const adapter = deps.getAdapters().navigate;
-    if (adapter !== undefined) {
-      adapter(safe, { replace });
+    if (adapter === undefined) {
+      deps.report(makeIssue("missing-adapter", path, "The host provides no `navigate` adapter; nothing navigated."));
       return;
     }
-    const url = resolveUrl(safe);
-    if (url === null || !defaultAllowUrl(url)) {
-      fail("refused-url", path, "Without a `navigate` adapter only same-origin URLs are followed.");
-    }
-    if (replace) globalThis.location.replace(url.href);
-    else globalThis.location.assign(url.href);
+    adapter(url.href, { replace });
   }
 
   async function apiCall(
@@ -196,13 +182,12 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
     const endpoint = read("endpoint");
     const method = read("method") ?? "GET";
     if (typeof endpoint !== "string") fail("invalid-value", at("endpoint"), "apiCall needs an `endpoint`.");
-    if (typeof method !== "string" || !METHODS.has(method)) {
+    if (!isOneOf(HTTP_METHODS, method)) {
       fail("invalid-value", at("method"), `\`method\` is one of ${HTTP_METHODS.join(", ")}.`);
     }
-    const adapters = deps.getAdapters();
-    const fetcher = adapters.fetch;
+    const fetcher = deps.getAdapters().fetch;
     if (fetcher === undefined) fail("missing-adapter", path, "The host provides no `fetch` adapter; nothing was sent.");
-    const prepared = prepareRequest({ endpoint, method, query: read("query"), body: read("body") }, adapters);
+    const prepared = prepareRequest({ endpoint, method, query: read("query"), body: read("body") }, deps.getPolicy().allowUrl);
     if (!prepared.ok) fail("refused-url", at("endpoint"), prepared.message);
     for (const param of prepared.unusable) deps.report(makeIssue("unusable-value", appendPointer(at("query"), param), UNUSABLE_QUERY));
 

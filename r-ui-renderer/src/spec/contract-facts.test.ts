@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 
-import { nameRole, refPropKinds } from "./contract-facts";
+import { isSensitiveValue, nameRole, refPropKinds, sensitiveAllowed } from "./contract-facts";
 import type { ComponentContract } from "./types";
 
 const contract = (type: string): ComponentContract => ({ category: "custom", props: [{ name: "focus", type, required: false }] });
@@ -26,5 +26,37 @@ describe("nameRole", () => {
     expect(nameRole({ category: "x", fieldName: true, domName: true })).toBe("field");
     expect(nameRole({ category: "x", domName: true })).toBe("dom");
     expect(nameRole({ category: "x" })).toBe("own");
+  });
+});
+
+describe("isSensitiveValue", () => {
+  it("is a password type, or an autoComplete asking for a password, a one-time code or card details", () => {
+    const sensitive = [
+      ["type", "password"],
+      ["TYPE", " Password "],
+      ["autoComplete", "current-password"],
+      ["autocomplete", "section-login new-password"],
+      ["autoComplete", "one-time-code"],
+      ["autoComplete", "billing cc-number"],
+    ];
+    for (const [prop, value] of sensitive) expect(isSensitiveValue("Input", prop as string, value), `${prop}: ${value}`).toBe(true);
+    const plain = [
+      ["type", "email"],
+      ["autoComplete", "username"],
+      ["autoComplete", "password-hint"],
+      ["placeholder", "password"],
+      ["type", 1],
+    ];
+    for (const [prop, value] of plain) expect(isSensitiveValue("Input", prop as string, value), `${prop}: ${String(value)}`).toBe(false);
+  });
+});
+
+describe("sensitiveAllowed", () => {
+  it("reads allowSensitive: all, none, or the listed components", () => {
+    expect(sensitiveAllowed({}, "Input")).toBe(false);
+    expect(sensitiveAllowed({ allowSensitive: false }, "Input")).toBe(false);
+    expect(sensitiveAllowed({ allowSensitive: true }, "Input")).toBe(true);
+    expect(sensitiveAllowed({ allowSensitive: ["OTPInput"] }, "OTPInput")).toBe(true);
+    expect(sensitiveAllowed({ allowSensitive: ["OTPInput"] }, "Input")).toBe(false);
   });
 });

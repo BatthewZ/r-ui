@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "title": "Control: an image the host refuses",
+  "description": "Two photos: one from the host's own image path, one from an address its image policy refuses.",
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Site photos"] },
+          {
+            "component": "Grid",
+            "props": { "columns": 2, "gap": "r4" },
+            "children": [
+              {
+                "component": "Image",
+                "props": { "src": "/fixtures/img/gallery-1.svg", "alt": "The Rotterdam cross-dock at first light", "width": 1200, "height": 800, "ratio": "classic" }
+              },
+              {
+                "component": "Image",
+                "props": { "src": "https://images.example/sites/porto.jpg", "alt": "The Porto site from the yard gate", "width": 1200, "height": 800, "ratio": "classic" }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -9,8 +9,8 @@
 
 import { createElement, type ReactNode } from "react";
 
-import { type DropReason, dropReason, type NameRole, nameRole, refPropKinds } from "../spec/contract-facts";
-import { isHandler, isName, isNodeMarker, isPlainObject } from "../spec/guards";
+import { type DropReason, dropReason, isRefusedValue, isSensitiveValue, type NameRole, nameRole, refPropKinds } from "../spec/contract-facts";
+import { isHandler, isName, isNodeMarker, isPlainObject, ownValue } from "../spec/guards";
 import {
   CONSTRAINED_DATA_ATTRIBUTES,
   IMAGE_URL_PROPS,
@@ -22,7 +22,7 @@ import {
 import { makeIssue } from "../spec/issue";
 import { appendPointer } from "../spec/pointer";
 import { type ComponentContract, type DateKind, HANDLER_KEY_PATTERN, type Issue, type PropPath } from "../spec/types";
-import { DIAGNOSTIC_CLASSES } from "../diagnostics";
+import { RENDERER_CLASSES } from "../diagnostics";
 import {
   coerceDate,
   coerceDelimiter,
@@ -46,8 +46,12 @@ import { rowIndexLookup, type RenderAt, templateFunction } from "./templates";
 
 export interface PropsBuild {
   readonly props: Record<string, unknown>;
-  /** Elements a coercion adds before the document's children (a Select's options). */
-  readonly leading: readonly ReactNode[];
+  /**
+   * Elements a coercion adds before the document's children (a Select's
+   * options), or undefined when the contract has no such coercion. One slot,
+   * present even when empty, so the children's positions never shift.
+   */
+  readonly leading: readonly ReactNode[] | undefined;
   /** The node cannot render yet: a form it names has not mounted. */
   readonly waiting: boolean;
   /** The node cannot render at all: shown in its place. */
@@ -73,6 +77,7 @@ interface Facts {
   readonly forms: ReadonlySet<string>;
   readonly namespaced: ReadonlySet<string>;
   readonly nameRole: NameRole;
+  readonly leads: boolean;
 }
 
 function split(paths: readonly PropPath[] | undefined): [Set<string>, Map<string, ParsedPropPath[]>] {
@@ -122,6 +127,7 @@ function factsOf(contract: ComponentContract): Facts {
     forms: new Set(contract.formProps ?? []),
     namespaced: new Set(contract.namespacedProps ?? []),
     nameRole: nameRole(contract),
+    leads: Object.values(contract.coercions ?? {}).some((coercion) => coercion.kind === "options"),
   };
   factsCache.set(contract, facts);
   return facts;
@@ -138,8 +144,11 @@ const DROP_MESSAGES: { readonly [R in DropReason]: (name: string, key: string) =
 const UNIVERSAL_URLS: ReadonlySet<string> = new Set<string>(URL_PROPS);
 const UNIVERSAL_IMAGES: ReadonlySet<string> = new Set<string>(IMAGE_URL_PROPS);
 
-function own<T>(record: { readonly [key: string]: T } | undefined, key: string): T | undefined {
-  return record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined;
+const NONE: Readonly<Record<string, never>> = Object.freeze({});
+
+/** Whether the host's `allowSensitive` lets `name` ask for a secret. */
+export function sensitiveAllowed(allow: boolean | readonly string[], name: string): boolean {
+  return allow === true || (Array.isArray(allow) && allow.includes(name));
 }
 
 /** The icon `name` names in the view's set, or a missing-icon diagnostic in its place. */
@@ -148,7 +157,7 @@ export function iconElement(scope: Scope, name: string, path: string): ReactNode
   if (Glyph !== undefined) return createElement(Glyph, { "aria-hidden": true });
   const issue = makeIssue("unknown-icon", path, `No icon is named "${name}".`);
   scope.ctx.report(issue, { inPlace: true });
-  return diagnosticElement({ ...issue, message: "" }, undefined, DIAGNOSTIC_CLASSES.missingIcon);
+  return diagnosticElement({ ...issue, message: "" }, undefined, RENDERER_CLASSES.missingIcon);
 }
 
 export function buildProps(
@@ -163,7 +172,7 @@ export function buildProps(
   const { ctx, env } = scope;
   const propsPath = appendPointer(scope.path, "props");
   const props: Record<string, unknown> = {};
-  let leading: ReactNode[] = [];
+  let leading: ReactNode[] | undefined = facts.leads ? [] : undefined;
   let waiting = false;
   let failure: Issue | undefined;
   let dialogId: unknown;
@@ -197,15 +206,19 @@ export function buildProps(
       if ((UNIVERSAL_URLS.has(lower) || facts.urls.has(key)) && !urlAllowed(value)) {
         return resolver.drop("refused-url", path, `"${value}" is not a URL a document may use.`);
       }
-      if (lower === "srcset" ? !srcSetAllowed(value, ctx.adapters) : (UNIVERSAL_IMAGES.has(lower) || facts.images.has(key)) && !imageAllowed(value, ctx.adapters)) {
+      if (lower === "srcset" ? !srcSetAllowed(value, ctx.policy) : (UNIVERSAL_IMAGES.has(lower) || facts.images.has(key)) && !imageAllowed(value, ctx.policy)) {
         return refuseImage(key, path, value);
       }
     }
-    const elements = own(contract.elementProps, key);
+    if (isRefusedValue(contract, key, value)) {
+      const options = ownValue(contract.propEnums ?? NONE, key) ?? [];
+      return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${options.map((option) => JSON.stringify(option)).join(", ")}.`);
+    }
+    const elements = ownValue(contract.elementProps ?? NONE, key);
     if (elements !== undefined && (typeof value !== "string" || !elements.includes(value))) {
       return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${elements.join(", ")}.`);
     }
-    const levels = own(contract.headingLevelProps, key);
+    const levels = ownValue(contract.headingLevelProps ?? NONE, key);
     if (levels !== undefined && (typeof value !== "number" || !levels.includes(value))) {
       return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${levels.join(", ")}.`);
     }
@@ -213,7 +226,7 @@ export function buildProps(
     if (refKinds !== undefined && !refKinds.includes(typeof value)) {
       return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${refKinds.length === 0 ? "nothing a document can write" : refKinds.join(" or ")}: a ref cannot come from a document.`);
     }
-    const intl = own(contract.intlProps, key);
+    const intl = ownValue(contract.intlProps ?? NONE, key);
     if (intl !== undefined && !intlValueAllowed(value, intl)) {
       return resolver.drop("invalid-prop-value", path, `\`${key}\` is not a ${intl === "currency" ? "currency code (ISO 4217)" : "unit"} Intl knows.`);
     }
@@ -233,14 +246,14 @@ export function buildProps(
       return DROP;
     }
     if (HANDLER_KEY_PATTERN.test(key)) {
-      if (isHandler(raw)) return handlerCallback(raw, scope, path, own(contract.eventValue, key));
+      if (isHandler(raw)) return handlerCallback(raw, scope, path, ownValue(contract.eventValue ?? NONE, key));
       return resolver.drop("forbidden-prop", path, `\`${key}\` holds no action, so it is dropped.`);
     }
 
-    const coercion = own(contract.coercions, key);
+    const coercion = ownValue(contract.coercions ?? NONE, key);
     if (coercion?.kind === "columns") {
       return coerceColumns(resolver, raw, path, {
-        cellNames: own(contract.templateProps, `${key}[].cell`),
+        cellNames: ownValue(contract.templateProps ?? NONE, `${key}[].cell`),
         rowIndex: rowIndexLookup(getRows),
       });
     }
@@ -256,8 +269,12 @@ export function buildProps(
     if (lowerCaseProp(key).startsWith("data-")) {
       if (!isAllowedDataAttribute(key)) return resolver.drop("forbidden-prop", path, `\`${key}\` is not an attribute a document may set.`);
       if (isAllowedDataValue(key, value)) return value;
-      const options = own(CONSTRAINED_DATA_ATTRIBUTES, key);
+      const options = ownValue(CONSTRAINED_DATA_ATTRIBUTES, key);
       return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${options === undefined ? "text, a number or a boolean" : options.join(" or ")}.`);
+    }
+    if (isSensitiveValue(name, key, value) && !sensitiveAllowed(ctx.policy.allowSensitive, name)) {
+      failure ??= makeIssue("sensitive-component", path, `\`${key}\` asks for a secret, so ${name} renders only where the host allows it.`);
+      return DROP;
     }
     const refused = refusedAs(key, value, path);
     if (refused !== undefined) return refused;
@@ -283,7 +300,7 @@ export function buildProps(
 
     if (facts.forms.has(key)) {
       if (typeof value !== "string") return resolver.drop("invalid-prop-value", path, `\`${key}\` names a declared form.`);
-      const handle = own(ctx.forms, value);
+      const handle = ownValue(ctx.forms, value);
       if (handle !== undefined) return handle;
       if (env.formNames.has(value) || !ctx.streaming.complete) waiting = true;
       else failure = makeIssue("undeclared-name", path, `No form is named "${value}".`);
@@ -325,7 +342,7 @@ export function buildProps(
       const srcSet = last?.kind === "key" && lowerCaseProp(last.key) === "srcset";
       out = transformAt(out, parsed.steps, (leaf, pointer) => {
         if (typeof leaf !== "string") return leaf;
-        const allowed = srcSet ? srcSetAllowed(leaf, ctx.adapters) : urlAllowed(leaf) && imageAllowed(leaf, ctx.adapters);
+        const allowed = srcSet ? srcSetAllowed(leaf, ctx.policy) : urlAllowed(leaf) && imageAllowed(leaf, ctx.policy);
         if (allowed) return leaf;
         if (last?.kind === "key") return refuseImage(last.key, path + pointer, leaf);
         return resolver.drop("refused-url", path + pointer, `The host's image policy refuses "${leaf}".`);
@@ -348,9 +365,11 @@ export function buildProps(
 
   if (contract.dialog === true) {
     const id = typeof dialogId === "string" && dialogId.length > 0 ? dialogId : `#${scope.path}`;
+    // A node still streaming may not have its props yet (they can follow its children).
+    const pending = !ctx.streaming.complete && ctx.streaming.pending.has(scope.path);
     const seed = props.defaultOpen === true;
     delete props.defaultOpen;
-    props.open = ctx.dialogs.isOpen(id, seed);
+    props.open = ctx.dialogs.isOpen(id, seed, pending);
     const documentHandler = props.onOpenChange;
     props.onOpenChange = (open: boolean) => {
       ctx.dialogs.setOpen(id, open);
@@ -358,7 +377,7 @@ export function buildProps(
       return undefined;
     };
   }
-  for (const [prop, read] of Object.entries(own(HOST_PROPS, name) ?? {})) props[prop] = read(env);
+  for (const [prop, read] of Object.entries(ownValue(HOST_PROPS, name) ?? NONE)) props[prop] = read(ctx.policy);
 
   return { props, leading, waiting, failure };
 }

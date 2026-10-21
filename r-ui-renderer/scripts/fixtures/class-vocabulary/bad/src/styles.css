@@ -8,6 +8,11 @@
     border-width: 0px;
   }
 
+  .r-renderer-blend {
+    color: color-mix(in oklch, var(--C-TEXT-SERIOUS-LIGHT), var(--C-TEXT-SERIOUS-DARK) calc(var(--SCHEME-DARK) * 50%));
+    width: 100%;
+  }
+
   .aurora-card {
     gap: var(--R-SIZE-3);
   }

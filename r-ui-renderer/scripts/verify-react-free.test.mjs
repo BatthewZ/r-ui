@@ -21,17 +21,18 @@ describe("verify:react-free", { timeout: 30_000 }, () => {
     expect(out).toContain('./reference: a .tsx module (JSX imports React): src/reference/index.ts -> src/reference/view.tsx');
     expect(out).toContain('./reference: not in package.json "exports"');
     expect(out).toContain('bin:r-ui-validate: imports "zod": src/cli/r-ui-validate.ts');
+    expect(out).toContain('./examples: imports "lucide-react": src/examples/index.ts');
     // zod is allowed under ./zod, node: builtins everywhere.
     expect(out).not.toContain("./zod:");
     expect(out).not.toContain("node:fs");
-    expect(out).toMatch(/— 5 problem\(s\)/);
+    expect(out).toMatch(/— 6 problem\(s\)/);
   });
 
-  it("passes comments, node builtins, zod under ./zod and React code no entry reaches", () => {
+  it("passes comments, node builtins, JSON imports, zod under ./zod and React code no entry reaches", () => {
     const result = run(join(HERE, "fixtures/react-free/good"));
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
-    expect(result.stdout).toMatch(/OK \(5 entries, 8 module\(s\) walked\)/);
+    expect(result.stdout).toMatch(/OK \(6 entries, 11 module\(s\) walked\)/);
   });
 
   it("passes this package", () => {

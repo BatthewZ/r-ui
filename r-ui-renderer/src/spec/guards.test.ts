@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isAction, isFormatMarker, isHandler, isNodeMarker, isRefMarker, nodeKind } from "./guards";
+import { isAction, isFormatMarker, isHandler, isNodeMarker, isOneOf, isRefMarker, nodeKind, ownValue } from "./guards";
 
 describe("markers", () => {
   it("are objects whose only key is the marker's", () => {
@@ -15,6 +15,36 @@ describe("markers", () => {
   it("never reads an inherited key", () => {
     const inherited = Object.create({ $ref: "data.x" }) as object;
     expect(isRefMarker(inherited)).toBe(false);
+  });
+});
+
+describe("a member whose value is undefined (a spec built in JavaScript)", () => {
+  it("is absent, as the schema treats it", () => {
+    expect(isRefMarker({ $ref: "data.x", label: undefined })).toBe(true);
+    expect(isNodeMarker({ $node: undefined })).toBe(false);
+    expect(isAction({ action: "showToast", payload: { title: "Saved" }, extra: undefined })).toBe(true);
+    expect(nodeKind({ component: "Card", $ref: undefined })).toBe("component");
+    expect(nodeKind({ component: undefined, $ref: "data.x" })).toBe("ref");
+  });
+});
+
+describe("ownValue", () => {
+  it("reads own properties only", () => {
+    const record: Record<string, number> = { size: 1 };
+    expect(ownValue(record, "size")).toBe(1);
+    expect(ownValue(record, "constructor")).toBeUndefined();
+    expect(ownValue(record, "__proto__")).toBeUndefined();
+    expect(ownValue(record, "toString")).toBeUndefined();
+  });
+});
+
+describe("isOneOf", () => {
+  it("accepts exactly the list's members", () => {
+    const sizes = ["sm", "md"] as const;
+    expect(isOneOf(sizes, "sm")).toBe(true);
+    expect(isOneOf(sizes, "lg")).toBe(false);
+    expect(isOneOf(sizes, 1)).toBe(false);
+    expect(isOneOf(sizes, "toString")).toBe(false);
   });
 });
 

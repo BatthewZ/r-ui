@@ -38,13 +38,12 @@ async (page) => {
   const opened = await state();
   if (!opened.open || !opened.modal) problems.push(`the dialog is ${opened.open ? "open but not modal" : "not open"}`);
   if ((await hits(checkbox, dialog)) !== true) problems.push("the point at the checkbox's centre does not hit the dialog");
-  if (openerBox) {
-    const behind = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("button")?.textContent?.trim() ?? null, [
-      openerBox.x + openerBox.width / 2,
-      openerBox.y + openerBox.height / 2,
-    ]);
-    if (behind === "Delete workspace…") problems.push("the page behind the modal still takes the pointer at the opening button");
-  }
+  if (!openerBox) throw new Error("harness: the opening button has no box, so the page behind cannot be hit-tested");
+  const behind = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest("button")?.textContent?.trim() ?? null, [
+    openerBox.x + openerBox.width / 2,
+    openerBox.y + openerBox.height / 2,
+  ]);
+  if (behind === "Delete workspace…") problems.push("the page behind the modal still takes the pointer at the opening button");
 
   // 2. a real click ticks the checkbox
   await checkbox.click({ timeout: 5_000 });

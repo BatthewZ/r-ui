@@ -1,25 +1,18 @@
 import { createElement, type ReactNode } from "react";
 
+import { RENDERER_CLASSES } from "../../diagnostics";
+import { isOneOf } from "../../spec/guards";
 import { HEADING_LEVELS, HEADING_SIZES, type HeadingProps } from "../../spec/types";
-import { classes, oneOf, toneClass } from "./tones";
+import { classes, toneClass } from "./tones";
 
-const SIZE_CLASSES: { readonly [S in (typeof HEADING_SIZES)[number]]: string } = {
-  h1: "text-h1",
-  h2: "text-h2",
-  h3: "text-h3",
-  h4: "text-h4",
-  h5: "text-h5",
-  h6: "text-h6",
-};
-
-/** `h1`–`h6` by `level`, sized by `size` (`text-h1`…`text-h6`). */
+/** `h1`–`h6` by `level`, sized by `size` (the level's own when absent). */
 export function Heading(props: HeadingProps & { readonly children?: ReactNode }): ReactNode {
   const { level, size, tone, className, children } = props;
-  const outline = oneOf(HEADING_LEVELS, level) ?? 2;
-  const look = oneOf(HEADING_SIZES, size) ?? HEADING_SIZES[outline - 1] ?? "h2";
+  const outline = HEADING_LEVELS.find((candidate) => candidate === level) ?? 2;
+  const look = isOneOf(HEADING_SIZES, size) ? size : `h${outline}`;
   return createElement(
     `h${outline}`,
-    { className: classes("min-w-0 break-words", SIZE_CLASSES[look], toneClass(tone) ?? "text-fg-primary", className) },
+    { className: classes(RENDERER_CLASSES.heading, `${RENDERER_CLASSES.heading}-${look}`, toneClass(tone), className) },
     children,
   );
 }

@@ -3,7 +3,7 @@ import { Component, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 
 import { createMountProbe, queryDiagnostics, renderThrowing } from "../test-utils";
-import { DIAGNOSTIC_CLASSES } from "./diagnostics";
+import { RENDERER_CLASSES } from "./diagnostics";
 
 class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
@@ -39,7 +39,7 @@ describe("queryDiagnostics", () => {
     render(<p>view</p>);
     const outside = document.createElement("div");
     outside.hidden = true;
-    outside.innerHTML = `<span class="${DIAGNOSTIC_CLASSES.diagnostic} ${DIAGNOSTIC_CLASSES.error}" data-code="render-error" data-path="/root"> Card threw </span>`;
+    outside.innerHTML = `<span class="${RENDERER_CLASSES.diagnostic} ${RENDERER_CLASSES.error}" data-code="render-error" data-path="/root"> Card threw </span>`;
     document.body.append(outside);
     try {
       expect(queryDiagnostics()).toEqual([{ code: "render-error", path: "/root", severity: "error", text: "Card threw" }]);

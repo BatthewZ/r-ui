@@ -16,3 +16,4 @@ that still apply are carried into `AGENTS.md` and the gates.
 | [pg-lessons.md](./pg-lessons.md) | The playground: "settled" is a host-side count, a check route takes its axes from the URL alone, host density through `ViewRenderer`, replay by remounting |
 | [corpus-lessons.md](./corpus-lessons.md) | The corpus and its browser checks: never bend a document to silence a check, "no diagnostics" on a view stuck loading, open every overlay, realistic data finds format gaps, one settled signal |
 | [gate2-lessons.md](./gate2-lessons.md) | The corpus meets the browser: exemptions as contract facts, never advertise a drop, judge built values on the result, the scan knows the library's idioms, look at what no check types |
+| [packaging-lessons.md](./packaging-lessons.md) | The tarball: a JSON import ships four times, check the consumer's shape, documents for checks are not corpus, the measured size |

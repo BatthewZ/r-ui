@@ -22,7 +22,14 @@ describe("formatIssuesForModel", () => {
   it("says when the document is valid, with or without warnings", () => {
     expect(formatIssuesForModel([])).toBe("The document is valid: no issues.");
     expect(formatIssuesForModel([warning]).split("\n")[0]).toBe(
-      "The document is valid, with 1 warning: each names something that will be dropped or will not work.",
+      "The document is valid and renders, with 1 warning: each names something that will be dropped or will not work.",
+    );
+  });
+
+  it("asks for the document again while a warning blocks rendering", () => {
+    const blocking: Issue = { code: "unknown-component", path: "/root/component", severity: "warning", message: "No component is registered as `Crad`." };
+    expect(formatIssuesForModel([warning, blocking]).split("\n")[0]).toBe(
+      "The document is valid but does not render as written: 1 warning of 2 would show a diagnostic or nothing in its place. Fix each one and send the whole document again.",
     );
   });
 

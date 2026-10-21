@@ -1,17 +1,25 @@
 // Prepended to every browser check by `scripts/browser-check.mjs`, inside the
 // check's own `async (page) => …` scope, so each script can call these by name.
-// The runner defines before it: BROWSER_CHECK_HOME (the playground's URL) and
-// CORPUS ({ product, coverage }: document names).
+// The runner defines before it (`lib/wrap.mjs`): BROWSER_CHECK_HOME (the
+// playground's URL), DIAGNOSTIC_SELECTOR and VIEW_SELECTOR (from
+// src/diagnostics.ts; no check spells a renderer class), and CORPUS
+// ({ product, coverage }: document names; controls: name -> the diagnostic
+// codes that control document renders).
+//
+// These live in the check's scope, not the page's: a callback handed to
+// `page.evaluate` gets them as its argument.
 
 /** The viewport every session opens at, and every check is reset to. */
 const VIEWPORT = { width: 1280, height: 900 };
-/** Every document, product first. */
+/** Every corpus document, product first. */
 const CORPUS_NAMES = [...CORPUS.product, ...CORPUS.coverage];
+/** The control documents: not corpus, each rendering the diagnostics CORPUS.controls declares for it. */
+const CONTROL_NAMES = Object.keys(CORPUS.controls);
 
 /**
- * The full-page route for corpus document `name`, with `params` (theme,
- * density, input, stream). Built as text: run-code's scope has the language's
- * globals only, no `URL` or `URLSearchParams`.
+ * The full-page route for document `name` (corpus or control), with `params`
+ * (theme, density, input, stream). Built as text: run-code's scope has the
+ * language's globals only, no `URL` or `URLSearchParams`.
  */
 function viewUrl(name, params = {}) {
   const pairs = [["view", name], ...Object.entries(params).filter(([, value]) => value !== undefined)];
@@ -38,12 +46,14 @@ async function openView(page, name, params = {}, options = {}) {
 
 /** Every renderer diagnostic in the page (`document.body`: overlays render outside the view), hidden ones included. */
 function diagnostics(page) {
-  return page.evaluate(() =>
-    [...document.body.querySelectorAll(".r-renderer-diagnostic")].map((element) => ({
-      code: element.getAttribute("data-code"),
-      path: element.getAttribute("data-path"),
-      text: (element.textContent ?? "").trim().slice(0, 120),
-    })),
+  return page.evaluate(
+    (selector) =>
+      [...document.body.querySelectorAll(selector)].map((element) => ({
+        code: element.getAttribute("data-code"),
+        path: element.getAttribute("data-path"),
+        text: (element.textContent ?? "").trim().slice(0, 120),
+      })),
+    DIAGNOSTIC_SELECTOR,
   );
 }
 

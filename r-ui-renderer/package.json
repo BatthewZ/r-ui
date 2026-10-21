@@ -10,6 +10,8 @@
     "dist",
     "src",
     "!src/**/*.test.*",
+    "!src/**/*.json",
+    "!src/examples/controls",
     "VIEWSPEC.md",
     "AGENTS.md",
     "CHANGELOG.md",
@@ -50,6 +52,10 @@
       "types": "./dist/zod/index.d.ts",
       "import": "./dist/zod/index.js"
     },
+    "./examples": {
+      "types": "./dist/examples/index.d.ts",
+      "import": "./dist/examples/index.js"
+    },
     "./styles": {
       "style": "./dist/styles.css",
       "default": "./dist/styles.css"
@@ -62,6 +68,7 @@
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest",
+    "validate": "bun src/cli/r-ui-validate.ts",
     "derive:contracts": "node scripts/derive-contracts.mjs",
     "derive:classes": "node scripts/derive-class-vocabulary.mjs",
     "derive:schema": "bun scripts/generate-schema.mjs",

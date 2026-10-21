@@ -5,15 +5,12 @@ import type { RenderContext } from "../runtime/context";
 export interface ViewEnv {
   /** The host's locale (its LocaleProvider), for FormatSpecs; the runtime's default when absent. */
   readonly locale: string | undefined;
-  /** URL prefixes Markdown may load images from (its `imageAllowlist`); none by default. */
-  readonly markdownImageAllowlist: readonly string[];
   /** Forms the document declares: a `Form` naming one whose handle has not mounted yet waits. */
   readonly formNames: ReadonlySet<string>;
 }
 
 export const DEFAULT_VIEW_ENV: ViewEnv = Object.freeze({
   locale: undefined,
-  markdownImageAllowlist: Object.freeze([]),
   formNames: new Set<string>(),
 });
 

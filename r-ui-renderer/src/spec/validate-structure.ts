@@ -12,7 +12,7 @@
  * disagreeing.
  */
 
-import { isPlainObject } from "./guards";
+import { isPlainObject, ownValue } from "./guards";
 import { makeIssue } from "./issue";
 import { appendPointer } from "./pointer";
 import { ISSUE_CODE_INFO, type Issue, type IssueCode, type JsonPrimitive } from "./types";
@@ -216,7 +216,8 @@ export class SchemaInterpreter {
 
   /** The schema a key's value answers to, or undefined when none constrains it. */
   private propertySchema(schema: SchemaDef, key: string): SchemaDef | undefined {
-    if (schema.properties !== undefined && Object.hasOwn(schema.properties, key)) return schema.properties[key];
+    const declared = schema.properties === undefined ? undefined : ownValue(schema.properties, key);
+    if (declared !== undefined) return declared;
     for (const [pattern, child] of Object.entries(schema.patternProperties ?? {})) if (this.regex(pattern).test(key)) return child;
     return schema.additionalProperties === false ? undefined : schema.additionalProperties;
   }

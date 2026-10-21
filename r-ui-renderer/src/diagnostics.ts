@@ -8,7 +8,7 @@
 
 import type { IssueCode, IssueSeverity } from "./spec/types";
 
-export const DIAGNOSTIC_CLASSES = {
+export const RENDERER_CLASSES = {
   /** The view root element. */
   view: "r-renderer-view",
   /** Every diagnostic element, shown in place or listed in the issue log. */
@@ -21,12 +21,19 @@ export const DIAGNOSTIC_CLASSES = {
   issueLog: "r-renderer-issue-log",
   /** The placeholder a pending node renders when the view opts into one. */
   pending: "r-renderer-pending",
+  /** The built-ins. A prop's value appends to its base: `r-renderer-text-body-2`, `r-renderer-heading-h3`. */
+  text: "r-renderer-text",
+  heading: "r-renderer-heading",
+  icon: "r-renderer-icon",
+  /** Prefixes, on any built-in: `r-renderer-tone-muted`, `r-renderer-weight-medium`. */
+  tone: "r-renderer-tone",
+  weight: "r-renderer-weight",
 } as const;
 
-export const DIAGNOSTIC_SELECTOR = `.${DIAGNOSTIC_CLASSES.diagnostic}`;
+export const DIAGNOSTIC_SELECTOR = `.${RENDERER_CLASSES.diagnostic}`;
 
 function severityClass(severity: IssueSeverity): string {
-  return severity === "error" ? DIAGNOSTIC_CLASSES.error : DIAGNOSTIC_CLASSES.warning;
+  return severity === "error" ? RENDERER_CLASSES.error : RENDERER_CLASSES.warning;
 }
 
 /** What every diagnostic element carries: its classes (plus `extraClass`), `data-code` and, when known, `data-path`. */
@@ -34,7 +41,7 @@ export function diagnosticAttributes(
   issue: { readonly code: IssueCode; readonly severity: IssueSeverity; readonly path?: string },
   extraClass?: string,
 ): { readonly className: string; readonly "data-code": IssueCode; readonly "data-path"?: string } {
-  const className = [DIAGNOSTIC_CLASSES.diagnostic, severityClass(issue.severity), extraClass].filter(Boolean).join(" ");
+  const className = [RENDERER_CLASSES.diagnostic, severityClass(issue.severity), extraClass].filter(Boolean).join(" ");
   return issue.path === undefined ? { className, "data-code": issue.code } : { className, "data-code": issue.code, "data-path": issue.path };
 }
 
@@ -55,7 +62,7 @@ export function findDiagnostics(root: ParentNode): FoundDiagnostic[] {
   return [...root.querySelectorAll(DIAGNOSTIC_SELECTOR)].map((element) => ({
     code: element.getAttribute("data-code") as IssueCode | null,
     path: element.getAttribute("data-path"),
-    severity: element.classList.contains(DIAGNOSTIC_CLASSES.error) ? "error" : "warning",
+    severity: element.classList.contains(RENDERER_CLASSES.error) ? "error" : "warning",
     text: element.textContent?.trim() ?? "",
   }));
 }

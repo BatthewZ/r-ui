@@ -2,9 +2,10 @@ import { Skeleton } from "@batthewz/r-ui-react-components";
 import { createElement, Fragment, isValidElement, type ReactNode } from "react";
 
 import { contractFor, exclusionFor } from "../contracts";
-import { DIAGNOSTIC_CLASSES } from "../diagnostics";
+import { RENDERER_CLASSES } from "../diagnostics";
 import { lookupComponent } from "../registry/registry";
 import { isFormatMarker, isName, isPlainObject, isRefMarker, nodeKind } from "../spec/guards";
+import { errorMessage } from "../spec/errors";
 import { makeIssue } from "../spec/issue";
 import { appendPointer } from "../spec/pointer";
 import { LIMITS } from "../spec/policy";
@@ -14,11 +15,11 @@ import { isPending } from "../stream/pending";
 import { Icon } from "./builtins/Icon";
 import { fieldSegments } from "./coerce";
 import { evaluateCondition } from "./conditions";
-import { errorMessage, placeDiagnostic, reportIssue } from "./diagnostic";
+import { placeDiagnostic, reportIssue } from "./diagnostic";
 import { glyphFor } from "./icon-context";
 import { memoised, type Slot } from "./memo";
 import { NodeBoundary } from "./NodeBoundary";
-import { buildProps, iconElement } from "./props";
+import { buildProps, iconElement, sensitiveAllowed } from "./props";
 import { PropResolver } from "./resolve";
 import { childScope, refScopeOf, type Scope } from "./scope";
 import { readValue, valueText } from "../runtime/resolve";
@@ -51,7 +52,7 @@ function keyed(result: ReactNode, key: string | undefined): ReactNode {
 function pendingFallback(scope: Scope, slot: Slot): ReactNode {
   const { streaming } = scope.ctx;
   if (streaming.complete || streaming.fallback === "none" || slot.structural) return null;
-  return createElement(Skeleton, { key: slot.key, className: DIAGNOSTIC_CLASSES.pending });
+  return createElement(Skeleton, { key: slot.key, className: RENDERER_CLASSES.pending });
 }
 
 function renderAt(node: unknown, scope: Scope, slot: Slot): ReactNode {
@@ -140,15 +141,43 @@ function renderEach(node: Record<string, unknown>, source: string, scope: Scope,
     }
     return { boundary: slot.boundary, structural: slot.structural, key };
   };
-  const rendered = items.map((item: unknown, index) =>
-    renderAt(node.node, itemScope(scope, alias, item, index), itemSlot(index, item)),
-  );
+  const rendered = items.map((item: unknown, index) => renderAt(node.node, itemScope(scope, items, alias, index), itemSlot(index, item)));
   return keyed(rendered, slot.key);
 }
 
-/** The scope an `$each` item renders in: `alias` and `<alias>Index` bound. */
-function itemScope(scope: Scope, alias: string, item: unknown, index: number): Scope {
-  return childScope(scope, ["node"], { [alias]: item, [`${alias}Index`]: index });
+interface ItemVars {
+  readonly alias: string;
+  readonly item: unknown;
+  readonly vars: Scope["vars"];
+}
+
+/** Per list and enclosing vars, each position's last vars. */
+const itemVarsCache = new WeakMap<readonly unknown[], WeakMap<Scope["vars"], ItemVars[]>>();
+
+/**
+ * The scope an `$each` item renders in: `alias` and `<alias>Index` bound. The
+ * same item at the same position of the same list gets the same vars object,
+ * which the memo compares by identity: a fresh one would re-render every
+ * item's subtree on every pass (each chunk, while an item's node streams).
+ */
+function itemScope(scope: Scope, items: readonly unknown[], alias: string, index: number): Scope {
+  let byVars = itemVarsCache.get(items);
+  if (byVars === undefined) {
+    byVars = new WeakMap();
+    itemVarsCache.set(items, byVars);
+  }
+  let positions = byVars.get(scope.vars);
+  if (positions === undefined) {
+    positions = [];
+    byVars.set(scope.vars, positions);
+  }
+  const item = items[index];
+  let entry = positions[index];
+  if (entry === undefined || entry.alias !== alias || !Object.is(entry.item, item)) {
+    entry = { alias, item, vars: { ...scope.vars, [alias]: item, [`${alias}Index`]: index } };
+    positions[index] = entry;
+  }
+  return { ...childScope(scope, ["node"]), vars: entry.vars };
 }
 
 function condBranch(node: Record<string, unknown>, scope: Scope): "then" | "else" {
@@ -163,10 +192,6 @@ function renderCond(node: Record<string, unknown>, scope: Scope, slot: Slot): Re
   return renderAt(node[branch], childScope(scope, [branch]), slot);
 }
 
-function sensitiveAllowed(allow: boolean | readonly string[], name: string): boolean {
-  return allow === true || (Array.isArray(allow) && allow.includes(name));
-}
-
 function renderComponent(node: Record<string, unknown>, name: string, scope: Scope, slot: Slot): ReactNode {
   const { ctx } = scope;
   const place = (code: "unknown-component" | "not-addressable" | "sensitive-component", message: string) =>
@@ -179,7 +204,7 @@ function renderComponent(node: Record<string, unknown>, name: string, scope: Sco
       : place("not-addressable", `${name} is not available to documents: ${exclusion.why}`);
   }
   const contract = contractFor(ctx.contracts, name) ?? EMPTY_CONTRACT;
-  if (contract.sensitive === true && !sensitiveAllowed(ctx.allowSensitive, name)) {
+  if (contract.sensitive === true && !sensitiveAllowed(ctx.policy.allowSensitive, name)) {
     return place("sensitive-component", `${name} renders only where the host allows it.`);
   }
 
@@ -193,8 +218,9 @@ function renderComponent(node: Record<string, unknown>, name: string, scope: Sco
 
   const structural = contract.structuralChildren === true || (typeof props.as === "string" && STRUCTURAL_ELEMENTS.has(props.as));
   const children = renderChildren(node, contract, scope, structural);
-  const all = built.leading.length > 0 ? [...built.leading, ...(children ?? [])] : children;
-  const elementKey = slot.boundary ? undefined : slot.key;
+  const all = built.leading === undefined ? children : [built.leading, ...(children ?? [])];
+  const key = presenceKey(node, scope, slot);
+  const elementKey = slot.boundary ? undefined : key;
   const element =
     all === undefined || all.length === 0
       ? createElement(Component, { ...props, key: elementKey })
@@ -204,7 +230,7 @@ function renderComponent(node: Record<string, unknown>, name: string, scope: Sco
   return createElement(
     NodeBoundary,
     {
-      key: slot.key,
+      key,
       path: scope.path,
       report: ctx.report,
       structural: slot.structural,
@@ -212,6 +238,16 @@ function renderComponent(node: Record<string, unknown>, name: string, scope: Sco
     },
     element,
   );
+}
+
+/**
+ * The slot's key, marked (and made unique by the path) while the node has no
+ * props. A node shows once its children begin, so props written after them
+ * arrive at a component already mounted without them: the changed key
+ * remounts it once, and it ends as the whole document renders.
+ */
+function presenceKey(node: Record<string, unknown>, scope: Scope, slot: Slot): string | undefined {
+  return node.props === undefined ? `${slot.key ?? ""}~${scope.path}` : slot.key;
 }
 
 /** The node's children, or undefined when it has none (a `children` prop then stands). */
@@ -243,7 +279,7 @@ function nodeText(node: unknown, scope: Scope): string {
     const items = readValue(node.$each, refs);
     if (!Array.isArray(items)) return "";
     const alias = node.as;
-    return items.map((item: unknown, index) => nodeText(node.node, itemScope(scope, alias, item, index))).join("");
+    return items.map((_item: unknown, index) => nodeText(node.node, itemScope(scope, items, alias, index))).join("");
   }
   if (Object.hasOwn(node, "$cond")) {
     const branch = condBranch(node, scope);

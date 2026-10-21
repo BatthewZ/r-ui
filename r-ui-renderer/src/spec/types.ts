@@ -506,7 +506,7 @@ export const ISSUE_CODE_INFO = {
   "invalid-node": { severity: "error", summary: "A node matches none of the node shapes." },
   "invalid-ref": { severity: "error", summary: "A reference path is malformed." },
   "invalid-name": { severity: "error", summary: "A name breaks the name rules or is reserved." },
-  "too-deep": { severity: "error", summary: "Nested beyond what a checker's call stack can walk (thousands of levels); not validated." },
+  "too-deep": { severity: "error", summary: "Arrays and objects nested past `LIMITS.jsonDepth`; neither validated nor rendered." },
   "limit-exceeded": { severity: "warning", summary: "Past a limit (depth, handler chain); the excess is not rendered or run." },
   "undeclared-name": { severity: "warning", summary: "A reference, form, field, dialog or binding name nothing declares." },
   "unknown-component": { severity: "warning", summary: "A component name nothing registers." },
@@ -563,9 +563,44 @@ export interface Issue {
   readonly column?: number;
 }
 
+/**
+ * Warning codes that leave a diagnostic, or nothing, where the document asked
+ * for something: a document with one is not renderable as written. Every
+ * error blocks too.
+ */
+export const BLOCKING_CODES = [
+  "unknown-component",
+  "not-addressable",
+  "misplaced-part",
+  "undeclared-name",
+  "limit-exceeded",
+  "sensitive-component",
+  "unknown-icon",
+] as const satisfies readonly IssueCode[];
+
+/**
+ * `ok`: the document conforms (no error; with `strict`, no issue at all).
+ * `renderable`: no error and no `BLOCKING_CODES` warning, so it renders with
+ * no diagnostic. Regenerate until it is.
+ */
 export type ValidationResult =
-  | { readonly ok: true; readonly spec: ViewSpec; readonly issues: readonly Issue[] }
-  | { readonly ok: false; readonly spec?: undefined; readonly issues: readonly Issue[] };
+  | { readonly ok: true; readonly renderable: boolean; readonly spec: ViewSpec; readonly issues: readonly Issue[] }
+  | { readonly ok: false; readonly renderable: boolean; readonly spec?: undefined; readonly issues: readonly Issue[] };
+
+// ---------------------------------------------------------------------------
+// Host policy: what the host allows a document, read alike by the renderer
+// and the validator.
+
+export interface HostPolicy {
+  /** Every request the document asks for (`api` bindings, `apiCall`). Absent: same origin as the page. */
+  readonly allowUrl?: (url: URL) => boolean;
+  /** Every image the document makes the browser fetch. Absent: same origin, or a `data:` raster image. */
+  readonly allowImageUrl?: (url: URL) => boolean;
+  /** URL prefixes Markdown may load images from (its own allowlist, not `allowImageUrl`). Absent: none. */
+  readonly markdownImages?: readonly string[];
+  /** Sensitive components and values (passwords, one-time codes, card details): all, none (the default), or these component names. */
+  readonly allowSensitive?: boolean | readonly string[];
+}
 
 // ---------------------------------------------------------------------------
 // Contracts: what the renderer, the validator and the reference know about a
@@ -626,6 +661,8 @@ export interface ComponentContract {
   readonly slots?: readonly string[];
   /** Props bounded to a closed set. */
   readonly propEnums?: { readonly [prop: string]: readonly (string | number | boolean)[] };
+  /** Object props whose keys are a closed set (Grid's `columns`: `base`, `@sm`, …; `labels`); any other key does nothing. */
+  readonly recordKeys?: { readonly [prop: string]: readonly string[] };
   /** URL props beyond the universal names (`href`, `src`, …), including nested and renamed ones. */
   readonly urlProps?: readonly PropPath[];
   /** URLs the browser fetches as images, at any depth; they pass `allowImageUrl`. */

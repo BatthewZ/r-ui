@@ -1,7 +1,10 @@
 import { defaultContracts, extendContracts } from "../contracts";
+import { errorMessage } from "../spec/errors";
 import { formatIssuesForModel, issueLocation } from "../spec/format-issues";
-import { isPlainObject } from "../spec/guards";
-import { type ComponentContract, type ComponentContracts, FORMAT_VERSION, type Issue } from "../spec/types";
+import { isOneOf, isPlainObject, ownValue } from "../spec/guards";
+import { validationResponseBody } from "../spec/handler";
+import { type ComponentContract, type ComponentContracts, FORMAT_VERSION, type HostPolicy, type Issue } from "../spec/types";
+import { defaultAllowImageUrl, defaultAllowUrl, originBase } from "../spec/url-policy";
 import { validateViewSpec } from "../spec/validate";
 
 export const USAGE = `Usage: r-ui-validate [file | -] [options]
@@ -12,15 +15,22 @@ Validates a ViewSpec document (format version ${FORMAT_VERSION}). A surrounding 
 fence is ignored. With no file and no --raw, reads standard input.
 
 Options:
-  --raw <json>         Validate this text instead of a file.
-  --format <format>    text (default), json, or model (feedback for a producer).
-  --contracts <file>   A JSON object of contracts to add (name -> contract).
-  --origin <url>       The host's origin, for the request and image URL checks.
-  --strict             Warnings fail too.
-  -h, --help           Show this help.
+  --raw <json>            Validate this text instead of a file.
+  --format <format>       text (default), json (the validation handler's body), or
+                          model (feedback for a producer).
+  --contracts <file>      A JSON object of contracts to add (name -> contract).
+  --icons <file|list>     The host's icon names: a .json file holding an array of
+                          names, or a comma-separated list. The shipped set by default.
+  --origin <url>          The host's origin, for the request and image URL checks.
+  --allow-origin <url>    Another origin the host allows requests and images from
+                          (repeatable).
+  --allow-sensitive       The host allows sensitive components and values.
+  --strict                Warnings fail too.
+  -h, --help              Show this help.
 
 Exit status: 0 valid, 1 not valid (or warnings with --strict), 2 usage or input
-error, 3 internal error (a bug in r-ui-validate, not in the document).
+error (an empty document included), 3 internal error (a bug in r-ui-validate,
+not in the document).
 `;
 
 export const OUTPUT_FORMATS = ["text", "json", "model"] as const;
@@ -33,7 +43,12 @@ export interface CliArgs {
   readonly raw?: string;
   readonly format: OutputFormat;
   readonly contracts?: string;
+  /** A `.json` file of icon names, or a comma-separated list. */
+  readonly icons?: string;
   readonly origin?: string;
+  /** Origins (as `URL.origin`) the host allows requests and images from. */
+  readonly allowOrigins: readonly string[];
+  readonly allowSensitive: boolean;
   readonly strict: boolean;
 }
 
@@ -55,25 +70,34 @@ export function internalErrorReport(error: unknown): string {
   return `${INTERNAL_ERROR}${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`;
 }
 
-const VALUE_FLAGS = new Set(["--raw", "--format", "--contracts", "--origin"]);
+const VALUE_FLAGS = new Set(["--raw", "--format", "--contracts", "--icons", "--origin"]);
 
-function isOutputFormat(value: string): value is OutputFormat {
-  return OUTPUT_FORMATS.some((format) => format === value);
+function parseOrigin(flag: string, value: string): string {
+  if (!URL.canParse(value)) throw new UsageError(`${flag} must be a URL ("https://app.example"), not ${JSON.stringify(value)}.`);
+  return new URL(value).origin;
 }
 
 /** The arguments, or a UsageError naming what is wrong. */
 export function parseArgs(argv: readonly string[]): CliArgs {
   let help = false;
   let strict = false;
+  let allowSensitive = false;
   let format: OutputFormat = "text";
   let file: string | undefined;
   const values = new Map<string, string>();
+  const allowOrigins: string[] = [];
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i] as string;
     if (arg === "-h" || arg === "--help") help = true;
     else if (arg === "--strict") strict = true;
-    else if (VALUE_FLAGS.has(arg)) {
+    else if (arg === "--allow-sensitive") allowSensitive = true;
+    else if (arg === "--allow-origin") {
+      const value = argv[i + 1];
+      if (value === undefined) throw new UsageError(`${arg} needs a value.`);
+      allowOrigins.push(parseOrigin(arg, value));
+      i += 1;
+    } else if (VALUE_FLAGS.has(arg)) {
       const value = argv[i + 1];
       if (value === undefined) throw new UsageError(`${arg} needs a value.`);
       if (values.has(arg)) throw new UsageError(`${arg} given twice.`);
@@ -86,13 +110,13 @@ export function parseArgs(argv: readonly string[]): CliArgs {
 
   const formatValue = values.get("--format");
   if (formatValue !== undefined) {
-    if (!isOutputFormat(formatValue)) throw new UsageError(`--format must be one of ${OUTPUT_FORMATS.join(", ")}.`);
+    if (!isOneOf(OUTPUT_FORMATS, formatValue)) throw new UsageError(`--format must be one of ${OUTPUT_FORMATS.join(", ")}.`);
     format = formatValue;
   }
   const raw = values.get("--raw");
   if (raw !== undefined && file !== undefined) throw new UsageError("Give a file or --raw, not both.");
   const origin = values.get("--origin");
-  if (origin !== undefined && !URL.canParse(origin)) throw new UsageError(`--origin must be a URL ("https://app.example"), not ${JSON.stringify(origin)}.`);
+  if (origin !== undefined) parseOrigin("--origin", origin);
 
   return {
     help,
@@ -100,7 +124,10 @@ export function parseArgs(argv: readonly string[]): CliArgs {
     raw,
     format,
     contracts: values.get("--contracts"),
+    icons: values.get("--icons"),
     origin,
+    allowOrigins,
+    allowSensitive,
     strict,
   };
 }
@@ -128,6 +155,7 @@ const CONTRACT_FIELD_SHAPES: { readonly [K in keyof Required<ComponentContract>]
   props: { list: "propDoc" },
   slots: strings,
   propEnums: { record: { list: "scalar" } },
+  recordKeys: { record: strings },
   urlProps: strings,
   imageProps: strings,
   dateProps: { record: "string" },
@@ -190,13 +218,34 @@ async function readContracts(path: string, io: CliIO): Promise<ComponentContract
   }
   for (const [name, contract] of Object.entries(parsed as Record<string, Record<string, unknown>>)) {
     for (const [field, value] of Object.entries(contract)) {
-      const shape = Object.hasOwn(CONTRACT_FIELD_SHAPES, field) ? CONTRACT_FIELD_SHAPES[field as keyof ComponentContract] : undefined;
+      const shape = ownValue<Shape>(CONTRACT_FIELD_SHAPES, field);
       if (shape === undefined) throw new UsageError(`${path}: ${name}.${field} is not a contract field.`);
       const problem = shapeProblem(value, shape, `${name}.${field}`);
       if (problem !== undefined) throw new UsageError(`${path}: ${problem}`);
     }
   }
   return extendContracts(defaultContracts, parsed as { readonly [name: string]: Partial<ComponentContract> });
+}
+
+async function readIcons(value: string, io: CliIO): Promise<string[]> {
+  if (!value.endsWith(".json")) return value.split(",").map((name) => name.trim()).filter((name) => name !== "");
+  const parsed: unknown = JSON.parse(await io.readFile(value));
+  if (!Array.isArray(parsed) || !parsed.every((name) => typeof name === "string")) {
+    throw new UsageError(`${value} must be a JSON array of icon names.`);
+  }
+  return parsed;
+}
+
+/** The host policy the flags describe: the default policies, widened by each `--allow-origin`. */
+function policyOf(args: CliArgs): HostPolicy {
+  if (args.allowOrigins.length === 0) return { allowSensitive: args.allowSensitive };
+  const base = originBase(args.origin);
+  const allowed = new Set(args.allowOrigins);
+  return {
+    allowUrl: (url) => defaultAllowUrl(url, base) || allowed.has(url.origin),
+    allowImageUrl: (url) => defaultAllowImageUrl(url, base) || allowed.has(url.origin),
+    allowSensitive: args.allowSensitive,
+  };
 }
 
 function formatText(issues: readonly Issue[]): string {
@@ -226,23 +275,26 @@ export async function main(argv: readonly string[], io: CliIO): Promise<number> 
 
   let text: string;
   let contracts: ComponentContracts | undefined;
+  let iconNames: string[] | undefined;
   try {
     if (args.raw !== undefined) text = args.raw;
     else if (args.file !== undefined && args.file !== "-") text = await io.readFile(args.file);
     else if (io.stdinIsTTY && args.file === undefined) throw new UsageError("No document: give a file, --raw, or pipe one in.");
     else text = await io.readStdin();
+    if (text.trim() === "") throw new UsageError("No document: the input is empty.");
     contracts = args.contracts === undefined ? undefined : await readContracts(args.contracts, io);
+    iconNames = args.icons === undefined ? undefined : await readIcons(args.icons, io);
   } catch (error) {
-    io.stderr(`${error instanceof Error ? error.message : String(error)}\n`);
+    io.stderr(`${errorMessage(error)}\n`);
     return 2;
   }
 
   let output: string;
-  let failed: boolean;
+  let ok: boolean;
   try {
-    const result = validateViewSpec(text, { contracts, origin: args.origin });
-    failed = !result.ok || (args.strict && result.issues.length > 0);
-    if (args.format === "json") output = `${JSON.stringify({ ok: result.ok, issues: result.issues }, null, 2)}\n`;
+    const result = validateViewSpec(text, { contracts, iconNames, origin: args.origin, policy: policyOf(args), strict: args.strict });
+    ok = result.ok;
+    if (args.format === "json") output = `${JSON.stringify(validationResponseBody(result), null, 2)}\n`;
     else if (args.format === "model") output = `${formatIssuesForModel(result.issues)}\n`;
     else output = formatText(result.issues);
   } catch (error) {
@@ -251,5 +303,5 @@ export async function main(argv: readonly string[], io: CliIO): Promise<number> 
   }
 
   io.stdout(output);
-  return failed ? 1 : 0;
+  return ok ? 0 : 1;
 }

@@ -1,7 +1,8 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
 
+import { errorMessage } from "../spec/errors";
 import { createViewSpecParser, type ViewSpecParser } from "./parser";
-import { EMPTY_SNAPSHOT, type StreamSnapshot } from "./snapshot";
+import { EMPTY_SNAPSHOT, runOf, stampRun, type StreamSnapshot } from "./snapshot";
 
 /**
  * Chunks of a document: strings, or bytes decoded as UTF-8. A `Response` is
@@ -20,10 +21,6 @@ function isResponse(source: ViewSpecSource): source is Response {
 
 function isReadableStream(source: ViewSpecSource): source is ReadableStream<Chunk> {
   return "getReader" in source && typeof source.getReader === "function";
-}
-
-function reasonOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function ignore(): void {}
@@ -92,7 +89,7 @@ class StreamFeed {
       }
       this.stop();
     } catch (error) {
-      this.stop(`The stream failed: ${reasonOf(error)}`);
+      this.stop(`The stream failed: ${errorMessage(error)}`);
     }
   }
 
@@ -143,7 +140,10 @@ class StreamFeed {
 
 function withMessage(snapshot: StreamSnapshot, message: string): StreamSnapshot {
   const { spec, complete, pending, error } = snapshot;
-  return error === undefined ? snapshot : { spec, complete, pending, error: { ...error, message } };
+  if (error === undefined) return snapshot;
+  const run = runOf(snapshot);
+  const copy = { spec, complete, pending, error: { ...error, message } };
+  return run === undefined ? copy : stampRun(copy, run);
 }
 
 const feeds = new WeakMap<object, StreamFeed>();
@@ -176,31 +176,53 @@ export function useViewSpecStream(source: ViewSpecSource | null | undefined): St
   return useSyncExternalStore(subscribe, getSnapshot, emptySnapshot);
 }
 
+/** How much of the previous text an update compares: a growing text is checked by its length and this tail. */
+const TAIL = 64;
+
 /**
  * The parser behind `useTextStream`, kept equal to the last text it was
- * given: growth pushes the new part, any other change starts over.
+ * given: growth pushes the new part, any other change starts over. Growth is
+ * judged by length and a bounded tail, so a host re-rendering per character
+ * costs O(chunk), not O(text); the whole text is compared once, on complete,
+ * and an edit the tail missed starts over there.
  */
-class TextFeed {
+export class TextFeed {
   private readonly parser = createViewSpecParser();
   private text = "";
+  /** Everything pushed since the last start. */
+  private fed = "";
   private ended = false;
 
   update(text: string | undefined, complete: boolean): StreamSnapshot {
     if (text === undefined) return EMPTY_SNAPSHOT;
     if (text !== this.text || (this.ended && !complete)) {
-      if (!this.ended && text.startsWith(this.text)) this.parser.push(text.slice(this.text.length));
-      else {
-        this.parser.reset();
-        this.ended = false;
-        this.parser.push(text);
-      }
+      if (!this.ended && this.grows(text)) {
+        const added = text.slice(this.text.length);
+        this.parser.push(added);
+        this.fed += added;
+      } else this.start(text);
       this.text = text;
     }
     if (complete && !this.ended) {
+      if (this.fed !== text) this.start(text);
       this.ended = true;
       this.parser.end();
     }
     return this.parser.snapshot;
+  }
+
+  private grows(text: string): boolean {
+    const previous = this.text;
+    if (text.length < previous.length) return false;
+    const from = Math.max(0, previous.length - TAIL);
+    return text.slice(from, previous.length) === previous.slice(from);
+  }
+
+  private start(text: string): void {
+    this.parser.reset();
+    this.ended = false;
+    this.parser.push(text);
+    this.fed = text;
   }
 }
 

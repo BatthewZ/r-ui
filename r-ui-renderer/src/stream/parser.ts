@@ -1,9 +1,18 @@
 import { isPlainObject } from "../spec/guards";
+import { LIMITS } from "../spec/policy";
 import { COMPONENT_NODE_KEYS, COND_NODE_KEYS, EACH_NODE_KEYS } from "../spec/types";
 import { isJsonWhitespace } from "./fence";
 import { OpenPointers } from "./open-pointers";
 import { PENDING } from "./pending";
-import { EMPTY_SNAPSHOT, NOTHING_PENDING, type PartialDocument, type StreamError, type StreamSnapshot } from "./snapshot";
+import {
+  EMPTY_SNAPSHOT,
+  NOTHING_PENDING,
+  type PartialDocument,
+  stampRun,
+  type StreamError,
+  type StreamRun,
+  type StreamSnapshot,
+} from "./snapshot";
 
 /**
  * A stateful, incremental ViewSpec parser. `push` takes the next chunk and
@@ -353,6 +362,8 @@ class Parser implements ViewSpecParser {
   private error: StreamError | undefined;
   private changed = false;
   private current: StreamSnapshot = EMPTY_SNAPSHOT;
+  /** Stamped on every snapshot of this document (`runOf`); a reset starts a new one. */
+  private run: StreamRun = {};
 
   get snapshot(): StreamSnapshot {
     return this.current;
@@ -373,6 +384,7 @@ class Parser implements ViewSpecParser {
     this.error = undefined;
     this.changed = false;
     this.current = EMPTY_SNAPSHOT;
+    this.run = {};
   }
 
   end(): StreamSnapshot {
@@ -445,6 +457,8 @@ class Parser implements ViewSpecParser {
           else if (code === CLOSE_BRACKET && this.mode === Mode.ArrayFirst) {
             this.closeContainer();
             index += 1;
+          } else if ((code === OPEN_BRACE || code === OPEN_BRACKET) && this.stack.length >= LIMITS.jsonDepth) {
+            return this.fail(index, `Arrays and objects nest more than ${LIMITS.jsonDepth} deep.`, "too-deep");
           } else {
             if (!this.startValue(code)) return this.fail(index, `Expected a value, found ${describeAt(chunk, index)}.`);
             index += 1;
@@ -580,13 +594,17 @@ class Parser implements ViewSpecParser {
 
   // -------------------------------------------------------------------------
 
-  private fail(index: number, message: string): StreamSnapshot {
-    this.error = { code: "invalid-json", message, offset: Math.max(0, this.consumed + index - this.jsonStart) };
+  private fail(index: number, message: string, code: StreamError["code"] = "invalid-json"): StreamSnapshot {
+    this.error = { code, message, offset: Math.max(0, this.consumed + index - this.jsonStart) };
     this.changed = false;
     return (this.current = this.capture());
   }
 
   private capture(): StreamSnapshot {
+    return stampRun(this.view(), this.run);
+  }
+
+  private view(): StreamSnapshot {
     const error = this.error === undefined ? {} : { error: this.error };
     if (this.complete) return { spec: this.root, complete: true, pending: NOTHING_PENDING, ...error };
     if (this.stack.length === 0) return { ...EMPTY_SNAPSHOT, ...error };

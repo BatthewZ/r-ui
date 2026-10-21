@@ -1,6 +1,7 @@
 /**
- * The corpus: documents authored to model the advice VIEWSPEC.md gives, since
- * they are what a model learns the format from. Product documents are pages a
+ * `./examples` (React-free): the corpus, documents authored to model the
+ * advice VIEWSPEC.md gives, since they are what a model learns the format from
+ * (few-shot prompts take them from here). Product documents are pages a
  * real product could ship (realistic data: long names, negative, huge and
  * missing numbers, empty lists); coverage documents, one per component family,
  * together name every addressable component and part. Each name is its file's
@@ -39,7 +40,40 @@ import releaseNotes from "./release-notes.json";
 import settingsForm from "./settings-form.json";
 import teamDirectory from "./team-directory.json";
 
-export const PRODUCT_EXAMPLES = {
+// The names are spelled out rather than inferred from the imports, so the
+// published declarations stay a list of names instead of every document's
+// inferred type.
+export type ProductExampleName =
+  | "analytics-overview"
+  | "incident-report"
+  | "marketing-page"
+  | "ops-dashboard"
+  | "release-notes"
+  | "settings-form"
+  | "team-directory";
+export type CoverageExampleName =
+  | "builtin"
+  | "charts"
+  | "content"
+  | "data"
+  | "dates"
+  | "disclosure"
+  | "feedback"
+  | "filters"
+  | "form"
+  | "layout"
+  | "marketing"
+  | "media"
+  | "motion"
+  | "navigation"
+  | "overlays"
+  | "primitives"
+  | "steps"
+  | "toolbar";
+export type ExampleName = ProductExampleName | CoverageExampleName;
+
+/** Pages a real product could ship. */
+export const PRODUCT_EXAMPLES: { readonly [name in ProductExampleName]: unknown } = {
   "analytics-overview": analyticsOverview,
   "incident-report": incidentReport,
   "marketing-page": marketingPage,
@@ -47,9 +81,10 @@ export const PRODUCT_EXAMPLES = {
   "release-notes": releaseNotes,
   "settings-form": settingsForm,
   "team-directory": teamDirectory,
-} as const;
+};
 
-export const COVERAGE_EXAMPLES = {
+/** One document per component family; together they name every addressable component and part. */
+export const COVERAGE_EXAMPLES: { readonly [name in CoverageExampleName]: unknown } = {
   builtin: coverageBuiltin,
   charts: coverageCharts,
   content: coverageContent,
@@ -68,11 +103,7 @@ export const COVERAGE_EXAMPLES = {
   primitives: coveragePrimitives,
   steps: coverageSteps,
   toolbar: coverageToolbar,
-} as const;
-
-export type ProductExampleName = keyof typeof PRODUCT_EXAMPLES;
-export type CoverageExampleName = keyof typeof COVERAGE_EXAMPLES;
-export type ExampleName = ProductExampleName | CoverageExampleName;
+};
 
 export const EXAMPLES: { readonly [name in ExampleName]: unknown } = { ...PRODUCT_EXAMPLES, ...COVERAGE_EXAMPLES };
 

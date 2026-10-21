@@ -1,17 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createFormRegistry } from "../forms/registry";
-import type { Handler, Issue } from "../spec/types";
+import type { Handler, HostPolicy, Issue } from "../spec/types";
 import { ActionFailure, createActionDispatcher } from "./actions";
 import type { RendererAdapters } from "./adapters";
 import type { DispatchContext } from "./context";
+import { resolvePolicy } from "./policy";
 import { setAtPath, stateSegments } from "./state";
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
 
-function setup(options: { adapters?: RendererAdapters; complete?: boolean; state?: Record<string, unknown> } = {}) {
+function setup(options: { adapters?: RendererAdapters; policy?: HostPolicy; complete?: boolean; state?: Record<string, unknown> } = {}) {
   const issues: Issue[] = [];
   let state: { readonly [key: string]: unknown } = options.state ?? {};
   const open = new Map<string, boolean>();
@@ -21,13 +22,15 @@ function setup(options: { adapters?: RendererAdapters; complete?: boolean; state
     getRoots: () => ({ data: { user: { id: "u1" } }, status: { user: "ready" }, state, forms: {} }),
     setState: (path, value, setOptions) => {
       const segments = stateSegments(path);
-      if (segments === null) return false;
-      state = setAtPath(state, segments, value, setOptions);
+      const next = segments === null ? null : setAtPath(state, segments, value, setOptions);
+      if (next === null) return false;
+      state = next;
       return true;
     },
     forms: createFormRegistry(),
     dialogs: { isOpen: (id) => open.get(id) ?? false, setOpen: (id, next) => void open.set(id, next) },
     getAdapters: () => adapters,
+    getPolicy: () => resolvePolicy(options.policy),
     report: (issue) => void issues.push(issue),
     isComplete: () => complete,
     format: (value, spec) => `${spec.style}:${String(value)}`,
@@ -108,6 +111,18 @@ describe("the dispatcher", () => {
     expect(view.codes()).toEqual([["limit-exceeded", "/root/props/onClick"]]);
   });
 
+  it("setState writes into a list at most one past its end, refusing an index that would make it sparse", async () => {
+    const view = setup({ state: { rows: [] } });
+    await view.run({ action: "setState", payload: { path: "state.rows.0", value: { id: 1 } } });
+    await expect(view.run({ action: "setState", payload: { path: "state.rows.4294967294", value: { id: 2 } } })).rejects.toBeInstanceOf(ActionFailure);
+    await expect(view.run({ action: "setState", payload: { path: "state.rows.5.id", value: 3 } })).rejects.toBeInstanceOf(ActionFailure);
+    expect(view.getState()).toEqual({ rows: [{ id: 1 }] });
+    expect(view.codes()).toEqual([
+      ["invalid-ref", "/root/props/onClick/payload/path"],
+      ["invalid-ref", "/root/props/onClick/payload/path"],
+    ]);
+  });
+
   it("opens and closes dialogs by id", async () => {
     const view = setup();
     await view.run({ action: "openDialog", payload: { dialogId: "details" } });
@@ -116,11 +131,11 @@ describe("the dispatcher", () => {
     expect(view.open.get("details")).toBe(false);
   });
 
-  it("navigate goes through the host with the checked URL, and refuses an unsafe scheme", async () => {
+  it("navigate goes through the host with the resolved URL, and refuses an unsafe scheme", async () => {
     const navigate = vi.fn();
     const view = setup({ adapters: { navigate } });
-    await view.run({ action: "navigate", payload: { to: { $ref: "event.value" }, replace: true } }, { args: ["/services/7"] });
-    expect(navigate.mock.calls).toEqual([["/services/7", { replace: true }]]);
+    await view.run({ action: "navigate", payload: { to: { $ref: "event.value" }, replace: true } }, { args: ["  /services/../services/7 "] });
+    expect(navigate.mock.calls).toEqual([[new URL("/services/7", document.baseURI).href, { replace: true }]]);
 
     await expect(view.run({ action: "navigate", payload: { to: "JaVaScript:alert(1)" } })).rejects.toBeInstanceOf(ActionFailure);
     expect(navigate).toHaveBeenCalledTimes(1);
@@ -139,7 +154,7 @@ describe("the dispatcher", () => {
       { args: [3] },
     );
     expect(toast.mock.calls).toEqual([[{ title: "3 of 12 saved" }]]);
-    expect(navigate.mock.calls).toEqual([["/services/3", { replace: false }]]);
+    expect(navigate.mock.calls).toEqual([[new URL("/services/3", document.baseURI).href, { replace: false }]]);
     await expect(view.run({ action: "navigate", payload: { to: { $concat: ["java", { $ref: "event.value" }] } } }, { args: ["script:alert(1)"] })).rejects.toBeInstanceOf(
       ActionFailure,
     );
@@ -147,10 +162,28 @@ describe("the dispatcher", () => {
     expect(view.codes()).toEqual([["refused-url", "/root/props/onClick/payload/to"]]);
   });
 
-  it("navigate without an adapter refuses another origin", async () => {
-    const view = setup();
+  it("navigate goes only where the policy's allowUrl lets requests go: same origin by default", async () => {
+    const navigate = vi.fn();
+    const view = setup({ adapters: { navigate } });
     await expect(view.run({ action: "navigate", payload: { to: "https://evil.test/" } })).rejects.toBeInstanceOf(ActionFailure);
+    expect(navigate).not.toHaveBeenCalled();
     expect(view.codes()).toEqual([["refused-url", "/root/props/onClick/payload/to"]]);
+
+    const allowed = setup({ adapters: { navigate }, policy: { allowUrl: (url) => url.hostname === "docs.aurora.test" } });
+    await allowed.run({ action: "navigate", payload: { to: "https://docs.aurora.test/guide" } });
+    expect(navigate.mock.calls).toEqual([["https://docs.aurora.test/guide", { replace: false }]]);
+  });
+
+  it("navigate without an adapter goes nowhere and says so; the list carries on", async () => {
+    const view = setup();
+    const before = window.location.href;
+    await view.run([
+      { action: "navigate", payload: { to: "/services" } },
+      { action: "setState", payload: { path: "state.after", value: true } },
+    ]);
+    expect(window.location.href).toBe(before);
+    expect(view.codes()).toEqual([["missing-adapter", "/root/props/onClick/0"]]);
+    expect(view.getState()).toEqual({ after: true });
   });
 
   it("showToast sends resolved, formatted text and drops an unknown tone", async () => {
@@ -203,7 +236,7 @@ describe("apiCall", () => {
 
   it("lets the host's allowUrl admit another origin", async () => {
     const fetch = vi.fn(() => Promise.resolve(json({ ok: true })));
-    const view = setup({ adapters: { fetch, allowUrl: (url) => url.hostname === "api.aurora.test" } });
+    const view = setup({ adapters: { fetch }, policy: { allowUrl: (url) => url.hostname === "api.aurora.test" } });
     await view.run({ action: "apiCall", payload: { endpoint: "https://api.aurora.test/v1" } });
     expect(fetch.mock.calls.map((call: unknown[]) => call[0])).toEqual(["https://api.aurora.test/v1"]);
   });

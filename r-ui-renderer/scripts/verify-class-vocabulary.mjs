@@ -10,7 +10,9 @@
 //     in the compiled stylesheet;
 //   - in the stylesheet's own rules: a raw length or colour, a custom property
 //     read that neither the CSS package nor the component library declares, or
-//     a class without the `r-renderer-` prefix.
+//     a class without the `r-renderer-` prefix. The scheme blend the library
+//     prescribes for a -LIGHT/-DARK pair, `calc(var(--SCHEME-DARK) * 100%)`,
+//     is a token read, not a length; any other percentage is one.
 //
 // Usage: node scripts/verify-class-vocabulary.mjs [--root <dir>]
 //   --root checks another tree with the same layout (the test's fixtures).
@@ -27,6 +29,9 @@ import { failWith, PKG, pathArg } from "./lib/gate.mjs";
 const ROOT = pathArg("--root", PKG);
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** The library's -LIGHT/-DARK blend: `--SCHEME-DARK` (0 or 1) as the dark colour's share. */
+const SCHEME_BLEND = /calc\(\s*var\(--SCHEME-DARK\)\s*\*\s*100%\s*\)/g;
 const cssEscape = (s) => s.replace(/[^\w-]/g, (c) => `\\${c}`);
 const hasClassRule = (compiled, cls) => new RegExp(`\\.${escapeRe(cssEscape(cls))}(?![\\w-])`).test(compiled);
 
@@ -60,7 +65,7 @@ for (const { selector, declarations } of ruleBlocks(ownRules(stylesheet))) {
     if (!cls[1].startsWith("r-renderer-")) problems.push(`${selector}: the class \`${cls[1]}\` lacks the r-renderer- prefix`);
   }
   for (const { prop, value } of declarations) {
-    const raw = value.replace(/var\(--[\w-]+\)/g, "");
+    const raw = value.replace(SCHEME_BLEND, "").replace(/var\(--[\w-]+\)/g, "");
     const lengths = [...raw.matchAll(/(?<![\w.-])(\d*\.?\d+)(px|rem|em|%|vh|vw|vi|vb|ch|ex|pt|cqi|cqb|dvh|svh|lvh)(?![\w-])/g)];
     if (lengths.some((length) => Number(length[1]) !== 0)) {
       problems.push(`${selector} { ${prop}: ${value} }: a raw length; use a token`);

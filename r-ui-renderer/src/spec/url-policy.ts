@@ -48,17 +48,35 @@ export function safeUrl(raw: string): string {
  */
 export const NO_LOCATION_BASE = "https://ssr.invalid/";
 
-function currentBase(): string {
-  return typeof globalThis.location === "undefined" ? NO_LOCATION_BASE : globalThis.location.href;
+/** The base a host's origin (`"https://app.example"`) gives relative URLs; `NO_LOCATION_BASE` when absent or unparsable. */
+export function originBase(origin: string | undefined): string {
+  if (origin === undefined) return NO_LOCATION_BASE;
+  try {
+    return `${new URL(origin).origin}/`;
+  } catch {
+    return NO_LOCATION_BASE;
+  }
+}
+
+/** Where the page resolves relative URLs: its `<base href>` when it has one (`document.baseURI`). */
+function resolutionBase(): string {
+  if (typeof document !== "undefined") return document.baseURI;
+  return typeof location === "undefined" ? NO_LOCATION_BASE : location.href;
+}
+
+/** The page's own address, whose origin the default policies allow: never its `<base href>`. */
+function pageBase(): string {
+  return typeof location === "undefined" ? NO_LOCATION_BASE : location.href;
 }
 
 /**
- * `raw` resolved the way a browser will, against `base` (default: the page),
- * or null when it does not parse or its scheme is refused. Origins are judged
- * on this result, never on how the string starts: `/\evil.test` and
- * `/\t/evil.test` both begin with one slash and leave the origin.
+ * `raw` resolved the way a browser will, against `base` (default: the page's
+ * base URL, `<base href>` included), or null when it does not parse or its
+ * scheme is refused. Origins are judged on this result, never on how the
+ * string starts: `/\evil.test` and `/\t/evil.test` both begin with one slash
+ * and leave the origin.
  */
-export function resolveUrl(raw: string, base: string = currentBase()): URL | null {
+export function resolveUrl(raw: string, base: string = resolutionBase()): URL | null {
   if (safeUrl(raw) === "") return null;
   try {
     return new URL(raw, base);
@@ -68,7 +86,7 @@ export function resolveUrl(raw: string, base: string = currentBase()): URL | nul
 }
 
 /** The default request policy: same origin as `base`, which is the page by default. */
-export function defaultAllowUrl(url: URL, base: string = currentBase()): boolean {
+export function defaultAllowUrl(url: URL, base: string = pageBase()): boolean {
   try {
     return url.origin === new URL(base).origin;
   } catch {
@@ -77,7 +95,7 @@ export function defaultAllowUrl(url: URL, base: string = currentBase()): boolean
 }
 
 /** The default image policy: same origin, or a `data:` raster image. */
-export function defaultAllowImageUrl(url: URL, base: string = currentBase()): boolean {
+export function defaultAllowImageUrl(url: URL, base: string = pageBase()): boolean {
   if (url.protocol === "data:") return SAFE_DATA_TYPE.test(url.href);
   return defaultAllowUrl(url, base);
 }

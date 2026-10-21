@@ -27,12 +27,32 @@ function copyStaticAssets(): Plugin {
   };
 }
 
+// A JSON module's map names the .json, which the tarball leaves out (dist
+// holds the data once); with no mappings to give, the chunk ships without one.
+function dropJsonSourceMaps(): Plugin {
+  return {
+    name: "drop-json-source-maps",
+    apply: "build",
+    generateBundle(_, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== "chunk" || !chunk.facadeModuleId?.endsWith(".json")) continue;
+        chunk.code = chunk.code.replace(/\n?\/\/# sourceMappingURL=\S+\s*$/, "\n");
+        chunk.map = null;
+        delete bundle[`${chunk.fileName}.map`];
+      }
+    },
+  };
+}
+
+/** Never built: tests, their helpers, and the control documents the browser checks drive. */
+const UNSHIPPED = ["src/**/*.test.*", "src/**/*.d.ts", "src/examples/controls/**"];
+
 // ESM only; preserveModules so every subpath is its own module graph (the
 // React-free ones must not share a chunk with a React module); every peer is
 // external; .d.ts beside each module.
-const entries = Object.fromEntries(
+export const entries = Object.fromEntries(
   glob
-    .sync("src/**/*.{ts,tsx}", { ignore: ["src/**/*.test.*", "src/**/*.d.ts"] })
+    .sync("src/**/*.{ts,tsx}", { ignore: UNSHIPPED })
     .map((file) => [
       path.relative("src", file.slice(0, file.length - path.extname(file).length)),
       path.resolve(file),
@@ -43,14 +63,16 @@ export default defineConfig({
   plugins: [
     react(),
     dts({
-      include: ["src/**/*"],
-      exclude: ["src/**/*.test.*"],
+      // Code only: a JSON import's declaration would be a second copy of the data.
+      include: ["src/**/*.ts", "src/**/*.tsx"],
+      exclude: UNSHIPPED,
       rollupTypes: false,
       entryRoot: "src",
       outDir: "dist",
       compilerOptions: { declarationMap: true },
     }),
     copyStaticAssets(),
+    dropJsonSourceMaps(),
   ],
   build: {
     lib: {

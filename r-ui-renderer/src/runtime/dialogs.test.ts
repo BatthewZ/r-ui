@@ -17,6 +17,15 @@ describe("useDialogState", () => {
     expect(result.current.isOpen("intro", true)).toBe(false);
   });
 
+  it("reads a streaming node's seed without fixing it: props that arrive later still seed the dialog", () => {
+    const { result } = renderHook(() => useDialogState());
+    // The node is shown before its props have arrived: no `defaultOpen` yet.
+    expect(result.current.isOpen("intro", undefined, true)).toBe(false);
+    expect(result.current.isOpen("intro", true, true)).toBe(true);
+    expect(result.current.isOpen("intro", true)).toBe(true);
+    expect(result.current.isOpen("intro", false)).toBe(true);
+  });
+
   it("keeps its identity until a dialog opens or closes", () => {
     const { result, rerender } = renderHook(() => useDialogState());
     const first = result.current;

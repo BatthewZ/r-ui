@@ -4,6 +4,7 @@
  * case-insensitively: `lowerCaseProp` before any lookup.
  */
 
+import { isOneOf, ownValue } from "./guards";
 import { DENSITIES } from "./types";
 
 export const LIMITS = {
@@ -13,13 +14,24 @@ export const LIMITS = {
   actionDepth: 5,
   /** Actions in one handler list. */
   actionsPerHandler: 10,
-  /** Characters a `pattern` rule tests; a longer value fails the rule. */
+  /**
+   * Characters a `pattern` rule tests; a longer value fails the rule. This
+   * bounds polynomial backtracking only: exponential patterns are refused
+   * outright (`patternProblem`).
+   */
   patternInput: 1000,
   /** `title` length. */
   title: 200,
+  /** JSON nesting (arrays and objects) a document, a value or a stream may reach; deeper is refused. */
+  jsonDepth: 256,
 } as const;
 
-/** Dropped everywhere, in any casing. `on…` props that are not handlers are dropped too. */
+/**
+ * Dropped everywhere, in any casing, as is any name with a `:` (a namespaced
+ * attribute such as `xlink:href`). `on…` props that are not handlers are
+ * dropped too. `ping` sends a request to its URLs on every click, so no
+ * document may set it.
+ */
 export const FORBIDDEN_PROPS = [
   "dangerouslysetinnerhtml",
   "srcdoc",
@@ -29,6 +41,7 @@ export const FORBIDDEN_PROPS = [
   "formtarget",
   "formenctype",
   "formnovalidate",
+  "ping",
   "ref",
   "key",
   "__proto__",
@@ -86,7 +99,7 @@ const FORBIDDEN = new Set<string>(FORBIDDEN_PROPS);
 const ID_REFERENCES = new Set<string>(ID_REFERENCE_PROPS);
 
 export function isForbiddenProp(name: string): boolean {
-  return FORBIDDEN.has(lowerCaseProp(name));
+  return name.includes(":") || FORBIDDEN.has(lowerCaseProp(name));
 }
 
 export function isIdReferenceProp(name: string): boolean {
@@ -95,12 +108,12 @@ export function isIdReferenceProp(name: string): boolean {
 
 /** A `data-*` name a document may set: it matches the pattern and moves no host axis. */
 export function isAllowedDataAttribute(name: string): boolean {
-  return DATA_ATTRIBUTE_PATTERN.test(name) && !DROPPED_DATA_ATTRIBUTES.some((dropped) => dropped === name);
+  return DATA_ATTRIBUTE_PATTERN.test(name) && !isOneOf(DROPPED_DATA_ATTRIBUTES, name);
 }
 
 /** A `data-*` value that passes on: a string, number or boolean, within the attribute's set when it has one. */
 export function isAllowedDataValue(name: string, value: unknown): boolean {
   if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") return false;
-  const allowed = Object.hasOwn(CONSTRAINED_DATA_ATTRIBUTES, name) ? CONSTRAINED_DATA_ATTRIBUTES[name] : undefined;
-  return allowed === undefined || allowed.some((option) => option === value);
+  const allowed = ownValue(CONSTRAINED_DATA_ATTRIBUTES, name);
+  return allowed === undefined || isOneOf(allowed, value);
 }

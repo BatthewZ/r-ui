@@ -9,9 +9,11 @@
  */
 
 import { contractFor, DECLARED_PATHS, exclusionFor, LIBRARY_COMPONENTS } from "../contracts";
-import { type DropReason, dropReason, isControlledValue, nameRole, propDoc, refPropKinds } from "./contract-facts";
+import { type DropReason, dropReason, isControlledValue, isRefusedValue, isSensitiveValue, nameRole, propDoc, refPropKinds, sensitiveAllowed } from "./contract-facts";
+import { coerceFieldValue } from "./form-values";
 import { makeIssue } from "./issue";
-import { isConcatMarker, isFormatMarker, isHandler, isName, isNodeMarker, isPlainObject, isRefMarker, nodeKind } from "./guards";
+import { isConcatMarker, isFormatMarker, isHandler, isName, isNodeMarker, isOneOf, isPlainObject, isRefMarker, nodeKind, ownValue } from "./guards";
+import { patternProblem } from "./patterns";
 import {
   CONSTRAINED_DATA_ATTRIBUTES,
   DATA_ATTRIBUTE_PATTERN,
@@ -35,12 +37,13 @@ import {
   FIELD_TYPES,
   type FieldType,
   HANDLER_KEY_PATTERN,
+  type HostPolicy,
   type Issue,
   type IssueCode,
   type PropPath,
   REF_ROOTS,
 } from "./types";
-import { defaultAllowImageUrl, defaultAllowUrl, NO_LOCATION_BASE, resolveUrl, safeUrl, srcSetUrls } from "./url-policy";
+import { defaultAllowImageUrl, defaultAllowUrl, originBase, resolveUrl, safeUrl, srcSetUrls } from "./url-policy";
 import { isNativeAttribute } from "./validate-attributes";
 import { ADVISORY_DEFS, FORM_STATE_KEYS } from "./validate-schema";
 import { SchemaInterpreter } from "./validate-structure";
@@ -69,7 +72,7 @@ export interface AdviceOptions {
   readonly components: readonly string[];
   readonly icons: readonly string[];
   readonly classes: readonly string[] | null;
-  readonly allowSensitive: boolean | readonly string[];
+  readonly policy: HostPolicy;
   readonly origin?: string;
 }
 
@@ -220,7 +223,7 @@ class Advisor {
 
   private field(field: unknown, path: string): void {
     if (!isPlainObject(field)) return;
-    const type: FieldType = FIELD_TYPES.find((name) => name === field.type) ?? "text";
+    const type: FieldType = isOneOf(FIELD_TYPES, field.type) ? field.type : "text";
     const rules = isPlainObject(field.rules) ? field.rules : {};
     const rulesPath = appendPointer(path, "rules");
     const lengthy = type === "text" || type === "list";
@@ -231,23 +234,30 @@ class Advisor {
       }
     }
     if (typeof rules.pattern === "string") {
-      if (type !== "text") this.warn("unusable-value", appendPointer(rulesPath, "pattern"), `\`pattern\` applies to text fields; this is a ${type} field.`);
-      else if (!compiles(rules.pattern)) this.warn("unusable-value", appendPointer(rulesPath, "pattern"), "Not a regular expression JavaScript can compile.");
+      const problem = type === "text" ? patternProblem(rules.pattern) : `\`pattern\` applies to text fields; this is a ${type} field.`;
+      if (problem !== undefined) this.warn("unusable-value", appendPointer(rulesPath, "pattern"), problem);
     }
     for (const rule of ["min", "max"]) {
       const bound = rules[rule];
       if (bound === undefined) continue;
       const at = appendPointer(rulesPath, rule);
-      if (type === "number" && typeof bound !== "number") this.warn("unusable-value", at, `A number field's \`${rule}\` is a number.`);
-      else if (dated && (typeof bound !== "string" || !isIsoDate(bound))) this.warn("unusable-value", at, `A date field's \`${rule}\` is an ISO date ("2026-11-02").`);
-      else if (type !== "number" && !dated) this.warn("unusable-value", at, `\`${rule}\` applies to number and date fields; this is a ${type} field.`);
+      if (dated) {
+        if (typeof bound !== "string" || !isIsoDate(bound)) this.warn("unusable-value", at, `A date field's \`${rule}\` is an ISO date ("2026-11-02").`);
+      } else if (type === "number" || type === "text") {
+        // A text field's bound applies to its numeric content ("42"), as on a number field.
+        if (typeof bound !== "number") this.warn("unusable-value", at, `A ${type} field's \`${rule}\` is a number.`);
+      } else {
+        this.warn("unusable-value", at, `\`${rule}\` applies to number, text (its numeric content) and date fields; this is a ${type} field.`);
+      }
     }
     const initial = field.initialValue;
     const at = appendPointer(path, "initialValue");
-    if (isRefMarker(initial)) this.ref(initial.$ref, appendPointer(at, "$ref"), ROOT_SCOPE);
-    else if (initial !== undefined && !fitsField(type, initial)) {
-      this.warn("unusable-value", at, `Not a ${type} field's value (${FIELD_VALUE_WORDS[type]}).`);
+    if (isRefMarker(initial)) {
+      this.ref(initial.$ref, appendPointer(at, "$ref"), ROOT_SCOPE);
+      return;
     }
+    const coerced = coerceFieldValue(type, initial);
+    if (!coerced.ok) this.warn("unusable-value", at, `${coerced.reason} The field starts empty.`);
   }
 
   // -------------------------------------------------------------------------
@@ -300,7 +310,7 @@ class Advisor {
     if (!this.known.has(name)) this.unknownComponent(name, at);
     else this.placement(name, contract, at, scope);
     if (contract?.sensitive && !this.sensitiveAllowed(name)) {
-      this.warn("sensitive-component", at, `${name} asks for a secret and renders only where the host allows it (\`allowSensitive\`).`);
+      this.warn("sensitive-component", at, `${name} asks for a secret and renders only where the host allows it (\`policy.allowSensitive\`).`);
     }
 
     const inner = this.innerScope(name, contract, props, path, scope);
@@ -312,7 +322,7 @@ class Advisor {
   }
 
   private unknownComponent(name: string, at: string): void {
-    const exclusion = Object.hasOwn(LIBRARY_COMPONENTS, name) ? exclusionFor(name) : undefined;
+    const exclusion = ownValue(LIBRARY_COMPONENTS, name) === undefined ? undefined : exclusionFor(name);
     if (exclusion !== undefined) {
       this.warn("not-addressable", at, `${name} is not available to documents: ${exclusion.why}`);
       return;
@@ -330,7 +340,7 @@ class Advisor {
         this.warn("misplaced-part", at, `\`${name}\` belongs inside a \`${root}\`.`);
       }
     }
-    const parents = Object.hasOwn(PLACEMENT, name) ? PLACEMENT[name] : undefined;
+    const parents = ownValue(PLACEMENT, name);
     if (parents !== undefined && !parents.some((parent) => scope.ancestors.includes(parent))) {
       this.warn("misplaced-part", at, `\`${name}\` works only inside ${parents.map((parent) => `a \`${parent}\``).join(" or ")}.`);
     }
@@ -340,8 +350,7 @@ class Advisor {
   }
 
   private sensitiveAllowed(name: string): boolean {
-    const allowed = this.options.allowSensitive;
-    return allowed === true || (Array.isArray(allowed) && allowed.includes(name));
+    return sensitiveAllowed(this.options.policy, name);
   }
 
   /** The scope a component's children and its props' nodes see. */
@@ -363,7 +372,7 @@ class Advisor {
       boundField = true;
       this.fieldBinding(props.name, appendPointer(propsAt, "name"), scope.form);
     }
-    const fieldLists = Object.hasOwn(FIELD_LIST_PROPS, name) ? FIELD_LIST_PROPS[name] : undefined;
+    const fieldLists = ownValue(FIELD_LIST_PROPS, name);
     for (const prop of fieldLists ?? []) {
       const names = props?.[prop];
       if (!Array.isArray(names)) continue;
@@ -456,8 +465,15 @@ class Advisor {
       return false;
     }
     if (lower.startsWith("data-")) {
-      this.dataAttribute(key, value, at);
+      if (this.dataAttribute(key, value, at) && contract.nativeAttributes !== true && !isUnchecked(name, contract)) {
+        const part = `${name}.Content`;
+        const onPart = contractFor(this.options.contracts, part)?.nativeAttributes === true ? quote(part) : undefined;
+        this.warn("unknown-prop", at, `${name} renders no element of its own that takes attributes, so \`${key}\` lands nowhere; put it on a part that does.`, onPart);
+      }
       return isMarker(value);
+    }
+    if (!isMarker(value) && isSensitiveValue(name, key, value) && !this.sensitiveAllowed(name)) {
+      this.warn("sensitive-component", at, `\`${key}\`: ${quote(value)} asks for a secret, so ${name} renders only where the host allows it (\`policy.allowSensitive\`).`);
     }
     if (key === "children") {
       this.warn("unknown-prop", at, "Children go in the node's `children` array, not in `props`.");
@@ -488,11 +504,10 @@ class Advisor {
   private takes(name: string, contract: ComponentContract, key: string): boolean {
     if (propDoc(contract, key) !== undefined) return true;
     if (contract.nativeAttributes && isNativeAttribute(key)) return true;
-    const declared = Object.hasOwn(DECLARED_PATHS, name) ? DECLARED_PATHS[name] : undefined;
+    const declared = ownValue(DECLARED_PATHS, name);
     if (key === "className") return contract.nativeAttributes === true || declared?.paths.includes("className") === true;
     if (key === "classNames") return (contract.slots?.length ?? 0) > 0;
-    // A host's own contract that lists no props is unchecked.
-    return contract.props === undefined && declared === undefined && contract.category === "custom";
+    return isUnchecked(name, contract);
   }
 
   /** Checks on a prop's literal (non-marker) value. */
@@ -505,7 +520,8 @@ class Advisor {
     } else if (levels !== undefined && !levels.includes(value as number)) {
       this.warn("invalid-prop-value", at, `\`${key}\` is a heading level: one of ${levels.join(", ")}.`);
     } else if (enums !== undefined && !enums.includes(value as string | number | boolean)) {
-      this.outside(at, `${name}'s \`${key}\` is one of ${enums.map(quote).join(", ")}.`, value, enums);
+      const dropped = isRefusedValue(contract, key, value) ? " The renderer drops any other value." : "";
+      this.outside(at, `${name}'s \`${key}\` is one of ${enums.map(quote).join(", ")}.${dropped}`, value, enums);
     }
     const refKinds = refPropKinds(contract, key);
     if (refKinds !== undefined && !refKinds.includes(typeof value)) {
@@ -515,6 +531,13 @@ class Advisor {
     const intl = contract.intlProps?.[key];
     if (intl !== undefined && typeof value === "string" && !(intl === "currency" ? isCurrencyCode(value) : isIntlUnit(value))) {
       this.warn("invalid-prop-value", at, `Not ${intl === "currency" ? "an ISO 4217 currency code (\"EUR\")" : "a unit Intl formats"}; the renderer drops it.`);
+    }
+    const keys = contract.recordKeys === undefined ? undefined : ownValue(contract.recordKeys, key);
+    if (keys !== undefined && isPlainObject(value)) {
+      for (const member of Object.keys(value)) {
+        if (keys.includes(member)) continue;
+        this.warn("unknown-prop", appendPointer(at, member), `${name}'s \`${key}\` takes the keys ${list(keys)}; \`${member}\` does nothing.`, suggest(member, keys));
+      }
     }
     if (contract.setProps?.includes(key) && !Array.isArray(value)) {
       this.warn("invalid-prop-value", at, `\`${key}\` is a list (an array).`);
@@ -584,16 +607,18 @@ class Advisor {
     }
   }
 
-  private dataAttribute(key: string, value: unknown, at: string): void {
+  /** Checks a `data-*` prop; true when it passes on to the component. */
+  private dataAttribute(key: string, value: unknown, at: string): boolean {
     if (!isAllowedDataAttribute(key)) {
       const why = DATA_ATTRIBUTE_PATTERN.test(key) ? "the host owns that axis" : "`data-*` names are lower-case letters, digits and hyphens";
       this.warn("forbidden-prop", at, `\`${key}\` is dropped: ${why}.`);
-      return;
+      return false;
     }
-    if (isMarker(value) || isAllowedDataValue(key, value)) return;
-    const allowed = Object.hasOwn(CONSTRAINED_DATA_ATTRIBUTES, key) ? CONSTRAINED_DATA_ATTRIBUTES[key] : undefined;
+    if (isMarker(value) || isAllowedDataValue(key, value)) return true;
+    const allowed = ownValue(CONSTRAINED_DATA_ATTRIBUTES, key);
     if (allowed === undefined) this.warn("invalid-prop-value", at, `\`${key}\` is dropped: a \`data-*\` value is a string, number or boolean.`);
     else this.outside(at, `\`${key}\` is one of ${allowed.map(quote).join(", ")}.`, value, allowed);
+    return false;
   }
 
   private classList(text: string, at: string): void {
@@ -863,8 +888,9 @@ class Advisor {
     const candidates = lowerCaseLast(at) === "srcset" ? srcSetUrls(raw) : [raw];
     for (const candidate of candidates) {
       const url = resolveUrl(candidate, this.base);
-      if (url === null || !defaultAllowImageUrl(url, this.base)) {
-        this.warn("refused-url", at, "An image from another origin: the default image policy loads same-origin and data: raster images only (the host may allow more).");
+      if (url === null || !this.allowImage(url)) {
+        const policy = this.options.policy.allowImageUrl === undefined ? "the default image policy loads same-origin and data: raster images only" : "the host's `allowImageUrl` refuses it";
+        this.warn("refused-url", at, `An image the host does not load: ${policy}.`);
         return;
       }
     }
@@ -874,9 +900,20 @@ class Advisor {
     const url = safeUrl(raw) === "" ? null : resolveUrl(raw, this.base);
     if (url === null) {
       this.warn("refused-url", at, "Refused: an endpoint is a relative or same-origin http(s) URL.");
-    } else if (!defaultAllowUrl(url, this.base)) {
-      this.warn("refused-url", at, "Another origin: requests go to the view's own origin unless the host's `allowUrl` allows more.");
+    } else if (!this.allowRequest(url)) {
+      const policy = this.options.policy.allowUrl === undefined ? "requests go to the view's own origin unless the host's `allowUrl` allows more" : "the host's `allowUrl` refuses it";
+      this.warn("refused-url", at, `A request the host does not send: ${policy}.`);
     }
+  }
+
+  private allowImage(url: URL): boolean {
+    const allow = this.options.policy.allowImageUrl;
+    return allow === undefined ? defaultAllowImageUrl(url, this.base) : allow(url);
+  }
+
+  private allowRequest(url: URL): boolean {
+    const allow = this.options.policy.allowUrl;
+    return allow === undefined ? defaultAllowUrl(url, this.base) : allow(url);
   }
 }
 
@@ -906,48 +943,9 @@ function lowerCaseLast(pointer: string): string {
   return lowerCaseProp(pointer.slice(pointer.lastIndexOf("/") + 1));
 }
 
-function originBase(origin: string | undefined): string {
-  if (origin === undefined) return NO_LOCATION_BASE;
-  try {
-    return `${new URL(origin).origin}/`;
-  } catch {
-    return NO_LOCATION_BASE;
-  }
-}
-
-function compiles(pattern: string): boolean {
-  try {
-    new RegExp(pattern);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const FIELD_VALUE_WORDS: { readonly [T in FieldType]: string } = {
-  text: "a string",
-  number: "a number or null",
-  boolean: "true or false",
-  date: 'an ISO date ("2026-11-02") or null',
-  dateRange: '{ "start", "end" } of ISO dates, or null',
-  list: "an array of strings",
-};
-
-function fitsField(type: FieldType, value: unknown): boolean {
-  switch (type) {
-    case "text":
-      return typeof value === "string";
-    case "number":
-      return value === null || typeof value === "number";
-    case "boolean":
-      return typeof value === "boolean";
-    case "date":
-      return value === null || (typeof value === "string" && isIsoDate(value));
-    case "dateRange":
-      return value === null || (isPlainObject(value) && ["start", "end"].every((end) => fitsField("date", value[end])));
-    case "list":
-      return Array.isArray(value) && value.every((item) => typeof item === "string");
-  }
+/** A host's own contract that lists no props: known, but its props are unchecked. */
+function isUnchecked(name: string, contract: ComponentContract): boolean {
+  return contract.props === undefined && ownValue(DECLARED_PATHS, name) === undefined && contract.category === "custom";
 }
 
 /** Every warning `doc` raises. */

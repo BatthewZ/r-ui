@@ -1,11 +1,13 @@
-import { appendPointer, parsePointer } from "../spec/pointer";
+import { appendPointer } from "../spec/pointer";
 
 /**
  * The pointers of the open values: the document and each open value below it,
- * one chain. `has` walks the chain's tokens, so a hostile nesting depth costs
- * nothing until someone iterates (which spells every pointer out).
+ * one chain. `has` compares against the deepest pointer, spelled once on first
+ * use: a caller asking about every sibling pays a string prefix test each,
+ * never a parse. Iterating spells every pointer out.
  */
 export class OpenPointers implements ReadonlySet<string> {
+  private deepest: string | undefined;
   private spelled: Set<string> | undefined;
 
   /** `tokens[i]` is the key or index of the open value at depth `i + 1`. */
@@ -15,10 +17,11 @@ export class OpenPointers implements ReadonlySet<string> {
     return this.tokens.length + 1;
   }
 
+  /** `pointer` as `appendPointer` spells it. */
   has(pointer: string): boolean {
-    const tokens = parsePointer(pointer);
-    if (tokens === null || tokens.length > this.tokens.length) return false;
-    return tokens.every((token, index) => token === String(this.tokens[index]));
+    if (pointer === "") return true;
+    const deepest = (this.deepest ??= this.tokens.reduce<string>(appendPointer, ""));
+    return deepest.startsWith(pointer) && (deepest.length === pointer.length || deepest.charCodeAt(pointer.length) === 0x2f);
   }
 
   forEach(callback: (value: string, key: string, set: ReadonlySet<string>) => void, thisArg?: unknown): void {

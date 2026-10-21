@@ -16,20 +16,30 @@ describe("createValidationHandler", () => {
     const handle = createValidationHandler();
     const good = await handle(post(valid));
     expect(good.status).toBe(200);
-    expect(await json(good)).toEqual({ ok: true, issues: [], feedback: "The document is valid: no issues." });
+    expect(await json(good)).toEqual({ ok: true, renderable: true, issues: [], feedback: "The document is valid: no issues.", spec: JSON.parse(valid) });
+
+    const fenced = await json(await handle(post(`\`\`\`json\n${valid}\n\`\`\``)));
+    expect(fenced.spec).toEqual(JSON.parse(valid));
 
     const bad = await handle(post('{"version": 2}'));
     expect(bad.status).toBe(200);
     const body = await json(bad);
-    expect(body.ok).toBe(false);
+    expect(body).toMatchObject({ ok: false, renderable: false });
+    expect(body).not.toHaveProperty("spec");
     expect(body.issues.map((issue) => [issue.code, issue.path])).toEqual([["missing-key", ""], ["missing-key", ""]]);
     expect(body.feedback.split("\n")[0]).toBe("The document is not valid: 2 errors, 0 warnings. Fix each one and send the whole document again.");
   });
 
-  it("passes the validation options through", async () => {
+  it("passes the validation options through: the host's policy, strict", async () => {
     const doc = JSON.stringify({ version: 2, title: "t", root: { component: "Card", props: { className: "p-4" } } });
     expect((await json(await createValidationHandler()(post(doc)))).issues.map((issue) => issue.code)).toEqual(["unknown-class"]);
     expect((await json(await createValidationHandler({ classes: false })(post(doc)))).issues).toEqual([]);
+    expect(await json(await createValidationHandler({ strict: true })(post(doc)))).toMatchObject({ ok: false, renderable: true });
+
+    const secret = JSON.stringify({ version: 2, title: "t", root: { component: "PasswordInput" } });
+    expect((await json(await createValidationHandler()(post(secret)))).renderable).toBe(false);
+    const allowed = await json(await createValidationHandler({ policy: { allowSensitive: ["PasswordInput"] } })(post(secret)));
+    expect(allowed).toMatchObject({ ok: true, renderable: true, issues: [] });
   });
 
   it("refuses other methods with 405 and an Allow header", async () => {

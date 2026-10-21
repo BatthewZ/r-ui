@@ -1,5 +1,5 @@
 import { formatIssuesForModel } from "./format-issues";
-import type { Issue } from "./types";
+import type { Issue, ValidationResult, ViewSpec } from "./types";
 import { type ValidateOptions, validateViewSpec } from "./validate";
 
 export interface ValidationHandlerOptions extends ValidateOptions {
@@ -7,12 +7,23 @@ export interface ValidationHandlerOptions extends ValidateOptions {
   readonly maxBytes?: number;
 }
 
-/** The JSON body of a validation response (status 200, valid or not). */
+/** The JSON body of a validation response (status 200, valid or not), and of `r-ui-validate --format json`. */
 export interface ValidationResponseBody {
+  /** As `ValidationResult.ok`: no error (with `strict`, no issue). */
   readonly ok: boolean;
+  /** As `ValidationResult.renderable`: no error and no blocking warning. */
+  readonly renderable: boolean;
   readonly issues: readonly Issue[];
   /** `formatIssuesForModel(issues)`, ready to hand back to the producer. */
   readonly feedback: string;
+  /** The parsed document (a surrounding code fence stripped), when `ok`. */
+  readonly spec?: ViewSpec;
+}
+
+/** A validation result as the response body: the handler's and the CLI's one shape. */
+export function validationResponseBody(result: ValidationResult): ValidationResponseBody {
+  const body = { ok: result.ok, renderable: result.renderable, issues: result.issues, feedback: formatIssuesForModel(result.issues) };
+  return result.ok ? { ...body, spec: result.spec } : body;
 }
 
 const JSON_HEADERS = { "content-type": "application/json; charset=utf-8" };
@@ -50,7 +61,8 @@ async function readCapped(request: Request, maxBytes: number): Promise<string | 
 
 /**
  * A fetch-style handler: POST a document as the body, get a
- * `ValidationResponseBody`. 405 for other methods, 413 past `maxBytes`.
+ * `ValidationResponseBody`. 405 for other methods, 413 past `maxBytes`. The
+ * options are `validateViewSpec`'s (the host's `policy`, `strict`, …).
  */
 export function createValidationHandler(options: ValidationHandlerOptions = {}): (request: Request) => Promise<Response> {
   const { maxBytes = 1024 * 1024, ...validateOptions } = options;
@@ -58,8 +70,6 @@ export function createValidationHandler(options: ValidationHandlerOptions = {}):
     if (request.method !== "POST") return reply(405, { error: "POST a ViewSpec document as the request body." }, { allow: "POST" });
     const text = await readCapped(request, maxBytes);
     if (text === null) return reply(413, { error: `The document is over ${maxBytes} bytes.` });
-    const result = validateViewSpec(text, validateOptions);
-    const body: ValidationResponseBody = { ok: result.ok, issues: result.issues, feedback: formatIssuesForModel(result.issues) };
-    return reply(200, body);
+    return reply(200, validationResponseBody(validateViewSpec(text, validateOptions)));
   };
 }

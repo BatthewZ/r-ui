@@ -1,4 +1,4 @@
-import { defaultAllowUrl, resolveUrl } from "../spec/url-policy";
+import { resolveUrl } from "../spec/url-policy";
 import type { JsonValue } from "../spec/types";
 import type { RendererAdapters } from "./adapters";
 
@@ -32,13 +32,12 @@ const NO_BODY: ReadonlySet<string> = new Set(["GET", "DELETE"]);
 /**
  * The request a plan describes, or why it may not be made. The endpoint's
  * origin is judged on the URL it resolves to (never on how the string
- * starts), by the host's `allowUrl` or, without one, same-origin.
+ * starts), by the policy's `allowUrl`.
  */
-export function prepareRequest(plan: RequestPlan, adapters: RendererAdapters): PreparedRequest {
+export function prepareRequest(plan: RequestPlan, allowUrl: (url: URL) => boolean): PreparedRequest {
   const url = resolveUrl(plan.endpoint);
   if (url === null) return { ok: false, message: `"${plan.endpoint}" is not an allowed URL.` };
-  const allow = adapters.allowUrl ?? defaultAllowUrl;
-  if (!allow(url)) return { ok: false, message: `Requests to ${url.origin} are not allowed.` };
+  if (!allowUrl(url)) return { ok: false, message: `Requests to ${url.origin} are not allowed.` };
 
   const unusable: string[] = [];
   if (typeof plan.query === "object" && plan.query !== null && !Array.isArray(plan.query)) {

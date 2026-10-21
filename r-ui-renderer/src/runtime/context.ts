@@ -7,6 +7,7 @@ import type {
   EventValueKind,
   FormRefState,
   Handler,
+  HostPolicy,
   Issue,
 } from "../spec/types";
 import type { RendererAdapters } from "./adapters";
@@ -46,8 +47,12 @@ export type ActionDispatcher = (handler: Handler, context: DispatchContext) => P
 
 /** Open state of dialog components, by `dialogId`; a boolean from the first render. */
 export interface DialogState {
-  /** `initial` seeds an id seen for the first time (a node's `defaultOpen`). */
-  isOpen(dialogId: string, initial?: boolean): boolean;
+  /**
+   * `initial` seeds an id seen for the first time (a node's `defaultOpen`).
+   * `pending`: the asking node is still streaming, so its props may be
+   * incomplete; the seed is read but not recorded.
+   */
+  isOpen(dialogId: string, initial?: boolean, pending?: boolean): boolean;
   setOpen(dialogId: string, open: boolean): void;
 }
 
@@ -63,13 +68,18 @@ export interface StreamingState {
   readonly fallback: StreamingFallback;
 }
 
+/** The host's policy with every default filled in (`resolvePolicy`): what the renderer reads. */
+export type ResolvedPolicy = Readonly<Required<HostPolicy>>;
+
 /** Everything `renderNode` reads, built once per render of the view root. */
 export interface RenderContext {
   readonly registry: ComponentRegistry;
   readonly contracts: ComponentContracts;
   readonly icons: IconSet | undefined;
+  /** Effects only: navigation, toasts, network, named sources. */
   readonly adapters: RendererAdapters;
-  readonly allowSensitive: boolean | readonly string[];
+  /** What the document may reach: URLs, images, Markdown images, sensitive components and values. */
+  readonly policy: ResolvedPolicy;
   readonly roots: RefRoots;
   readonly forms: FormHandles;
   readonly dialogs: DialogState;

@@ -2,9 +2,10 @@ import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { parsePartialViewSpec } from "./parser";
 import { PENDING } from "./pending";
-import type { StreamSnapshot } from "./snapshot";
-import { useTextStream, useViewSpecStream, type ViewSpecSource } from "./use-view-spec-stream";
+import { runOf, type StreamSnapshot } from "./snapshot";
+import { TextFeed, useTextStream, useViewSpecStream, type ViewSpecSource } from "./use-view-spec-stream";
 
 const DOCUMENT = {
   version: 2,
@@ -80,6 +81,54 @@ describe("useTextStream", () => {
   it("parses nothing without text", () => {
     const { result } = renderHook(() => useTextStream(undefined, true));
     expect(result.current).toEqual({ spec: undefined, complete: false, pending: new Set() });
+  });
+});
+
+describe("TextFeed", () => {
+  /** A document of about `size` characters, many small closed members. */
+  function documentOf(size: number): string {
+    const rows = Array.from({ length: Math.ceil(size / 24) }, (_, index) => ({ id: index, ok: true }));
+    return JSON.stringify({ version: 2, title: "Rows", data: { rows: { type: "static", value: rows } }, root: { component: "Text", children: ["x"] } });
+  }
+
+  function feedByCharacter(text: string): number {
+    const feed = new TextFeed();
+    const started = performance.now();
+    for (let end = 1; end <= text.length; end += 1) feed.update(text.slice(0, end), false);
+    expect(feed.update(text, true).complete).toBe(true);
+    return performance.now() - started;
+  }
+
+  it("costs each update the characters it adds, not the whole text again", () => {
+    const small = documentOf(50_000);
+    const large = documentOf(200_000);
+    const best = (text: string) => Math.min(feedByCharacter(text), feedByCharacter(text));
+    // Four times the text a character at a time: linear work about 4x, re-reading the whole text per update about 16x.
+    expect(best(large) / best(small)).toBeLessThan(8);
+  }, 60_000);
+
+  it("catches an edit the cheap growth check cannot see once the text is complete", () => {
+    const titled = (title: string) => JSON.stringify({ version: 2, title, description: "d".repeat(200), root: DOCUMENT.root });
+    const original = titled("First title");
+    const edited = titled("Other title");
+    const feed = new TextFeed();
+    const cut = original.indexOf('"root"');
+    feed.update(original.slice(0, cut), false);
+    // Same length so far and the same tail: it reads as growth.
+    feed.update(edited.slice(0, cut + 10), false);
+    const done = feed.update(edited, true);
+    expect(done.spec).toEqual(JSON.parse(edited));
+    expect(done.spec).toEqual(parsePartialViewSpec(edited).spec);
+  });
+
+  it("starts a new run on every restart, and keeps it while the text grows", () => {
+    const feed = new TextFeed();
+    const first = runOf(feed.update(TEXT.slice(0, 20), false));
+    expect(first).toBeDefined();
+    expect(runOf(feed.update(TEXT, true))).toBe(first);
+    const second = runOf(feed.update(JSON.stringify({ ...DOCUMENT, title: "B" }), true));
+    expect(second).toBeDefined();
+    expect(second).not.toBe(first);
   });
 });
 

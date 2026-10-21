@@ -57,7 +57,7 @@ describe("the r-ui-validate bin", () => {
     expect([good.status, good.stdout, good.stderr]).toEqual([0, "valid: no issues\n", ""]);
     const bad = run(["bad.json", "--format", "json"]);
     expect(bad.status).toBe(1);
-    expect(JSON.parse(bad.stdout)).toEqual({ ok: false, issues: [{ code: "missing-key", path: "", severity: "error", message: "Missing `root`." }] });
+    expect(JSON.parse(bad.stdout)).toMatchObject({ ok: false, renderable: false, issues: [{ code: "missing-key", path: "", severity: "error", message: "Missing `root`." }] });
   });
 
   it("reads --raw and standard input", () => {
@@ -76,5 +76,7 @@ describe("the r-ui-validate bin", () => {
     const missing = run(["nowhere.json"]);
     expect(missing.status).toBe(2);
     expect(missing.stdout).toBe("");
+    const empty = run([], "");
+    expect([empty.status, empty.stdout, empty.stderr]).toEqual([2, "", "No document: the input is empty.\n"]);
   });
 });

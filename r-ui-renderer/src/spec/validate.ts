@@ -1,9 +1,9 @@
 import { defaultContracts } from "../contracts";
-import type { ComponentContracts, Issue, ValidationResult, ViewSpec } from "./types";
+import { isBlocking } from "./issue";
+import type { ComponentContracts, HostPolicy, Issue, ValidationResult, ViewSpec } from "./types";
 import { adviseDocument } from "./validate-advice";
 import { findNonJson, parseText } from "./validate-json";
 import { VIEWSPEC_SCHEMA } from "./validate-schema";
-import { makeIssue } from "./issue";
 import { SchemaInterpreter } from "./validate-structure";
 import { CLASS_VOCABULARY, ICON_NAMES } from "./vocabulary";
 
@@ -13,19 +13,32 @@ export interface ValidateOptions {
    * origin checks. Absent: only relative URLs count as same-origin.
    */
   readonly origin?: string;
+  /** The host's policy, as the renderer is given it: its URL predicates and `allowSensitive`. */
+  readonly policy?: HostPolicy;
+  /** Warnings fail too: `ok` is false when there is any issue. */
+  readonly strict?: boolean;
   /** The full contract set; `defaultContracts` when absent (extend it with `extendContracts`). */
   readonly contracts?: ComponentContracts;
   /** Names the host registers without a contract; they are known but unchecked. */
   readonly components?: readonly string[];
   /** Icon names the host's icon set has; the shipped set when absent. */
-  readonly icons?: readonly string[];
+  readonly iconNames?: readonly string[];
   /** The class vocabulary; the shipped one when absent, `false` to skip `unknown-class`. */
   readonly classes?: readonly string[] | false;
-  /** Mirrors the renderer's `allowSensitive`: allowed names raise no `sensitive-component`. */
-  readonly allowSensitive?: boolean | readonly string[];
 }
 
 const STRUCTURE = new SchemaInterpreter(VIEWSPEC_SCHEMA.$defs);
+
+function parse(input: unknown): { value: unknown; issue?: undefined } | { value?: undefined; issue: Issue } {
+  if (typeof input !== "string") {
+    const notJson = findNonJson(input);
+    return notJson === undefined ? { value: input } : { issue: notJson };
+  }
+  const parsed = parseText(input);
+  if (parsed.issue !== undefined) return parsed;
+  const tooDeep = findNonJson(parsed.value);
+  return tooDeep === undefined ? parsed : { issue: tooDeep };
+}
 
 /**
  * Validates a document. A string is JSON text (a surrounding Markdown code
@@ -33,38 +46,26 @@ const STRUCTURE = new SchemaInterpreter(VIEWSPEC_SCHEMA.$defs);
  * line and column; anything else is the parsed value. Pure and React-free.
  *
  * Errors (conformance, exactly what `schema.json` and `./zod` decide) come
- * first, then warnings; `ok` is true when there is no error.
+ * first, then warnings; `ok` is true when there is no error (with `strict`,
+ * no issue), and `renderable` when no issue blocks rendering.
  */
 export function validateViewSpec(input: unknown, options: ValidateOptions = {}): ValidationResult {
-  let value: unknown;
-  if (typeof input === "string") {
-    const parsed = parseText(input);
-    if (parsed.issue !== undefined) return { ok: false, issues: [parsed.issue] };
-    value = parsed.value;
-  } else {
-    const notJson = findNonJson(input);
-    if (notJson !== undefined) return { ok: false, issues: [notJson] };
-    value = input;
-  }
+  const parsed = parse(input);
+  if (parsed.issue !== undefined) return { ok: false, renderable: false, issues: [parsed.issue] };
+  const { value } = parsed;
 
-  let errors: Issue[];
-  let warnings: Issue[];
-  try {
-    errors = STRUCTURE.validate(VIEWSPEC_SCHEMA, value, "");
-    warnings = adviseDocument(value, {
-      contracts: options.contracts ?? defaultContracts,
-      components: options.components ?? [],
-      icons: options.icons ?? ICON_NAMES,
-      classes: options.classes === false ? null : (options.classes ?? CLASS_VOCABULARY),
-      allowSensitive: options.allowSensitive ?? false,
-      origin: options.origin,
-    });
-  } catch (error) {
-    if (!(error instanceof RangeError)) throw error;
-    // The call stack ran out: nesting far past any limit the format sets.
-    return { ok: false, issues: [makeIssue("too-deep", "", "Nested too deep to check (thousands of levels); the renderer stops at 50 nodes.")] };
-  }
+  const errors = STRUCTURE.validate(VIEWSPEC_SCHEMA, value, "");
+  const warnings = adviseDocument(value, {
+    contracts: options.contracts ?? defaultContracts,
+    components: options.components ?? [],
+    icons: options.iconNames ?? ICON_NAMES,
+    classes: options.classes === false ? null : (options.classes ?? CLASS_VOCABULARY),
+    policy: options.policy ?? {},
+    origin: options.origin,
+  });
 
   const issues = [...errors, ...warnings];
-  return errors.length === 0 ? { ok: true, spec: value as ViewSpec, issues } : { ok: false, issues };
+  const renderable = !issues.some(isBlocking);
+  const ok = options.strict === true ? issues.length === 0 : errors.length === 0;
+  return ok ? { ok, renderable, spec: value as ViewSpec, issues } : { ok, renderable, issues };
 }

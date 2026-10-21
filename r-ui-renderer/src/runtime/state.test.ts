@@ -25,8 +25,15 @@ describe("setAtPath", () => {
     expect(setAtPath({ count: 3 }, ["count", "x"], 1)).toEqual({ count: { x: 1 } });
   });
 
+  it("appends at a list's length and refuses any index past it, at any depth", () => {
+    expect(setAtPath({ rows: ["a"] }, ["rows", "1"], "b")).toEqual({ rows: ["a", "b"] });
+    expect(setAtPath({ rows: ["a"] }, ["rows", "2"], "c")).toBeNull();
+    expect(setAtPath({ rows: [] }, ["rows", "4294967294"], "x")).toBeNull();
+    expect(setAtPath({ rows: [{ tags: [] }] }, ["rows", "0", "tags", "3"], "x")).toBeNull();
+  });
+
   it("never writes through a prototype", () => {
-    const next = setAtPath({}, ["toString", "x"], 1);
+    const next = setAtPath({}, ["toString", "x"], 1) ?? {};
     expect(Object.hasOwn(next, "toString")).toBe(true);
     expect(({} as Record<string, unknown>).x).toBeUndefined();
   });

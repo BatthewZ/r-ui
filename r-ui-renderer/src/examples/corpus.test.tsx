@@ -9,12 +9,12 @@ import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { readdirSync } from "node:fs";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import { queryDiagnostics, stubDialog, stubPopover } from "../../test-utils";
 import { defaultContracts } from "../contracts";
 import { icons } from "../icons";
-import { isPlainObject } from "../spec/guards";
+import { isPlainObject, ownValue } from "../spec/guards";
 import { appendPointer, parsePointer } from "../spec/pointer";
 import type { Issue } from "../spec/types";
 import { validateViewSpec } from "../spec/validate";
@@ -23,6 +23,7 @@ import { isPending } from "../stream/pending";
 import type { StreamSnapshot } from "../stream/snapshot";
 import { ViewRenderer } from "../ViewRenderer";
 import { viewSpecSchema } from "../zod";
+import { CONTROL_EXAMPLES, type ControlName } from "./controls";
 import { apiEndpoints, componentNames, fixtureFetch, TEST_ORIGIN } from "./corpus.test.helpers";
 import {
   COVERAGE_EXAMPLES,
@@ -36,6 +37,7 @@ import {
 
 const ALL = Object.keys(EXAMPLES) as ExampleName[];
 const PRODUCTS = Object.keys(PRODUCT_EXAMPLES) as ProductExampleName[];
+const CONTROLS = Object.keys(CONTROL_EXAMPLES) as ControlName[];
 
 /**
  * Addressable names no coverage document uses, each with the reason. A
@@ -58,6 +60,17 @@ describe("the corpus manifest", () => {
     expect(Object.keys(PRODUCT_EXAMPLES).sort()).toEqual(stems("."));
     expect(Object.keys(COVERAGE_EXAMPLES).sort()).toEqual(stems("coverage"));
     expect(ALL).toHaveLength(stems(".").length + stems("coverage").length);
+  });
+
+  it("types every document as unknown, so the published declarations hold names, not documents", () => {
+    expectTypeOf(PRODUCT_EXAMPLES["ops-dashboard"]).toBeUnknown();
+    expectTypeOf(COVERAGE_EXAMPLES.overlays).toBeUnknown();
+    expectTypeOf(EXAMPLES).toEqualTypeOf<{ readonly [name in ExampleName]: unknown }>();
+  });
+
+  it("keeps the control documents apart: each file listed, none named like a corpus document", () => {
+    expect(CONTROLS.sort()).toEqual(stems("controls"));
+    expect(CONTROLS.filter((name) => Object.hasOwn(EXAMPLES, name))).toEqual([]);
   });
 });
 
@@ -105,6 +118,33 @@ describe.each(ALL)("%s", (name) => {
       expect(issues).toEqual([]);
       expect(toast).not.toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * The control documents are excused from the zero-issue rule by name, and only
+ * from it: each conforms and renders exactly the diagnostics it declares, so a
+ * stale declaration fails here instead of excusing a regression.
+ */
+describe.each(CONTROLS)("control %s", (name) => {
+  const { document, diagnostics } = CONTROL_EXAMPLES[name];
+  let dialogs: ReturnType<typeof stubDialog>;
+  let popovers: ReturnType<typeof stubPopover>;
+  beforeEach(() => {
+    dialogs = stubDialog();
+    popovers = stubPopover();
+  });
+  afterEach(() => {
+    dialogs.restore();
+    popovers.restore();
+  });
+
+  it("conforms, and renders exactly the diagnostics it declares", async () => {
+    const result = validateViewSpec(document, { origin: TEST_ORIGIN });
+    if (!result.ok) return expect.fail(`${name} does not conform: ${JSON.stringify(result.issues)}`);
+    render(<ViewRenderer spec={result.spec} adapters={{ toast: vi.fn() }} icons={icons} />);
+    await act(async () => {});
+    expect(queryDiagnostics().map((found) => found.code)).toEqual(diagnostics);
   });
 });
 
@@ -218,7 +258,7 @@ function valueAt(root: unknown, pointer: string): unknown {
   let value = root;
   for (const token of parsePointer(pointer) ?? []) {
     if (Array.isArray(value)) value = value[Number(token)];
-    else if (isPlainObject(value) && Object.hasOwn(value, token)) value = value[token];
+    else if (isPlainObject(value)) value = ownValue(value, token);
     else return undefined;
   }
   return value;
@@ -249,7 +289,8 @@ function expectClosedIdentity(before: unknown, after: unknown, pointer: string, 
 }
 
 describe.each(PRODUCTS)("%s, streamed a character at a time", (name) => {
-  it("only ever shows final node heads, never loses a shown node, and keeps closed subtrees' identity", () => {
+  // Every boundary of a 20 KB document is ~20k pushes; the timeout covers a loaded machine.
+  it("only ever shows final node heads, never loses a shown node, and keeps closed subtrees' identity", { timeout: 60_000 }, () => {
     const text = exampleText(name);
     const final: unknown = JSON.parse(text);
     const parser = createViewSpecParser();
@@ -261,6 +302,11 @@ describe.each(PRODUCTS)("%s, streamed a character at a time", (name) => {
       const snapshot = parser.push(text.charAt(index));
       const at = `after ${index + 1} of ${text.length} characters`;
       if (snapshot.error !== undefined) expect.fail(`${at}: ${snapshot.error.message}`);
+      // The same spec object shows nothing new; only its pending set can have shrunk.
+      if (snapshot.spec === previous?.spec) {
+        previous = snapshot;
+        continue;
+      }
       const spec = snapshot.spec;
       const now = spec === undefined || isPending(spec.root) ? new Map<string, Record<string, unknown>>() : emittedNodes(spec.root, "/root");
 

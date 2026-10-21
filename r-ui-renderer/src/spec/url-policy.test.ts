@@ -20,6 +20,7 @@ const CORPUS = [
   "java\tscript:alert(1)", "java\nscript:alert(1)", " javascript:alert(1)",
   "java​script:alert(1)", "java﻿script:alert(1)", "\u0000javascript:alert(1)",
   "https://ok.example/a\tb",
+  "HTTPS://ok.example/x", "Mailto:a@b.example", "DATA:image/png;base64,iVBORw0KGgo=", "Tel:+441234",
 ];
 
 describe("safeUrl", () => {
@@ -55,6 +56,20 @@ describe("origin policy", () => {
     expect(defaultAllowImageUrl(new URL("data:image/png;base64,iVBORw0KGgo="), base)).toBe(true);
     expect(defaultAllowImageUrl(new URL("data:image/svg+xml,<svg/>"), base)).toBe(false);
     expect(defaultAllowImageUrl(new URL("https://cdn.example/a.png"), base)).toBe(false);
+  });
+
+  it("resolves against the page's <base href>, as the browser fetches, but allows the page's own origin only", () => {
+    const tag = document.createElement("base");
+    tag.href = "https://cdn.example/assets/";
+    document.head.append(tag);
+    try {
+      const url = resolveUrl("logo.png");
+      expect(url?.href).toBe("https://cdn.example/assets/logo.png");
+      expect(defaultAllowImageUrl(url as URL)).toBe(false);
+      expect(defaultAllowUrl(new URL("/api", location.href))).toBe(true);
+    } finally {
+      tag.remove();
+    }
   });
 
   it("resolves against a reserved origin where there is no page", () => {

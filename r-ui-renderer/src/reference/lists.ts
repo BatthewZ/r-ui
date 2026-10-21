@@ -1,7 +1,9 @@
 // The regions that are lists rather than component tables: issue codes, the
-// components documents cannot use, icon names and the class vocabulary.
+// components documents cannot use, icon names, the class vocabulary and the
+// safety policy.
 
 import { NOT_ADDRESSABLE } from "../contracts";
+import { FORBIDDEN_PROPS, IMAGE_URL_PROPS, isForbiddenProp, LIMITS, URL_PROPS } from "../spec/policy";
 import { ISSUE_CODE_INFO, ISSUE_CODES, RUNTIME_ISSUE_CODES } from "../spec/types";
 import { cell } from "./components";
 
@@ -43,4 +45,14 @@ export function renderClasses(classes: readonly string[]): string {
   const single = [...families.values()].filter((names) => names.length === 1).flat();
   if (single.length > 0) lines.push(single.map(code).join(" "));
   return lines.map((line) => `- ${line}`).join("\n");
+}
+
+/** The policy's lists and limits as the model reads them: one source with the renderer and the validator. */
+export function renderSafety(): string {
+  const urls = URL_PROPS.filter((prop) => !isForbiddenProp(prop));
+  return [
+    `- Dropped everywhere, compared in any casing: ${FORBIDDEN_PROPS.map(code).join(", ")}; any name containing \`:\` (\`xlink:href\`); and any \`on…\` value that is not a handler.`,
+    `- URL props on every component, compared in any casing: ${urls.map(code).join(", ")}. Of these, ${IMAGE_URL_PROPS.map(code).join(", ")} load images and pass the host's image policy.`,
+    `- Limits: nodes nest at most ${LIMITS.depth} deep (deeper renders a diagnostic); handlers chain at most ${LIMITS.actionDepth} deep and run at most ${LIMITS.actionsPerHandler} actions each; arrays and objects nest at most ${LIMITS.jsonDepth} deep (deeper refuses the whole document); a \`pattern\` rule tests at most ${LIMITS.patternInput} characters; \`title\` is at most ${LIMITS.title} characters.`,
+  ].join("\n");
 }

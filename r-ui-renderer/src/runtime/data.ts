@@ -1,24 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { sameEntries } from "../spec/equal";
-import { isPlainObject } from "../spec/guards";
+import { errorMessage } from "../spec/errors";
+import { isName, isPlainObject, ownValue } from "../spec/guards";
 import { appendPointer } from "../spec/pointer";
 import { makeIssue } from "../spec/issue";
 import { type BindingStatus, type IssueCode, type JsonValue } from "../spec/types";
 import type { RendererAdapters } from "./adapters";
-import type { IssueReporter } from "./context";
+import type { IssueReporter, ResolvedPolicy } from "./context";
 import { toJsonValue } from "./event-value";
 import { performRequest, prepareRequest, UNUSABLE_QUERY } from "./request";
 import { plainFormat, resolveValue } from "./resolve";
 
 export interface DataBindingsOptions {
   readonly adapters: RendererAdapters;
+  readonly policy: ResolvedPolicy;
   /** For `$ref state.…` in `query`, `body` and `params`. */
   readonly state: { readonly [key: string]: unknown };
   /** JSON Pointers still open; a binding starts once its object has closed. */
   readonly pending: ReadonlySet<string>;
   readonly report: IssueReporter;
 }
+
+type PlanOptions = Omit<DataBindingsOptions, "pending">;
 
 export interface DataSnapshot {
   readonly data: { readonly [name: string]: unknown };
@@ -46,14 +50,14 @@ function resolveFromState(value: unknown, state: DataBindingsOptions["state"]): 
   return resolveValue(value, { state }, plainFormat);
 }
 
-function planBinding(name: string, binding: unknown, options: DataBindingsOptions): Plan {
+function planBinding(name: string, binding: unknown, options: PlanOptions): Plan {
   const path = appendPointer("/data", name);
   const refuse = (code: IssueCode, message: string): Plan => {
     options.report(makeIssue(code, path, message));
     return { kind: "refused" };
   };
   if (!isPlainObject(binding)) return refuse("invalid-value", `Data binding "${name}" is not an object.`);
-  const { adapters, state } = options;
+  const { adapters, policy, state } = options;
 
   switch (binding.type) {
     case "static":
@@ -71,7 +75,7 @@ function planBinding(name: string, binding: unknown, options: DataBindingsOption
           query: resolveFromState(binding.query, state),
           body: resolveFromState(binding.body, state),
         },
-        adapters,
+        policy.allowUrl,
       );
       if (!prepared.ok) return refuse("refused-url", prepared.message);
       const { url, init } = prepared;
@@ -104,7 +108,7 @@ function planBinding(name: string, binding: unknown, options: DataBindingsOption
             return { ok: true, value: await resolveSource({ source, params }, signal) };
           } catch (error) {
             if (signal.aborted) throw error;
-            return { ok: false, message: error instanceof Error ? error.message : `Source "${source}" failed.` };
+            return { ok: false, message: errorMessage(error) };
           }
         },
       };
@@ -114,18 +118,36 @@ function planBinding(name: string, binding: unknown, options: DataBindingsOption
   }
 }
 
-/** Loads the document's `data` bindings (the raw, possibly partial `data` object). */
+/** The names of the bindings whose objects have closed, joined: a key that changes only when one more closes. */
+function closedNames(bindings: unknown, pending: ReadonlySet<string>): string {
+  if (!isPlainObject(bindings)) return "";
+  return Object.keys(bindings)
+    .filter((name) => isName(name) && !pending.has(appendPointer("/data", name)))
+    .join("\u0000");
+}
+
+/**
+ * Loads the document's `data` bindings (the raw, possibly partial `data`
+ * object). Bindings are planned again when the object, the host's adapters
+ * or policy, `state`, or the set of closed bindings changes: never merely
+ * because another chunk of the document arrived.
+ */
 export function useDataBindings(bindings: unknown, options: DataBindingsOptions): DataSnapshot {
-  const { adapters, state, pending, report } = options;
+  const { adapters, policy, state, pending, report } = options;
+  const closed = closedNames(bindings, pending);
   const plans = useMemo(() => {
     const out = new Map<string, Plan>();
     if (!isPlainObject(bindings)) return out;
+    const ready = new Set(closed === "" ? [] : closed.split("\u0000"));
     for (const name of Object.keys(bindings)) {
-      const closed = !pending.has(appendPointer("/data", name));
-      out.set(name, closed ? planBinding(name, bindings[name], { adapters, state, pending, report }) : { kind: "waiting" });
+      if (!isName(name)) {
+        report(makeIssue("invalid-name", appendPointer("/data", name), `"${name}" is not a binding name; the binding is ignored.`));
+        continue;
+      }
+      out.set(name, ready.has(name) ? planBinding(name, bindings[name], { adapters, policy, state, report }) : { kind: "waiting" });
     }
     return out;
-  }, [bindings, adapters, state, pending, report]);
+  }, [bindings, adapters, policy, state, closed, report]);
 
   const [results, setResults] = useState<{ readonly [name: string]: Result }>({});
   /** The request started for each binding's current key, in flight or settled (a settled key is not asked again). */
@@ -183,7 +205,7 @@ export function useDataBindings(bindings: unknown, options: DataBindingsOptions)
       } else if (plan.kind === "waiting") {
         status[name] = "loading";
       } else {
-        const result = Object.hasOwn(results, name) ? results[name] : undefined;
+        const result = ownValue(results, name);
         const current = result?.key === plan.key;
         // A refetch keeps the last good value on show while it loads.
         if (result?.outcome.ok === true) data[name] = result.outcome.value;

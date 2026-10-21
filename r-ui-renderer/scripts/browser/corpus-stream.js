@@ -24,16 +24,16 @@ async (page) => {
   const KEY = "corpus-stream-probe";
   const problems = [];
 
-  const probe = await page.addInitScript((key) => {
+  const probe = await page.addInitScript(({ key, view, diagnostic }) => {
     if (sessionStorage.getItem(key) === null) return;
     const seen = { frames: [], anchors: [], roots: [], headings: new Set(), diagnostics: 0, done: false };
     window.__corpusStreamProbe = seen;
     const sample = () => {
-      const root = document.querySelector(".r-renderer-view");
+      const root = document.querySelector(view);
       if (root && !seen.roots.includes(root)) seen.roots.push(root);
       const ready = document.documentElement.hasAttribute("data-renderer-ready");
-      seen.frames.push({ text: root ? root.textContent.length : 0, ready, views: document.querySelectorAll(".r-renderer-view").length });
-      seen.diagnostics = Math.max(seen.diagnostics, document.querySelectorAll(".r-renderer-diagnostic").length);
+      seen.frames.push({ text: root ? root.textContent.length : 0, ready, views: document.querySelectorAll(view).length });
+      seen.diagnostics = Math.max(seen.diagnostics, document.querySelectorAll(diagnostic).length);
       if (root) {
         for (const anchor of root.querySelectorAll("h1, h2, table, [role=figure], figure")) {
           if (!seen.anchors.includes(anchor)) seen.anchors.push(anchor);
@@ -45,7 +45,7 @@ async (page) => {
       else requestAnimationFrame(sample);
     };
     requestAnimationFrame(sample);
-  }, KEY);
+  }, { key: KEY, view: VIEW_SELECTOR, diagnostic: DIAGNOSTIC_SELECTOR });
 
   try {
     // Set the probe's key on the playground's origin, then load the streamed view in the same tab.
@@ -56,9 +56,9 @@ async (page) => {
     await waitForReady(page, { timeout: 60_000 });
     await page.waitForFunction(() => window.__corpusStreamProbe?.done === true, null, { timeout: 5_000 });
 
-    const result = await page.evaluate(() => {
+    const result = await page.evaluate((view) => {
       const seen = window.__corpusStreamProbe;
-      const root = document.querySelector(".r-renderer-view");
+      const root = document.querySelector(view);
       const final = root ? root.textContent.length : 0;
       let most = 0;
       const drops = [];
@@ -79,7 +79,7 @@ async (page) => {
         diagnostics: seen.diagnostics,
         text: (root?.innerText ?? "").replace(/\s+/g, " ").trim(),
       };
-    });
+    }, VIEW_SELECTOR);
 
     // 1. progressive
     const subtitle = "Last 14 days across six regions. Figures refresh every five minutes.";
@@ -100,7 +100,7 @@ async (page) => {
 
     // 5. the same page as the whole document
     await openView(page, NAME);
-    const whole = await page.evaluate(() => (document.querySelector(".r-renderer-view")?.innerText ?? "").replace(/\s+/g, " ").trim());
+    const whole = await page.evaluate((view) => (document.querySelector(view)?.innerText ?? "").replace(/\s+/g, " ").trim(), VIEW_SELECTOR);
     if (whole !== result.text) {
       const at = [...whole].findIndex((c, i) => c !== result.text[i]);
       problems.push(`the streamed page differs from the whole one at character ${at}: …${result.text.slice(at, at + 60)}… vs …${whole.slice(at, at + 60)}…`);

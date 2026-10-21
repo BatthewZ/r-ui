@@ -63,6 +63,9 @@
         "order": ["newest-first","oldest-first"],
         "timeFormat": ["relative","absolute"]
       },
+      "recordKeys": {
+        "labels": ["collapse","empty","expand","loading","more","region","tones","unknownDay"]
+      },
       "nodeProps": ["empty","items[].actions","items[].description","items[].icon","items[].meta","items[].object","items[].verb"],
       "nativeAttributes": true
     },
@@ -80,6 +83,9 @@
       "propEnums": {
         "tone": ["neutral","error","success","warning","info","serious","stale"]
       },
+      "recordKeys": {
+        "labels": ["dismiss","tones"]
+      },
       "nodeProps": ["actions","icon","title"],
       "nativeAttributes": true
     },
@@ -91,6 +97,9 @@
         {"name":"labels","type":"LabelsProp<AppShellLabels>","required":false},
         {"name":"onCollapsedChange","type":"(collapsed: boolean) => void","required":false}
       ],
+      "recordKeys": {
+        "labels": ["skipLink"]
+      },
       "nativeAttributes": true
     },
     "AppShell.BottomNav": {
@@ -158,7 +167,10 @@
       "category": "navigation",
       "props": [
         {"name":"labels","type":"LabelsProp<AppShellSidebarToggleLabels>","required":false}
-      ]
+      ],
+      "recordKeys": {
+        "labels": ["collapse","expand"]
+      }
     },
     "Avatar": {
       "category": "primitives",
@@ -187,6 +199,9 @@
       "slots": ["avatar","item","overflow"],
       "propEnums": {
         "size": ["icon","control"]
+      },
+      "recordKeys": {
+        "labels": ["more","moreNames"]
       },
       "nativeAttributes": true
     },
@@ -218,6 +233,9 @@
       "slots": ["actions","image","message","stage"],
       "propEnums": {
         "outputType": ["image/png","image/jpeg","image/webp"]
+      },
+      "recordKeys": {
+        "labels": ["apply","cancel","cancelUpload","canceled","choose","cropHint","failed","remove","removed","replace","retry","tooLarge","unreadable","updated","uploading","waiting","wrongType","zoom"]
       },
       "nativeAttributes": true
     },
@@ -256,6 +274,9 @@
         "placement": ["top","inline"],
         "tone": ["neutral","error","success","warning","info","serious","stale"]
       },
+      "recordKeys": {
+        "labels": ["dismiss","region","tones"]
+      },
       "nodeProps": ["actions","icon","title"],
       "nativeAttributes": true
     },
@@ -282,6 +303,9 @@
         "orientation": ["vertical","horizontal"],
         "timeZone": ["local","UTC"]
       },
+      "recordKeys": {
+        "labels": ["cannotDraw","cartesianSummary","corner","gridCapped","heatmapSummary","keyboardHint","kinds","noData","rowsCapped","seriesCapped","showChart","showTable","timeCorner","total","value","valuesDropped"]
+      },
       "nativeAttributes": true
     },
     "Breadcrumbs": {
@@ -293,6 +317,9 @@
         {"name":"maxItems","type":"number","required":false}
       ],
       "slots": ["expand","item","list","separator"],
+      "recordKeys": {
+        "labels": ["expand","nav"]
+      },
       "nativeAttributes": true
     },
     "Breadcrumbs.Item": {
@@ -341,6 +368,9 @@
       "slots": ["caption","cell","day","grid","month","months","weekday"],
       "propEnums": {
         "weekStartsOn": [0,1,2,3,4,5,6]
+      },
+      "recordKeys": {
+        "labels": ["inRange","nextMonth","previousMonth","rangeEnd","rangeStart","selected","today"]
       },
       "nativeAttributes": true
     },
@@ -416,6 +446,9 @@
       "propEnums": {
         "perView": [1,2,3,4]
       },
+      "recordKeys": {
+        "labels": ["carousel","dots","next","pause","play","prev","slide","slideRole","slides","status"]
+      },
       "nativeAttributes": true
     },
     "Carousel.Slide": {
@@ -449,6 +482,9 @@
       "propEnums": {
         "as": ["span","li"]
       },
+      "recordKeys": {
+        "labels": ["remove"]
+      },
       "nativeAttributes": true
     },
     "CodeBlock": {
@@ -467,6 +503,9 @@
         {"name":"wrapToggle","type":"boolean","required":false}
       ],
       "slots": ["actions","code","header","language","line","pre","title"],
+      "recordKeys": {
+        "labels": ["copied","copy","failed","wrap"]
+      },
       "nativeAttributes": true
     },
     "Collapsible": {
@@ -525,6 +564,9 @@
       "propEnums": {
         "format": ["hex","oklch"]
       },
+      "recordKeys": {
+        "labels": ["alpha","alphaValue","area","areaRole","areaValue","dialog","empty","eyeDropper","fail","heading","hue","hueValue","input","invalid","outOfGamut","pass","placeholder","swatches","trigger"]
+      },
       "nativeAttributes": true,
       "domName": true
     },
@@ -552,6 +594,9 @@
         {"name":"virtualizeThreshold","type":"number","required":false}
       ],
       "slots": ["frame","input","listbox","option"],
+      "recordKeys": {
+        "labels": ["clear","custom","empty","loading","results","toggle"]
+      },
       "nodeProps": ["options[].icon","start"],
       "nativeAttributes": true
     },
@@ -574,6 +619,9 @@
         {"name":"searchDelayMs","type":"number","required":false}
       ],
       "slots": ["footer","group","input","list","option"],
+      "recordKeys": {
+        "labels": ["back","close","count","empty","error","inputLabel","label","listLabel","loading","navigate","placeholder","recent","run"]
+      },
       "nodeProps": ["commands[].icon"],
       "nativeAttributes": true
     },
@@ -688,6 +736,9 @@
       "propEnums": {
         "variant": ["primary","secondary","ghost","danger"]
       },
+      "recordKeys": {
+        "labels": ["copied","copy","failed"]
+      },
       "nativeAttributes": true,
       "domName": true
     },
@@ -701,6 +752,9 @@
         {"name":"threshold","type":"number","required":false},
         {"name":"value","type":"number | null | undefined","required":true}
       ],
+      "recordKeys": {
+        "formatOptions": ["currency","currencyDisplay","maximumFractionDigits","maximumSignificantDigits","minimumFractionDigits","missing","notation","signDisplay","style","unit","unitDisplay","useGrouping"]
+      },
       "nativeAttributes": true
     },
     "CurrencyInput": {
@@ -787,6 +841,9 @@
         "layout": ["auto","fixed"],
         "variant": ["boxed","rules","plain"]
       },
+      "recordKeys": {
+        "labels": ["bulkActions","clearFilters","clearSelection","columns","details","detailsColumn","empty","filterAll","filterColumn","loading","noMatches","pageRange","resizeColumn","rowActions","rowsPerPage","selectAll","selectRow","selectedCount"]
+      },
       "nodeProps": ["caption","columns[].header","empty","error","errorActions"],
       "nativeAttributes": true
     },
@@ -812,6 +869,9 @@
       "slots": ["calendar","error","frame","hint","input","panel","trigger"],
       "propEnums": {
         "weekStartsOn": [0,1,2,3,4,5,6]
+      },
+      "recordKeys": {
+        "labels": ["chooseDate","formatLetters","hint","inRange","nextMonth","outOfRange","previousMonth","rangeEnd","rangeStart","selected","today","unavailable","unparseable"]
       },
       "nodeProps": ["hint"],
       "nativeAttributes": true,
@@ -850,6 +910,9 @@
         "variant": ["button","field"],
         "weekStartsOn": [0,1,2,3,4,5,6]
       },
+      "recordKeys": {
+        "labels": ["apply","cancel","clear","dialog","end","endBeforeStart","endTime","formatLetters","hint","inRange","nextMonth","outOfRange","placeholder","presets","previousMonth","rangeEnd","rangeStart","selected","start","startTime","today","unavailable","unparseable"]
+      },
       "nativeAttributes": true,
       "domName": true
     },
@@ -864,6 +927,9 @@
       ],
       "propEnums": {
         "variant": ["segmented","select"]
+      },
+      "recordKeys": {
+        "labels": ["densities","density"]
       },
       "nativeAttributes": true
     },
@@ -928,6 +994,9 @@
       "slots": ["close"],
       "propEnums": {
         "role": ["dialog","alertdialog"]
+      },
+      "recordKeys": {
+        "labels": ["close"]
       },
       "nativeAttributes": true
     },
@@ -1030,6 +1099,9 @@
       "propEnums": {
         "role": ["dialog","alertdialog"],
         "side": ["end","bottom"]
+      },
+      "recordKeys": {
+        "labels": ["close"]
       },
       "nativeAttributes": true
     },
@@ -1180,6 +1252,9 @@
         {"name":"onSubmit","type":"(email: string, details: EmailCaptureSubmitDetails) => Promise<void> | void","required":true}
       ],
       "slots": ["consent","form","input","row","submit","success"],
+      "recordKeys": {
+        "labels": ["consentRequired","email","failed","honeypot","invalid","placeholder","required","submit","successMessage","successTitle"]
+      },
       "nodeProps": ["consent","description"],
       "nativeAttributes": true
     },
@@ -1211,6 +1286,9 @@
         {"name":"onReset","type":"(reason: ErrorBoundaryResetReason) => void","required":false},
         {"name":"resetKeys","type":"readonly unknown[]","required":false}
       ],
+      "recordKeys": {
+        "labels": ["details","message","retry","title"]
+      },
       "nodeProps": ["fallback"]
     },
     "ErrorFallback": {
@@ -1222,6 +1300,9 @@
         {"name":"onRetry","type":"() => void","required":false}
       ],
       "slots": ["details","icon","message","retry","title"],
+      "recordKeys": {
+        "labels": ["details","message","retry","title"]
+      },
       "nativeAttributes": true
     },
     "ErrorSummary": {
@@ -1230,6 +1311,9 @@
         {"name":"labels","type":"LabelsProp<ErrorSummaryLabels>","required":false},
         {"name":"title","type":"ReactNode","required":false}
       ],
+      "recordKeys": {
+        "labels": ["title"]
+      },
       "nodeProps": ["title"],
       "nativeAttributes": true
     },
@@ -1248,6 +1332,9 @@
         "headingLevel": [2,3,4,5,6],
         "minColumn": ["sm","md","lg"],
         "variant": ["plain","card"]
+      },
+      "recordKeys": {
+        "columns": ["@2xl","@3xl","@4xl","@5xl","@lg","@md","@sm","@xl","base"]
       },
       "nativeAttributes": true
     },
@@ -1357,6 +1444,9 @@
         {"name":"value","type":"readonly File[] | readonly T[]","required":false}
       ],
       "slots": ["item","list","message","zone"],
+      "recordKeys": {
+        "labels": ["added","cancel","canceled","canceledFile","dropping","failed","failedFile","files","hint","progress","prompt","remove","removedFile","retry","tooLarge","tooMany","uploaded","uploadedFile","waiting","wrongType"]
+      },
       "nativeAttributes": true
     },
     "FilterBar": {
@@ -1383,6 +1473,9 @@
         "collapse": ["auto","always","never"],
         "drawerSide": ["end","bottom"]
       },
+      "recordKeys": {
+        "labels": ["any","applied","atLeast","atMost","between","clearAll","done","filters","list","loading","remove","results","search","trigger","value"]
+      },
       "nativeAttributes": true
     },
     "Footer": {
@@ -1405,6 +1498,9 @@
         "as": ["footer","div"],
         "headingLevel": [2,3,4,5,6],
         "variant": ["plain","band"]
+      },
+      "recordKeys": {
+        "labels": ["copyright","legal","social"]
       },
       "nodeProps": ["brand","legal","localeSwitcher","newsletter","social"],
       "nativeAttributes": true
@@ -1435,6 +1531,9 @@
       "propEnums": {
         "variant": ["accent","inherit"]
       },
+      "recordKeys": {
+        "labels": ["newTab"]
+      },
       "nativeAttributes": true
     },
     "Footer.SocialLink": {
@@ -1449,6 +1548,9 @@
         {"name":"target","type":"string","required":false}
       ],
       "slots": ["icon"],
+      "recordKeys": {
+        "labels": ["newTab"]
+      },
       "nodeProps": ["icon"],
       "nativeAttributes": true
     },
@@ -1499,6 +1601,9 @@
         "minColumn": ["sm","md","lg"],
         "rowGap": ["r1","r2","r3","r4","r5","r6"]
       },
+      "recordKeys": {
+        "columns": ["@2xl","@3xl","@4xl","@5xl","@lg","@md","@sm","@xl","base"]
+      },
       "nativeAttributes": true
     },
     "Heatmap": {
@@ -1516,6 +1621,9 @@
         {"name":"values","type":"readonly (readonly (number | null | undefined)[])[]","required":true}
       ],
       "slots": ["legend","notes","plot","table","tooltip"],
+      "recordKeys": {
+        "labels": ["cannotDraw","cartesianSummary","corner","gridCapped","heatmapSummary","keyboardHint","kinds","noData","rowsCapped","seriesCapped","showChart","showTable","timeCorner","total","value","valuesDropped"]
+      },
       "nativeAttributes": true
     },
     "Hero": {
@@ -1555,6 +1663,9 @@
       ],
       "propEnums": {
         "placement": ["top","right","bottom","left","top-start","top-end","right-start","right-end","bottom-start","bottom-end","left-start","left-end"]
+      },
+      "recordKeys": {
+        "labels": ["toggle"]
       }
     },
     "HoverCard.Content": {
@@ -1690,6 +1801,9 @@
       "propEnums": {
         "variant": ["segmented","select"]
       },
+      "recordKeys": {
+        "labels": ["input","inputs"]
+      },
       "nativeAttributes": true
     },
     "Kanban": {
@@ -1713,6 +1827,9 @@
         {"name":"value","type":"readonly T[]","required":true}
       ],
       "slots": ["card","column","footer","header","list","preview","scroller"],
+      "recordKeys": {
+        "labels": ["cancelled","collapse","count","dropped","empty","expand","instructions","limitExceeded","loading","moved","overLimit","pickedUp"]
+      },
       "nativeAttributes": true
     },
     "Kbd": {
@@ -1734,6 +1851,9 @@
         {"name":"open","type":"boolean","required":false}
       ],
       "slots": ["caption","close","counter","figure","header","image","next","prev","stage","title"],
+      "recordKeys": {
+        "labels": ["carousel","close","next","position","prev","slideRole"]
+      },
       "nodeProps": ["items[].caption"]
     },
     "Lightbox.Trigger": {
@@ -1769,6 +1889,9 @@
         "timeZone": ["local","UTC"],
         "xType": ["category","number","time"]
       },
+      "recordKeys": {
+        "labels": ["cannotDraw","cartesianSummary","corner","gridCapped","heatmapSummary","keyboardHint","kinds","noData","rowsCapped","seriesCapped","showChart","showTable","timeCorner","total","value","valuesDropped"]
+      },
       "nativeAttributes": true
     },
     "Link": {
@@ -1787,6 +1910,9 @@
       "propEnums": {
         "variant": ["accent","inherit"]
       },
+      "recordKeys": {
+        "labels": ["newTab"]
+      },
       "nativeAttributes": true
     },
     "LocaleProvider": {
@@ -1798,6 +1924,9 @@
       ],
       "propEnums": {
         "dir": ["ltr","rtl"]
+      },
+      "recordKeys": {
+        "labels": ["Alert","AppShell","AppShellSidebarToggle","AvatarGroup","AvatarUpload","Banner","Breadcrumbs","Calendar","Carousel","Chart","Chip","CodeBlock","ColorPicker","Combobox","CommandPalette","CopyButton","DataTable","DatePicker","DateRangePicker","Dialog","EmailCapture","ErrorFallback","ErrorSummary","FileUpload","FilterBar","Footer","HoverCard","Kanban","Lightbox","Link","LogoCloud","Markdown","Meter","MultiSelect","NavigationMenu","NumberInput","OTPInput","Pagination","PasswordInput","PreferencesMenu","Pricing","Progress","RangeSlider","Rating","RequireAuth","SearchInput","SiteHeader","Sparkline","Splitter","StatCard","Stepper","TagInput","Testimonial","TimeField","TimePicker","Timeline","Toast","Toolbar","TreeView","Wizard"]
       }
     },
     "LogoCloud": {
@@ -1809,6 +1938,9 @@
         {"name":"title","type":"ReactNode","required":false}
       ],
       "slots": ["list","logo","title","toggle","viewport"],
+      "recordKeys": {
+        "labels": ["list","pause"]
+      },
       "nodeProps": ["title"],
       "nativeAttributes": true
     },
@@ -1821,6 +1953,10 @@
         {"name":"labels","type":"LabelsProp<MarkdownLabels>","required":false},
         {"name":"measure","type":"boolean","required":false}
       ],
+      "recordKeys": {
+        "components": ["blockquote","codeBlock","emphasis","heading","image","inlineCode","link","list","listItem","paragraph","strikethrough","strong","table","thematicBreak"],
+        "labels": ["newTab","taskDone","taskOpen"]
+      },
       "nativeAttributes": true
     },
     "MaskedInput": {
@@ -1867,7 +2003,7 @@
         {"name":"actions","type":"ReactNode","required":false},
         {"name":"badge","type":"ReactNode","required":false},
         {"name":"description","type":"ReactNode","required":false},
-        {"name":"href","type":"string","required":true},
+        {"name":"href","type":"string","required":false},
         {"name":"image","type":"MediaCardImage","required":false},
         {"name":"linkAs","type":"ElementType","required":false},
         {"name":"meta","type":"ReactNode","required":false},
@@ -1912,6 +2048,9 @@
         "variant": ["stacked","inline"],
         "worse": ["high","low"]
       },
+      "recordKeys": {
+        "labels": ["tones"]
+      },
       "nodeProps": ["label"],
       "nativeAttributes": true
     },
@@ -1939,6 +2078,9 @@
         {"name":"virtualizeThreshold","type":"number","required":false}
       ],
       "slots": ["chip","frame","input","listbox","option"],
+      "recordKeys": {
+        "labels": ["added","empty","loading","max","remove","removed","results","selectAll","selected","summary","toggle"]
+      },
       "nodeProps": ["options[].icon"],
       "nativeAttributes": true
     },
@@ -1981,6 +2123,9 @@
         {"name":"openDelay","type":"number","required":false}
       ],
       "slots": ["column","columnTitle","featured","item","link","list","panel","panelLink","trigger"],
+      "recordKeys": {
+        "labels": ["navigation"]
+      },
       "nodeProps": ["items[].columns[].title","items[].featured","items[].label","items[].links[].description","items[].links[].icon","items[].links[].label"],
       "nativeAttributes": true
     },
@@ -2002,6 +2147,10 @@
         {"name":"value","type":"number | null","required":false}
       ],
       "slots": ["end","input","start"],
+      "recordKeys": {
+        "formatOptions": ["maximumFractionDigits","minimumFractionDigits","useGrouping"],
+        "labels": ["decrement","increment"]
+      },
       "nodeProps": ["end","start"],
       "nativeAttributes": true,
       "domName": true
@@ -2025,6 +2174,9 @@
       "propEnums": {
         "mode": ["numeric","alphanumeric"]
       },
+      "recordKeys": {
+        "labels": ["label","length"]
+      },
       "nodeProps": ["separator"],
       "nativeAttributes": true,
       "domName": true
@@ -2041,6 +2193,9 @@
         {"name":"siblings","type":"number","required":false}
       ],
       "slots": ["list","next","page","previous","row","status"],
+      "recordKeys": {
+        "labels": ["nav","next","page","previous","status"]
+      },
       "nativeAttributes": true
     },
     "Parallax": {
@@ -2075,6 +2230,9 @@
       "slots": ["capsLock","frame","hints","input","meter","toggle"],
       "propEnums": {
         "autoComplete": ["current-password","new-password","one-time-code","off"]
+      },
+      "recordKeys": {
+        "labels": ["addDigitOrSymbol","capsLock","common","longer","mixCase","patterns","scores","show","strength","tooShort"]
       },
       "nodeProps": ["end","start"],
       "nativeAttributes": true,
@@ -2147,6 +2305,9 @@
       "propEnums": {
         "placement": ["top","right","bottom","left","top-start","top-end","right-start","right-end","bottom-start","bottom-end","left-start","left-end"]
       },
+      "recordKeys": {
+        "labels": ["densities","density","input","inputs","theme","trigger"]
+      },
       "nodeProps": ["themes[].icon"]
     },
     "Pricing": {
@@ -2170,6 +2331,9 @@
         "defaultBilling": ["monthly","annual"],
         "headingLevel": [2,3,4,5,6]
       },
+      "recordKeys": {
+        "labels": ["annual","billedYearly","billing","billingChanged","compare","custom","excluded","feature","free","included","loading","monthly","perMonth","planPrice","planSaving","plans","popular","saving"]
+      },
       "nodeProps": ["plans[].action","plans[].badge","plans[].description","plans[].priceNote"],
       "nativeAttributes": true
     },
@@ -2182,6 +2346,9 @@
         {"name":"tableProps","type":"TableHTMLAttributes<HTMLTableElement>","required":false}
       ],
       "slots": ["table"],
+      "recordKeys": {
+        "labels": ["annual","billedYearly","billing","billingChanged","compare","custom","excluded","feature","free","included","loading","monthly","perMonth","planPrice","planSaving","plans","popular","saving"]
+      },
       "nodeProps": ["groups[].features[].description","groups[].features[].label","groups[].features[].values.*","groups[].label","plans[].badge"],
       "nativeAttributes": true
     },
@@ -2204,6 +2371,9 @@
         "tone": ["neutral","accent","error","success","warning","info","serious"],
         "variant": ["continuous","segmented"]
       },
+      "recordKeys": {
+        "labels": ["indeterminate","steps","tones"]
+      },
       "nodeProps": ["label"],
       "nativeAttributes": true
     },
@@ -2224,6 +2394,9 @@
       "propEnums": {
         "size": ["icon","control","large"],
         "tone": ["neutral","accent","error","success","warning","info","serious"]
+      },
+      "recordKeys": {
+        "labels": ["indeterminate","steps","tones"]
       },
       "nativeAttributes": true
     },
@@ -2285,6 +2458,9 @@
       "propEnums": {
         "weekStartsOn": [0,1,2,3,4,5,6]
       },
+      "recordKeys": {
+        "labels": ["inRange","nextMonth","previousMonth","rangeEnd","rangeStart","selected","today"]
+      },
       "nativeAttributes": true
     },
     "RangeSlider": {
@@ -2316,6 +2492,10 @@
       "propEnums": {
         "orientation": ["horizontal","vertical"]
       },
+      "recordKeys": {
+        "formatOptions": ["currency","currencyDisplay","maximumFractionDigits","maximumSignificantDigits","minimumFractionDigits","notation","signDisplay","style","unit","unitDisplay","useGrouping"],
+        "labels": ["maximum","minimum"]
+      },
       "nodeProps": ["marks[].label"],
       "nativeAttributes": true
     },
@@ -2337,6 +2517,9 @@
         {"name":"value","type":"number | null","required":false}
       ],
       "slots": ["icon","item"],
+      "recordKeys": {
+        "labels": ["none","value"]
+      },
       "nodeProps": ["icon"],
       "nativeAttributes": true
     },
@@ -2362,6 +2545,9 @@
       ],
       "propEnums": {
         "status": ["loading","authenticated","unauthenticated"]
+      },
+      "recordKeys": {
+        "labels": ["forbiddenBody","forbiddenTitle","loading","signIn","signInBody","signInTitle"]
       },
       "nodeProps": ["forbiddenFallback","loadingFallback","unauthenticatedFallback"]
     },
@@ -2414,6 +2600,9 @@
         {"name":"value","type":"string","required":false}
       ],
       "slots": ["end","input","start"],
+      "recordKeys": {
+        "labels": ["clear","search"]
+      },
       "nodeProps": ["end"],
       "nativeAttributes": true,
       "domName": true
@@ -2508,6 +2697,9 @@
         "collapseBelow": ["sm","md","lg"],
         "variant": ["solid","transparent"]
       },
+      "recordKeys": {
+        "labels": ["menu","skipToContent"]
+      },
       "nodeProps": ["actions","brand","items[].columns[].title","items[].featured","items[].label","items[].links[].description","items[].links[].icon","items[].links[].label","navigationProps"],
       "nativeAttributes": true
     },
@@ -2550,6 +2742,9 @@
       "propEnums": {
         "orientation": ["horizontal","vertical"]
       },
+      "recordKeys": {
+        "formatOptions": ["currency","currencyDisplay","maximumFractionDigits","maximumSignificantDigits","minimumFractionDigits","notation","signDisplay","style","unit","unitDisplay","useGrouping"]
+      },
       "nodeProps": ["marks[].label"],
       "nativeAttributes": true
     },
@@ -2565,6 +2760,9 @@
       ],
       "propEnums": {
         "series": [1,2,3,4,5,6,7,8,"total"]
+      },
+      "recordKeys": {
+        "labels": ["noData","summary"]
       },
       "nativeAttributes": true,
       "domName": true
@@ -2590,6 +2788,9 @@
       "slots": ["separator"],
       "propEnums": {
         "orientation": ["horizontal","vertical"]
+      },
+      "recordKeys": {
+        "labels": ["pane","resize"]
       },
       "nativeAttributes": true
     },
@@ -2658,6 +2859,9 @@
       "propEnums": {
         "sentiment": ["good","bad","neutral"]
       },
+      "recordKeys": {
+        "labels": ["bad","good","neutral","stale"]
+      },
       "nodeProps": ["deltaLabel","label","sparkline","stale","status","unit","value"],
       "nativeAttributes": true
     },
@@ -2686,6 +2890,9 @@
       "slots": ["compact","list"],
       "propEnums": {
         "orientation": ["horizontal","vertical"]
+      },
+      "recordKeys": {
+        "labels": ["complete","current","error","optional","position","progress","skipped","upcoming"]
       },
       "nativeAttributes": true
     },
@@ -2850,6 +3057,9 @@
         {"name":"value","type":"string[]","required":false}
       ],
       "slots": ["chip","frame","input","listbox","message","option"],
+      "recordKeys": {
+        "labels": ["added","duplicate","max","remove","removed","tags"]
+      },
       "nodeProps": ["suggestions[].icon"],
       "nativeAttributes": true
     },
@@ -2872,6 +3082,9 @@
       "slots": ["affiliation","avatar","caption","header","name","quote","source"],
       "propEnums": {
         "variant": ["card","pull","compact"]
+      },
+      "recordKeys": {
+        "labels": ["affiliation","rating"]
       },
       "nodeProps": ["logo","quote","source"],
       "nativeAttributes": true
@@ -2907,6 +3120,9 @@
       "propEnums": {
         "variant": ["segmented","select"]
       },
+      "recordKeys": {
+        "labels": ["theme"]
+      },
       "nodeProps": ["themes[].icon"],
       "nativeAttributes": true
     },
@@ -2934,6 +3150,9 @@
       "slots": ["error","frame","literal","segment"],
       "propEnums": {
         "hourCycle": [12,24]
+      },
+      "recordKeys": {
+        "labels": ["dayPeriod","empty","hour","incomplete","label","minute","outOfRange","placeholder","second"]
       },
       "nodeProps": ["end"],
       "nativeAttributes": true
@@ -2965,6 +3184,9 @@
       "propEnums": {
         "hourCycle": [12,24]
       },
+      "recordKeys": {
+        "labels": ["chooseTime","dayPeriod","empty","hour","incomplete","label","minute","outOfRange","placeholder","second"]
+      },
       "nativeAttributes": true
     },
     "Timeline": {
@@ -2993,6 +3215,9 @@
         "order": ["newest-first","oldest-first"],
         "timeFormat": ["relative","absolute"]
       },
+      "recordKeys": {
+        "labels": ["collapse","empty","expand","loading","more","region","tones","unknownDay"]
+      },
       "nodeProps": ["empty","events[].actions","events[].description","events[].icon","events[].meta","events[].title"],
       "nativeAttributes": true
     },
@@ -3007,6 +3232,9 @@
       "slots": ["action","description","title","toast"],
       "propEnums": {
         "position": ["top-start","top-end","bottom-start","bottom-end"]
+      },
+      "recordKeys": {
+        "labels": ["dismiss","region","tones"]
       }
     },
     "ToggleGroup": {
@@ -3052,6 +3280,9 @@
       "slots": ["menu","more"],
       "propEnums": {
         "orientation": ["horizontal","vertical"]
+      },
+      "recordKeys": {
+        "labels": ["more"]
       },
       "nativeAttributes": true
     },
@@ -3117,6 +3348,9 @@
       "slots": ["actions","check","icon","item","label","toggle"],
       "propEnums": {
         "selectionMode": ["none","single","multiple"]
+      },
+      "recordKeys": {
+        "labels": ["empty","loadError","loaded","loading","retry"]
       },
       "nodeProps": ["error","items[].icon","items[].label"],
       "nativeAttributes": true
@@ -3184,6 +3418,9 @@
         "layout": ["auto","fixed"],
         "variant": ["boxed","rules","plain"]
       },
+      "recordKeys": {
+        "labels": ["bulkActions","clearFilters","clearSelection","columns","details","detailsColumn","empty","filterAll","filterColumn","loading","noMatches","pageRange","resizeColumn","rowActions","rowsPerPage","selectAll","selectRow","selectedCount"]
+      },
       "nodeProps": ["caption","columns[].header","empty","error","errorActions"],
       "nativeAttributes": true
     },
@@ -3204,6 +3441,9 @@
       "propEnums": {
         "headingLevel": [2,3,4,5,6],
         "orientation": ["horizontal","vertical"]
+      },
+      "recordKeys": {
+        "labels": ["back","complete","current","error","finish","next","optional","position","progress","skip","skipped","upcoming"]
       },
       "nativeAttributes": true
     },

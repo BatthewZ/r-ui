@@ -7,8 +7,9 @@
 // pointer, rows that shrink at compact, a stream that builds up frame by frame
 // without remounting) are settled in a real browser.
 //
-// Runs on bun: it reads the corpus manifest from its TypeScript source, so the
-// checks get the document names from the same place the unit tests do.
+// Runs on bun: it reads the corpus manifest and the renderer's class names from
+// their TypeScript source (scripts/browser/lib/wrap.mjs), so the checks get the
+// document names and the selectors from the same place the unit tests do.
 //
 // The target: by default the playground is built in development mode (React's
 // development build, so its warnings reach the console the checks collect)
@@ -20,7 +21,7 @@
 // as many as the free memory allows (capped), packed by recorded durations;
 // scripts flagged `timing` run one by one after the shards, alone. A failed
 // script runs again alone in a fresh session: passing then, it is FLAKY, which
-// fails the run as a FAIL does. Every script runs with
+// fails the run as a FAIL does. Every script runs with the run's constants and
 // `scripts/browser/lib/prelude.js` in scope and is followed by its
 // `resetPage`, pass or fail. Logs and the build go to
 // node_modules/.cache/r-ui-renderer-browser-check/runs/<pid>/.
@@ -47,9 +48,9 @@ import { freemem } from "node:os";
 import { join, relative } from "node:path";
 import { clearTimeout, setTimeout } from "node:timers";
 
-import { COVERAGE_EXAMPLES, PRODUCT_EXAMPLES } from "../src/examples/index.ts";
 import { DEFAULT_LOCK, lockHolder, releaseLock, tryLock } from "./browser/lib/lock.mjs";
 import { costOf, loadScripts, parseArgs, planShards, RESERVE_GB, SESSION_GB, selectForChanges, selectScripts, shardCount } from "./browser/lib/plan.mjs";
+import { checkConstants, wrapScript } from "./browser/lib/wrap.mjs";
 import { PKG } from "./lib/gate.mjs";
 
 const CACHE = join(PKG, "node_modules/.cache/r-ui-renderer-browser-check");
@@ -132,38 +133,10 @@ if (chosen.length === 0) {
   process.exit(1);
 }
 
-const corpus = { product: Object.keys(PRODUCT_EXAMPLES), coverage: Object.keys(COVERAGE_EXAMPLES) };
 const prelude = readFileSync(join(PKG, "scripts/browser/lib/prelude.js"), "utf8");
 
 /** The script's `async (page) => …`, called in a scope holding the run's constants and the prelude, then `resetPage` whatever happened. */
-function wrap(file, home) {
-  const source = readFileSync(file, "utf8").trim().replace(/;$/, "");
-  return [
-    "async (page) => {",
-    `const BROWSER_CHECK_HOME = ${JSON.stringify(home)};`,
-    `const CORPUS = ${JSON.stringify(corpus)};`,
-    // playwright-cli's page waits for a navigation without limit, and a locator's wait for its own default.
-    "page.setDefaultNavigationTimeout(30_000);",
-    "page.setDefaultTimeout(15_000);",
-    prelude,
-    "let failed = false;",
-    "let result;",
-    "try {",
-    `  result = await (${source}\n)(page);`,
-    "} catch (error) {",
-    "  failed = true;",
-    "  throw error;",
-    "} finally {",
-    "  try {",
-    "    await resetPage(page);",
-    "  } catch (error) {",
-    "    if (!failed) throw error;",
-    "  }",
-    "}",
-    "return result;",
-    "}",
-  ].join("\n");
-}
+const wrap = (file, home) => wrapScript(readFileSync(file, "utf8"), checkConstants(home), prelude);
 
 const freePort = () =>
   new Promise((resolve, reject) => {

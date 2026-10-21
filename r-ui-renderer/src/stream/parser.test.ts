@@ -1,11 +1,14 @@
+import { isDeepStrictEqual } from "node:util";
+
 import { describe, expect, it } from "vitest";
 
 import { isPlainObject } from "../spec/guards";
+import { LIMITS } from "../spec/policy";
 import { appendPointer, parsePointer } from "../spec/pointer";
 import { stripCodeFence } from "./fence";
 import { createViewSpecParser, parsePartialViewSpec } from "./parser";
 import { isPending, PENDING } from "./pending";
-import type { StreamSnapshot } from "./snapshot";
+import { runOf, type StreamSnapshot } from "./snapshot";
 
 // ---------------------------------------------------------------------------
 // Documents
@@ -144,18 +147,18 @@ function firstKeyOf(node: Record<string, unknown>): string {
   return ["component", "$each", "$cond"].find((key) => Object.hasOwn(node, key)) ?? "";
 }
 
-/** Asserts every closed object or array in `before` is the identical object in `after`. */
-function expectClosedIdentity(before: unknown, after: unknown, pointer: string, pending: ReadonlySet<string>): void {
+/** Collects each closed object or array in `before` that is not the identical object in `after`. */
+function closedIdentityProblems(before: unknown, after: unknown, pointer: string, pending: ReadonlySet<string>, at: string, problems: string[]): void {
   if (typeof before !== "object" || before === null) return;
   if (!pending.has(pointer)) {
-    expect(after, `closed value at "${pointer}" changed identity`).toBe(before);
+    if (after !== before) problems.push(`${at}: closed value at "${pointer}" changed identity`);
     return;
   }
   const entries: [string, unknown][] = Array.isArray(before)
     ? before.map((value, index) => [String(index), value])
     : Object.entries(before);
   for (const [token, value] of entries) {
-    expectClosedIdentity(value, valueAt(after, appendPointer("", token)), appendPointer(pointer, token), pending);
+    closedIdentityProblems(value, valueAt(after, appendPointer("", token)), appendPointer(pointer, token), pending, at, problems);
   }
 }
 
@@ -187,73 +190,86 @@ function codeUnits(text: string): string[] {
 // ---------------------------------------------------------------------------
 
 describe("createViewSpecParser: prefix property, at every boundary", () => {
-  it.each(DOCUMENTS)("$name", ({ text }) => {
-    const final: unknown = JSON.parse(stripCodeFence(text));
-    expect(emittedNodes((final as { root: unknown }).root, "/root").length).toBeGreaterThan(2);
+  // Every character boundary of every document: problems are collected and asserted once per document, since an
+  // expect per check per character costs seconds.
+  it.each(DOCUMENTS)(
+    "$name",
+    ({ text }) => {
+      const final: unknown = JSON.parse(stripCodeFence(text));
+      expect(emittedNodes((final as { root: unknown }).root, "/root").length).toBeGreaterThan(2);
 
-    const snapshots = pushEach(text, codeUnits(text));
-    let previous: StreamSnapshot | undefined;
-    let previousEmitted = new Set<string>();
-    let sawPartialText = false;
-    let sawPendingNode = false;
+      const snapshots = pushEach(text, codeUnits(text));
+      const problems: string[] = [];
+      const check = (ok: boolean, problem: () => string) => {
+        if (!ok) problems.push(problem());
+      };
+      let previous: StreamSnapshot | undefined;
+      let previousEmitted = new Set<string>();
+      let sawPartialText = false;
+      let sawPendingNode = false;
 
-    snapshots.forEach((snapshot, index) => {
-      const at = `after ${index + 1} of ${text.length} characters`;
-      const spec = snapshot.spec;
-      expect(snapshot.error, at).toBeUndefined();
+      snapshots.forEach((snapshot, index) => {
+        const at = `after ${index + 1} of ${text.length} characters`;
+        const spec = snapshot.spec;
+        check(snapshot.error === undefined, () => `${at}: error ${snapshot.error?.message ?? ""}`);
 
-      // Incremental parsing and one parse of the same prefix agree.
-      const oneShot = parsePartialViewSpec(text.slice(0, index + 1));
-      expect(oneShot.spec, at).toEqual(spec);
-      expect([...oneShot.pending].sort(), at).toEqual([...snapshot.pending].sort());
+        // Incremental parsing and one parse of the same prefix agree.
+        const oneShot = parsePartialViewSpec(text.slice(0, index + 1));
+        check(isDeepStrictEqual(oneShot.spec, spec), () => `${at}: differs from one parse`);
+        check(isDeepStrictEqual([...oneShot.pending].sort(), [...snapshot.pending].sort()), () => `${at}: pending differs from one parse`);
 
-      // An emitted node's head (component + props, $each + as + key, $cond) is final.
-      const emitted = spec === undefined || isPending(spec.root) ? [] : emittedNodes(spec.root, "/root");
-      for (const { pointer, node } of emitted) {
-        const finalNode = valueAt(final, pointer);
-        expect(isPlainObject(finalNode), `${at}: ${pointer}`).toBe(true);
-        if (!isPlainObject(finalNode)) continue;
-        const body = BODY_KEYS[firstKeyOf(node)] ?? [];
-        for (const key of new Set([...Object.keys(node), ...Object.keys(finalNode)])) {
-          if (body.includes(key)) continue;
-          expect(node[key], `${at}: ${pointer}/${key}`).toEqual(finalNode[key]);
+        // An emitted node's head (component + props, $each + as + key, $cond) is final.
+        const emitted = spec === undefined || isPending(spec.root) ? [] : emittedNodes(spec.root, "/root");
+        for (const { pointer, node } of emitted) {
+          const finalNode = valueAt(final, pointer);
+          if (!isPlainObject(finalNode)) {
+            problems.push(`${at}: ${pointer} is no node in the final document`);
+            continue;
+          }
+          const body = BODY_KEYS[firstKeyOf(node)] ?? [];
+          for (const key of new Set([...Object.keys(node), ...Object.keys(finalNode)])) {
+            if (body.includes(key)) continue;
+            check(isDeepStrictEqual(node[key], finalNode[key]), () => `${at}: ${pointer}/${key} is not final`);
+          }
         }
-      }
 
-      // Emitted node pointers only ever grow.
-      const emittedNow = new Set(emitted.map(({ pointer }) => pointer));
-      for (const pointer of previousEmitted) expect(emittedNow.has(pointer), `${at}: ${pointer} vanished`).toBe(true);
-      previousEmitted = emittedNow;
+        // Emitted node pointers only ever grow.
+        const emittedNow = new Set(emitted.map(({ pointer }) => pointer));
+        for (const pointer of previousEmitted) check(emittedNow.has(pointer), () => `${at}: ${pointer} vanished`);
+        previousEmitted = emittedNow;
 
-      // Closed subtrees keep their identity.
-      if (previous !== undefined) expectClosedIdentity(previous.spec, spec, "", previous.pending);
-      previous = snapshot;
+        // Closed subtrees keep their identity.
+        if (previous !== undefined) closedIdentityProblems(previous.spec, spec, "", previous.pending, at, problems);
+        previous = snapshot;
 
-      // Open values: PENDING, or partial text in a text child, and nothing else.
-      for (const [pointer, value] of spec === undefined ? [] : leaves(spec, "")) {
-        if (value === PENDING) {
-          expect(snapshot.pending.has(pointer), `${at}: PENDING at ${pointer} not pending`).toBe(true);
-          if (pointer.includes("/children/")) sawPendingNode = true;
-        } else if (snapshot.pending.has(pointer)) {
-          expect(typeof value, `${at}: open ${pointer}`).toBe("string");
-          expect(isTextChildPointer(spec, pointer), `${at}: partial text outside a text child at ${pointer}`).toBe(true);
-          const finalText = valueAt(final, pointer);
-          expect(typeof finalText === "string" && finalText.startsWith(String(value)), `${at}: ${pointer}`).toBe(true);
-          sawPartialText = true;
-        } else {
-          expect(value, `${at}: ${pointer}`).toEqual(valueAt(final, pointer));
+        // Open values: PENDING, or partial text in a text child, and nothing else.
+        for (const [pointer, value] of spec === undefined ? [] : leaves(spec, "")) {
+          if (value === PENDING) {
+            check(snapshot.pending.has(pointer), () => `${at}: PENDING at ${pointer} not pending`);
+            if (pointer.includes("/children/")) sawPendingNode = true;
+          } else if (snapshot.pending.has(pointer)) {
+            check(typeof value === "string", () => `${at}: open ${pointer} is not text`);
+            check(isTextChildPointer(spec, pointer), () => `${at}: partial text outside a text child at ${pointer}`);
+            const finalText = valueAt(final, pointer);
+            check(typeof finalText === "string" && finalText.startsWith(String(value)), () => `${at}: ${pointer} is not a prefix of its final text`);
+            sawPartialText = true;
+          } else {
+            check(isDeepStrictEqual(value, valueAt(final, pointer)), () => `${at}: ${pointer} is not final`);
+          }
         }
-      }
-      if (spec !== undefined && !snapshot.complete) expect(snapshot.pending.has(""), at).toBe(true);
-    });
+        if (spec !== undefined && !snapshot.complete) check(snapshot.pending.has(""), () => `${at}: the open document is not pending`);
+      });
 
-    expect(sawPartialText).toBe(true);
-    expect(sawPendingNode).toBe(true);
-    const last = snapshots[snapshots.length - 1];
-    expect(last?.complete).toBe(true);
-    expect(last?.pending.size).toBe(0);
-    expect(last?.spec).toEqual(final);
-  });
+      expect(problems.slice(0, 10)).toEqual([]);
+      expect(sawPartialText).toBe(true);
+      expect(sawPendingNode).toBe(true);
+      const last = snapshots[snapshots.length - 1];
+      expect(last?.complete).toBe(true);
+      expect(last?.pending.size).toBe(0);
+      expect(last?.spec).toEqual(final);
+    },
+    30_000,
+  );
 
   it("agrees with one parse whatever the chunk sizes", () => {
     let seed = 7;
@@ -483,12 +499,14 @@ describe("createViewSpecParser: what an open document shows", () => {
     expect(Object.getPrototypeOf(open.spec?.state)).toBe(Object.prototype);
   });
 
-  it("parses deep nesting without recursion", () => {
-    const depth = 100_000;
-    const text = `{"version":2,"title":"t","state":{"deep":${"[".repeat(depth)}1${"]".repeat(depth)}}}`;
+  it("parses nesting up to LIMITS.jsonDepth without recursion, and refuses one level more as too-deep", () => {
+    // The document and `state` are two levels: the arrays fill the rest.
+    const nested = (arrays: number) => `{"version":2,"title":"t","state":{"deep":${"[".repeat(arrays)}1${"]".repeat(arrays)}}}`;
+    const deepest = LIMITS.jsonDepth - 2;
     const parser = createViewSpecParser();
-    expect(parser.push(text.slice(0, 50_000)).pending.size).toBeGreaterThan(1000);
-    const snapshot = parser.push(text.slice(50_000));
+    const text = nested(deepest);
+    expect(parser.push(text.slice(0, 200)).pending.size).toBeGreaterThan(100);
+    const snapshot = parser.push(text.slice(200));
     expect(snapshot.complete).toBe(true);
     let value: unknown = (snapshot.spec?.state as { deep: unknown }).deep;
     let levels = 0;
@@ -496,7 +514,17 @@ describe("createViewSpecParser: what an open document shows", () => {
       value = value[0];
       levels += 1;
     }
-    expect([levels, value]).toEqual([depth, 1]);
+    expect([levels, value]).toEqual([deepest, 1]);
+
+    const tooDeep = nested(deepest + 1);
+    const refused = parsePartialViewSpec(tooDeep);
+    expect(refused.error).toMatchObject({ code: "too-deep", offset: tooDeep.indexOf("[") + deepest });
+    expect(refused.spec?.title).toBe("t");
+
+    const hostile = nested(200_000);
+    const started = performance.now();
+    expect(parsePartialViewSpec(hostile).error?.code).toBe("too-deep");
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 });
 
@@ -586,13 +614,19 @@ describe("createViewSpecParser: malformed and incomplete input", () => {
     });
   });
 
-  it("starts over on reset", () => {
+  it("starts over on reset, as a new run: every snapshot of one document shares its run", () => {
     const parser = createViewSpecParser();
-    parser.push('{"version":2,"title":"t"} x');
+    const first = runOf(parser.push('{"version":2,'));
+    expect(first).toBeDefined();
+    parser.push('"title":"t"} x');
     expect(parser.snapshot.error?.code).toBe("invalid-json");
+    expect(runOf(parser.snapshot)).toBe(first);
     parser.reset();
     expect(parser.snapshot).toEqual({ spec: undefined, complete: false, pending: new Set() });
     expect(parser.push('{"version":2,"title":"u"}')).toEqual({ spec: { version: 2, title: "u" }, complete: true, pending: new Set() });
+    expect(runOf(parser.snapshot)).toBeDefined();
+    expect(runOf(parser.snapshot)).not.toBe(first);
+    expect(runOf(createViewSpecParser().push("{"))).not.toBe(first);
   });
 
   it("accepts exactly what JSON.parse accepts after stripping fences, on mutated documents", () => {
@@ -664,35 +698,36 @@ describe("createViewSpecParser: malformed and incomplete input", () => {
 });
 
 describe("createViewSpecParser: cost", () => {
-  it("parses a megabyte a character at a time in linear time", () => {
-    // Many tiny rows keep one very wide array open for most of the text: the
-    // shape where copying the open spine per character is quadratic.
-    const rows = Array.from({ length: 60_000 }, (_, index) => ({ id: index, ok: index % 3 !== 0 }));
-    const children = Array.from({ length: 3000 }, (_, index) => ({ component: "Text", props: { tone: "muted" }, children: [`Line ${index} `.repeat(4)] }));
-    const text = JSON.stringify({
-      version: 2,
-      title: "Big",
-      data: { rows: { type: "static", value: rows } },
-      root: { component: "Stack", children },
-    });
-    expect(text.length).toBeGreaterThan(1_000_000);
+  /** About `rows * 17` characters: many tiny rows keep one very wide array open for most of the text. */
+  function wideDocument(rows: number): string {
+    const value = Array.from({ length: rows }, (_, index) => ({ id: index, ok: index % 3 !== 0 }));
+    const children = Array.from({ length: rows / 20 }, (_, index) => ({ component: "Text", props: { tone: "muted" }, children: [`Line ${index} `.repeat(4)] }));
+    return JSON.stringify({ version: 2, title: "Big", data: { rows: { type: "static", value } }, root: { component: "Stack", children } });
+  }
 
+  /** Milliseconds to push `text` a character at a time, reading the snapshot as a render would: once a frame, not once a character. */
+  function pushByCharacter(text: string): number {
     const parser = createViewSpecParser();
     const started = performance.now();
     let reads = 0;
     for (let index = 0; index < text.length; index += 1) {
       const snapshot = parser.push(text.charAt(index));
-      // A render reads the snapshot once a frame, not once a character.
       if (index % 2048 === 0) {
         reads += snapshot.spec === undefined ? 0 : 1;
         reads += snapshot.pending.size > 0 ? 0 : 1;
       }
     }
     const elapsed = performance.now() - started;
-    expect(reads).toBeGreaterThan(400);
+    expect(reads).toBeGreaterThan(text.length / 2048 - 2);
     expect(parser.end().spec).toEqual(JSON.parse(text));
-    // Linear work takes well under a second; copying the open spine on every
-    // character takes over a minute.
-    expect(elapsed).toBeLessThan(5_000);
+    return elapsed;
+  }
+
+  it("parses a megabyte a character at a time in linear time", () => {
+    const half = wideDocument(30_000);
+    const whole = wideDocument(60_000);
+    expect(whole.length).toBeGreaterThan(1_000_000);
+    // Twice the text: linear work about 2x; copying the open spine on every character about 4x.
+    expect(pushByCharacter(whole) / pushByCharacter(half)).toBeLessThan(3);
   }, 120_000);
 });

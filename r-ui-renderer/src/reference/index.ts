@@ -12,7 +12,7 @@ export {
 } from "./document";
 export { scopeContracts } from "./scope";
 
-/** VIEWSPEC.md's hand-written half, its regions empty (written by `gen:viewspec`). */
+/** VIEWSPEC.md's hand-written half, its regions empty (written by `derive:viewspec`). */
 const PROSE = proseLines.join("\n");
 
 /**

@@ -113,8 +113,7 @@ describe("the barrel gate", () => {
 
   it("lists exactly the addressable names in the registry", async () => {
     const { defaultRegistry, listRegistryNames, lookupComponent } = await import("../registry/registry");
-    const { listComponentNames } = await import("../registry/names");
-    expect(listRegistryNames(defaultRegistry)).toEqual(listComponentNames(defaultContracts));
+    expect(listRegistryNames(defaultRegistry)).toEqual(Object.keys(defaultContracts).sort());
     expect(lookupComponent(defaultRegistry, "Card.Header")).toBe(library.Card.Header);
     expect(lookupComponent(defaultRegistry, "TreeView.Item")).toBeUndefined();
     expect(lookupComponent(defaultRegistry, "Kanban")).toBeUndefined();
@@ -338,14 +337,20 @@ describe("omission: every un-JSON-able prop the declarations show is decided", (
   });
 
   it("drops what no document may set wherever the library declares it", () => {
+    const matches = new Map<string, number>(ALWAYS_DROPPED.map((prop) => [prop, 0]));
     for (const [name, paths] of Object.entries(DECLARED_PATHS)) {
       if (exclusionFor(name)) continue;
       for (const prop of ALWAYS_DROPPED) {
-        if (paths.paths.includes(prop)) expect(droppedPropsFor(name), `${name}.${prop}`).toContain(prop);
+        if (!paths.paths.includes(prop)) continue;
+        expect(droppedPropsFor(name), `${name}.${prop}`).toContain(prop);
+        matches.set(prop, (matches.get(prop) ?? 0) + 1);
       }
     }
+    // Each prop is declared somewhere addressable, so the loop above judged it at least once.
+    for (const [prop, count] of matches) expect(count, prop).toBeGreaterThan(0);
     expect(droppedPropsFor("Dialog.Trigger")).toContain("asChild");
     expect(droppedPropsFor("Calendar")).toContain("locale");
+    expect(droppedPropsFor("MediaCard")).toContain("linkAs");
   });
 });
 

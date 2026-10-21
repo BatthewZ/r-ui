@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { RendererAdapters } from "../runtime/adapters";
 import type { StreamingState } from "../runtime/context";
+import { DEFAULT_POLICY } from "../runtime/policy";
 import { useViewRuntime, type ViewRuntime } from "../runtime/use-view-runtime";
 import type { Handler, Issue } from "../spec/types";
 import type { PartialDocument } from "../stream/snapshot";
@@ -58,7 +59,7 @@ function ContactForm({ forms }: { forms: FormsSnapshot }): ReactNode {
 }
 
 function View({ doc, adapters = {}, streaming = COMPLETE, onIssue, expose }: ViewProps): ReactNode {
-  const runtime = useViewRuntime({ document: doc, streaming, adapters, onIssue });
+  const runtime = useViewRuntime({ document: doc, streaming, adapters, policy: DEFAULT_POLICY, onIssue });
   expose?.(runtime);
   return (
     <FormsRoot

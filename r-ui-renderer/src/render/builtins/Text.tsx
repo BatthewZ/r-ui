@@ -1,33 +1,20 @@
 import { createElement, type ReactNode } from "react";
 
+import { RENDERER_CLASSES } from "../../diagnostics";
+import { isOneOf } from "../../spec/guards";
 import { TEXT_ELEMENTS, TEXT_SIZES, TEXT_WEIGHTS, type TextProps } from "../../spec/types";
-import { classes, oneOf, toneClass } from "./tones";
+import { classes, toneClass } from "./tones";
 
-const SIZE_CLASSES: { readonly [S in (typeof TEXT_SIZES)[number]]: string } = {
-  "body-1": "text-body-1",
-  "body-2": "text-body-2",
-  "body-3": "text-body-3",
-};
-
-const WEIGHT_CLASSES: { readonly [W in (typeof TEXT_WEIGHTS)[number]]: string } = {
-  normal: "font-normal",
-  medium: "font-medium",
-  semibold: "font-semibold",
-};
-
-/** Body text on the UI scale, styled with token utilities only. */
+/** Body text on the UI scale, styled by the renderer's stylesheet (tokens only). */
 export function Text(props: TextProps & { readonly children?: ReactNode }): ReactNode {
   const { as, size, tone, weight, className, children } = props;
-  const element = oneOf(TEXT_ELEMENTS, as) ?? "p";
-  const sized = oneOf(TEXT_SIZES, size);
-  const weighted = oneOf(TEXT_WEIGHTS, weight);
   return createElement(
-    element,
+    isOneOf(TEXT_ELEMENTS, as) ? as : "p",
     {
       className: classes(
-        "min-w-0 break-words",
-        sized && SIZE_CLASSES[sized],
-        weighted && WEIGHT_CLASSES[weighted],
+        RENDERER_CLASSES.text,
+        isOneOf(TEXT_SIZES, size) && `${RENDERER_CLASSES.text}-${size}`,
+        isOneOf(TEXT_WEIGHTS, weight) && `${RENDERER_CLASSES.weight}-${weight}`,
         toneClass(tone),
         className,
       ),
