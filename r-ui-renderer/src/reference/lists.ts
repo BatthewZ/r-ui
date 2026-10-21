@@ -1,9 +1,10 @@
 // The regions that are lists rather than component tables: issue codes, the
-// components documents cannot use, icon names, the class vocabulary and the
-// safety policy.
+// components documents cannot use, icon names, the class vocabulary, the
+// safety policy and the theme's roles and floors.
 
 import { NOT_ADDRESSABLE } from "../contracts";
 import { FORBIDDEN_PROPS, IMAGE_URL_PROPS, isForbiddenProp, LIMITS, URL_PROPS } from "../spec/policy";
+import { THEME_CONTRAST_PAIRS, THEME_SCHEME_PAIR, THEME_TOKENS } from "../spec/theme";
 import { ISSUE_CODE_INFO, ISSUE_CODES, RUNTIME_ISSUE_CODES } from "../spec/types";
 import { cell } from "./components";
 
@@ -54,5 +55,40 @@ export function renderSafety(): string {
     `- Dropped everywhere, compared in any casing: ${FORBIDDEN_PROPS.map(code).join(", ")}; any name containing \`:\` (\`xlink:href\`); and any \`on…\` value that is not a handler.`,
     `- URL props on every component, compared in any casing: ${urls.map(code).join(", ")}. Of these, ${IMAGE_URL_PROPS.map(code).join(", ")} load images and pass the host's image policy.`,
     `- Limits: nodes nest at most ${LIMITS.depth} deep (deeper renders a diagnostic); handlers chain at most ${LIMITS.actionDepth} deep and run at most ${LIMITS.actionsPerHandler} actions each; arrays and objects nest at most ${LIMITS.jsonDepth} deep (deeper refuses the whole document); a \`pattern\` rule tests at most ${LIMITS.patternInput} characters; \`title\` is at most ${LIMITS.title} characters.`,
+  ].join("\n");
+}
+
+/** The roles a `theme` may set, then every contrast floor, one row per foreground and floor. */
+export function renderTheme(): string {
+  const roles = THEME_TOKENS.map(
+    ({ name, role, utilities, translucent }) =>
+      `| ${code(name)} | ${cell(role)} | ${utilities.map(code).join(" ")} | ${translucent ? "translucent: alpha allowed" : "opaque"} |`,
+  );
+  const floors = new Map<string, { readonly fg: string; readonly min: number; readonly on: string[] }>();
+  for (const { fg, bg, min } of THEME_CONTRAST_PAIRS) {
+    const key = `${fg} ${min}`;
+    const row = floors.get(key) ?? { fg, min, on: [] };
+    row.on.push(bg);
+    floors.set(key, row);
+  }
+  // The backgrounds every surface pair is measured on, written once: the canvas and the surfaces.
+  const surfaceRows = [...floors.values()].filter((row) => THEME_CONTRAST_PAIRS.some((pair) => pair.fg === row.fg && pair.kind !== "fill"));
+  const surfaces = (surfaceRows[0]?.on ?? []).filter((bg) => surfaceRows.every((row) => row.on.includes(bg)));
+  const on = (row: { readonly on: readonly string[] }) => {
+    const rest = row.on.filter((bg) => !surfaces.includes(bg)).map(code);
+    return surfaces.length > 0 && rest.length < row.on.length ? ["every surface", ...rest].join(", ") : rest.join(", ");
+  };
+  return [
+    "| Role | Paints | Utilities | Value |",
+    "| --- | --- | --- | --- |",
+    ...roles,
+    "",
+    `Every surface: ${surfaces.map(code).join(", ")}.`,
+    "",
+    "| Role | On | At least |",
+    "| --- | --- | --- |",
+    ...[...floors.values()].map((row) => `| ${code(row.fg)} | ${on(row)} | ${row.min}:1 |`),
+    "",
+    `And the scheme: under \`"dark"\` ${code(THEME_SCHEME_PAIR.text)} is lighter than ${code(THEME_SCHEME_PAIR.canvas)}, under \`"light"\` darker.`,
   ].join("\n");
 }

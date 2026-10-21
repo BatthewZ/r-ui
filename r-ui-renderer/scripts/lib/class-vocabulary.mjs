@@ -66,6 +66,11 @@ function ruled(rules, namespace, key) {
   return rule.utilities.map((u) => `${u}-${key}`);
 }
 
+/** The vocabulary's utilities for the `@theme` colour `--color-<key>`. */
+export function colorUtilities(key) {
+  return ruled(COLOR_RULES, "color", key);
+}
+
 /** Borders and the "none" ends of the radius and shadow scales: token-driven, not keyed by a name. */
 const STATIC_TOKEN_UTILITIES = [
   "border",

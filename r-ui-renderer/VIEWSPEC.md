@@ -12,6 +12,7 @@ The prose is hand-written. Regions between `<!-- GENERATED:… -->` markers are 
   "title": "Service health",             // REQUIRED. 1–200 characters.
   "description": "…",                    // optional
   "density": "compact",                  // optional: "comfortable" | "compact"
+  "theme": { "scheme": "dark", "tokens": {…} }, // optional: this view's colours (see Theme)
   "state": { "page": 1 },                // optional: seeds `state.…`
   "data": { "services": DataBinding },   // optional
   "forms": { "contact": FormDef },       // optional
@@ -19,7 +20,7 @@ The prose is hand-written. Regions between `<!-- GENERATED:… -->` markers are 
 }
 ```
 
-No other keys (an editor's `"$schema"` is allowed and ignored). There is no `theme`, `themeOverrides` or `locale`: the host owns the theme and the locale.
+No other keys (an editor's `"$schema"` is allowed and ignored). There is no `locale` and no theme name: the host owns the locale and the theme, and `theme` only recolours this view.
 
 **Names** (data bindings, state keys, forms, form fields, `$each` aliases, dialog ids) match `^[A-Za-z_][A-Za-z0-9_]*$`. `__proto__`, `constructor` and `prototype` are never names or path segments. `data`, `status`, `state`, `forms` and `event` are reserved: no alias may use them.
 
@@ -27,7 +28,7 @@ No other keys (an editor's `"$schema"` is allowed and ignored). There is no `the
 
 The renderer can draw a document while it arrives, so write keys in this order:
 
-- top level: `version`, `title`, `description`, `density`, `state`, `data`, `forms`, then `root` **last**;
+- top level: `version`, `title`, `description`, `density`, `theme`, `state`, `data`, `forms`, then `root` **last**;
 - component node: `component`, `props`, `children`;
 - `$each`: `$each`, `as`, `key`, `node`;
 - `$cond`: `$cond`, `then`, `else`.
@@ -37,7 +38,7 @@ What shows, and when:
 - A component node appears once its `component` name is complete and its `props` object has closed (a node written without `props` appears when its `children` begin); its children then stream in, and a text child may appear character by character. No half-written prop ever reaches a component.
 - A `$each` appears once `$each`, `as` and (when written) `key` have closed; a `$cond` once its condition has closed. Their `node`, `then` and `else` then stream like any node. A `$ref` or `$format` node appears once it has closed.
 - Out-of-order keys still render, and the validator warns (`key-order`). A key that arrives before its object could show (`children` before `component`) holds the whole object back until it closes. A key that arrives after it has shown (`props` after `children`, `key` after `node`) cannot reach what is already mounted: the object shows without it, then remounts once when the key closes, losing anything a user did to it meanwhile, and ends as the whole document renders. A `$node` inside props holds back that whole prop until it closes.
-- `state`, `data` and `forms` take effect when their objects close; until its binding has closed, `status.<name>` is `"loading"`.
+- `theme`, `state`, `data` and `forms` take effect when their objects close (a half-written palette never shows); until its binding has closed, `status.<name>` is `"loading"`.
 - Nothing runs until the whole document has arrived: actions do nothing, and a form's submit does nothing at all (no validation, no state change).
 - A node still arriving shows nothing, or a Skeleton when the host asks for one. A stream that ends early keeps what it showed and reports `stream-incomplete`.
 
@@ -310,6 +311,102 @@ The renderer provides three components the library leaves to the page. They are 
 - `block` `break-words` `grow` `hidden` `italic` `no-underline` `place-items-center` `relative` `shrink-0` `sr-only` `tabular-nums` `truncate` `underline` `whitespace-nowrap`
 <!-- /GENERATED:classes -->
 
+## Theme
+
+`theme` recolours this view and nothing else: the host's theme stands for every role the document leaves out, and the page around the view never changes.
+
+```jsonc
+"theme": {
+  "scheme": "dark",                          // optional: "light" | "dark"
+  "tokens": {                                // optional: colour role → colour
+    "--C-CANVAS": "oklch(0.2 0.012 250)",
+    "--C-TEXT-PRIMARY": "oklch(0.95 0.006 250)",
+    …
+  }
+}
+```
+
+- **Colour roles only.** The keys are the roles listed below; anything else (`--SCHEME-DARK`, a size, a font, motion, a misspelt role) is an error. A value is `#rgb`, `#rrggbb`, or `rgb()`, `hsl()`, `oklch()`, `oklab()`, `lab()` or `lch()` with space-separated numbers (`oklch(0.62 0.13 250)`, `hsl(210 40% 20%)`), the function name in lower case; `none` is the only keyword. No `var()`, `calc()`, `color-mix()`, `url()`, commas or colour names. Alpha (`#rgba`, `#rrggbbaa`, `/ 0.4`) only on the roles marked translucent: every role a contrast floor measures is opaque.
+- **`scheme`** sets the view's `color-scheme` (form controls, scrollbars) and `--SCHEME-DARK`, so the library's own colours (chart series, trend and status inks) take their light or dark values. Without it the host's scheme stands: a dark palette needs `"scheme": "dark"`, or it is refused on a light host.
+- **A palette is all or nothing.** The roles are coupled: the canvas, the four surfaces in order (0 lightest and 3 darkest in dark palettes too, the canvas between 1 and 2), the text roles, the borders, the primary and accent fills with their `on-` text, selection, focus, and each status's mark, text, background and `on-` text. Recolour the canvas and not the text, and something becomes unreadable. Change a whole group or none of it.
+- **It must meet the contrast floors below.** Before anything paints, the renderer measures the view's final palette (the host's roles with the document's over them) and checks every floor a document's role takes part in. If one falls short, none of the theme applies, the host's theme stands, and each shortfall is reported (`theme-contrast`, naming both roles and the ratio). The validator checks the floors whose roles the document sets on both sides, and warns.
+- **A themed view paints its own floor**: its box fills with `--C-CANVAS` and its text takes `--C-TEXT-PRIMARY`; a view without a theme stays transparent. Popovers, menus, tooltips and dialogs render inside the view, so they take its theme.
+- **The host decides.** A host may ignore every theme or allow only some roles (`theme-disabled`); `scheme` applies whenever any theme is allowed. Print and forced colours (high contrast) set aside a document's theme as they set aside any theme, and a more-contrast preference applies to its roles. A new document starts from the host's theme.
+
+<!-- GENERATED:theme -->
+| Role | Paints | Utilities | Value |
+| --- | --- | --- | --- |
+| `--C-CANVAS` | page floor | `bg-canvas` | opaque |
+| `--C-SURFACE-0` | raised sheet: cards, dialogs, menus, input fills | `bg-surface-0` | opaque |
+| `--C-SURFACE-1` | still raised: panels in a sheet, table headers | `bg-surface-1` | opaque |
+| `--C-SURFACE-2` | recessed: wells, chips, hover washes | `bg-surface-2` | opaque |
+| `--C-SURFACE-3` | deepest: tracks, disabled fills | `bg-surface-3` | opaque |
+| `--C-TEXT-PRIMARY` | body text, headings, icons (>= 4.5 on every surface) | `text-fg-primary` | opaque |
+| `--C-TEXT-SECONDARY` | supporting text: descriptions, captions | `text-fg-secondary` | opaque |
+| `--C-TEXT-MUTED` | least emphasis that is still read: hints, meta | `text-fg-muted` | opaque |
+| `--C-TEXT-INVERSE` | text on a --C-TEXT-PRIMARY fill (tooltips) | `text-fg-inverse` | opaque |
+| `--C-BORDER` | hairline structure: dividers, card edges | `border-border` `divide-border` | translucent: alpha allowed |
+| `--C-BORDER-STRONG` | control edges: inputs, checkboxes (>= 3 on surfaces) | `border-border-strong` `divide-border-strong` | opaque |
+| `--C-SCRIM` | backdrop behind modal layers | `bg-scrim` | translucent: alpha allowed |
+| `--C-PRIMARY` | the main action's fill | `bg-primary` | opaque |
+| `--C-PRIMARY-HOVER` | ...hovered | `bg-primary-hover` | opaque |
+| `--C-PRIMARY-ACTIVE` | ...pressed | `bg-primary-active` | opaque |
+| `--C-TEXT-ON-PRIMARY` | text/icons on all three primary fills | `text-fg-on-primary` | opaque |
+| `--C-ACCENT` | markers and accent fills (>= 3 on surfaces) | `bg-accent` `border-accent` | opaque |
+| `--C-ACCENT-HOVER` | accent fill, hovered | `bg-accent-hover` | opaque |
+| `--C-TEXT-ON-ACCENT` | text on both accent fills | `text-fg-on-accent` | opaque |
+| `--C-TEXT-ACCENT` | accent-coloured text: links (>= 4.5 on surfaces) | `text-fg-accent` | opaque |
+| `--C-SELECTION` | selected text, selected rows/options | `bg-selection` | opaque |
+| `--C-TEXT-ON-SELECTION` | text on the selection fill | `text-fg-on-selection` | opaque |
+| `--C-FOCUS` | ring colour (>= 3 on every surface) |  | opaque |
+| `--C-STATUS-ERROR` | error mark: icon, dot, border, danger fill | `bg-status-error` `border-status-error` | opaque |
+| `--C-TEXT-ERROR` | error text | `text-fg-error` | opaque |
+| `--C-STATUS-ERROR-BG` | subtle error background | `bg-status-error-bg` | opaque |
+| `--C-TEXT-ON-ERROR` | text on the error mark as a fill | `text-fg-on-error` | opaque |
+| `--C-STATUS-SUCCESS` | success mark | `bg-status-success` `border-status-success` | opaque |
+| `--C-TEXT-SUCCESS` | success text | `text-fg-success` | opaque |
+| `--C-STATUS-SUCCESS-BG` | subtle success background | `bg-status-success-bg` | opaque |
+| `--C-TEXT-ON-SUCCESS` | text on the success mark as a fill | `text-fg-on-success` | opaque |
+| `--C-STATUS-WARNING` | warning mark (no pale yellow: it must hit 3:1) | `bg-status-warning` `border-status-warning` | opaque |
+| `--C-TEXT-WARNING` | warning text | `text-fg-warning` | opaque |
+| `--C-STATUS-WARNING-BG` | subtle warning background | `bg-status-warning-bg` | opaque |
+| `--C-TEXT-ON-WARNING` | text on the warning mark as a fill | `text-fg-on-warning` | opaque |
+| `--C-STATUS-INFO` | info mark | `bg-status-info` `border-status-info` | opaque |
+| `--C-TEXT-INFO` | info text | `text-fg-info` | opaque |
+| `--C-STATUS-INFO-BG` | subtle info background | `bg-status-info-bg` | opaque |
+| `--C-TEXT-ON-INFO` | text on the info mark as a fill | `text-fg-on-info` | opaque |
+
+Every surface: `--C-CANVAS`, `--C-SURFACE-0`, `--C-SURFACE-1`, `--C-SURFACE-2`, `--C-SURFACE-3`.
+
+| Role | On | At least |
+| --- | --- | --- |
+| `--C-TEXT-PRIMARY` | every surface, `--C-STATUS-ERROR-BG`, `--C-STATUS-SUCCESS-BG`, `--C-STATUS-WARNING-BG`, `--C-STATUS-INFO-BG` | 4.5:1 |
+| `--C-TEXT-SECONDARY` | every surface, `--C-SELECTION` | 4.5:1 |
+| `--C-TEXT-MUTED` | every surface | 4.5:1 |
+| `--C-TEXT-ACCENT` | every surface | 4.5:1 |
+| `--C-TEXT-ERROR` | every surface, `--C-STATUS-ERROR-BG` | 4.5:1 |
+| `--C-TEXT-SUCCESS` | every surface, `--C-STATUS-SUCCESS-BG` | 4.5:1 |
+| `--C-TEXT-WARNING` | every surface, `--C-STATUS-WARNING-BG` | 4.5:1 |
+| `--C-TEXT-INFO` | every surface, `--C-STATUS-INFO-BG` | 4.5:1 |
+| `--C-STATUS-ERROR` | every surface, `--C-STATUS-ERROR-BG` | 3:1 |
+| `--C-STATUS-SUCCESS` | every surface, `--C-STATUS-SUCCESS-BG` | 3:1 |
+| `--C-STATUS-WARNING` | every surface, `--C-STATUS-WARNING-BG` | 3:1 |
+| `--C-STATUS-INFO` | every surface, `--C-STATUS-INFO-BG` | 3:1 |
+| `--C-ACCENT` | every surface | 3:1 |
+| `--C-FOCUS` | every surface | 3:1 |
+| `--C-BORDER-STRONG` | every surface | 3:1 |
+| `--C-TEXT-ON-PRIMARY` | `--C-PRIMARY`, `--C-PRIMARY-HOVER`, `--C-PRIMARY-ACTIVE` | 4.5:1 |
+| `--C-TEXT-ON-ACCENT` | `--C-ACCENT`, `--C-ACCENT-HOVER` | 4.5:1 |
+| `--C-TEXT-ON-SELECTION` | `--C-SELECTION` | 4.5:1 |
+| `--C-TEXT-INVERSE` | `--C-TEXT-PRIMARY` | 4.5:1 |
+| `--C-TEXT-ON-ERROR` | `--C-STATUS-ERROR` | 4.5:1 |
+| `--C-TEXT-ON-SUCCESS` | `--C-STATUS-SUCCESS` | 4.5:1 |
+| `--C-TEXT-ON-WARNING` | `--C-STATUS-WARNING` | 4.5:1 |
+| `--C-TEXT-ON-INFO` | `--C-STATUS-INFO` | 4.5:1 |
+
+And the scheme: under `"dark"` `--C-TEXT-PRIMARY` is lighter than `--C-CANVAS`, under `"light"` darker.
+<!-- /GENERATED:theme -->
+
 ## Density
 
 `density` (`"comfortable"` or `"compact"`) sets the density of the whole view, unless the host sets one, which wins. A part of the view can differ either way: `"data-density": "compact"` on any component makes its subtree compact. Density changes spacing, UI text, control and row heights and icon size; nothing else.
@@ -386,6 +483,8 @@ The renderer provides three components the library leaves to the page. They are 
 | `render-error` | error | A node threw while rendering. Reported only while rendering. |
 | `not-renderable` | warning | A value its place cannot use: not text where text renders, not an array under `$each`. Reported only while rendering. |
 | `stream-incomplete` | error | The stream ended before the document closed. Reported only while rendering. |
+| `theme-contrast` | warning | The theme's colours break the contrast contract; the whole theme is refused and the host's stands. |
+| `theme-disabled` | warning | The host does not allow the theme, or one of its colour roles; that part is ignored. |
 <!-- /GENERATED:issue-codes -->
 
 ## Components

@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "title": "A palette below the contrast floors",
+  "description": "Control document: pale text on a pink canvas, which the view must refuse whole before it paints.",
+  "theme": {
+    "scheme": "light",
+    "tokens": {
+      "--C-CANVAS": "oklch(0.965 0.03 350)",
+      "--C-SURFACE-0": "oklch(0.995 0.01 350)",
+      "--C-TEXT-PRIMARY": "oklch(0.86 0.03 350)"
+    }
+  },
+  "root": {
+    "component": "Stack",
+    "props": {
+      "gap": "r3",
+      "className": "p-r2"
+    },
+    "children": [
+      {
+        "component": "Heading",
+        "props": {
+          "level": 1
+        },
+        "children": [
+          "Quarterly summary"
+        ]
+      },
+      {
+        "component": "Card",
+        "children": [
+          {
+            "component": "Card.Body",
+            "children": [
+              {
+                "component": "Text",
+                "children": [
+                  "If this pink canvas ever paints, the contrast check let it through."
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

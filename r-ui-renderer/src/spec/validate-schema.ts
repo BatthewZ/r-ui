@@ -47,12 +47,15 @@ import {
   type ShowToastPayload,
   type SourceBinding,
   type StaticBinding,
+  THEME_SCHEMES,
+  type ThemeSpec,
   TOAST_TONES,
   VALIDATION_TRIGGERS,
   type ViewSpec,
 } from "./types";
 import { LIMITS } from "./policy";
 import { ownValue } from "./guards";
+import { COLOUR_MESSAGE, COLOUR_PATTERN, OPAQUE_COLOUR_PATTERN, THEME_TOKENS } from "./theme";
 
 export type JsonType = "null" | "boolean" | "number" | "integer" | "string" | "array" | "object";
 
@@ -451,9 +454,28 @@ const FORM_DEF = shape<FormDef>()(
 );
 
 // ---------------------------------------------------------------------------
+// Theme
+
+const THEME = shape<ThemeSpec>()(
+  {
+    scheme: values(THEME_SCHEMES),
+    tokens: {
+      type: "object",
+      properties: Object.fromEntries(THEME_TOKENS.map((token) => [token.name, ref(token.translucent ? "Colour" : "OpaqueColour")])),
+      additionalProperties: false,
+      description: "Colour role → colour; the roles are the theme template's `--C-*` tokens.",
+    },
+  },
+  [],
+);
+
+// ---------------------------------------------------------------------------
 // The document
 
 const DEFS: SchemaDefs = {
+  OpaqueColour: { type: "string", pattern: OPAQUE_COLOUR_PATTERN, "x-message": COLOUR_MESSAGE },
+  Colour: { type: "string", pattern: COLOUR_PATTERN, "x-message": COLOUR_MESSAGE },
+  Theme: THEME,
   Name: {
     type: "string",
     pattern: PATTERNS.name,
@@ -585,6 +607,7 @@ export const VIEWSPEC_SCHEMA: SchemaDef & { readonly $defs: typeof DEFS } = {
       title: { type: "string", minLength: 1, maxLength: LIMITS.title },
       description: string,
       density: values(DENSITIES),
+      theme: ref("Theme"),
       state: record(ref("Json"), ref("Name")),
       data: record(ref("DataBinding"), ref("Name")),
       forms: record(ref("FormDef"), ref("Name")),

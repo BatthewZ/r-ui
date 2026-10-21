@@ -21,6 +21,16 @@ const SINK = {
   title: "Service health",
   description: "Everything at once.",
   density: "compact",
+  theme: {
+    scheme: "dark",
+    tokens: {
+      "--C-CANVAS": "oklch(0.2 0.012 250)",
+      "--C-TEXT-PRIMARY": "#F2F4F8",
+      "--C-TEXT-SECONDARY": "hsl(220 15% 78%)",
+      "--C-BORDER": "rgb(255 255 255 / 12%)",
+      "--C-SCRIM": "#0009",
+    },
+  },
   state: { tab: "overview", filters: { region: null }, picked: [] },
   data: {
     summary: { type: "static", value: { uptime: 0.9993, $ref: "data, not a marker", rows: [{ id: 1 }] } },
@@ -129,7 +139,19 @@ const BROKEN: [string, Json][] = [
   ["no root", edit(SINK as unknown as Json, at("root"), () => undefined)],
   ["version 1", edit(SINK as unknown as Json, at("version"), () => 1)],
   ["empty title", edit(SINK as unknown as Json, at("title"), () => "")],
-  ["a theme", edit(SINK as unknown as Json, at("theme"), () => "aurora")],
+  ["a theme name", edit(SINK as unknown as Json, at("theme"), () => "aurora")],
+  ["a key a theme does not take", edit(SINK as unknown as Json, at("theme", "name"), () => "aurora")],
+  ["a scheme outside the set", edit(SINK as unknown as Json, at("theme", "scheme"), () => "dim")],
+  ["a theme role that is no colour role", edit(SINK as unknown as Json, at("theme", "tokens", "--SCHEME-DARK"), () => "1")],
+  ["a size token as a theme role", edit(SINK as unknown as Json, at("theme", "tokens", "--R-SIZE-3"), () => "#000")],
+  ["var() in a theme role", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => "var(--C-SURFACE-0)")],
+  ["url() in a theme role", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => "url(x.png)")],
+  ["color-mix() in a theme role", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => "color-mix(in oklch, #000, #fff)")],
+  ["alpha on an opaque role", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => "#00000080")],
+  ["a comma rgb()", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => "rgb(0, 0, 0)")],
+  ["an upper-case colour function", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => "OKLCH(0.2 0.01 250)")],
+  ["a colour name", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => "black")],
+  ["a number as a colour", edit(SINK as unknown as Json, at("theme", "tokens", "--C-CANVAS"), () => 0)],
   ["bad density", edit(SINK as unknown as Json, at("density"), () => "cosy")],
   ["state name with a dot", edit(SINK as unknown as Json, at("state", "a.b"), () => 1)],
   ["state __proto__", edit(SINK as unknown as Json, at("state", "__proto__"), () => 1)],
@@ -176,6 +198,10 @@ const BENT: [string, Json][] = [
   ["an action as data", edit(SINK as unknown as Json, at("root", "children", 15, "props", "nothing"), () => ({ action: "nope" }))],
   ["a list of non-actions under on…", edit(SINK as unknown as Json, at("root", "children", 15, "props", "onEmpty"), () => [1, { a: 2 }])],
   ["unknown component (a warning)", edit(SINK as unknown as Json, at("root", "children", 16, "component"), () => "Nope")],
+  ["an empty theme", edit(SINK as unknown as Json, at("theme"), () => ({}))],
+  ["a theme of a scheme alone", edit(SINK as unknown as Json, at("theme"), () => ({ scheme: "light" }))],
+  ["alpha in each spelling on a translucent role", edit(edit(SINK as unknown as Json, at("theme", "tokens", "--C-SCRIM"), () => "oklch(0.1 0 0 / none)"), at("theme", "tokens", "--C-BORDER"), () => "#FFFFFF1F")],
+  ["a theme below the contrast floors (a warning)", edit(SINK as unknown as Json, at("theme", "tokens", "--C-TEXT-SECONDARY"), () => "oklch(0.3 0.01 250)")],
 ];
 
 const PUBLISHED = publishedSchema() as SchemaDef & { readonly $defs: { readonly [name: string]: SchemaDef } };

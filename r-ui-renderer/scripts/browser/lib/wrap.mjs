@@ -8,7 +8,7 @@ import { COVERAGE_EXAMPLES, PRODUCT_EXAMPLES } from "../../../src/examples/index
 
 /**
  * The constants every check reads instead of spelling them: the playground's
- * URL, the selectors `src/diagnostics.ts` defines, and the documents (corpus
+ * URL, the selectors and classes `src/diagnostics.ts` defines, and the documents (corpus
  * names; each control document's declared diagnostic codes).
  */
 export function checkConstants(home) {
@@ -16,6 +16,7 @@ export function checkConstants(home) {
     BROWSER_CHECK_HOME: home,
     DIAGNOSTIC_SELECTOR,
     VIEW_SELECTOR: `.${RENDERER_CLASSES.view}`,
+    THEMED_CLASS: RENDERER_CLASSES.themed,
     CORPUS: {
       product: Object.keys(PRODUCT_EXAMPLES),
       coverage: Object.keys(COVERAGE_EXAMPLES),

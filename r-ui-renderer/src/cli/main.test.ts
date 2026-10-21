@@ -23,7 +23,7 @@ function io(overrides: Partial<CliIO> = {}) {
 }
 
 describe("parseArgs", () => {
-  it("reads a file, --raw, --format, --contracts, --icons, --origin, --allow-origin, --allow-sensitive and --strict", () => {
+  it("reads a file, --raw, --format, --contracts, --icons, --origin, --allow-origin, --allow-sensitive, --no-theme-overrides and --strict", () => {
     expect(parseArgs(["doc.json", "--format", "json", "--strict"])).toEqual({
       help: false,
       file: "doc.json",
@@ -34,11 +34,13 @@ describe("parseArgs", () => {
       origin: undefined,
       allowOrigins: [],
       allowSensitive: false,
+      themeOverrides: true,
       strict: true,
     });
     expect(
       parseArgs(["-", "--icons", "a,b", "--allow-origin", "https://cdn.example/x", "--allow-origin", "https://img.example", "--allow-sensitive"]),
     ).toMatchObject({ icons: "a,b", allowOrigins: ["https://cdn.example", "https://img.example"], allowSensitive: true });
+    expect(parseArgs(["doc.json", "--no-theme-overrides"])).toMatchObject({ themeOverrides: false });
     expect(parseArgs(["--raw", "{}", "--contracts", "extra.json", "--origin", "https://app.example"])).toMatchObject({
       raw: "{}",
       contracts: "extra.json",
@@ -182,6 +184,15 @@ describe("main: verdicts", () => {
     const secret = JSON.stringify({ version: 2, title: "t", root: { component: "Input", props: { type: "password", "aria-label": "Password" } } });
     expect(await main(["--raw", secret, "--strict"], io().value)).toBe(1);
     expect(await main(["--raw", secret, "--strict", "--allow-sensitive"], io().value)).toBe(0);
+  });
+
+  it("mirrors themeOverrides: false (--no-theme-overrides), with or without --allow-origin", async () => {
+    const themed = JSON.stringify({ version: 2, title: "t", theme: { scheme: "dark" }, root: "x" });
+    expect(await main(["--raw", themed, "--strict"], io().value)).toBe(0);
+    const off = io();
+    expect(await main(["--raw", themed, "--strict", "--no-theme-overrides"], off.value)).toBe(1);
+    expect(off.out.join("")).toContain("theme-disabled");
+    expect(await main(["--raw", themed, "--strict", "--no-theme-overrides", "--allow-origin", "https://cdn.example"], io().value)).toBe(1);
   });
 
   it("adds --contracts to the defaults, and refuses a malformed contracts file as an input error", async () => {

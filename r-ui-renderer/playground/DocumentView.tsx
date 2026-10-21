@@ -11,17 +11,20 @@ interface DocumentViewProps {
   /** The document has fully arrived. */
   readonly complete: boolean;
   readonly density?: Density;
+  /** The host ignores the document's `theme` (the route's `theme-overrides=off`). */
+  readonly themeOverrides?: false;
 }
 
 /**
  * One document hosted as the playground hosts every view: its adapters and
  * policy, the shipped icons, and `<html data-renderer-ready>` once it has settled.
  */
-export function DocumentView({ input, complete, density }: DocumentViewProps) {
+export function DocumentView({ input, complete, density, themeOverrides }: DocumentViewProps) {
   const [tracker] = useState(createRequestTracker);
   const adapters = usePlaygroundAdapters(tracker);
   usePageMarkers(useSettled(complete, tracker));
-  return <ViewRenderer {...input} adapters={adapters} policy={PLAYGROUND_POLICY} icons={icons} density={density} />;
+  const policy = themeOverrides === undefined ? PLAYGROUND_POLICY : { ...PLAYGROUND_POLICY, themeOverrides };
+  return <ViewRenderer {...input} adapters={adapters} policy={policy} icons={icons} density={density} />;
 }
 
 interface StreamedViewProps {
@@ -29,10 +32,13 @@ interface StreamedViewProps {
   /** Characters per frame; `null` shows `text` at once, complete. */
   readonly charsPerFrame: number | null;
   readonly density?: Density;
+  readonly themeOverrides?: false;
 }
 
 /** `text` through the stream parser, replayed at `charsPerFrame` (remount to replay again). */
-export function StreamedView({ text, charsPerFrame, density }: StreamedViewProps) {
+export function StreamedView({ text, charsPerFrame, density, themeOverrides }: StreamedViewProps) {
   const replay = useReplay(text, charsPerFrame);
-  return <DocumentView input={{ text: replay.text, complete: replay.complete }} complete={replay.complete} density={density} />;
+  return (
+    <DocumentView input={{ text: replay.text, complete: replay.complete }} complete={replay.complete} density={density} themeOverrides={themeOverrides} />
+  );
 }

@@ -25,6 +25,7 @@ Options:
   --allow-origin <url>    Another origin the host allows requests and images from
                           (repeatable).
   --allow-sensitive       The host allows sensitive components and values.
+  --no-theme-overrides    The host ignores a document's theme.
   --strict                Warnings fail too.
   -h, --help              Show this help.
 
@@ -49,6 +50,8 @@ export interface CliArgs {
   /** Origins (as `URL.origin`) the host allows requests and images from. */
   readonly allowOrigins: readonly string[];
   readonly allowSensitive: boolean;
+  /** False with --no-theme-overrides: the host ignores a document's theme. */
+  readonly themeOverrides: boolean;
   readonly strict: boolean;
 }
 
@@ -82,6 +85,7 @@ export function parseArgs(argv: readonly string[]): CliArgs {
   let help = false;
   let strict = false;
   let allowSensitive = false;
+  let themeOverrides = true;
   let format: OutputFormat = "text";
   let file: string | undefined;
   const values = new Map<string, string>();
@@ -92,6 +96,7 @@ export function parseArgs(argv: readonly string[]): CliArgs {
     if (arg === "-h" || arg === "--help") help = true;
     else if (arg === "--strict") strict = true;
     else if (arg === "--allow-sensitive") allowSensitive = true;
+    else if (arg === "--no-theme-overrides") themeOverrides = false;
     else if (arg === "--allow-origin") {
       const value = argv[i + 1];
       if (value === undefined) throw new UsageError(`${arg} needs a value.`);
@@ -128,6 +133,7 @@ export function parseArgs(argv: readonly string[]): CliArgs {
     origin,
     allowOrigins,
     allowSensitive,
+    themeOverrides,
     strict,
   };
 }
@@ -238,13 +244,14 @@ async function readIcons(value: string, io: CliIO): Promise<string[]> {
 
 /** The host policy the flags describe: the default policies, widened by each `--allow-origin`. */
 function policyOf(args: CliArgs): HostPolicy {
-  if (args.allowOrigins.length === 0) return { allowSensitive: args.allowSensitive };
+  if (args.allowOrigins.length === 0) return { allowSensitive: args.allowSensitive, themeOverrides: args.themeOverrides };
   const base = originBase(args.origin);
   const allowed = new Set(args.allowOrigins);
   return {
     allowUrl: (url) => defaultAllowUrl(url, base) || allowed.has(url.origin),
     allowImageUrl: (url) => defaultAllowImageUrl(url, base) || allowed.has(url.origin),
     allowSensitive: args.allowSensitive,
+    themeOverrides: args.themeOverrides,
   };
 }
 

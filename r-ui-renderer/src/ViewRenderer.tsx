@@ -14,6 +14,7 @@ import { sameList } from "./render/memo";
 import { NodeBoundary } from "./render/NodeBoundary";
 import { renderNode } from "./render/render-node";
 import { createRootScope, type ViewEnv } from "./render/scope";
+import { useViewTheme } from "./render/view-theme";
 import type { RendererAdapters } from "./runtime/adapters";
 import type { IssueReporter, ResolvedPolicy, StreamingFallback, StreamingState } from "./runtime/context";
 import { resolvePolicy, samePolicy } from "./runtime/policy";
@@ -151,6 +152,11 @@ function useStablePolicy(policy: HostPolicy | undefined): ResolvedPolicy {
   return kept.current;
 }
 
+/** The document's `theme` once its object has closed: never half a palette. */
+function closedTheme(document: PartialDocument | undefined, pending: ReadonlySet<string>): unknown {
+  return document === undefined || pending.has("/theme") ? undefined : document.theme;
+}
+
 /** The names the document's `forms` declares, as one stable set per distinct list. */
 function useFormNames(document: PartialDocument | undefined): ReadonlySet<string> {
   const forms = document?.forms;
@@ -166,7 +172,7 @@ function useFormNames(document: PartialDocument | undefined): ReadonlySet<string
  */
 export function ViewRenderer(props: ViewRendererProps): ReactNode {
   const { adapters, policy, registry, contracts, icons, density, streamingFallback, diagnostics = "show", onIssue, onValidation, className } = props;
-  const options = { adapters, policy, registry, contracts, icons, streamingFallback, onIssue, onValidation };
+  const options = { adapters, registry, contracts, icons, streamingFallback, onIssue, onValidation };
 
   const textSnapshot = useTextStream(props.text, props.complete ?? false);
   const sourceSnapshot = useViewSpecStream(props.source);
@@ -177,6 +183,10 @@ export function ViewRenderer(props: ViewRendererProps): ReactNode {
 
   const document = snapshot.spec;
   const viewDensity = density ?? (isOneOf(DENSITIES, document?.density) ? document.density : undefined);
+  const resolvedPolicy = useStablePolicy(policy);
+  const root = useRef<HTMLDivElement>(null);
+  const theme = useViewTheme(closedTheme(document, snapshot.pending), resolvedPolicy, generation, root);
+  const classes = [RENDERER_CLASSES.view, theme.style === undefined ? undefined : RENDERER_CLASSES.themed, className];
 
   // Outside the document's own channel, which is what failed: straight to the host.
   const latestOnIssue = useRef(onIssue);
@@ -187,22 +197,27 @@ export function ViewRenderer(props: ViewRendererProps): ReactNode {
 
   return (
     <div
-      className={className === undefined ? RENDERER_CLASSES.view : `${RENDERER_CLASSES.view} ${className}`}
+      ref={root}
+      className={classes.filter((name) => name !== undefined).join(" ")}
+      style={theme.style}
       data-density={viewDensity}
       data-diagnostics={diagnostics === "hidden" ? "hidden" : undefined}
     >
       <NodeBoundary key={generation} path="" report={reportFailure} structural={false} pending={undefined}>
-        <DocumentView {...options} snapshot={snapshot} inputIssue={fromSpec?.issue} />
+        <DocumentView {...options} policy={resolvedPolicy} snapshot={snapshot} inputIssue={fromSpec?.issue} themeIssues={theme.issues} />
       </NodeBoundary>
     </div>
   );
 }
 
-type DocumentViewProps = Omit<ViewRendererOptions, "density" | "diagnostics" | "className"> & {
+type DocumentViewProps = Omit<ViewRendererOptions, "density" | "diagnostics" | "className" | "policy"> & {
+  readonly policy: ResolvedPolicy;
   /** As shown: frame-coalesced. */
   readonly snapshot: StreamSnapshot;
   /** Why a `spec` input cannot render. */
   readonly inputIssue: Issue | undefined;
+  /** What the view root held back of the document's theme, and why. */
+  readonly themeIssues: readonly Issue[];
 };
 
 /** One document's view: its runtime, forms, rendering and issue log, all mounted afresh for the next document. */
@@ -210,6 +225,8 @@ function DocumentView(props: DocumentViewProps): ReactNode {
   const {
     snapshot,
     inputIssue,
+    themeIssues,
+    policy,
     adapters = NO_ADAPTERS,
     registry = defaultRegistry,
     contracts = defaultContracts,
@@ -231,7 +248,6 @@ function DocumentView(props: DocumentViewProps): ReactNode {
 
   const locale = useLocale();
   const format = useMemo<FormatValue>(() => (value, options) => formatWith(value, options, locale), [locale]);
-  const policy = useStablePolicy(props.policy);
   const runtime = useViewRuntime({ document, streaming, adapters, policy, onIssue, format });
   const { roots } = runtime;
   const { report } = runtime.issues;
@@ -244,6 +260,10 @@ function DocumentView(props: DocumentViewProps): ReactNode {
   useEffect(() => {
     if (inputIssue !== undefined) report(inputIssue);
   }, [inputIssue, report]);
+
+  useEffect(() => {
+    for (const issue of themeIssues) report(issue);
+  }, [themeIssues, report]);
 
   useEffect(() => {
     const error = snapshot.error;

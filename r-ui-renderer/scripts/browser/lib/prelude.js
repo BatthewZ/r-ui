@@ -1,7 +1,7 @@
 // Prepended to every browser check by `scripts/browser-check.mjs`, inside the
 // check's own `async (page) => …` scope, so each script can call these by name.
 // The runner defines before it (`lib/wrap.mjs`): BROWSER_CHECK_HOME (the
-// playground's URL), DIAGNOSTIC_SELECTOR and VIEW_SELECTOR (from
+// playground's URL), DIAGNOSTIC_SELECTOR, VIEW_SELECTOR and THEMED_CLASS (from
 // src/diagnostics.ts; no check spells a renderer class), and CORPUS
 // ({ product, coverage }: document names; controls: name -> the diagnostic
 // codes that control document renders).

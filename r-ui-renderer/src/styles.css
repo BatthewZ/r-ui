@@ -164,4 +164,67 @@
   .r-renderer-pending {
     display: block;
   }
+
+  /* A view whose document applied a theme paints its own floor: its roles
+     reach only the view, so the page around it keeps the host's canvas. */
+  .r-renderer-themed {
+    background: var(--C-CANVAS);
+    color: var(--C-TEXT-PRIMARY);
+  }
+
+/* GENERATED:theme (scripts/derive-theme.mjs); do not edit by hand */
+  /* A document's roles take the package's more-contrast substitutions, from its own values. */
+  @media (prefers-contrast: more) {
+    .r-renderer-themed {
+      --C-BORDER: var(--C-BORDER-STRONG) !important;
+      --C-TEXT-MUTED: var(--C-TEXT-SECONDARY) !important;
+    }
+  }
+  /* Print and forced colours replace every theme's roles on :root; a document's yield to them too. */
+  @media print, (forced-colors: active) {
+    .r-renderer-themed {
+      color-scheme: inherit !important;
+      --SCHEME-DARK: inherit !important;
+      --C-CANVAS: inherit !important;
+      --C-SURFACE-0: inherit !important;
+      --C-SURFACE-1: inherit !important;
+      --C-SURFACE-2: inherit !important;
+      --C-SURFACE-3: inherit !important;
+      --C-TEXT-PRIMARY: inherit !important;
+      --C-TEXT-SECONDARY: inherit !important;
+      --C-TEXT-MUTED: inherit !important;
+      --C-TEXT-INVERSE: inherit !important;
+      --C-BORDER: inherit !important;
+      --C-BORDER-STRONG: inherit !important;
+      --C-SCRIM: inherit !important;
+      --C-PRIMARY: inherit !important;
+      --C-PRIMARY-HOVER: inherit !important;
+      --C-PRIMARY-ACTIVE: inherit !important;
+      --C-TEXT-ON-PRIMARY: inherit !important;
+      --C-ACCENT: inherit !important;
+      --C-ACCENT-HOVER: inherit !important;
+      --C-TEXT-ON-ACCENT: inherit !important;
+      --C-TEXT-ACCENT: inherit !important;
+      --C-SELECTION: inherit !important;
+      --C-TEXT-ON-SELECTION: inherit !important;
+      --C-FOCUS: inherit !important;
+      --C-STATUS-ERROR: inherit !important;
+      --C-TEXT-ERROR: inherit !important;
+      --C-STATUS-ERROR-BG: inherit !important;
+      --C-TEXT-ON-ERROR: inherit !important;
+      --C-STATUS-SUCCESS: inherit !important;
+      --C-TEXT-SUCCESS: inherit !important;
+      --C-STATUS-SUCCESS-BG: inherit !important;
+      --C-TEXT-ON-SUCCESS: inherit !important;
+      --C-STATUS-WARNING: inherit !important;
+      --C-TEXT-WARNING: inherit !important;
+      --C-STATUS-WARNING-BG: inherit !important;
+      --C-TEXT-ON-WARNING: inherit !important;
+      --C-STATUS-INFO: inherit !important;
+      --C-TEXT-INFO: inherit !important;
+      --C-STATUS-INFO-BG: inherit !important;
+      --C-TEXT-ON-INFO: inherit !important;
+    }
+  }
+/* /GENERATED:theme */
 }

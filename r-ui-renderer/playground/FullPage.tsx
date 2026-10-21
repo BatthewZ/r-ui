@@ -13,9 +13,9 @@ export function FullPage({ route }: { readonly route: ViewRoute }) {
   return (
     <main>
       {route.stream === undefined ? (
-        <DocumentView input={{ spec: entry.spec }} complete density={route.density} />
+        <DocumentView input={{ spec: entry.spec }} complete density={route.density} themeOverrides={route.themeOverrides} />
       ) : (
-        <StreamedView text={entry.text} charsPerFrame={route.stream} density={route.density} />
+        <StreamedView text={entry.text} charsPerFrame={route.stream} density={route.density} themeOverrides={route.themeOverrides} />
       )}
     </main>
   );

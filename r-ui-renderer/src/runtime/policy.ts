@@ -15,6 +15,7 @@ export const DEFAULT_POLICY: ResolvedPolicy = Object.freeze({
   allowImageUrl: sameOriginImage,
   markdownImages: NONE,
   allowSensitive: false,
+  themeOverrides: true,
 });
 
 /** The host's policy with every absent member at its default. */
@@ -25,6 +26,7 @@ export function resolvePolicy(policy: HostPolicy | undefined): ResolvedPolicy {
     allowImageUrl: policy.allowImageUrl ?? sameOriginImage,
     markdownImages: policy.markdownImages ?? NONE,
     allowSensitive: policy.allowSensitive ?? false,
+    themeOverrides: policy.themeOverrides ?? true,
   };
 }
 
@@ -39,6 +41,7 @@ export function samePolicy(a: ResolvedPolicy, b: ResolvedPolicy): boolean {
     (sameValue(a.allowUrl, b.allowUrl) &&
       sameValue(a.allowImageUrl, b.allowImageUrl) &&
       sameValue(a.markdownImages, b.markdownImages) &&
-      sameValue(a.allowSensitive, b.allowSensitive))
+      sameValue(a.allowSensitive, b.allowSensitive) &&
+      sameValue(a.themeOverrides, b.themeOverrides))
   );
 }

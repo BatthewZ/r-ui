@@ -10,6 +10,7 @@
 import type { IssueCode } from "../../spec/types";
 import containedOverlays from "./contained-overlays.json";
 import refusedImage from "./refused-image.json";
+import refusedTheme from "./refused-theme.json";
 
 export interface ControlExample {
   readonly document: unknown;
@@ -17,11 +18,12 @@ export interface ControlExample {
   readonly diagnostics: readonly IssueCode[];
 }
 
-export type ControlName = "contained-overlays" | "refused-image";
+export type ControlName = "contained-overlays" | "refused-image" | "refused-theme";
 
 export const CONTROL_EXAMPLES: { readonly [name in ControlName]: ControlExample } = {
   "contained-overlays": { document: containedOverlays, diagnostics: [] },
   "refused-image": { document: refusedImage, diagnostics: ["refused-url"] },
+  "refused-theme": { document: refusedTheme, diagnostics: ["theme-contrast"] },
 };
 
 export function isControlName(name: string): name is ControlName {

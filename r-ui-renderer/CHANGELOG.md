@@ -36,6 +36,26 @@ not render, and nothing of that package's API is kept for compatibility.
   the view; dialogs and floating panels render on the top layer, unclipped.
 - Custom components through `extendRegistry` and `extendContracts`.
 
+### Theme overrides
+
+- A document's optional `theme` (`{ "scheme"?: "light" | "dark", "tokens"?: { "--C-…": colour } }`,
+  written after `density`) recolours its own view: the CSS package's 39 colour roles,
+  listed by a deriver from its theme template (`THEME_TOKENS`, `derive:theme`), as hex or
+  `rgb()`, `hsl()`, `oklch()`, `oklab()`, `lab()` or `lch()` with numbers; alpha only on the
+  roles the template writes translucent. Any other name or value is an error.
+- The roles land as custom properties on the view root, with `color-scheme` and
+  `--SCHEME-DARK` for `scheme`; a themed root paints its own canvas and ink
+  (`RENDERER_CLASSES.themed`). Floating panels render inside the view and take them. Print
+  and forced colours set them aside; more contrast applies to them.
+- Before anything paints, the view measures its final palette against the CSS package's
+  contrast check (99 pairs and the scheme row, derived from the check itself): a shortfall
+  in any pair a document's role takes part in refuses the whole theme and reports
+  `theme-contrast`. A change on `<html>` measures again; a refusal holds for the rest of the
+  document. A pair that cannot be measured fails. The validator checks the pairs the
+  document sets on both sides, as a warning.
+- `HostPolicy.themeOverrides`: `false` ignores the theme (`theme-disabled`), a list of roles
+  narrows it; the CLI's `--no-theme-overrides`.
+
 ### Streaming
 
 - A component node renders once its name and props have closed; no half-written prop
@@ -58,7 +78,7 @@ not render, and nothing of that package's API is kept for compatibility.
   `extendContracts`, `contractFor`, and the URL and prop policy.
 - The `r-ui-validate` bin: a file, `--raw` or standard input; `--format text|json|model`
   (`json` is the handler's body), `--contracts`, `--icons`, `--origin`, `--allow-origin`,
-  `--allow-sensitive`, `--strict`; exit 0 valid, 1 not valid, 2 usage or input error (an
+  `--allow-sensitive`, `--no-theme-overrides`, `--strict`; exit 0 valid, 1 not valid, 2 usage or input error (an
   empty document included), 3 internal error.
 - `./zod` (`viewSpecSchema`; zod is an optional peer) and `./schema.json`, built from the
   validator's schema source and agreeing with it on errors.
@@ -78,7 +98,7 @@ not render, and nothing of that package's API is kept for compatibility.
 ### Host control and hardening
 
 - One `policy` object (`HostPolicy`: `allowUrl`, `allowImageUrl`, `markdownImages`,
-  `allowSensitive`) decides what a document may reach, read alike by `ViewRenderer`,
+  `allowSensitive`, `themeOverrides`) decides what a document may reach, read alike by `ViewRenderer`,
   `validateViewSpec`, the handler and the CLI's flags. Adapters (`fetch`, `navigate`,
   `toast`, `resolveSource`) carry out effects and have no defaults.
 - No default network: `api` bindings and `apiCall` need the host's `fetch`, and requests
@@ -86,7 +106,7 @@ not render, and nothing of that package's API is kept for compatibility.
   which receives an absolute URL that `allowUrl` has passed. Images pass `allowImageUrl`
   (same origin or a `data:` raster image by default); Markdown images load only from the
   prefixes in `markdownImages`.
-- Documents cannot set a theme, DOM ids, id references or form-control names. Sensitive
+- Documents cannot name a theme, or set DOM ids, id references or form-control names. Sensitive
   inputs (`PasswordInput`, `OTPInput`, and controls a password `type` or a password,
   one-time-code or card `autoComplete` makes ask for a secret) need `allowSensitive`.
 - URL schemes are allowlisted on resolved values in every URL prop, at any depth; HTML

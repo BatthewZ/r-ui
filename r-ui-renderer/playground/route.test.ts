@@ -9,13 +9,14 @@ describe("parseRoute", () => {
   });
 
   it("reads every axis of a view", () => {
-    expect(parseRoute("?view=ops-dashboard&theme=aurora&density=compact&input=coarse&stream=24")).toEqual({
+    expect(parseRoute("?view=ops-dashboard&theme=aurora&density=compact&input=coarse&stream=24&theme-overrides=off")).toEqual({
       kind: "view",
       name: "ops-dashboard",
       theme: "aurora",
       density: "compact",
       input: "coarse",
       stream: 24,
+      themeOverrides: false,
     });
   });
 
@@ -35,6 +36,7 @@ describe("parseRoute", () => {
     ["?view=a&stream=-1", '`stream` is "-1", not a whole number of characters per frame.'],
     ["?view=a&stream=2.5", '`stream` is "2.5", not a whole number of characters per frame.'],
     ["?view=a&stream=", '`stream` is "", not a whole number of characters per frame.'],
+    ["?view=a&theme-overrides=on", '`theme-overrides` is "on", not off.'],
   ])("refuses %s rather than ignoring it", (search, message) => {
     expect(parseRoute(search)).toEqual({ kind: "invalid", message });
   });

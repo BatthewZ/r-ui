@@ -10,6 +10,7 @@ import { isDocumentProp } from "../spec/contract-facts";
 import { FORBIDDEN_PROPS, isForbiddenProp, LIMITS, URL_PROPS } from "../spec/policy";
 import type { ComponentContracts } from "../spec/types";
 import { validateViewSpec } from "../spec/validate";
+import { THEME_CONTRAST_PAIRS, THEME_TOKENS } from "../spec/theme";
 import { CLASS_VOCABULARY, ICON_NAMES } from "../spec/vocabulary";
 import { CATEGORY_TITLES } from "./categories";
 import { renderReferenceRegions, renderViewSpecReference, scopeContracts } from "./index";
@@ -17,7 +18,7 @@ import { emptyRegions, fillRegions, regionNames } from "./regions";
 
 const PKG = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SHIPPED = readFileSync(join(PKG, "VIEWSPEC.md"), "utf8");
-const MARKERS = ["classes", "safety", "issue-codes", "components", "not-addressable", "icons"];
+const MARKERS = ["classes", "theme", "safety", "issue-codes", "components", "not-addressable", "icons"];
 
 function region(doc: string, name: string): string {
   const match = new RegExp(`<!-- GENERATED:${name} -->\\n([\\s\\S]*?)\\n<!-- /GENERATED:${name} -->`).exec(doc);
@@ -35,6 +36,7 @@ describe("renderViewSpecReference", () => {
     const regions = renderReferenceRegions();
     const expected = {
       classes: regions.classes,
+      theme: regions.theme,
       safety: regions.safety,
       "issue-codes": regions.issueCodes,
       components: `${regions.components}\n\n${regions.slots}`,
@@ -52,7 +54,7 @@ describe("renderViewSpecReference", () => {
     const scoped = renderViewSpecReference({ include: ["Tabs.Panel", "Badge"], iconNames: ["check", "x"], classes: ["p-r1", "gap-r2"] });
     for (const name of ["components", "icons", "classes"]) expect(region(scoped, name), name).not.toBe(region(unscoped, name));
     // Absent from the format, not from this scope: the warning stays where a narrow scope needs it most.
-    for (const name of ["safety", "issue-codes", "not-addressable"]) expect(region(scoped, name), name).toBe(region(unscoped, name));
+    for (const name of ["theme", "safety", "issue-codes", "not-addressable"]) expect(region(scoped, name), name).toBe(region(unscoped, name));
     expect(region(scoped, "icons")).toBe("`check` `x`");
     expect(region(scoped, "classes")).toBe("- `gap-r2` `p-r1`");
     expect(emptyRegions(scoped)).toBe(emptyRegions(unscoped));
@@ -217,6 +219,23 @@ describe("the list regions", () => {
     const classes = region(SHIPPED, "classes");
     expect(classes.match(/`[^`]+`/g)).toHaveLength(CLASS_VOCABULARY.length);
     expect(classes).toContain("- `p-0` `p-r1` `p-r2` `p-r3` `p-r4` `p-r5` `p-r6`\n");
+  });
+});
+
+describe("the theme region", () => {
+  it("lists every colour role a theme may set, and every floor the contrast check measures", () => {
+    const theme = region(SHIPPED, "theme");
+    for (const { name, translucent } of THEME_TOKENS) {
+      expect(theme).toMatch(new RegExp(`^\\| \`${name}\` \\|.*\\| ${translucent ? "translucent" : "opaque"}`, "m"));
+    }
+    const surfaces = (/^Every surface: (.*)\.$/m.exec(theme)?.[1] ?? "").split(", ");
+    expect(surfaces.length).toBeGreaterThan(1);
+    const rows = new Map([...theme.matchAll(/^\| `(--C-[A-Z0-9-]+)` \| (.+) \| ([\d.]+):1 \|$/gm)].map((m) => [`${m[1]} ${m[3]}`, m[2] as string]));
+    for (const { fg, bg, min } of THEME_CONTRAST_PAIRS) {
+      const on = rows.get(`${fg} ${min}`) ?? "";
+      const listed = on.split(", ").includes(`\`${bg}\``) || (on.startsWith("every surface") && surfaces.includes(`\`${bg}\``));
+      expect(listed, `${fg} on ${bg}`).toBe(true);
+    }
   });
 });
 

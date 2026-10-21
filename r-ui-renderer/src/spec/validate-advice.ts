@@ -14,6 +14,7 @@ import { coerceFieldValue } from "./form-values";
 import { makeIssue } from "./issue";
 import { isConcatMarker, isFormatMarker, isHandler, isName, isNodeMarker, isOneOf, isPlainObject, isRefMarker, nodeKind, ownValue } from "./guards";
 import { patternProblem } from "./patterns";
+import { adviseTheme } from "./theme";
 import {
   CONSTRAINED_DATA_ATTRIBUTES,
   DATA_ATTRIBUTE_PATTERN,
@@ -152,6 +153,7 @@ class Advisor {
     if (!isPlainObject(doc)) return;
     this.declare(doc);
     this.keyOrder(doc, DOCUMENT_KEYS, "", "Write the document's keys in this order, `root` last");
+    for (const issue of adviseTheme(doc.theme, this.options.policy)) this.warn(issue.code, issue.path, issue.message);
     if (isPlainObject(doc.data)) {
       for (const [name, binding] of Object.entries(doc.data)) this.binding(binding, appendPointer("/data", name));
     }

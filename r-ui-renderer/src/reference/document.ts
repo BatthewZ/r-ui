@@ -6,7 +6,7 @@ import { ownValue } from "../spec/guards";
 import type { ComponentContracts } from "../spec/types";
 import { CLASS_VOCABULARY, ICON_NAMES } from "../spec/vocabulary";
 import { renderComponentTables, renderSlotTable } from "./components";
-import { renderClasses, renderIcons, renderIssueCodes, renderNotAddressable, renderSafety } from "./lists";
+import { renderClasses, renderIcons, renderIssueCodes, renderNotAddressable, renderSafety, renderTheme } from "./lists";
 import { emptyRegions, fillRegions } from "./regions";
 import { scopeContracts } from "./scope";
 
@@ -45,6 +45,8 @@ export interface ReferenceRegions {
   readonly classes: string;
   /** The props dropped everywhere, the URL props and the limits, from the renderer's policy. */
   readonly safety: string;
+  /** The colour roles a document's `theme` may set and the contrast floors its palette must meet. Never scoped. */
+  readonly theme: string;
 }
 
 export function renderReferenceRegions(options: RegionOptions = {}): ReferenceRegions {
@@ -60,6 +62,7 @@ export function renderReferenceRegions(options: RegionOptions = {}): ReferenceRe
     icons: renderIcons(iconNames),
     classes: renderClasses(classes),
     safety: renderSafety(),
+    theme: renderTheme(),
   };
 }
 
@@ -101,5 +104,6 @@ export function renderDocument(prose: string, options: ReferenceOptions = {}): s
     "not-addressable": regions.notAddressable,
     icons: regions.icons,
     safety: regions.safety,
+    theme: regions.theme,
   });
 }

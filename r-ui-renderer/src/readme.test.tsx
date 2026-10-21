@@ -587,7 +587,15 @@ describe("Hardening", () => {
         doc({ component: "Card", props: { "aria-labelledby": "email" } }),
         doc({ component: "Input", props: { name: "email" } }),
       ),
-    "sets a theme": () => validated(doc({ component: "Card" }, { theme: "aurora" }), doc({ component: "Card", props: { "data-theme": "aurora" } })),
+    "sets a theme name": () => validated(doc({ component: "Card" }, { theme: "aurora" }), doc({ component: "Card", props: { "data-theme": "aurora" } })),
+    "a `theme` role outside the colour roles": () =>
+      validated(
+        doc({ component: "Card" }, { theme: { tokens: { "--SCHEME-DARK": "1" } } }),
+        doc({ component: "Card" }, { theme: { tokens: { "--C-CANVAS": "var(--elsewhere)" } } }),
+        doc({ component: "Card" }, { theme: { tokens: { "--C-CANVAS": "url(https://evil.example/x.png)" } } }),
+      ),
+    "below the contrast contract": () =>
+      validated(doc({ component: "Card" }, { theme: { tokens: { "--C-SURFACE-0": "#fafafa", "--C-TEXT-PRIMARY": "#eeeeee" } } })),
     "chooses an element": () =>
       validated(doc({ component: "Stack", props: { as: "script" } }), doc({ component: "Heading", props: { level: 9 }, children: ["h"] })),
     "`PasswordInput`": () =>

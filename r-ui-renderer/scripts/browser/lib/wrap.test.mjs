@@ -35,11 +35,13 @@ describe("the browser checks' scope", () => {
 
   it("holds the selectors from src/diagnostics.ts, the document names and the controls' declared diagnostics", async () => {
     const page = fakePage();
-    const seen = await run("async (page) => ({ DIAGNOSTIC_SELECTOR, VIEW_SELECTOR, CORPUS, url: viewUrl('ops-dashboard', { density: 'compact' }) })", page);
+    const seen = await run("async (page) => ({ DIAGNOSTIC_SELECTOR, VIEW_SELECTOR, THEMED_CLASS, CORPUS, url: viewUrl('ops-dashboard', { density: 'compact' }) })", page);
     expect(seen.DIAGNOSTIC_SELECTOR).toBe(DIAGNOSTIC_SELECTOR);
     expect(seen.VIEW_SELECTOR).toBe(`.${RENDERER_CLASSES.view}`);
+    expect(seen.THEMED_CLASS).toBe(RENDERER_CLASSES.themed);
     expect(seen.CORPUS.product).toEqual(Object.keys(PRODUCT_EXAMPLES));
     expect(seen.CORPUS.controls["refused-image"]).toEqual(CONTROL_EXAMPLES["refused-image"].diagnostics);
+    expect(seen.CORPUS.controls["refused-theme"]).toEqual(["theme-contrast"]);
     expect(seen.url).toBe("http://localhost:1/?view=ops-dashboard&density=compact");
   });
 

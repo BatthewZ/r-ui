@@ -31,6 +31,8 @@ export interface ViewSpec {
   readonly description?: string;
   /** Written as `data-density` on the view root unless the host passes its own. */
   readonly density?: Density;
+  /** Colour roles and scheme for this view alone, held to the contrast contract; refused whole when they break it. */
+  readonly theme?: ThemeSpec;
   /** Seeds `state.…`. Keys are names (see `NAME_PATTERN`). */
   readonly state?: { readonly [name: string]: JsonValue };
   readonly data?: { readonly [name: string]: DataBinding };
@@ -45,10 +47,29 @@ export interface ViewSpec {
  * The order keys must appear in for a document to render as it streams. Each
  * tuple is also the complete list of keys its object may carry.
  */
-export const DOCUMENT_KEYS = ["$schema", "version", "title", "description", "density", "state", "data", "forms", "root"] as const;
+export const DOCUMENT_KEYS = ["$schema", "version", "title", "description", "density", "theme", "state", "data", "forms", "root"] as const;
 export const COMPONENT_NODE_KEYS = ["component", "props", "children"] as const;
 export const EACH_NODE_KEYS = ["$each", "as", "key", "node"] as const;
 export const COND_NODE_KEYS = ["$cond", "then", "else"] as const;
+
+// ---------------------------------------------------------------------------
+// Theme
+
+export const THEME_SCHEMES = ["light", "dark"] as const;
+export type ThemeScheme = (typeof THEME_SCHEMES)[number];
+export const THEME_KEYS = ["scheme", "tokens"] as const;
+
+/**
+ * Overrides for the view root: the host's theme stands for everything left
+ * out. Applied once the object has closed, and only when the resulting palette
+ * meets every contrast floor; otherwise none of it applies.
+ */
+export interface ThemeSpec {
+  /** Sets `color-scheme` and `--SCHEME-DARK`; the host's scheme stands when absent. */
+  readonly scheme?: ThemeScheme;
+  /** Colour role (`--C-CANVAS`) → colour (`oklch(0.2 0.01 250)`). The roles and the grammar are listed in VIEWSPEC.md. */
+  readonly tokens?: { readonly [token: string]: string };
+}
 
 /** Data, state, form, field, alias and dialog names. */
 export const NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -532,6 +553,8 @@ export const ISSUE_CODE_INFO = {
   "render-error": { severity: "error", summary: "A node threw while rendering." },
   "not-renderable": { severity: "warning", summary: "A value its place cannot use: not text where text renders, not an array under `$each`." },
   "stream-incomplete": { severity: "error", summary: "The stream ended before the document closed." },
+  "theme-contrast": { severity: "warning", summary: "The theme's colours break the contrast contract; the whole theme is refused and the host's stands." },
+  "theme-disabled": { severity: "warning", summary: "The host does not allow the theme, or one of its colour roles; that part is ignored." },
 } as const satisfies { readonly [code: string]: { readonly severity: IssueSeverity; readonly summary: string } };
 
 export type IssueCode = keyof typeof ISSUE_CODE_INFO;
@@ -600,6 +623,8 @@ export interface HostPolicy {
   readonly markdownImages?: readonly string[];
   /** Sensitive components and values (passwords, one-time codes, card details): all, none (the default), or these component names. */
   readonly allowSensitive?: boolean | readonly string[];
+  /** A document's `theme`: allowed (the default), ignored (`false`), or only these colour roles (`["--C-ACCENT"]`; `scheme` still applies). */
+  readonly themeOverrides?: boolean | readonly string[];
 }
 
 // ---------------------------------------------------------------------------

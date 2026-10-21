@@ -1,0 +1,921 @@
+{
+  "tokens": [
+    {
+      "name": "--C-CANVAS",
+      "role": "page floor",
+      "utilities": [
+        "bg-canvas"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-SURFACE-0",
+      "role": "raised sheet: cards, dialogs, menus, input fills",
+      "utilities": [
+        "bg-surface-0"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-SURFACE-1",
+      "role": "still raised: panels in a sheet, table headers",
+      "utilities": [
+        "bg-surface-1"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-SURFACE-2",
+      "role": "recessed: wells, chips, hover washes",
+      "utilities": [
+        "bg-surface-2"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-SURFACE-3",
+      "role": "deepest: tracks, disabled fills",
+      "utilities": [
+        "bg-surface-3"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-PRIMARY",
+      "role": "body text, headings, icons (>= 4.5 on every surface)",
+      "utilities": [
+        "text-fg-primary"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-SECONDARY",
+      "role": "supporting text: descriptions, captions",
+      "utilities": [
+        "text-fg-secondary"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-MUTED",
+      "role": "least emphasis that is still read: hints, meta",
+      "utilities": [
+        "text-fg-muted"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-INVERSE",
+      "role": "text on a --C-TEXT-PRIMARY fill (tooltips)",
+      "utilities": [
+        "text-fg-inverse"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-BORDER",
+      "role": "hairline structure: dividers, card edges",
+      "utilities": [
+        "border-border",
+        "divide-border"
+      ],
+      "translucent": true
+    },
+    {
+      "name": "--C-BORDER-STRONG",
+      "role": "control edges: inputs, checkboxes (>= 3 on surfaces)",
+      "utilities": [
+        "border-border-strong",
+        "divide-border-strong"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-SCRIM",
+      "role": "backdrop behind modal layers",
+      "utilities": [
+        "bg-scrim"
+      ],
+      "translucent": true
+    },
+    {
+      "name": "--C-PRIMARY",
+      "role": "the main action's fill",
+      "utilities": [
+        "bg-primary"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-PRIMARY-HOVER",
+      "role": "...hovered",
+      "utilities": [
+        "bg-primary-hover"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-PRIMARY-ACTIVE",
+      "role": "...pressed",
+      "utilities": [
+        "bg-primary-active"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ON-PRIMARY",
+      "role": "text/icons on all three primary fills",
+      "utilities": [
+        "text-fg-on-primary"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-ACCENT",
+      "role": "markers and accent fills (>= 3 on surfaces)",
+      "utilities": [
+        "bg-accent",
+        "border-accent"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-ACCENT-HOVER",
+      "role": "accent fill, hovered",
+      "utilities": [
+        "bg-accent-hover"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ON-ACCENT",
+      "role": "text on both accent fills",
+      "utilities": [
+        "text-fg-on-accent"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ACCENT",
+      "role": "accent-coloured text: links (>= 4.5 on surfaces)",
+      "utilities": [
+        "text-fg-accent"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-SELECTION",
+      "role": "selected text, selected rows/options",
+      "utilities": [
+        "bg-selection"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ON-SELECTION",
+      "role": "text on the selection fill",
+      "utilities": [
+        "text-fg-on-selection"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-FOCUS",
+      "role": "ring colour (>= 3 on every surface)",
+      "utilities": [],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-ERROR",
+      "role": "error mark: icon, dot, border, danger fill",
+      "utilities": [
+        "bg-status-error",
+        "border-status-error"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ERROR",
+      "role": "error text",
+      "utilities": [
+        "text-fg-error"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-ERROR-BG",
+      "role": "subtle error background",
+      "utilities": [
+        "bg-status-error-bg"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ON-ERROR",
+      "role": "text on the error mark as a fill",
+      "utilities": [
+        "text-fg-on-error"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-SUCCESS",
+      "role": "success mark",
+      "utilities": [
+        "bg-status-success",
+        "border-status-success"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-SUCCESS",
+      "role": "success text",
+      "utilities": [
+        "text-fg-success"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-SUCCESS-BG",
+      "role": "subtle success background",
+      "utilities": [
+        "bg-status-success-bg"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ON-SUCCESS",
+      "role": "text on the success mark as a fill",
+      "utilities": [
+        "text-fg-on-success"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-WARNING",
+      "role": "warning mark (no pale yellow: it must hit 3:1)",
+      "utilities": [
+        "bg-status-warning",
+        "border-status-warning"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-WARNING",
+      "role": "warning text",
+      "utilities": [
+        "text-fg-warning"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-WARNING-BG",
+      "role": "subtle warning background",
+      "utilities": [
+        "bg-status-warning-bg"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ON-WARNING",
+      "role": "text on the warning mark as a fill",
+      "utilities": [
+        "text-fg-on-warning"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-INFO",
+      "role": "info mark",
+      "utilities": [
+        "bg-status-info",
+        "border-status-info"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-INFO",
+      "role": "info text",
+      "utilities": [
+        "text-fg-info"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-STATUS-INFO-BG",
+      "role": "subtle info background",
+      "utilities": [
+        "bg-status-info-bg"
+      ],
+      "translucent": false
+    },
+    {
+      "name": "--C-TEXT-ON-INFO",
+      "role": "text on the info mark as a fill",
+      "utilities": [
+        "text-fg-on-info"
+      ],
+      "translucent": false
+    }
+  ],
+  "pairs": [
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SECONDARY",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SECONDARY",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SECONDARY",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SECONDARY",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SECONDARY",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-MUTED",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-MUTED",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-MUTED",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-MUTED",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-MUTED",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ACCENT",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ACCENT",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ACCENT",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ACCENT",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ACCENT",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ERROR",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ERROR",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ERROR",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ERROR",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-ERROR",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SUCCESS",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SUCCESS",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SUCCESS",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SUCCESS",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-SUCCESS",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-WARNING",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-WARNING",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-WARNING",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-WARNING",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-WARNING",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-INFO",
+      "bg": "--C-CANVAS",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-INFO",
+      "bg": "--C-SURFACE-0",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-INFO",
+      "bg": "--C-SURFACE-1",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-INFO",
+      "bg": "--C-SURFACE-2",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-TEXT-INFO",
+      "bg": "--C-SURFACE-3",
+      "min": 4.5,
+      "kind": "text"
+    },
+    {
+      "fg": "--C-STATUS-ERROR",
+      "bg": "--C-CANVAS",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-ERROR",
+      "bg": "--C-SURFACE-0",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-ERROR",
+      "bg": "--C-SURFACE-1",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-ERROR",
+      "bg": "--C-SURFACE-2",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-ERROR",
+      "bg": "--C-SURFACE-3",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-SUCCESS",
+      "bg": "--C-CANVAS",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-SUCCESS",
+      "bg": "--C-SURFACE-0",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-SUCCESS",
+      "bg": "--C-SURFACE-1",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-SUCCESS",
+      "bg": "--C-SURFACE-2",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-SUCCESS",
+      "bg": "--C-SURFACE-3",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-WARNING",
+      "bg": "--C-CANVAS",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-WARNING",
+      "bg": "--C-SURFACE-0",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-WARNING",
+      "bg": "--C-SURFACE-1",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-WARNING",
+      "bg": "--C-SURFACE-2",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-WARNING",
+      "bg": "--C-SURFACE-3",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-INFO",
+      "bg": "--C-CANVAS",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-INFO",
+      "bg": "--C-SURFACE-0",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-INFO",
+      "bg": "--C-SURFACE-1",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-INFO",
+      "bg": "--C-SURFACE-2",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-STATUS-INFO",
+      "bg": "--C-SURFACE-3",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-ACCENT",
+      "bg": "--C-CANVAS",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-ACCENT",
+      "bg": "--C-SURFACE-0",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-ACCENT",
+      "bg": "--C-SURFACE-1",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-ACCENT",
+      "bg": "--C-SURFACE-2",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-ACCENT",
+      "bg": "--C-SURFACE-3",
+      "min": 3,
+      "kind": "mark"
+    },
+    {
+      "fg": "--C-FOCUS",
+      "bg": "--C-CANVAS",
+      "min": 3,
+      "kind": "focus"
+    },
+    {
+      "fg": "--C-FOCUS",
+      "bg": "--C-SURFACE-0",
+      "min": 3,
+      "kind": "focus"
+    },
+    {
+      "fg": "--C-FOCUS",
+      "bg": "--C-SURFACE-1",
+      "min": 3,
+      "kind": "focus"
+    },
+    {
+      "fg": "--C-FOCUS",
+      "bg": "--C-SURFACE-2",
+      "min": 3,
+      "kind": "focus"
+    },
+    {
+      "fg": "--C-FOCUS",
+      "bg": "--C-SURFACE-3",
+      "min": 3,
+      "kind": "focus"
+    },
+    {
+      "fg": "--C-BORDER-STRONG",
+      "bg": "--C-CANVAS",
+      "min": 3,
+      "kind": "control edge"
+    },
+    {
+      "fg": "--C-BORDER-STRONG",
+      "bg": "--C-SURFACE-0",
+      "min": 3,
+      "kind": "control edge"
+    },
+    {
+      "fg": "--C-BORDER-STRONG",
+      "bg": "--C-SURFACE-1",
+      "min": 3,
+      "kind": "control edge"
+    },
+    {
+      "fg": "--C-BORDER-STRONG",
+      "bg": "--C-SURFACE-2",
+      "min": 3,
+      "kind": "control edge"
+    },
+    {
+      "fg": "--C-BORDER-STRONG",
+      "bg": "--C-SURFACE-3",
+      "min": 3,
+      "kind": "control edge"
+    },
+    {
+      "fg": "--C-TEXT-ON-PRIMARY",
+      "bg": "--C-PRIMARY",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-PRIMARY",
+      "bg": "--C-PRIMARY-HOVER",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-PRIMARY",
+      "bg": "--C-PRIMARY-ACTIVE",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-ACCENT",
+      "bg": "--C-ACCENT",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-ACCENT",
+      "bg": "--C-ACCENT-HOVER",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-SELECTION",
+      "bg": "--C-SELECTION",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-SECONDARY",
+      "bg": "--C-SELECTION",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-INVERSE",
+      "bg": "--C-TEXT-PRIMARY",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-ERROR",
+      "bg": "--C-STATUS-ERROR",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ERROR",
+      "bg": "--C-STATUS-ERROR-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-STATUS-ERROR-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-STATUS-ERROR",
+      "bg": "--C-STATUS-ERROR-BG",
+      "min": 3,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-SUCCESS",
+      "bg": "--C-STATUS-SUCCESS",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-SUCCESS",
+      "bg": "--C-STATUS-SUCCESS-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-STATUS-SUCCESS-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-STATUS-SUCCESS",
+      "bg": "--C-STATUS-SUCCESS-BG",
+      "min": 3,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-WARNING",
+      "bg": "--C-STATUS-WARNING",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-WARNING",
+      "bg": "--C-STATUS-WARNING-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-STATUS-WARNING-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-STATUS-WARNING",
+      "bg": "--C-STATUS-WARNING-BG",
+      "min": 3,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-ON-INFO",
+      "bg": "--C-STATUS-INFO",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-INFO",
+      "bg": "--C-STATUS-INFO-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-TEXT-PRIMARY",
+      "bg": "--C-STATUS-INFO-BG",
+      "min": 4.5,
+      "kind": "fill"
+    },
+    {
+      "fg": "--C-STATUS-INFO",
+      "bg": "--C-STATUS-INFO-BG",
+      "min": 3,
+      "kind": "fill"
+    }
+  ],
+  "scheme": {
+    "text": "--C-TEXT-PRIMARY",
+    "canvas": "--C-CANVAS"
+  }
+}

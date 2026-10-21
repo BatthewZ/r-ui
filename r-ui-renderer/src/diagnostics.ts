@@ -11,6 +11,8 @@ import type { IssueCode, IssueSeverity } from "./spec/types";
 export const RENDERER_CLASSES = {
   /** The view root element. */
   view: "r-renderer-view",
+  /** The view root while its document's theme applies: it paints its own canvas and text. */
+  themed: "r-renderer-themed",
   /** Every diagnostic element, shown in place or listed in the issue log. */
   diagnostic: "r-renderer-diagnostic",
   error: "r-renderer-diagnostic-error",

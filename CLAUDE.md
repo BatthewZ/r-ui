@@ -29,7 +29,7 @@ Tokens are the only vocabulary. No raw hex, `rem`, `px` or Tailwind defaults (`p
 
 - **The example themes `nightfall`, `harbour` and `atelier` have no privileges.** Never write their names into a selector, type, default, config list or test fixture in library code. If a fixture needs a theme name, invent one (`aurora`, `midnight`). If something must vary per theme, make it a token the consumer's theme controls too. Prose may discuss them as examples. The **showcase app is a consumer** and may list them.
 - One theme file = one scheme. Every theme sets `color-scheme` and `--SCHEME-DARK` (`0`/`1`). No `light-dark()`.
-- Themes apply only via `:root[data-theme="name"]`. No subtree themes.
+- Themes apply only via `:root[data-theme="name"]`. No subtree themes. The one exception: r-ui-renderer applies a document's validated colour-role overrides to its own view root, refused whole unless the palette meets the contrast contract. Theme files stay root-only.
 - Domain colours are `-LIGHT`/`-DARK` pairs blended by `--SCHEME-DARK` at the read, so themes never need to name them.
 - **Density themeability:** themes set the per-density *named* values (`--R-SIZE-3-COMFORTABLE`, `--R-SIZE-3-COMPACT`) only. They never set the selected name (`--R-SIZE-3`) and never select a density. Only `[data-density]` selects. A check enforces this.
 - No token changes under an `@media (width …)` query. The viewport moves layout only.

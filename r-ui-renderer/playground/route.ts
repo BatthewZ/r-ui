@@ -9,6 +9,7 @@
  *   input=coarse|fine           <html data-input> (auto when absent)
  *   stream=<chars per frame>    replays the document's text through the stream
  *                               parser, one push per animation frame; 0 = all at once
+ *   theme-overrides=off         the host's policy ignores the document's `theme`
  *
  * A value outside these is a route error, never ignored, so a check never
  * measures a view it did not ask for.
@@ -26,6 +27,8 @@ export interface ViewRoute {
   readonly input?: Input;
   /** Characters per animation frame; absent: the document whole, not streamed. */
   readonly stream?: number;
+  /** The policy's `themeOverrides`; absent: the playground's policy (themes allowed). */
+  readonly themeOverrides?: false;
 }
 
 export type Route =
@@ -64,6 +67,11 @@ export function parseRoute(search: string): Route {
   if (stream !== null) {
     if (!/^\d+$/.test(stream)) return invalid(`\`stream\` is "${stream}", not a whole number of characters per frame.`);
     route = { ...route, stream: Number(stream) };
+  }
+  const overrides = params.get("theme-overrides");
+  if (overrides !== null) {
+    if (overrides !== "off") return invalid(`\`theme-overrides\` is "${overrides}", not off.`);
+    route = { ...route, themeOverrides: false };
   }
   return route;
 }

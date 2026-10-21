@@ -24,6 +24,9 @@
         "compact"
       ]
     },
+    "theme": {
+      "$ref": "#/$defs/Theme"
+    },
     "state": {
       "type": "object",
       "propertyNames": {
@@ -62,6 +65,150 @@
   ],
   "additionalProperties": false,
   "$defs": {
+    "OpaqueColour": {
+      "type": "string",
+      "pattern": "^(?:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})|rgb\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]*\\)|hsl\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?(?:deg|grad|rad|turn)?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%|none)[ \\t\\n\\r\\f]*\\)|oklch\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?(?:deg|grad|rad|turn)?|none)[ \\t\\n\\r\\f]*\\)|oklab\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]*\\)|lab\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]*\\)|lch\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?(?:deg|grad|rad|turn)?|none)[ \\t\\n\\r\\f]*\\))$"
+    },
+    "Colour": {
+      "type": "string",
+      "pattern": "^(?:#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgb\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)(?:[ \\t\\n\\r\\f]*\\/[ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none))?[ \\t\\n\\r\\f]*\\)|hsl\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?(?:deg|grad|rad|turn)?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%|none)(?:[ \\t\\n\\r\\f]*\\/[ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none))?[ \\t\\n\\r\\f]*\\)|oklch\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?(?:deg|grad|rad|turn)?|none)(?:[ \\t\\n\\r\\f]*\\/[ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none))?[ \\t\\n\\r\\f]*\\)|oklab\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)(?:[ \\t\\n\\r\\f]*\\/[ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none))?[ \\t\\n\\r\\f]*\\)|lab\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)(?:[ \\t\\n\\r\\f]*\\/[ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none))?[ \\t\\n\\r\\f]*\\)|lch\\([ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none)[ \\t\\n\\r\\f]+(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?(?:deg|grad|rad|turn)?|none)(?:[ \\t\\n\\r\\f]*\\/[ \\t\\n\\r\\f]*(?:[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?%?|none))?[ \\t\\n\\r\\f]*\\))$"
+    },
+    "Theme": {
+      "type": "object",
+      "properties": {
+        "scheme": {
+          "enum": [
+            "light",
+            "dark"
+          ]
+        },
+        "tokens": {
+          "type": "object",
+          "properties": {
+            "--C-CANVAS": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-SURFACE-0": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-SURFACE-1": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-SURFACE-2": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-SURFACE-3": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-PRIMARY": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-SECONDARY": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-MUTED": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-INVERSE": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-BORDER": {
+              "$ref": "#/$defs/Colour"
+            },
+            "--C-BORDER-STRONG": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-SCRIM": {
+              "$ref": "#/$defs/Colour"
+            },
+            "--C-PRIMARY": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-PRIMARY-HOVER": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-PRIMARY-ACTIVE": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ON-PRIMARY": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-ACCENT": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-ACCENT-HOVER": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ON-ACCENT": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ACCENT": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-SELECTION": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ON-SELECTION": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-FOCUS": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-ERROR": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ERROR": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-ERROR-BG": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ON-ERROR": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-SUCCESS": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-SUCCESS": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-SUCCESS-BG": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ON-SUCCESS": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-WARNING": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-WARNING": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-WARNING-BG": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ON-WARNING": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-INFO": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-INFO": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-STATUS-INFO-BG": {
+              "$ref": "#/$defs/OpaqueColour"
+            },
+            "--C-TEXT-ON-INFO": {
+              "$ref": "#/$defs/OpaqueColour"
+            }
+          },
+          "additionalProperties": false,
+          "description": "Colour role → colour; the roles are the theme template's `--C-*` tokens."
+        }
+      },
+      "additionalProperties": false
+    },
     "Name": {
       "type": "string",
       "pattern": "^(?!(?:__proto__|constructor|prototype)$)[A-Za-z_][A-Za-z0-9_]*$"

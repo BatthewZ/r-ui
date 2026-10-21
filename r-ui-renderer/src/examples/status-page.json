@@ -1,0 +1,641 @@
+{
+  "version": 2,
+  "title": "Northwind Cloud status",
+  "description": "Public status page: live component health, API latency and past incidents, in Northwind's own colours.",
+  "density": "comfortable",
+  "theme": {
+    "scheme": "dark",
+    "tokens": {
+      "--C-CANVAS": "oklch(0.21 0.025 275)",
+      "--C-SURFACE-0": "oklch(0.27 0.03 275)",
+      "--C-SURFACE-1": "oklch(0.24 0.028 275)",
+      "--C-SURFACE-2": "oklch(0.185 0.022 275)",
+      "--C-SURFACE-3": "oklch(0.16 0.02 275)",
+      "--C-TEXT-PRIMARY": "oklch(0.95 0.01 275)",
+      "--C-TEXT-SECONDARY": "oklch(0.81 0.02 275)",
+      "--C-TEXT-MUTED": "oklch(0.71 0.02 275)",
+      "--C-TEXT-INVERSE": "oklch(0.21 0.025 275)",
+      "--C-BORDER": "oklch(0.95 0.01 275 / 0.12)",
+      "--C-BORDER-STRONG": "oklch(0.6 0.03 275)",
+      "--C-SCRIM": "oklch(0.08 0.02 275 / 0.66)",
+      "--C-PRIMARY": "oklch(0.93 0.012 275)",
+      "--C-PRIMARY-HOVER": "oklch(0.87 0.015 275)",
+      "--C-PRIMARY-ACTIVE": "oklch(0.81 0.016 275)",
+      "--C-TEXT-ON-PRIMARY": "oklch(0.2 0.025 275)",
+      "--C-ACCENT": "oklch(0.78 0.11 195)",
+      "--C-ACCENT-HOVER": "oklch(0.84 0.1 195)",
+      "--C-TEXT-ON-ACCENT": "oklch(0.2 0.03 195)",
+      "--C-TEXT-ACCENT": "oklch(0.82 0.1 195)",
+      "--C-SELECTION": "oklch(0.38 0.07 275)",
+      "--C-TEXT-ON-SELECTION": "oklch(0.97 0.008 275)",
+      "--C-FOCUS": "oklch(0.78 0.13 195)",
+      "--C-STATUS-ERROR": "oklch(0.68 0.17 25)",
+      "--C-TEXT-ERROR": "oklch(0.8 0.11 25)",
+      "--C-STATUS-ERROR-BG": "oklch(0.29 0.06 25)",
+      "--C-TEXT-ON-ERROR": "oklch(0.18 0.02 25)",
+      "--C-STATUS-SUCCESS": "oklch(0.7 0.14 152)",
+      "--C-TEXT-SUCCESS": "oklch(0.8 0.12 152)",
+      "--C-STATUS-SUCCESS-BG": "oklch(0.28 0.05 152)",
+      "--C-TEXT-ON-SUCCESS": "oklch(0.18 0.02 152)",
+      "--C-STATUS-WARNING": "oklch(0.78 0.14 75)",
+      "--C-TEXT-WARNING": "oklch(0.84 0.11 80)",
+      "--C-STATUS-WARNING-BG": "oklch(0.29 0.05 75)",
+      "--C-TEXT-ON-WARNING": "oklch(0.18 0.02 75)",
+      "--C-STATUS-INFO": "oklch(0.72 0.12 245)",
+      "--C-TEXT-INFO": "oklch(0.8 0.09 245)",
+      "--C-STATUS-INFO-BG": "oklch(0.28 0.05 245)",
+      "--C-TEXT-ON-INFO": "oklch(0.18 0.02 245)"
+    }
+  },
+  "data": {
+    "status": {
+      "type": "static",
+      "value": {
+        "updatedAt": "2026-10-21T11:42:00Z",
+        "summary": "Elevated API latency in eu-central-1",
+        "detail": "Requests to eu-central-1 take longer than usual. Nothing is failing; we are moving traffic to the standby region.",
+        "components": [
+          {
+            "id": "api",
+            "name": "Public API",
+            "state": "Degraded performance",
+            "tone": "warning",
+            "uptime": 99.982,
+            "note": "p95 latency above 800 ms since 10:58 UTC."
+          },
+          {
+            "id": "dash",
+            "name": "Dashboard and console",
+            "state": "Operational",
+            "tone": "success",
+            "uptime": 100,
+            "note": "No incidents in the last 90 days."
+          },
+          {
+            "id": "webhooks",
+            "name": "Webhooks",
+            "state": "Operational",
+            "tone": "success",
+            "uptime": 99.996,
+            "note": "Deliveries retry for 72 hours."
+          },
+          {
+            "id": "billing",
+            "name": "Billing and invoices (Stripe-connected accounts in the European Economic Area)",
+            "state": "Operational",
+            "tone": "success",
+            "uptime": 99.91,
+            "note": "One 40-minute outage on 3 October."
+          },
+          {
+            "id": "storage",
+            "name": "Object storage",
+            "state": "Under maintenance",
+            "tone": "info",
+            "uptime": null,
+            "note": "Planned until 14:00 UTC; reads continue, writes queue."
+          }
+        ],
+        "days": [
+          "Oct 8",
+          "Oct 9",
+          "Oct 10",
+          "Oct 11",
+          "Oct 12",
+          "Oct 13",
+          "Oct 14",
+          "Oct 15",
+          "Oct 16",
+          "Oct 17",
+          "Oct 18",
+          "Oct 19",
+          "Oct 20",
+          "Oct 21"
+        ],
+        "latencyEu": [
+          212,
+          208,
+          231,
+          219,
+          204,
+          198,
+          226,
+          240,
+          233,
+          219,
+          214,
+          228,
+          236,
+          861
+        ],
+        "latencyUs": [
+          184,
+          179,
+          190,
+          188,
+          181,
+          176,
+          193,
+          201,
+          197,
+          185,
+          182,
+          190,
+          195,
+          203
+        ],
+        "incidents": [
+          {
+            "id": "i3",
+            "time": "2026-10-21T10:58:00Z",
+            "title": "Elevated API latency in eu-central-1",
+            "description": "Investigating. Traffic is moving to the standby region.",
+            "tone": "warning",
+            "meta": "Ongoing"
+          },
+          {
+            "id": "i2",
+            "time": "2026-10-03T07:12:00Z",
+            "title": "Invoices failed to generate for 40 minutes",
+            "description": "An expired signing certificate stopped PDF rendering. Every invoice was regenerated by 08:30 UTC.",
+            "tone": "error",
+            "meta": "Resolved · 40 min"
+          },
+          {
+            "id": "i1",
+            "time": "2026-09-17T22:00:00Z",
+            "title": "Scheduled database upgrade",
+            "tone": "info",
+            "meta": "Completed · 2 h"
+          }
+        ]
+      }
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": {
+      "width": "page",
+      "gutter": true,
+      "className": "py-r1"
+    },
+    "children": [
+      {
+        "component": "Stack",
+        "props": {
+          "gap": "r1"
+        },
+        "children": [
+          {
+            "component": "Inline",
+            "props": {
+              "justify": "between",
+              "align": "center",
+              "gap": "r3",
+              "wrap": true
+            },
+            "children": [
+              {
+                "component": "Stack",
+                "props": {
+                  "gap": "r6"
+                },
+                "children": [
+                  {
+                    "component": "Heading",
+                    "props": {
+                      "level": 1
+                    },
+                    "children": [
+                      "Northwind Cloud status"
+                    ]
+                  },
+                  {
+                    "component": "Text",
+                    "props": {
+                      "size": "body-2",
+                      "tone": "muted"
+                    },
+                    "children": [
+                      "Updated ",
+                      {
+                        "$format": {
+                          "value": {
+                            "$ref": "data.status.updatedAt"
+                          },
+                          "style": "datetime",
+                          "dateStyle": "medium",
+                          "timeStyle": "short",
+                          "timeZone": "UTC"
+                        }
+                      },
+                      " UTC"
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Popover",
+                "props": {
+                  "placement": "bottom-end"
+                },
+                "children": [
+                  {
+                    "component": "Popover.Trigger",
+                    "props": {
+                      "variant": "secondary",
+                      "iconStart": "bell"
+                    },
+                    "children": [
+                      "Get updates"
+                    ]
+                  },
+                  {
+                    "component": "Popover.Content",
+                    "props": {
+                      "arrow": true
+                    },
+                    "children": [
+                      {
+                        "component": "Stack",
+                        "props": {
+                          "gap": "r5"
+                        },
+                        "children": [
+                          {
+                            "component": "Text",
+                            "props": {
+                              "weight": "semibold"
+                            },
+                            "children": [
+                              "Follow this page"
+                            ]
+                          },
+                          {
+                            "component": "Text",
+                            "props": {
+                              "size": "body-2",
+                              "tone": "secondary"
+                            },
+                            "children": [
+                              "Subscribe from your Northwind account settings to get an email for every new incident and every update to one."
+                            ]
+                          },
+                          {
+                            "component": "Popover.Close",
+                            "props": {
+                              "variant": "primary"
+                            },
+                            "children": [
+                              "Got it"
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Alert",
+            "props": {
+              "tone": "warning",
+              "title": {
+                "$ref": "data.status.summary"
+              }
+            },
+            "children": [
+              {
+                "$ref": "data.status.detail"
+              }
+            ]
+          },
+          {
+            "component": "Stack",
+            "props": {
+              "gap": "r3",
+              "as": "section",
+              "aria-label": "Components"
+            },
+            "children": [
+              {
+                "component": "Heading",
+                "props": {
+                  "level": 2
+                },
+                "children": [
+                  "Components"
+                ]
+              },
+              {
+                "component": "Grid",
+                "props": {
+                  "columns": {
+                    "base": 1,
+                    "@xl": 2
+                  },
+                  "gap": "r3"
+                },
+                "children": [
+                  {
+                    "$each": "data.status.components",
+                    "as": "svc",
+                    "key": "id",
+                    "node": {
+                      "component": "Card",
+                      "children": [
+                        {
+                          "component": "Card.Header",
+                          "children": [
+                            {
+                              "component": "Card.Title",
+                              "props": {
+                                "as": "h3"
+                              },
+                              "children": [
+                                {
+                                  "$ref": "svc.name"
+                                }
+                              ]
+                            },
+                            {
+                              "component": "Card.Actions",
+                              "children": [
+                                {
+                                  "component": "Tooltip",
+                                  "props": {
+                                    "content": {
+                                      "$ref": "svc.note"
+                                    },
+                                    "placement": "top",
+                                    "arrow": true
+                                  },
+                                  "children": [
+                                    {
+                                      "component": "IconButton",
+                                      "props": {
+                                        "icon": "info",
+                                        "label": {
+                                          "$concat": [
+                                            "About ",
+                                            {
+                                              "$ref": "svc.name"
+                                            }
+                                          ]
+                                        },
+                                        "variant": "ghost"
+                                      }
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "component": "Card.Body",
+                          "children": [
+                            {
+                              "component": "Inline",
+                              "props": {
+                                "justify": "between",
+                                "align": "center",
+                                "gap": "r4",
+                                "wrap": true
+                              },
+                              "children": [
+                                {
+                                  "component": "StatusLabel",
+                                  "props": {
+                                    "tone": {
+                                      "$ref": "svc.tone"
+                                    }
+                                  },
+                                  "children": [
+                                    {
+                                      "$ref": "svc.state"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "component": "Text",
+                                  "props": {
+                                    "size": "body-2",
+                                    "tone": "muted"
+                                  },
+                                  "children": [
+                                    {
+                                      "$format": {
+                                        "value": {
+                                          "$ref": "svc.uptime"
+                                        },
+                                        "style": "number",
+                                        "maximumFractionDigits": 3,
+                                        "missing": "No uptime while under maintenance"
+                                      }
+                                    },
+                                    {
+                                      "$cond": "svc.uptime",
+                                      "then": "% uptime, 90 days"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Card",
+            "children": [
+              {
+                "component": "Card.Header",
+                "children": [
+                  {
+                    "component": "Card.Title",
+                    "props": {
+                      "as": "h2"
+                    },
+                    "children": [
+                      "API latency"
+                    ]
+                  },
+                  {
+                    "component": "Card.Description",
+                    "children": [
+                      "95th percentile response time per day, by region."
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Card.Body",
+                "children": [
+                  {
+                    "component": "LineChart",
+                    "props": {
+                      "label": "API latency, p95, last 14 days",
+                      "x": {
+                        "$ref": "data.status.days"
+                      },
+                      "series": [
+                        {
+                          "name": "eu-central-1",
+                          "values": {
+                            "$ref": "data.status.latencyEu"
+                          }
+                        },
+                        {
+                          "name": "us-east-1",
+                          "values": {
+                            "$ref": "data.status.latencyUs"
+                          }
+                        }
+                      ],
+                      "unit": "ms",
+                      "min": 0,
+                      "format": {
+                        "style": "integer"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Stack",
+            "props": {
+              "gap": "r3",
+              "as": "section",
+              "aria-label": "Past incidents"
+            },
+            "children": [
+              {
+                "component": "Inline",
+                "props": {
+                  "justify": "between",
+                  "align": "center",
+                  "gap": "r3",
+                  "wrap": true
+                },
+                "children": [
+                  {
+                    "component": "Heading",
+                    "props": {
+                      "level": 2
+                    },
+                    "children": [
+                      "Past incidents"
+                    ]
+                  },
+                  {
+                    "component": "Dialog",
+                    "props": {
+                      "dialogId": "report"
+                    },
+                    "children": [
+                      {
+                        "component": "Dialog.Trigger",
+                        "props": {
+                          "variant": "secondary",
+                          "iconStart": "file-text"
+                        },
+                        "children": [
+                          "Read the October report"
+                        ]
+                      },
+                      {
+                        "component": "Dialog.Content",
+                        "props": {
+                          "showClose": true
+                        },
+                        "children": [
+                          {
+                            "component": "Dialog.Header",
+                            "children": [
+                              {
+                                "component": "Dialog.Title",
+                                "children": [
+                                  "Invoices failed to generate"
+                                ]
+                              },
+                              {
+                                "component": "Dialog.Description",
+                                "children": [
+                                  "3 October 2026, 07:12 to 07:52 UTC"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "component": "Dialog.Body",
+                            "children": [
+                              {
+                                "component": "Stack",
+                                "props": {
+                                  "gap": "r4"
+                                },
+                                "children": [
+                                  {
+                                    "component": "Text",
+                                    "children": [
+                                      "The certificate that signs invoice PDFs expired at 07:12 UTC. Rendering failed for every invoice created in the next 40 minutes; no payment was affected."
+                                    ]
+                                  },
+                                  {
+                                    "component": "Text",
+                                    "children": [
+                                      "We now renew the certificate 30 days ahead and alert at 14 days. All 2,184 invoices were regenerated and sent by 08:30 UTC."
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "component": "Dialog.Footer",
+                            "children": [
+                              {
+                                "component": "Dialog.Close",
+                                "props": {
+                                  "variant": "primary"
+                                },
+                                "children": [
+                                  "Close"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Timeline",
+                "props": {
+                  "label": "Incident history",
+                  "events": {
+                    "$ref": "data.status.incidents"
+                  },
+                  "order": "newest-first",
+                  "headingLevel": 3
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

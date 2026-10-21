@@ -16,11 +16,12 @@ the issues back to the model to fix.
 - **A model reference** ([VIEWSPEC.md](./VIEWSPEC.md)) generated from the library's own
   types, which you can scope to the components a prompt needs.
 - **The host stays in charge** of the theme, the locale, the network, navigation, images and
-  credentials. A document cannot reach any of them on its own.
+  credentials. A document cannot reach any of them on its own; it may recolour its own view,
+  and only with a palette that meets the design system's contrast floors.
 
 It is not a way to render every library component (app chrome, uploads and host-level
 providers are [out, with reasons](./VIEWSPEC.md#not-addressable)), and documents cannot pick a
-theme. The format is version 2; version-1 documents of the earlier `response-ui-renderer` do
+theme by name. The format is version 2; version-1 documents of the earlier `response-ui-renderer` do
 not render.
 
 > Status: pre-release (0.1.0). See [CHANGELOG.md](./CHANGELOG.md).
@@ -150,8 +151,8 @@ missing-icon marker.
 
 ## The format in brief
 
-A document is one JSON object: `version`, `title`, optional `density`, `state`, `data` and
-`forms`, and a `root` node, written last so it can stream. A node is a string, a component
+A document is one JSON object: `version`, `title`, optional `density`, `theme`, `state`,
+`data` and `forms`, and a `root` node, written last so it can stream. A node is a string, a component
 (`{ "component", "props", "children" }`, parts by dot path: `"Card.Header"`), or a marker:
 
 | Marker | Does |
@@ -342,7 +343,8 @@ warning  /root/component  unknown-component: No component is registered as `Stak
 
 The flags mirror what the host gives the view: `--origin <url>` is the page's origin,
 `--allow-origin <url>` (repeatable) another origin its policy allows requests and images
-from, `--allow-sensitive` its `allowSensitive: true`, `--icons <file|list>` its icon names,
+from, `--allow-sensitive` its `allowSensitive: true`, `--no-theme-overrides` its
+`themeOverrides: false`, `--icons <file|list>` its icon names,
 and `--contracts <file>` its own components (see [Custom components](#custom-components)).
 It runs on Node 20 or later, and on bun. Working in this package's repository,
 `bun run validate --raw '…'` runs it from source.
@@ -367,7 +369,7 @@ export const reference = renderViewSpecReference({
 export const example = exampleText("ops-dashboard");
 ```
 
-The whole reference is about 86 KB. The scope above is about 45 KB: the prose, the class
+The whole reference is about 96 KB. The scope above is about 55 KB: the prose, the class
 vocabulary, the icon names and the not-addressable table stay whole, because a model writes
 better documents when it knows the rules and what it cannot use. `propLimit` cuts each
 component's prop list, at a cost: a hidden prop is one the model then invents.
@@ -431,6 +433,7 @@ export function HostedView({ spec, go }: { spec: ViewSpec; go: (to: string) => v
 | `allowImageUrl(url)` | every image a document makes the browser load, at any depth | the page's origin, or a `data:` raster image |
 | `markdownImages` | the URL prefixes Markdown may show images from | none: Markdown shows the alt text |
 | `allowSensitive` | `PasswordInput`, `OTPInput`, and any control a value makes ask for a password, a one-time code or card details: `true`, or a list of component names | `false` |
+| `themeOverrides` | a document's `theme`: `false` ignores it, a list of colour roles (`["--C-ACCENT", "--C-ACCENT-HOVER"]`) lets only those through, along with its `scheme` | `true`: every colour role |
 
 Every URL is resolved first and judged on the result, so `//evil.example` and
 `/\evil.example` are other origins, not paths. Links the document renders are judged by
@@ -439,7 +442,7 @@ above the view.
 
 The same object goes to the validator, so its warnings say what the view will do:
 `validateViewSpec(text, { origin, policy })` and `createValidationHandler({ origin, policy })`.
-The CLI spells it as flags (`--allow-origin`, `--allow-sensitive`). A policy is compared
+The CLI spells it as flags (`--allow-origin`, `--allow-sensitive`, `--no-theme-overrides`). A policy is compared
 member by member, so an inline object is fine.
 
 ### Adapters
@@ -457,9 +460,39 @@ client-side router takes what follows the origin: `url.pathname + url.search + u
 
 ## Theme, density and locale
 
-The host owns all three. A document has no `theme` key, and `data-theme` or `data-input` on a
-node is dropped, so a view always wears the page's theme (`<html data-theme="…">`, as the CSS
-package describes).
+The host owns all three. A view wears the page's theme (`<html data-theme="…">`, as the CSS
+package describes), and `data-theme` or `data-input` on a node is dropped.
+
+A document may recolour its own view with `theme`: a `scheme` and any of the CSS package's
+colour roles (`--C-CANVAS`, `--C-TEXT-PRIMARY`, `--C-ACCENT`, …), as colours in a strict
+grammar. The roles land as custom properties on the view root, so the view and its popovers,
+menus, tooltips and dialogs (which render inside it) take them, and nothing outside the view
+changes. A themed view paints its own canvas and text colour; one without a theme stays
+transparent. Print and forced colours set the document's roles aside, as they do any theme's.
+
+Before anything paints, the view measures its final palette (your theme's roles with the
+document's over them) against the same contrast floors your themes meet. If one floor the
+document's roles take part in falls short, **none of the theme applies**: the view keeps your
+theme, and each shortfall is reported as a `theme-contrast` warning in `onIssue` and the
+view's issue list, naming both roles and the ratio:
+
+```json
+{
+  "code": "theme-contrast",
+  "path": "/theme/tokens/--C-TEXT-MUTED",
+  "severity": "warning",
+  "message": "Below the contrast contract: `--C-TEXT-MUTED` on `--C-SURFACE-2` is 3.21:1 (the floor is 4.5:1). The whole theme is refused; the host's theme stands."
+}
+```
+
+The view measures again when anything on `<html>` changes (switching your theme), so a theme
+that held under one host theme is refused under one where it no longer does. A refusal holds
+for the rest of that document, as its report (delivered once) says, even if you switch back. The validator
+checks the floors whose roles the document sets on both sides; it cannot know your palette.
+
+To keep every view in your theme, set `themeOverrides: false` in the policy (the CLI's
+`--no-theme-overrides`): the document's `theme` is ignored, with a `theme-disabled` warning.
+A list of roles narrows it instead.
 
 Density is the one axis a document may suggest. Your `density` prop wins over the document's
 root `"density"`. A node's own `"data-density"` still sets the density of its subtree either
@@ -542,7 +575,9 @@ same thing before you render.
 | sets `dangerouslySetInnerHTML`, `srcDoc`, `style`, `formAction`, `ping`, `ref`, `key`, a namespaced name (`xlink:href`) or an `on…` string | the prop dropped | `forbidden-prop` |
 | writes `__proto__`, `constructor` or `prototype` as a prop, a path segment or a name | the prop dropped; the path or name is an error; nothing on a prototype is ever read | `forbidden-prop`, `invalid-ref`, `invalid-name` |
 | writes a DOM `id`, an `aria-*` id reference or a form control's `name` | dropped; Fields wire their own ids, so two views never collide | `forbidden-prop` |
-| sets a theme (`theme`, `data-theme`) | an error for the key, the attribute dropped | `unknown-key`, `forbidden-prop` |
+| sets a theme name (`data-theme` on a node, or a string as `theme`) | the attribute dropped; the string is an error | `forbidden-prop`, `invalid-type` |
+| sets a `theme` role outside the colour roles, or a colour outside the grammar (`var()`, `url()`, `calc()`, a colour name) | an error; the view refuses the whole theme | `unknown-key`, `invalid-value` |
+| sets a `theme` palette below the contrast contract (light text on a light surface) | the whole theme refused before it paints; the host's theme stands | `theme-contrast` |
 | chooses an element (`as`, a heading level) outside the component's list | the prop dropped | `invalid-prop-value` |
 | asks for `PasswordInput` or `OTPInput`, or gives a control a password `type` or a password, one-time-code or card `autoComplete` | a diagnostic, unless the policy's `allowSensitive` allows it | `sensitive-component` |
 | nests nodes past 50 deep, or chains handlers past 5 | a diagnostic; the excess is not rendered or run | `limit-exceeded` |
@@ -603,11 +638,13 @@ builder that needs the same facts:
   `LITERAL_PAYLOAD_KEYS`, `HTTP_METHODS`, `TOAST_TONES`, `BINDING_TYPES`, `BINDING_STATUSES`,
   `FIELD_TYPES`, `VALIDATION_TRIGGERS`, `RULE_NAMES`, `FORMAT_STYLES`, `TEXT_ELEMENTS`,
   `TEXT_SIZES`, `TEXT_TONES`, `TEXT_WEIGHTS`, `HEADING_LEVELS`, `HEADING_SIZES`,
-  `DATE_KINDS`, `EVENT_VALUE_KINDS`, `CHILD_INSPECTIONS`;
+  `DATE_KINDS`, `EVENT_VALUE_KINDS`, `CHILD_INSPECTIONS`, `THEME_SCHEMES`, `THEME_KEYS`, and
+  `THEME_TOKENS` (each colour role a `theme` may set, with what it paints);
 - the issues: `ISSUE_CODE_INFO`, `ISSUE_CODES`, `RUNTIME_ISSUE_CODES`, `BLOCKING_CODES`.
 
-The types that go with them (`ViewSpec`, `ViewNode`, `Issue`, `IssueCode`, `HostPolicy`,
-`ComponentContract`, `ComponentContracts` and the rest of the format) come from `/spec`, and
+The types that go with them (`ViewSpec`, `ViewNode`, `ThemeSpec`, `ThemeScheme`, `ThemeToken`,
+`Issue`, `IssueCode`, `HostPolicy`, `ComponentContract`, `ComponentContracts` and the rest of
+the format) come from `/spec`, and
 as types from the package root too. The root adds `ViewRendererProps`, `RendererAdapters`,
 `ComponentRegistry` and `IconSet`.
 

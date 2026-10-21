@@ -20,7 +20,9 @@ src/
                           (types.ts), its policy (policy.ts, url-policy.ts, patterns.ts),
                           what renderer and validator both read off a contract
                           (contract-facts.ts) or a form field (form-values.ts), the one ISO
-                          date parser (dates.ts), contract prop paths (prop-path.ts), the
+                          date parser (dates.ts), contract prop paths (prop-path.ts), a
+                          document's theme and its contrast floors (theme.ts, over the
+                          generated theme-contract.json) and the colour math (color.ts), the
                           $ref grammar, JSON Pointers, shape guards, issues, the built-in
                           contracts, the validator (validate*.ts) and its one schema
                           source, the HTTP handler (handler.ts)
@@ -30,7 +32,8 @@ src/
   stream/                 `./stream`, React-free: the incremental parser, PENDING, fences;
                           plus the React hooks the root exports (use-view-spec-stream.ts)
   render/                 renderNode, Scope, props and their coercions, the built-ins (Text,
-                          Heading, Icon), diagnostics in place and the issue log
+                          Heading, Icon), diagnostics in place and the issue log, the
+                          document's theme on the view root (view-theme.ts)
   runtime/                RenderContext, adapters (effects) and the resolved policy, actions,
                           event values, state, data bindings, dialogs, the issue channel,
                           useViewRuntime
@@ -113,6 +116,26 @@ test-utils.ts             shared test helpers (not shipped)
 - Do not wrap a document's `className` in `cn()`: every library component already merges
   its own.
 
+## A document's theme
+
+- Themes stay root-only CSS files; a document's `theme` is the one exception: validated
+  colour roles, inline on its own view root, held to the CSS package's contrast contract.
+  The roles, which ones may carry alpha, and the contrast pairs are what `derive:theme`
+  reads off the CSS package's template and contrast check; never a hand-kept list. A role
+  the check measures is never translucent (the deriver throws).
+- **All or nothing.** A theme that does not conform, or whose final palette (the host's
+  roles with the document's over them) misses any floor a document's role takes part in,
+  applies not at all; the host's own pairs are the host's to check. The verdict comes
+  before paint: no commit ever carries an unmeasured palette (the first render carries
+  none; a layout effect measures in a probe under the root).
+- The colour module (`spec/color.ts`) mirrors the CSS package's measurement, and a test
+  holds it to the package's own functions by behaviour. Change both together or neither.
+- A themed root paints its canvas and ink; an unthemed one stays transparent. Print and
+  forced colours set the roles aside in the stylesheet's generated region (as they do any
+  theme on `:root`); more contrast re-derives from the document's own roles. Under forced
+  colours nothing is measured. A DOM that resolves no custom property (jsdom) is judged on
+  the document's own pairs, as the validator judges it.
+
 ## CSS: tokens only
 
 The renderer's stylesheet and the built-ins speak the contract's tokens and nothing else: no
@@ -128,6 +151,7 @@ document's `className` wins.
 | `verify:no-suppressions` | no lint or TypeScript suppression directive in sources, tests, gates or configs (fixture test) |
 | `verify:source-text` | no raw control character in any text file, which would make git treat it as binary (test writes its bad fixture at run time) |
 | `verify:contracts` | `src/contracts/generated/` is what `derive:contracts` writes from the installed library's built declarations (stale or missing fails, naming the file) |
+| `verify:theme` | `src/spec/theme-contract.json` (the colour roles and the contrast pairs) and the stylesheet's theme region are what `derive:theme` writes from the installed CSS package (fixture test: a template change follows, a translucent measured role throws) |
 | `verify:viewspec` | `VIEWSPEC.md`'s generated regions and `src/reference/prose.json` are what `derive:viewspec` writes (byte for byte, naming the stale file) |
 | `verify:classes` | `src/spec/class-vocabulary.json` and the stylesheet's `@source inline` lines are what `derive:classes` writes, every listed class compiles to CSS, no Tailwind default is listed, and the stylesheet reads tokens only |
 | `verify:schema` | `src/schema.json` is what `derive:schema` writes from the one schema source (`validate-schema.ts`) |
@@ -137,6 +161,7 @@ document's `className` wins.
 | Writer | Writes (commit the result; the matching `verify:*` fails until you do) |
 | --- | --- |
 | `derive:contracts` | `src/contracts/generated/`: components, parts, props, value sets, slots, node props, native attributes and DOM names, declared paths. Needs the library's `dist` current |
+| `derive:theme` | `src/spec/theme-contract.json` and the stylesheet's `GENERATED:theme` region, from the CSS package's theme template and contrast check. Run `derive:viewspec` after it |
 | `derive:classes` | the class vocabulary JSON and the stylesheet's `@source inline` lines |
 | `derive:schema` | `src/schema.json` (runs on bun: the source is TypeScript) |
 | `derive:viewspec` | `VIEWSPEC.md`'s generated regions and `src/reference/prose.json`. Edit the prose in `VIEWSPEC.md`, never inside a region; after a library rebuild run `derive:contracts` first |
@@ -144,7 +169,8 @@ document's `className` wins.
 Gates that live in `test`: the barrel gate (library exports = contracts ∪ `NOT_ADDRESSABLE`),
 curated-table drift, the omission scans (un-JSON-able props, the library's URL, heading and
 children-reading sinks), the `name` classification, DataTable column keys against the format
-and the library, the fold, validator ⇄ Zod ⇄ `schema.json` agreement, and the README
+and the library, the fold, validator ⇄ Zod ⇄ `schema.json` agreement, the colour module
+against the CSS package's contrast functions (`color.test.ts`), and the README
 (`readme.test.tsx`: its named code blocks typechecked and run, its snippets typechecked, its
 CLI transcript replayed, each hardening row provoked, each number in its prose measured, and
 every export of every subpath named in it, or a type in that test's explicit allow-list).

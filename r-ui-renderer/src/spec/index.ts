@@ -15,6 +15,7 @@ export {
 } from "./policy";
 export { defaultAllowImageUrl, defaultAllowUrl, resolveUrl, safeUrl } from "./url-policy";
 export { CLASS_VOCABULARY, ICON_NAMES } from "./vocabulary";
+export { THEME_TOKENS, type ThemeToken } from "./theme";
 export { contractFor, defaultContracts, extendContracts, NOT_ADDRESSABLE } from "../contracts";
 export { stripCodeFence } from "../stream/fence";
 export { type ValidateOptions, validateViewSpec } from "./validate";

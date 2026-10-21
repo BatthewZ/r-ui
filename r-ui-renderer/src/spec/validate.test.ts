@@ -100,11 +100,11 @@ describe("validateViewSpec: input", () => {
 
 describe("validateViewSpec: errors are conformance", () => {
   it("checks the document's own keys", () => {
-    const result = validateViewSpec({ version: 3, title: "", theme: "aurora", density: "cosy" });
+    const result = validateViewSpec({ version: 3, title: "", skin: "aurora", density: "cosy" });
     expect(result.ok).toBe(false);
     expect(pairs(result)).toEqual([
       ["missing-key", ""],
-      ["unknown-key", "/theme"],
+      ["unknown-key", "/skin"],
       ["unsupported-version", "/version"],
       ["invalid-value", "/title"],
       ["invalid-value", "/density"],

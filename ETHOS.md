@@ -53,7 +53,7 @@ color-mix(in oklch, var(--X-LIGHT), var(--X-DARK) calc(var(--SCHEME-DARK) * 100%
 
 A theme therefore never has to name domain tokens, though it may override them by name.
 
-Themes apply at the root only (`:root[data-theme="name"]`). Subtree themes are unsupported, and the docs say so.
+Themes apply at the root only (`:root[data-theme="name"]`). Subtree themes are unsupported, and the docs say so. A theme stays a root-only CSS file; the one exception sits downstream: r-ui-renderer applies a document's validated colour-role overrides to that document's own view root, and refuses them whole unless the palette they make meets the same contrast contract.
 
 ## Four axes; the viewport only moves layout
 
@@ -104,6 +104,7 @@ Contracts that must hold are scripts, wired into each package's `check` script (
 - The React-free entry points (the validator, the stream parser, the reference, the CLI) reach no React and no component library.
 - The contracts, the model reference, the class vocabulary and the JSON Schema are exactly what their derivers write (the contracts from the library's build), and every class in the vocabulary generates CSS.
 - Every library export is either addressable by documents or excluded with a reason.
+- A document's theme sets only the CSS package's colour roles (read off its theme template), and a palette that misses any contrast floor (read off its contrast check) is refused whole before it paints.
 - Every example document validates with no issue and renders with no diagnostic; the README's examples run.
 
 ---
@@ -115,7 +116,7 @@ Contracts that must hold are scripts, wired into each package's `check` script (
 | **Tailwind v4, CSS-first, `@theme inline`** | No `tailwind.config.js`; nothing in JS can drift from the CSS. |
 | **OKLCH** | Lightness, chroma and hue are separate levers, which makes contrast tuning tractable. |
 | **One theme file = one scheme** | Light or dark, never both. No `light-dark()`. `--SCHEME-DARK` bridges domain extensions. |
-| **Themes at the root only** | `:root[data-theme]`. No subtree themes. |
+| **Themes at the root only** | `:root[data-theme]`. No subtree themes. The one exception: r-ui-renderer's per-view colour-role overrides from a document, held to the contrast contract. |
 | **Four axes; viewport moves only layout** | Theme, density, input, container. No token changes under `@media (width …)`. |
 | **Per-density named values** | `:root` declares `--R-SIZE-3-COMFORTABLE` / `--R-SIZE-3-COMPACT`; `[data-density]` only *selects* `--R-SIZE-3`. Themes tune what each density *means* and never select one. Derived tokens are re-declared at every density boundary so they re-derive there. |
 | **Registered derived lengths** | `--CONTROL-H`, `--CONTROL-PAD` and `--ROW-H` are `@property` `<length>`, `inherits: true`, so `getComputedStyle` returns px. A `cqi`-based token is never registered: registration would compute it once, at the element that declares it, and inherit the frozen length. |

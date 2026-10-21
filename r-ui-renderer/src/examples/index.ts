@@ -38,6 +38,7 @@ import marketingPage from "./marketing-page.json";
 import opsDashboard from "./ops-dashboard.json";
 import releaseNotes from "./release-notes.json";
 import settingsForm from "./settings-form.json";
+import statusPage from "./status-page.json";
 import teamDirectory from "./team-directory.json";
 
 // The names are spelled out rather than inferred from the imports, so the
@@ -50,6 +51,7 @@ export type ProductExampleName =
   | "ops-dashboard"
   | "release-notes"
   | "settings-form"
+  | "status-page"
   | "team-directory";
 export type CoverageExampleName =
   | "builtin"
@@ -80,6 +82,7 @@ export const PRODUCT_EXAMPLES: { readonly [name in ProductExampleName]: unknown 
   "ops-dashboard": opsDashboard,
   "release-notes": releaseNotes,
   "settings-form": settingsForm,
+  "status-page": statusPage,
   "team-directory": teamDirectory,
 };
 
