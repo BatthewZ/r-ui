@@ -5,6 +5,7 @@ import { contractFor, exclusionFor } from "../contracts";
 import { RENDERER_CLASSES } from "../diagnostics";
 import { lookupComponent } from "../registry/registry";
 import { isFormatMarker, isName, isPlainObject, isRefMarker, nodeKind } from "../spec/guards";
+import { sensitiveAllowed } from "../spec/contract-facts";
 import { errorMessage } from "../spec/errors";
 import { makeIssue } from "../spec/issue";
 import { appendPointer } from "../spec/pointer";
@@ -19,7 +20,7 @@ import { placeDiagnostic, reportIssue } from "./diagnostic";
 import { glyphFor } from "./icon-context";
 import { memoised, type Slot } from "./memo";
 import { NodeBoundary } from "./NodeBoundary";
-import { buildProps, iconElement, sensitiveAllowed } from "./props";
+import { buildProps, iconElement } from "./props";
 import { PropResolver } from "./resolve";
 import { childScope, refScopeOf, type Scope } from "./scope";
 import { readValue, valueText } from "../runtime/resolve";
@@ -204,7 +205,7 @@ function renderComponent(node: Record<string, unknown>, name: string, scope: Sco
       : place("not-addressable", `${name} is not available to documents: ${exclusion.why}`);
   }
   const contract = contractFor(ctx.contracts, name) ?? EMPTY_CONTRACT;
-  if (contract.sensitive === true && !sensitiveAllowed(ctx.policy.allowSensitive, name)) {
+  if (contract.sensitive === true && !sensitiveAllowed(ctx.policy, name)) {
     return place("sensitive-component", `${name} renders only where the host allows it.`);
   }
 

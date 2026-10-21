@@ -87,6 +87,14 @@ describe("the renderer's stylesheet, compiled", () => {
     expect(tone).toBeGreaterThan(heading);
   });
 
+  it("hides every diagnostic in a view whose diagnostics are hidden", () => {
+    const selector = `.${RENDERER_CLASSES.view}[data-diagnostics="hidden"] .${RENDERER_CLASSES.diagnostic}`;
+    const hiding = all.filter((rule) => rule.selector === selector);
+    expect(hiding).toHaveLength(1);
+    expect(hiding[0]?.within).toEqual(["@layer components"]);
+    expect(hiding[0]?.body).toMatch(/display:\s*none;/);
+  });
+
   it("contains the view, so a document's fixed positioning stays inside its box", () => {
     const [view] = ruleFor(RENDERER_CLASSES.view);
     expect(view?.within).toEqual(["@layer components"]);

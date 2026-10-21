@@ -156,6 +156,11 @@
     display: none;
   }
 
+  /* `diagnostics="hidden"`: out of sight, still in the DOM for findDiagnostics. */
+  .r-renderer-view[data-diagnostics="hidden"] .r-renderer-diagnostic {
+    display: none;
+  }
+
   .r-renderer-pending {
     display: block;
   }

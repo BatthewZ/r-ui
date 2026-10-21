@@ -81,17 +81,22 @@ describe("navigateToHash", () => {
     history.replaceState(null, "", location.pathname + location.search);
   });
 
-  it("puts the destination in the hash, adding a history entry", () => {
+  it("puts a same-origin destination's path in the hash, adding a history entry", () => {
     const before = history.length;
-    navigateToHash("/services/42", { replace: false });
-    expect(location.hash).toBe("#/services/42");
+    navigateToHash(new URL("/services/42?tab=logs", origin).href, { replace: false });
+    expect(location.hash).toBe("#/services/42?tab=logs");
     expect(history.length).toBe(before + 1);
   });
 
-  it("replaces the entry when asked", () => {
+  it("keeps only the fragment of a destination on this page, replacing the entry when asked", () => {
     const before = history.length;
-    navigateToHash("#settings", { replace: true });
+    navigateToHash(new URL("#settings", location.href).href, { replace: true });
     expect(location.hash).toBe("#settings");
     expect(history.length).toBe(before);
+  });
+
+  it("keeps another origin's whole URL", () => {
+    navigateToHash("https://elsewhere.example/docs", { replace: true });
+    expect(location.hash).toBe("#https://elsewhere.example/docs");
   });
 });

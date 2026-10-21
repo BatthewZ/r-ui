@@ -524,7 +524,7 @@ export const ISSUE_CODE_INFO = {
     severity: "warning",
     summary: "A value that conforms but cannot work: a rule its field's type ignores, a pattern that does not compile, a code `Intl` refuses.",
   },
-  "key-order": { severity: "warning", summary: "Keys out of the streaming order; the object renders only once it closes." },
+  "key-order": { severity: "warning", summary: "Keys out of the streaming order; the object shows late, or remounts once when the late key closes." },
   "duplicate-key": { severity: "warning", summary: "Two siblings share a key; positions are used instead." },
   "missing-adapter": { severity: "warning", summary: "The host did not provide the adapter this needs; nothing was sent." },
   "data-error": { severity: "error", summary: "A data binding failed." },

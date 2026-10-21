@@ -9,7 +9,16 @@
 
 import { createElement, type ReactNode } from "react";
 
-import { type DropReason, dropReason, isRefusedValue, isSensitiveValue, type NameRole, nameRole, refPropKinds } from "../spec/contract-facts";
+import {
+  type DropReason,
+  dropReason,
+  isRefusedValue,
+  isSensitiveValue,
+  type NameRole,
+  nameRole,
+  refPropKinds,
+  sensitiveAllowed,
+} from "../spec/contract-facts";
 import { isHandler, isName, isNodeMarker, isPlainObject, ownValue } from "../spec/guards";
 import {
   CONSTRAINED_DATA_ATTRIBUTES,
@@ -146,11 +155,6 @@ const UNIVERSAL_IMAGES: ReadonlySet<string> = new Set<string>(IMAGE_URL_PROPS);
 
 const NONE: Readonly<Record<string, never>> = Object.freeze({});
 
-/** Whether the host's `allowSensitive` lets `name` ask for a secret. */
-export function sensitiveAllowed(allow: boolean | readonly string[], name: string): boolean {
-  return allow === true || (Array.isArray(allow) && allow.includes(name));
-}
-
 /** The icon `name` names in the view's set, or a missing-icon diagnostic in its place. */
 export function iconElement(scope: Scope, name: string, path: string): ReactNode {
   const Glyph = glyphFor(scope.ctx.icons, name);
@@ -272,7 +276,7 @@ export function buildProps(
       const options = ownValue(CONSTRAINED_DATA_ATTRIBUTES, key);
       return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${options === undefined ? "text, a number or a boolean" : options.join(" or ")}.`);
     }
-    if (isSensitiveValue(name, key, value) && !sensitiveAllowed(ctx.policy.allowSensitive, name)) {
+    if (isSensitiveValue(name, key, value) && !sensitiveAllowed(ctx.policy, name)) {
       failure ??= makeIssue("sensitive-component", path, `\`${key}\` asks for a secret, so ${name} renders only where the host allows it.`);
       return DROP;
     }

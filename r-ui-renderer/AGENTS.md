@@ -10,17 +10,20 @@ producers. Each rule names the gate that holds it where one exists (`bun run che
 VIEWSPEC.md               the model-facing reference: hand-written prose + generated regions
 src/
   index.ts                the package root ("use client"): ViewRenderer, the stream hook,
-                          the parser, registry and contract helpers, diagnostics, format types
+                          the parser, registry and contract helpers, diagnostics
+                          (findDiagnostics, RENDERER_CLASSES), format types
   ViewRenderer.tsx        the composition root: input → snapshot → runtime → forms → renderNode
   diagnostics.ts          every class the renderer marks its elements with, and the DOM query
   styles.css              `./styles`: the renderer's own CSS (tokens only, components layer)
   schema.json             `./schema.json`: the format as JSON Schema
-  spec/                   `./spec`, React-free: the format (types.ts), its policy (policy.ts,
-                          url-policy.ts), what renderer and validator both read off a
-                          contract (contract-facts.ts), the one ISO date parser (dates.ts),
-                          contract prop paths (prop-path.ts), the $ref grammar, JSON
-                          Pointers, shape guards, issues, the built-in contracts, the
-                          validator (validate*.ts) and its one schema source
+  spec/                   `./spec`, React-free: the format and the HostPolicy type
+                          (types.ts), its policy (policy.ts, url-policy.ts, patterns.ts),
+                          what renderer and validator both read off a contract
+                          (contract-facts.ts) or a form field (form-values.ts), the one ISO
+                          date parser (dates.ts), contract prop paths (prop-path.ts), the
+                          $ref grammar, JSON Pointers, shape guards, issues, the built-in
+                          contracts, the validator (validate*.ts) and its one schema
+                          source, the HTTP handler (handler.ts)
   contracts/              the contracts every check reads: generated/ (the deriver's JSON,
                           never hand-edited), curated/ (the decisions, each gated), index.ts
                           (the assembled view, extendContracts)
@@ -28,22 +31,25 @@ src/
                           plus the React hooks the root exports (use-view-spec-stream.ts)
   render/                 renderNode, Scope, props and their coercions, the built-ins (Text,
                           Heading, Icon), diagnostics in place and the issue log
-  runtime/                RenderContext, adapters, actions, event values, state, data
-                          bindings, dialogs, the issue channel, useViewRuntime
+  runtime/                RenderContext, adapters (effects) and the resolved policy, actions,
+                          event values, state, data bindings, dialogs, the issue channel,
+                          useViewRuntime
   forms/                  form defs compiled to a Standard Schema on the library's useForm
-  registry/               names → components (registry.ts, React side) and the name list
-                          (names.ts, React-free), derived from the library's barrel
+  registry/               names → components (registry.ts), from the library's barrel
   reference/              `./reference`, React-free: renders VIEWSPEC.md from the contracts
                           and the prose (prose.json, written from VIEWSPEC.md by derive:viewspec)
   icons/                  `./icons`: a curated lucide set (and the IconSet type)
   zod/                    `./zod`: the format as a Zod schema (zod is an optional peer)
   cli/                    the `r-ui-validate` bin (main.ts holds everything but process wiring)
-  examples/               the corpus (not shipped as an entry): product documents, coverage/
-                          (every addressable component), the typed manifest, their tests
+  examples/               `./examples`, React-free: the corpus, product documents and
+                          coverage/ (every addressable component), the typed manifest;
+                          controls/ holds the browser checks' probe documents (not
+                          shipped, not corpus)
 scripts/                  the gates (`verify:*`), their tests and fixtures; browser/ holds the
                           browser checks, run by browser-check.mjs against the playground
 playground/               a consumer app: editor, live preview, issue panel, streaming replay,
-                          and the full-page route `/?view=<name>` the browser checks drive
+                          and the full-page route `/?view=<name>` (a corpus or control document) the
+                          browser checks drive
 test-utils.ts             shared test helpers (not shipped)
 ```
 
@@ -56,7 +62,7 @@ test-utils.ts             shared test helpers (not shipped)
 - This package may name the library; nothing upstream ever names this package (its docs,
   code, tests or changelog). A library change the renderer needs is an additive change with
   the library's own tests and its own justification.
-- **React-free subpaths.** `./spec`, `./stream`, `./reference`, `./zod` and the bin run on
+- **React-free subpaths.** `./spec`, `./stream`, `./reference`, `./zod`, `./examples` and the bin run on
   servers and in the CLI. Their module graphs, type-only imports included, reach no React, no
   library, no lucide and no `.tsx` (`verify:react-free`). React-side code lives in a module only
   the package root imports.
@@ -79,6 +85,10 @@ test-utils.ts             shared test helpers (not shipped)
   (`policy.ts`, `url-policy.ts`), the contract facts (`contract-facts.ts`), the ISO parser,
   the prop-path walker, the Intl checks. A warning is a promise of what the renderer will
   do; a second copy of the rule breaks it silently.
+- **What a document may reach is the host's `HostPolicy`; what it may cause is the
+  adapters.** One policy object goes to the view, the validator, the handler and (as flags)
+  the CLI, and every judgement reads it, so a warning and a refusal never disagree. Adapters
+  carry effects only and have no defaults.
 - **`name` keeps its meaning unless a contract says otherwise** (`nameRole`): a DOM name
   (`domName`, derived from native attributes or curated) is dropped, Field's is a field
   name, every other is the component's own. Never default the other way: the set of
@@ -97,6 +107,9 @@ test-utils.ts             shared test helpers (not shipped)
   where its context allows no element, the issue log lists it). Every diagnostic is a DOM
   element carrying the classes in `diagnostics.ts`; nothing else spells them.
 - Renderer-held controlled values (`open`, `value`) are defined from the first render.
+- **A new document starts fresh.** Runtime state, data, forms, dialogs and the issue channel
+  are keyed by the document's generation (a new `spec` object, restarted text, a new
+  source); nothing of one document reaches the next.
 - Do not wrap a document's `className` in `cn()`: every library component already merges
   its own.
 
@@ -133,8 +146,12 @@ curated-table drift, the omission scans (un-JSON-able props, the library's URL, 
 children-reading sinks), the `name` classification, DataTable column keys against the format
 and the library, the fold, validator ⇄ Zod ⇄ `schema.json` agreement, and the README
 (`readme.test.tsx`: its named code blocks typechecked and run, its snippets typechecked, its
-CLI transcript replayed, each hardening row provoked, each number in its prose measured).
-A README example is a claim: change it and its test together.
+CLI transcript replayed, each hardening row provoked, each number in its prose measured, and
+every export of every subpath named in it, or a type in that test's explicit allow-list).
+A README example is a claim: change it and its test together. A new export is named in the
+README, or it is a type the allow-list takes for a stated reason.
+
+`bun run validate` runs the `r-ui-validate` CLI from source (`bun run validate --raw '…'`).
 
 Outside `check`, run alone (they start a browser or a server):
 

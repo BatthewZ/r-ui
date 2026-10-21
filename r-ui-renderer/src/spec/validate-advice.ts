@@ -199,7 +199,7 @@ class Advisor {
       .map((key) => order.indexOf(key))
       .filter((position) => position !== -1);
     if (positions.every((position, index) => index === 0 || (positions[index - 1] as number) <= position)) return;
-    this.warn("key-order", path, `${what}: ${list(order)}. Out of order, it renders only once it has closed.`);
+    this.warn("key-order", path, `${what}: ${list(order)}. Out of order, it shows late, or remounts once when the late key closes.`);
   }
 
   private binding(binding: unknown, path: string): void {
@@ -833,8 +833,11 @@ class Advisor {
           }
           return;
         case "navigate":
-          this.urlValue(payload.to, field("to"), false);
-          if (typeof payload.to !== "string") this.value(payload.to, field("to"), scope);
+          if (typeof payload.to === "string") this.destination(payload.to, field("to"));
+          else {
+            this.urlValue(payload.to, field("to"), false);
+            this.value(payload.to, field("to"), scope);
+          }
           return;
         case "showToast":
           for (const key of ["title", "description"]) this.value(payload[key], field(key), scope);
@@ -903,6 +906,17 @@ class Advisor {
     } else if (!this.allowRequest(url)) {
       const policy = this.options.policy.allowUrl === undefined ? "requests go to the view's own origin unless the host's `allowUrl` allows more" : "the host's `allowUrl` refuses it";
       this.warn("refused-url", at, `A request the host does not send: ${policy}.`);
+    }
+  }
+
+  /** A `navigate` destination: the renderer checks it with the request policy too. */
+  private destination(raw: string, at: string): void {
+    const url = safeUrl(raw) === "" ? null : resolveUrl(raw, this.base);
+    if (url === null) {
+      this.warn("refused-url", at, "Refused: a URL is relative, http(s), mailto, tel or a data: raster image.");
+    } else if (!this.allowRequest(url)) {
+      const policy = this.options.policy.allowUrl === undefined ? "navigation stays on the view's own origin unless the host's `allowUrl` allows more" : "the host's `allowUrl` refuses it";
+      this.warn("refused-url", at, `A destination the host does not navigate to: ${policy}.`);
     }
   }
 

@@ -851,6 +851,14 @@ describe("validateViewSpec: the host's policy and the verdicts", () => {
     ]);
   });
 
+  it("judges a navigate destination by the request policy, as the renderer does", () => {
+    const go = (to: string) => doc({ component: "Button", props: { onClick: { action: "navigate", payload: { to } } }, children: ["Go"] });
+    expect(codes(go("/services"))).toEqual([]);
+    expect(codes(go("https://elsewhere.example/docs"))).toEqual([["refused-url", "/root/props/onClick/payload/to"]]);
+    expect(codes(go("https://elsewhere.example/docs"), { policy: { allowUrl: (url: URL) => url.hostname === "elsewhere.example" } })).toEqual([]);
+    expect(codes(go("javascript:alert(1)"))).toEqual([["refused-url", "/root/props/onClick/payload/to"]]);
+  });
+
   it("is renderable when nothing blocks rendering; strict fails on any warning", () => {
     const clean = doc({ component: "Card", children: ["x"] });
     const dropped = doc({ component: "Card", props: { className: "p-4" }, children: ["x"] });

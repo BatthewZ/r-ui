@@ -173,21 +173,13 @@ describe("URLs", () => {
     ]);
   });
 
-  it("keeps relative, http(s), mailto and tel hrefs", () => {
+  it("keeps relative, http(s), mailto and tel hrefs, their schemes in any casing", () => {
+    const hrefs = ["/a", "https://example.test/b", "mailto:a@example.test", "tel:+100", "HTTPS://example.test/c", "Mailto:b@example.test"];
     const view = renderTree({
       component: "Stack",
-      children: ["/a", "https://example.test/b", "mailto:a@example.test", "tel:+100"].map((href) => ({
-        component: "Link",
-        props: { href },
-        children: [href],
-      })),
+      children: hrefs.map((href) => ({ component: "Link", props: { href }, children: [href] })),
     });
-    expect([...view.container.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual([
-      "/a",
-      "https://example.test/b",
-      "mailto:a@example.test",
-      "tel:+100",
-    ]);
+    expect([...view.container.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(hrefs);
     expect(view.reported).toEqual([]);
   });
 
@@ -221,16 +213,22 @@ describe("URLs", () => {
 describe("images", () => {
   const image = (src: unknown) => ({ component: "Image", props: { src, alt: "Chart", width: 10, height: 10 } });
 
-  it("refuses a cross-origin image by default and keeps a same-origin or data: raster one", () => {
+  it("refuses a cross-origin image by default and keeps a same-origin or data: raster one, its scheme in any casing", () => {
     const view = renderTree({
       component: "Stack",
-      children: [image("https://tracker.test/p.gif"), image("/assets/a.png"), image("data:image/png;base64,AAAA"), image("data:image/svg+xml,<svg/>")],
+      children: [
+        image("https://tracker.test/p.gif"),
+        image("/assets/a.png"),
+        image("data:image/png;base64,AAAA"),
+        image("data:image/svg+xml,<svg/>"),
+        image("DATA:image/png;base64,BBBB"),
+      ],
     });
     const sources = [...view.container.querySelectorAll("img")].map((img) => img.getAttribute("src"));
-    expect(sources).toEqual(["/assets/a.png", "data:image/png;base64,AAAA"]);
+    expect(sources).toEqual(["/assets/a.png", "data:image/png;base64,AAAA", "DATA:image/png;base64,BBBB"]);
     // A refused picture is an error (the fallback shows), not one still on its way.
     const states = [...view.container.querySelectorAll(".r-media-image")].map((root) => root.getAttribute("data-state"));
-    expect(states).toEqual(["error", "loading", "loading", "error"]);
+    expect(states).toEqual(["error", "loading", "loading", "error", "loading"]);
     expect(view.issuesOf("refused-url")).toEqual([
       ["/root/children/0/props/src", false],
       ["/root/children/3/props/src", false],

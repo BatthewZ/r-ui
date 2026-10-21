@@ -16,5 +16,5 @@ export { defaultContracts, extendContracts } from "./contracts";
 export type { RendererAdapters, SourceRequest, ToastRequest } from "./runtime/adapters";
 export type { StreamingFallback } from "./runtime/context";
 export type { IconComponentProps, IconSet } from "./icons/types";
-export { findDiagnostics, type FoundDiagnostic } from "./diagnostics";
+export { findDiagnostics, type FoundDiagnostic, RENDERER_CLASSES } from "./diagnostics";
 export type * from "./spec/types";
