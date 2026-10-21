@@ -43,7 +43,12 @@ function NavListSection({ title, className, children, ...props }: NavListSection
 
 export type NavListItemProps<C extends ElementType = "a"> = NavLinkProps<C>;
 
-/** One link: the router's link, an `<a>`, or `as`. `current` (or the router's `isCurrent`) marks the page you are on. */
+/**
+ * One link: the router's link, an `<a>`, or `as`. `current` (or the router's
+ * `isCurrent`) marks the page you are on. `href` passes through `safeUrl`: a
+ * refused scheme (`javascript:` …) is dropped, and the item still renders, as
+ * text that goes nowhere.
+ */
 function NavListItem<C extends ElementType = "a">(props: NavListItemProps<C>) {
   return <NavLink {...props} />;
 }

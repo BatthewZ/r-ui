@@ -47,6 +47,20 @@ describe("NavList", () => {
     expect(within(workspace).getByRole("link", { name: "Members" })).toHaveAttribute("href", "/app/members");
   });
 
+  it("drops an href safeUrl refuses and still renders the item, as no link", () => {
+    render(
+      <NavList label="Settings">
+        <NavList.Item href="/profile">Profile</NavList.Item>
+        <NavList.Item href="javascript:alert(1)">Hostile</NavList.Item>
+      </NavList>,
+    );
+    expect(screen.getByRole("link", { name: "Profile" })).toHaveAttribute("href", "/profile");
+    expect(screen.queryByRole("link", { name: "Hostile" })).toBeNull();
+    const hostile = screen.getByText("Hostile").closest(".r-navigation-link");
+    expect(hostile).not.toBeNull();
+    expect(hostile).not.toHaveAttribute("href");
+  });
+
   it("routes slot classes to their parts and className to the link", () => {
     render(
       <NavList label="Settings">

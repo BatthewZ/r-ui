@@ -149,4 +149,19 @@ describe("Breadcrumbs", () => {
     expect(screen.getByRole("navigation", { name: "Fil d'Ariane" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Afficher 2 de plus" })).toBeInTheDocument();
   });
+
+  it("drops an href safeUrl refuses: the crumb reads as plain text", () => {
+    render(
+      <Breadcrumbs>
+        <Breadcrumbs.Item href="/">Home</Breadcrumbs.Item>
+        <Breadcrumbs.Item href="javascript:alert(1)">Hostile</Breadcrumbs.Item>
+        <Breadcrumbs.Item current>Here</Breadcrumbs.Item>
+      </Breadcrumbs>,
+    );
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("link", { name: "Hostile" })).toBeNull();
+    const hostile = screen.getByText("Hostile");
+    expect(hostile.tagName).toBe("SPAN");
+    expect(hostile).not.toHaveAttribute("href");
+  });
 });

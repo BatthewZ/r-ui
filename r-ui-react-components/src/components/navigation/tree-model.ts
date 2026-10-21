@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { safeUrl } from "../../util/url";
+
 /** One node of a `TreeView`, given as data (`items`) or by `TreeView.Item`. */
 export interface TreeNode {
   /** Unique across the whole tree: selection, expansion and DOM ids key on it. */
@@ -15,10 +17,24 @@ export interface TreeNode {
   hasChildren?: boolean;
   /** Not selectable, checkable or activatable; still focusable and expandable. */
   disabled?: boolean;
-  /** Makes the node a link (the `RouterProvider`'s link for an internal href). */
+  /**
+   * Makes the node a link (the `RouterProvider`'s link for an internal href).
+   * It passes through `safeUrl`: a refused scheme leaves a plain node.
+   */
   href?: string;
   /** This link is the page being shown. Unset, the router's `isCurrent(href)` decides. */
   current?: boolean;
+}
+
+/** The node's link target, or `undefined` when it has none or `safeUrl` refuses it. */
+export function nodeHref(node: TreeNode): string | undefined {
+  return typeof node.href === "string" ? safeUrl(node.href) || undefined : undefined;
+}
+
+/** `current` as given, else the router's verdict on the node's link. */
+export function isCurrentNode(node: TreeNode, isCurrent: (href: string) => boolean): boolean {
+  const href = nodeHref(node);
+  return node.current ?? (href !== undefined && isCurrent(href));
 }
 
 export type TreeLoadState =

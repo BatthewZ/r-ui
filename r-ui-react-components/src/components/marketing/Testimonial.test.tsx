@@ -38,6 +38,12 @@ describe("Testimonial", () => {
     expect(screen.getByRole("figure").querySelector("blockquote")).toHaveAttribute("cite", "https://example.com/case");
   });
 
+  it("drops a source URL safeUrl refuses from the blockquote's cite", () => {
+    render(<Testimonial quote="Fast." name="Ada" source="Case study" sourceUrl="javascript:alert(1)" />);
+    expect(screen.getByRole("figure").querySelector("cite")).toHaveTextContent("Case study");
+    expect(screen.getByRole("figure").querySelector("blockquote")).not.toHaveAttribute("cite");
+  });
+
   it("keeps paragraphs a caller passes as they are", () => {
     render(
       <Testimonial

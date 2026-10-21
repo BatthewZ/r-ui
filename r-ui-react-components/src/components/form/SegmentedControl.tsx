@@ -5,14 +5,13 @@ import {
   createContext,
   type ReactNode,
   useContext,
-  useId,
 } from "react";
 
 import { composeEventHandlers } from "../../util/merge-props";
 import { cn } from "../../util/style";
 
 import { useFieldControl } from "./Field";
-import { useRadioValue } from "./RadioGroup";
+import { useRadioGroupName, useRadioValue } from "./RadioGroup";
 
 interface SegmentedContextValue {
   name: string;
@@ -29,7 +28,11 @@ export interface SegmentedControlProps
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string) => void;
-  /** The radios' shared `name`, for form submission. Generated when omitted. */
+  /**
+   * The radios' shared `name`, for form submission. Omitted: the Field's name
+   * while the radios belong to a form, else one generated for this control, so
+   * two same-named controls outside a form never merge into one browser group.
+   */
   name?: string;
   disabled?: boolean;
   readOnly?: boolean;
@@ -56,9 +59,9 @@ function SegmentedControlRoot({
   "aria-describedby": describedByProp,
   "aria-invalid": ariaInvalidProp,
   "aria-labelledby": labelledByProp,
+  ref,
   ...props
 }: SegmentedControlProps) {
-  const generatedName = useId();
   const field = useFieldControl({
     id: idProp,
     invalid: invalidProp,
@@ -68,11 +71,12 @@ function SegmentedControlRoot({
     "aria-invalid": ariaInvalidProp,
   });
   const [current, setValue, fieldName] = useRadioValue(value, defaultValue, onValueChange);
+  const [groupName, groupRef] = useRadioGroupName(name, fieldName, ref);
 
   return (
     <SegmentedContext
       value={{
-        name: name ?? fieldName ?? generatedName,
+        name: groupName,
         value: current,
         setValue,
         disabled: field.disabled === true,
@@ -80,6 +84,7 @@ function SegmentedControlRoot({
       }}
     >
       <div
+        ref={groupRef}
         role="radiogroup"
         id={field.id}
         aria-labelledby={labelledByProp ?? field.labelId}

@@ -48,3 +48,8 @@
   shells stack their navs, so the sizes add. A reader adds it with a fallback, and a
   `var()` fallback inside `calc()` needs a unit (`0px`): a unitless `0` in a length sum
   voids the whole declaration.
+
+- **Dropping an unsafe `href` from a polymorphic item replaces the key only when the caller
+  passed one.** Spreading `href: undefined` unconditionally overrides an `as` component's
+  own href (a router link that builds it from `to`), so every routed item lost its link.
+  The check lives once, in the link row every nav item renders, not in each wrapper.

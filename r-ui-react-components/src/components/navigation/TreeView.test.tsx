@@ -459,6 +459,31 @@ describe("TreeView links", () => {
     expect(onAction).toHaveBeenCalledTimes(1);
     expect(onAction).toHaveBeenCalledWith("api", expect.objectContaining({ href: "/api" }));
   });
+
+  it("drops an href safeUrl refuses: the node is plain, never current, and Enter acts on it instead of following", async () => {
+    navigations = [];
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    const items: TreeNode[] = [
+      { id: "hostile", label: "Hostile", href: "javascript:alert(1)", children: [{ id: "child", label: "Child" }] },
+      { id: "api", label: "API", href: "/api" },
+    ];
+    render(
+      <RouterProvider link={RecordingLink} isCurrent={(href) => href !== "/api"}>
+        <TreeView aria-label="Docs" items={items} onAction={onAction} />
+      </RouterProvider>,
+    );
+    expect(within(item("API")).getByRole("link")).toHaveAttribute("href", "/api");
+    expect(within(item("Hostile")).queryByRole("link")).toBeNull();
+    expect(item("Hostile")).not.toHaveAttribute("aria-current");
+    expect(item("Hostile")).toHaveAttribute("aria-expanded", "false");
+    await user.tab();
+    expect(document.activeElement).toBe(item("Hostile"));
+    await user.keyboard("{Enter}");
+    expect(item("Hostile")).toHaveAttribute("aria-expanded", "true");
+    expect(onAction).toHaveBeenCalledExactlyOnceWith("hostile", expect.objectContaining({ id: "hostile" }));
+    expect(navigations).toEqual([]);
+  });
 });
 
 describe("TreeView actions", () => {

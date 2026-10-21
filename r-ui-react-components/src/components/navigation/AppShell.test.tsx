@@ -82,6 +82,25 @@ describe("AppShell", () => {
     expect(link).toHaveClass("r-navigation-link");
   });
 
+  it("drops an href safeUrl refuses and still renders the item, as no link", () => {
+    render(
+      <AppShell>
+        <AppShell.Sidebar>
+          <AppShell.SidebarSection title="Monitor">
+            <AppShell.NavItem href="/overview">Overview</AppShell.NavItem>
+            <AppShell.NavItem href="javascript:alert(1)">Hostile</AppShell.NavItem>
+          </AppShell.SidebarSection>
+        </AppShell.Sidebar>
+        <AppShell.Main>Body</AppShell.Main>
+      </AppShell>,
+    );
+    expect(screen.getByRole("link", { name: "Overview" })).toHaveAttribute("href", "/overview");
+    expect(screen.queryByRole("link", { name: "Hostile" })).toBeNull();
+    const hostile = screen.getByText("Hostile").closest(".r-navigation-link");
+    expect(hostile).not.toBeNull();
+    expect(hostile).not.toHaveAttribute("href");
+  });
+
   it("groups items under a titled section", () => {
     render(<Shell withBottomNav={false} />);
     const group = screen.getByRole("group", { name: "Monitor" });

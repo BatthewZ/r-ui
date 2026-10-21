@@ -4,11 +4,18 @@ import {
   type ComponentPropsWithRef,
   createContext,
   type ReactNode,
+  type Ref,
+  type RefCallback,
   useContext,
   useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
 
 import { composeEventHandlers } from "../../util/merge-props";
+import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 
 import { useFieldControl, useFieldValue } from "./Field";
@@ -43,12 +50,39 @@ export function useRadioValue(
   });
 }
 
+/**
+ * A radio group's shared `name` (also SegmentedControl's), and the ref its
+ * `radiogroup` element takes: the caller's name, else the Field's while the
+ * radios belong to a form, else one generated for this group. A form scopes its
+ * radio groups by name; with no form, every same-named radio on the page is one
+ * group (checking one clears the other, the arrows cross between them).
+ */
+export function useRadioGroupName(
+  name: string | undefined,
+  fieldName: string | undefined,
+  ref: Ref<HTMLDivElement> | undefined,
+): [string, RefCallback<HTMLDivElement>] {
+  const generatedName = useId();
+  const groupRef = useRef<HTMLDivElement>(null);
+  const [formless, setFormless] = useState(false);
+  useLayoutEffect(() => {
+    const radio = groupRef.current?.querySelector<HTMLInputElement>('input[type="radio"]');
+    setFormless(radio != null && radio.form === null);
+  });
+  const mergedRef = useMemo(() => mergeRefs(ref, groupRef), [ref]);
+  return [name ?? (fieldName !== undefined && !formless ? fieldName : generatedName), mergedRef];
+}
+
 export interface RadioGroupProps
   extends Omit<ComponentPropsWithRef<"div">, "defaultValue" | "onChange" | "role"> {
   value?: string;
   defaultValue?: string;
   onValueChange?: (value: string) => void;
-  /** The radios' shared `name`, for form submission. Generated when omitted. */
+  /**
+   * The radios' shared `name`, for form submission. Omitted: the Field's name
+   * while the radios belong to a form, else one generated for this group, so two
+   * same-named groups outside a form never merge into one browser group.
+   */
   name?: string;
   orientation?: "vertical" | "horizontal";
   disabled?: boolean;
@@ -79,9 +113,9 @@ export function RadioGroup({
   "aria-describedby": describedByProp,
   "aria-invalid": ariaInvalidProp,
   "aria-labelledby": labelledByProp,
+  ref,
   ...props
 }: RadioGroupProps) {
-  const generatedName = useId();
   const field = useFieldControl({
     id: idProp,
     invalid: invalidProp,
@@ -92,11 +126,12 @@ export function RadioGroup({
     "aria-invalid": ariaInvalidProp,
   });
   const [current, setValue, fieldName] = useRadioValue(value, defaultValue, onValueChange);
+  const [groupName, groupRef] = useRadioGroupName(name, fieldName, ref);
 
   return (
     <RadioGroupContext
       value={{
-        name: name ?? fieldName ?? generatedName,
+        name: groupName,
         value: current,
         setValue,
         disabled: field.disabled === true,
@@ -105,6 +140,7 @@ export function RadioGroup({
       }}
     >
       <div
+        ref={groupRef}
         role="radiogroup"
         id={field.id}
         // A `<label for>` cannot name a group; the Field's label does it by id.

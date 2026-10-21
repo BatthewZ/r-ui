@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CalendarDays } from "lucide-react";
 import { describe, expect, it, vi } from "vitest";
 
 import { Field } from "./Field";
 import { SegmentedControl } from "./SegmentedControl";
+import { Form, useForm } from "./use-form";
 
 function Range(props: Partial<React.ComponentProps<typeof SegmentedControl>>) {
   return (
@@ -97,5 +98,60 @@ describe("SegmentedControl", () => {
       </Field>,
     );
     expect(screen.getByRole("radiogroup", { name: "Granularity" })).toBeInTheDocument();
+  });
+
+  describe("two controls on one page with the same field name", () => {
+    const radio = (scope: string, name: string) =>
+      within(screen.getByRole("group", { name: scope })).getByRole("radio", { name }) as HTMLInputElement;
+
+    function RangeField({ label }: { label: string }) {
+      return (
+        <fieldset aria-label={label}>
+          <Field name="range">
+            <Field.Label>Range</Field.Label>
+            <Range aria-label={undefined} />
+          </Field>
+        </fieldset>
+      );
+    }
+
+    function RangeForm({ label }: { label: string }) {
+      const form = useForm<{ range: string }>({ defaultValues: { range: "week" }, onSubmit: () => {} });
+      return (
+        <Form form={form}>
+          <RangeField label={label} />
+        </Form>
+      );
+    }
+
+    it("outside a <form>, each control keeps its own selection (no shared browser group)", async () => {
+      render(
+        <>
+          <RangeField label="Sales" />
+          <RangeField label="Traffic" />
+        </>,
+      );
+      expect(radio("Sales", "Week").checked).toBe(true);
+      expect(radio("Traffic", "Week").checked).toBe(true);
+      expect(radio("Sales", "Week").name).not.toBe(radio("Traffic", "Week").name);
+      await userEvent.click(radio("Sales", "Month"));
+      expect(radio("Sales", "Month").checked).toBe(true);
+      expect(radio("Traffic", "Week").checked).toBe(true);
+    });
+
+    it("inside a <form>, the radios carry the field's name (it submits) and each form keeps its own", async () => {
+      render(
+        <>
+          <RangeForm label="Sales" />
+          <RangeForm label="Traffic" />
+        </>,
+      );
+      expect(radio("Sales", "Week").name).toBe("range");
+      expect(radio("Traffic", "Week").name).toBe("range");
+      await userEvent.click(radio("Sales", "Month"));
+      expect(radio("Sales", "Month").checked).toBe(true);
+      expect(radio("Traffic", "Week").checked).toBe(true);
+      expect(new FormData(radio("Sales", "Month").form!).get("range")).toBe("month");
+    });
   });
 });

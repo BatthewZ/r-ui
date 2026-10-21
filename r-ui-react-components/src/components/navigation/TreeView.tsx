@@ -33,7 +33,9 @@ import {
   type CheckState,
   checkStates,
   indexTree,
+  isCurrentNode,
   needsLoad,
+  nodeHref,
   sameIds,
   statusRowParent,
   type TreeLoadState,
@@ -199,7 +201,7 @@ function TreeViewRoot(props: TreeViewProps) {
 
   const [initialExpanded] = useState<readonly string[]>(() => {
     if (defaultExpandedIds) return defaultExpandedIds;
-    const current = [...index.values()].filter(({ node }) => node.current ?? (node.href !== undefined && isCurrent(node.href)));
+    const current = [...index.values()].filter(({ node }) => isCurrentNode(node, isCurrent));
     return ancestorsOf(
       index,
       current.map(({ node }) => node.id),
@@ -247,7 +249,7 @@ function TreeViewRoot(props: TreeViewProps) {
     }
     const isNode = (row: TreeRow): row is Extract<TreeRow, { kind: "node" }> => row.kind === "node";
     const nodeRows = stops.filter(isNode);
-    const current = nodeRows.find(({ node }) => node.current ?? (node.href !== undefined && isCurrent(node.href)));
+    const current = nodeRows.find(({ node }) => isCurrentNode(node, isCurrent));
     const selected = selectionMode === "single" ? nodeRows.find(({ node }) => node.id === selectedId) : undefined;
     return (current ?? selected ?? stops[0])?.key ?? null;
   }, [focusedKey, stops, index, isCurrent, selectionMode, selectedId]);
@@ -337,13 +339,14 @@ function TreeViewRoot(props: TreeViewProps) {
     }
     if (row.kind !== "node" || row.node.disabled) return;
     const { node } = row;
-    if (node.href !== undefined && !fromLink) {
+    const href = nodeHref(node);
+    if (href !== undefined && !fromLink) {
       // The link's own click runs the router; it comes back here with fromLink.
       linkRefs.current.get(row.key)?.click();
       return;
     }
     if (selectionMode !== "none") choose(node);
-    else if (row.expandable && node.href === undefined) setExpanded(node.id, !row.expanded);
+    else if (row.expandable && href === undefined) setExpanded(node.id, !row.expanded);
     onAction?.(node.id, node);
   };
 
@@ -644,7 +647,7 @@ function TreeItemRow({
   onClick,
 }: TreeItemRowProps) {
   const { node } = row;
-  const href = node.disabled ? undefined : node.href;
+  const href = node.disabled ? undefined : nodeHref(node);
   const LinkElement = useLinkElement(undefined, href);
   const current = useIsCurrent(node.current, href);
   const labelId = `${itemId}-label`;

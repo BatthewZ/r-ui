@@ -52,7 +52,8 @@ export type ImageProps = {
   /**
    * The file. `null` while its address is still on the way (a signed URL being
    * fetched, an upload being processed): the box holds its size and placeholder,
-   * busy, and nothing is requested. Not an error.
+   * busy, and nothing is requested. Not an error. An empty or blank address is
+   * one: the fallback shows and nothing is requested.
    */
   src: string | null;
   /**
@@ -113,7 +114,7 @@ export type ImageProps = {
  *   glyph alone when decorative), still named by `alt` for assistive tech. A new
  *   `src` gets its own try.
  * - **States** are on the root as `data-state`: `pending` (`src` is `null`),
- *   `loading`, `loaded`, `error`.
+ *   `loading`, `loaded`, `error` (also an empty `src`).
  * - **Forced colours** drop the placeholder's fill, so the box draws an outline
  *   there instead.
  *
@@ -142,15 +143,19 @@ export function Image({
 }: ImageProps) {
   // The outcome is stored with the src it belongs to, so a new src starts loading again.
   const [settled, setSettled] = useState<{ src: string; state: "loaded" | "error" } | null>(null);
-  const state: ImageState = src === null ? "pending" : settled?.src === src ? settled.state : "loading";
+  // Anything but a non-blank string (untyped data may send `undefined`) has nothing to
+  // load, and a blank `src` would resolve to the page's own URL and request it.
+  const address = typeof src === "string" && src.trim() !== "" ? src : null;
+  const state: ImageState =
+    src === null ? "pending" : address === null ? "error" : settled?.src === address ? settled.state : "loading";
   const imageRef = useRef<HTMLImageElement>(null);
 
   // A picture already in the cache (or loaded before hydration) may have fired
   // `load` before React listened; read its state once it is in the DOM.
   useLayoutEffect(() => {
     const img = imageRef.current;
-    if (src !== null && img?.complete && img.naturalWidth > 0) setSettled({ src, state: "loaded" });
-  }, [src]);
+    if (address !== null && img?.complete && img.naturalWidth > 0) setSettled({ src: address, state: "loaded" });
+  }, [address]);
 
   const decorative = alt === "";
   const wash = placeholderColor ? { backgroundColor: placeholderColor } : undefined;
@@ -183,10 +188,10 @@ export function Image({
         // Nothing to request yet: the box still answers for the picture it will hold.
         <span role="img" aria-label={alt} className="absolute inset-0" />
       )}
-      {src !== null && state !== "error" && (
+      {address !== null && state !== "error" && (
         <img
           ref={imageRef}
-          src={src}
+          src={address}
           srcSet={srcSet}
           sizes={sizes}
           alt={alt}
@@ -195,8 +200,8 @@ export function Image({
           loading={priority ? "eager" : "lazy"}
           fetchPriority={priority ? "high" : undefined}
           decoding="async"
-          onLoad={composeEventHandlers(onLoad, () => setSettled({ src, state: "loaded" }), { checkDefaultPrevented: false })}
-          onError={composeEventHandlers(onError, () => setSettled({ src, state: "error" }), { checkDefaultPrevented: false })}
+          onLoad={composeEventHandlers(onLoad, () => setSettled({ src: address, state: "loaded" }), { checkDefaultPrevented: false })}
+          onError={composeEventHandlers(onError, () => setSettled({ src: address, state: "error" }), { checkDefaultPrevented: false })}
           className={cn("r-media-image-picture absolute inset-0 size-full", FIT[fit], classNames?.image)}
         />
       )}

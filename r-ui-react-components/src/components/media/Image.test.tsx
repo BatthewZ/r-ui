@@ -98,6 +98,21 @@ describe("Image", () => {
     expect(screen.getAllByRole("img", { name: "Dunes at first light" })).toEqual([picture(container)]);
   });
 
+  it("an empty, blank or missing src is a failure: the fallback shows its words and nothing is requested", () => {
+    const { container, rerender } = render(<Image {...PHOTO} src="" />);
+    for (const src of ["", "   ", undefined as unknown as string]) {
+      rerender(<Image {...PHOTO} src={src} />);
+      expect(root(container)).toHaveAttribute("data-state", "error");
+      expect(root(container)).not.toHaveAttribute("aria-busy");
+      expect(container.querySelectorAll("img")).toHaveLength(0);
+      expect(screen.getByRole("img", { name: "Dunes at first light" })).toHaveClass("r-media-image-fallback");
+    }
+
+    rerender(<Image {...PHOTO} />);
+    expect(root(container)).toHaveAttribute("data-state", "loading");
+    expect(picture(container)).toHaveAttribute("src", PHOTO.src);
+  });
+
   describe("a picture already complete when it mounts (cached, or loaded before hydration)", () => {
     afterEach(() => {
       delete (HTMLImageElement.prototype as unknown as Record<string, unknown>).complete;

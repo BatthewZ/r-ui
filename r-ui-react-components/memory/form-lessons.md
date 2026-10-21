@@ -39,3 +39,8 @@
   `text-rating` sits in the utilities layer, so a component rule recolouring the root
   (forced colours, disabled) loses to it. A state override targets the part that paints
   (the fill's `svg`), not the root.
+- **Radios group by name within their form owner, so a shared name collides only without a
+  form.** Radios in different `<form>`s are already separate groups; two same-named groups
+  outside any form become one browser group (checking one clears the other, the arrows cross
+  between them). Keep the field's name where the radios have a form (it is what submits) and
+  give a formless group a generated one, decided from the rendered radio's `form`.

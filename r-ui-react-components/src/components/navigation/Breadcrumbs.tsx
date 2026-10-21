@@ -14,6 +14,7 @@ import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useIsCurrent, useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
 import { type LabelsProp, useLabels } from "../../util/locale";
+import { safeUrl } from "../../util/url";
 
 export interface BreadcrumbsLabels {
   /** The navigation landmark's name. */
@@ -149,15 +150,19 @@ export type BreadcrumbsItemProps<C extends ElementType = "a"> = PolymorphicProps
 
 /**
  * One crumb: a link (the router's link, an `<a>`, or `as`), or plain text when
- * it has no `href` and no `as`.
+ * it has no `href` and no `as`. `href` passes through `safeUrl`: a refused
+ * scheme (`javascript:` …) is dropped, so the crumb reads as plain text.
  */
 function BreadcrumbsItem<C extends ElementType = "a">({
   as,
   current: currentProp,
   className,
-  ...props
+  ...rest
 }: BreadcrumbsItemProps<C>) {
-  const href = (props as { href?: unknown }).href;
+  const given = (rest as { href?: unknown }).href;
+  const href = typeof given === "string" ? safeUrl(given) || undefined : given;
+  // Only a given href is replaced: an `undefined` key would override an `as` link's own.
+  const props = typeof given === "string" ? { ...rest, href } : rest;
   const isLink = as !== undefined || href !== undefined;
   const Component = useLinkElement(as, href, "span");
   const current = useIsCurrent(currentProp, href);

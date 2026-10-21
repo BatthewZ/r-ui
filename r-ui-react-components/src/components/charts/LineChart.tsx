@@ -35,7 +35,8 @@ export interface LineChartProps extends ChartBaseProps, ValueFormatOptions {
   /**
    * One x per point, shared by every series. Dates (or `xType="time"` with epoch
    * ms or ISO strings) make a time axis, numbers a number axis, anything else
-   * categories. Omitted: the points are numbered.
+   * categories. Omitted: the points are numbered. A bare `YYYY-MM-DD` string is
+   * read as that local calendar day (UTC under `timeZone="UTC"`).
    */
   x?: readonly ChartX[];
   /** Up to eight are drawn (one series colour and shape each); the table lists up to 24. */

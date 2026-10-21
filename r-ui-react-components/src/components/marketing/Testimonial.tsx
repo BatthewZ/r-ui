@@ -4,6 +4,7 @@ import type { ComponentPropsWithRef, ReactNode } from "react";
 
 import { type LabelsProp, useLabels } from "../../util/locale";
 import { cn, type SlotClassNames } from "../../util/style";
+import { safeUrl } from "../../util/url";
 import { Rating } from "../form";
 import { Avatar } from "../primitives";
 
@@ -61,7 +62,7 @@ export type TestimonialProps = {
    * A person's name is not a work, so it is not one.
    */
   source?: ReactNode;
-  /** The source's URL, as the blockquote's `cite` attribute. */
+  /** The source's URL, as the blockquote's `cite` attribute. A scheme `safeUrl` refuses is dropped. */
   sourceUrl?: string;
   variant?: TestimonialVariant;
   labels?: LabelsProp<TestimonialLabels>;
@@ -133,7 +134,7 @@ export function Testimonial({
         </div>
       )}
       <blockquote
-        cite={sourceUrl}
+        cite={typeof sourceUrl === "string" ? safeUrl(sourceUrl) || undefined : undefined}
         className={cn(
           "r-marketing-testimonial-quote flex min-w-0 max-w-full flex-col gap-r5 [overflow-wrap:anywhere]",
           variant === "pull" && "max-w-measure",

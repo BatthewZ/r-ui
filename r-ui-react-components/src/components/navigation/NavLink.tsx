@@ -4,6 +4,7 @@ import type { ElementType, ReactNode } from "react";
 import type { PolymorphicProps } from "../../util/layout-polymorphic";
 import { useIsCurrent, useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
+import { safeUrl } from "../../util/url";
 
 export interface NavLinkOwnProps {
   /** Decorative icon (give it `aria-hidden`); the label is the accessible name. */
@@ -25,7 +26,9 @@ export type NavLinkProps<C extends ElementType = "a"> = PolymorphicProps<C, NavL
 /**
  * The link row shared by `AppShell.NavItem` and `NavList.Item`: a list item
  * holding the router's link (`RouterProvider`), an `<a>`, or `as`, with the
- * accent "you are here" marker.
+ * accent "you are here" marker. `href` passes through `safeUrl`: a refused
+ * scheme (`javascript:` …) is dropped, and the item still renders, as text that
+ * goes nowhere.
  * Where it sits decides its form: a sidebar row, an icon-rail button, or a
  * bottom-nav tab (see the navigation stylesheet).
  */
@@ -37,9 +40,13 @@ export function NavLink<C extends ElementType = "a">({
   className,
   classNames,
   children,
-  ...props
+  ...given
 }: NavLinkProps<C>) {
-  const href = (props as { href?: unknown }).href;
+  const givenHref = (given as { href?: unknown }).href;
+  // Replace the key only when the caller passed one: an `href: undefined` key
+  // would override an `as` component's own href.
+  const href = typeof givenHref === "string" ? safeUrl(givenHref) || undefined : givenHref;
+  const props = typeof givenHref === "string" ? { ...given, href } : given;
   const Component = useLinkElement(as, href);
   const current = useIsCurrent(currentProp, href);
   return (

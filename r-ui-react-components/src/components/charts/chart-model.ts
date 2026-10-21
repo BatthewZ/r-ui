@@ -212,10 +212,17 @@ function inferXType(x: readonly unknown[]): XScaleType {
   return "category";
 }
 
-function timeOf(value: unknown): number | null {
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+function timeOf(value: unknown, zone: TimeZoneMode): number | null {
   if (value instanceof Date) return finiteOrNull(value.getTime());
   if (typeof value === "number") return Number.isFinite(value) && Math.abs(value) <= 8.64e15 ? value : null;
-  if (typeof value === "string") return finiteOrNull(Date.parse(value));
+  if (typeof value === "string") {
+    // A bare `YYYY-MM-DD` is a calendar date. `Date.parse` reads it as UTC midnight (the
+    // previous day west of Greenwich); with a time and no offset it reads local time.
+    const text = value.trim();
+    return finiteOrNull(Date.parse(zone === "local" && DATE_ONLY.test(text) ? `${text}T00:00` : value));
+  }
   return null;
 }
 
@@ -280,7 +287,7 @@ export function modelCartesian(input: CartesianInput): CartesianModel {
     let label: string;
     let axisLabel: string;
     if (xType === "time") {
-      x = timeOf(raw);
+      x = timeOf(raw, zone);
       label = x === null ? MISSING : timePointLabel(x, null, zone, locale);
       axisLabel = label;
     } else if (xType === "number") {
@@ -289,7 +296,7 @@ export function modelCartesian(input: CartesianInput): CartesianModel {
       axisLabel = tidyLabel(label, MAX_AXIS_CHARS);
     } else {
       x = index;
-      const text = raw instanceof Date ? timePointLabel(timeOf(raw) ?? Number.NaN, null, zone, locale) : typeof raw === "number" ? String(raw) : raw;
+      const text = raw instanceof Date ? timePointLabel(timeOf(raw, zone) ?? Number.NaN, null, zone, locale) : typeof raw === "number" ? String(raw) : raw;
       label = tidyLabel(text) || String(index + 1);
       axisLabel = tidyLabel(label, MAX_AXIS_CHARS);
     }

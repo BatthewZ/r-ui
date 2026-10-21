@@ -30,6 +30,10 @@ tokens or the public surface are versioned events and are recorded here.
 - Overlays: under reduced motion every closed surface with an exit (dialogs and the Lightbox, popovers, menus, tooltips, hover cards, toasts, selection lists, navigation panels, chart tooltips) unmounts its content at once. The collapsed 0.01ms exits were still waited on, which kept the content mounted a frame or two after the close.
 - Form: `OTPInput` keeps what is typed in the frame after it takes focus. Its focus-time caret placement used the code as it was at focus, so it threw the caret back to the first box and the next keys landed there ("4821" typed fast became "821").
 - Form: `OTPInput` keeps a selection made between its focus and the next frame (a caller's `focus()` then `select()`, or a test's `fill("")`, which selects all before it deletes). The focus-time caret placement collapsed it, so the delete removed nothing and the next keys were appended to the old code.
+- Charts: a bare `YYYY-MM-DD` x value on a `LineChart` time axis is read as that local calendar day, no longer UTC midnight (the previous day west of Greenwich); `timeZone="UTC"` still reads it as UTC.
+- Navigation, marketing: `NavList.Item`, `AppShell.NavItem`, `Breadcrumbs.Item` and `TreeView` node `href`s and `Testimonial`'s `sourceUrl` pass through `safeUrl`, as `Link`, `MediaCard` and `FeatureGrid` already do. Behaviour change: a refused scheme (`javascript:` …) is dropped and the item still renders, with no link (a nav item as text that goes nowhere; a crumb as text; a tree node as a plain node that Enter activates).
+- Form: outside a `<form>`, a `RadioGroup` or `SegmentedControl` named by its Field takes its own generated DOM name, so two same-named groups no longer merge into one browser radio group (checking one cleared the other, and the arrows crossed between them). Inside a form, the Field's name is kept.
+- Media: `Image` with an empty, blank or missing `src` shows the error fallback and requests nothing, instead of staying in "loading" (and, for a blank `src`, requesting the page's own URL).
 
 ### Breaking
 

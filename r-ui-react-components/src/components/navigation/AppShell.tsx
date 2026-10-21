@@ -243,9 +243,11 @@ export type AppShellNavItemProps<C extends ElementType = "a"> = NavLinkProps<C>;
 
 /**
  * One destination: the `RouterProvider`'s link (an `<a>` without one), or `as`.
- * `current` unset asks the router's `isCurrent(href)`. In the rail its label is
- * hidden visually but stays its accessible name, and shows beside the icon on
- * hover and keyboard focus.
+ * `current` unset asks the router's `isCurrent(href)`. `href` passes through
+ * `safeUrl`: a refused scheme (`javascript:` …) is dropped, and the item still
+ * renders, as text that goes nowhere. In the rail its label is hidden visually
+ * but stays its accessible name, and shows beside the icon on hover and
+ * keyboard focus.
  */
 function NavItem<C extends ElementType = "a">(props: AppShellNavItemProps<C>) {
   return <NavLink {...props} />;
