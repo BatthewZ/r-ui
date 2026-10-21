@@ -131,7 +131,10 @@ document's `className` wins.
 Gates that live in `test`: the barrel gate (library exports = contracts ∪ `NOT_ADDRESSABLE`),
 curated-table drift, the omission scans (un-JSON-able props, the library's URL, heading and
 children-reading sinks), the `name` classification, DataTable column keys against the format
-and the library, the fold, and validator ⇄ Zod ⇄ `schema.json` agreement.
+and the library, the fold, validator ⇄ Zod ⇄ `schema.json` agreement, and the README
+(`readme.test.tsx`: its named code blocks typechecked and run, its snippets typechecked, its
+CLI transcript replayed, each hardening row provoked, each number in its prose measured).
+A README example is a claim: change it and its test together.
 
 Outside `check`, run alone (they start a browser or a server):
 

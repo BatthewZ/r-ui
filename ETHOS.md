@@ -5,6 +5,7 @@ The intention and defining decisions behind the r-ui family:
 - **[r-ui-css](r-ui-css/)** (`@batthewz/r-ui-css`): the token contract and themes, as Tailwind v4 CSS. Zero JavaScript.
 - **[r-ui-tw-merge](r-ui-tw-merge/)** (`@batthewz/r-ui-tw-merge`): `cn()` and a tailwind-merge configured for the r-ui-css utilities. Zero CSS.
 - **[r-ui-react-components](r-ui-react-components/)** (`@batthewz/r-ui-react-components`): React 19 components on top of both, plus the showcase app.
+- **[r-ui-renderer](r-ui-renderer/)** (`@batthewz/r-ui-renderer`): renders JSON ViewSpec documents (written by a model, a CMS or a backend) as those components, while they stream, and validates them without React. Plus the playground app.
 
 r-ui replaces the response-ui family. It keeps that family's contract-first discipline and reverses one of its defining decisions: tokens no longer change at viewport breakpoints.
 
@@ -12,7 +13,7 @@ r-ui replaces the response-ui family. It keeps that family's contract-first disc
 
 ## Layered, cherry-pickable
 
-The split follows cost and audience. r-ui-css serves anyone who wants the design language (Astro, Rails, plain HTML) and costs no JS. r-ui-tw-merge serves Tailwind users who need `cn("p-r3 p-r5")` to dedupe correctly. r-ui-react-components is one consumer of the two, not the reason they exist. The foundation packages release independently; a project takes exactly the layers it wants.
+The split follows cost and audience. r-ui-css serves anyone who wants the design language (Astro, Rails, plain HTML) and costs no JS. r-ui-tw-merge serves Tailwind users who need `cn("p-r3 p-r5")` to dedupe correctly. r-ui-react-components is one consumer of the two, not the reason they exist. r-ui-renderer serves apps whose views arrive as data, and is in turn one consumer of the library. The foundation packages release independently; a project takes exactly the layers it wants.
 
 ## Tokens are the only vocabulary
 
@@ -32,7 +33,7 @@ Otherwise it is a **domain extension** and lives with the library that owns the 
 
 ## Knowledge runs one way
 
-Dependencies run `r-ui-css + r-ui-tw-merge → r-ui-react-components`. Knowledge follows the same direction. r-ui-css is a standalone package that happens to be built on, not the base of a family: its docs never name a downstream package. r-ui-tw-merge mirrors r-ui-css and may name it, but never names anything downstream. A cross-reference from upstream to downstream always looks helpful locally, and it always leaks the family into a package meant to stand alone.
+Dependencies run `r-ui-css + r-ui-tw-merge → r-ui-react-components → r-ui-renderer`. Knowledge follows the same direction. r-ui-css is a standalone package that happens to be built on, not the base of a family: its docs never name a downstream package. r-ui-tw-merge mirrors r-ui-css and may name it, but never names anything downstream. r-ui-react-components stands alone too and never names the renderer. A cross-reference from upstream to downstream always looks helpful locally, and it always leaks the family into a package meant to stand alone.
 
 ## Reskin without code; the consumer's theme is first-class
 
@@ -98,6 +99,12 @@ Contracts that must hold are scripts, wired into each package's `check` script (
 - No raw Tailwind spacing, size or text defaults and no raw colours in components. With no primitive tokens to read, this is also what keeps primitives out of components.
 - Every class a component or showcase file writes generates CSS. The Tailwind scales r-ui-css replaces compile to nothing, silently, so `font-bold` is a failing check rather than an unstyled element.
 - Every domain colour has its dark pair, and domain colours meet the contrast floors in every theme.
+
+**r-ui-renderer**
+- The React-free entry points (the validator, the stream parser, the reference, the CLI) reach no React and no component library.
+- The contracts, the model reference, the class vocabulary and the JSON Schema are exactly what their derivers write (the contracts from the library's build), and every class in the vocabulary generates CSS.
+- Every library export is either addressable by documents or excluded with a reason.
+- Every example document validates with no issue and renders with no diagnostic; the README's examples run.
 
 ---
 

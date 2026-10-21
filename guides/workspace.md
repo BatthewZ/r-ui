@@ -1,6 +1,8 @@
 # Workspace
 
-One bun workspace at the repo root. `package.json` lists `r-ui-css`, `r-ui-tw-merge` and `r-ui-react-components`. Internal dependencies use `"workspace:^"`, which packs as a `^x.y.z` range (`workspace:*` would pack an exact pin).
+One bun workspace at the repo root. `package.json` lists `r-ui-css`, `r-ui-tw-merge`, `r-ui-react-components` and `r-ui-renderer`. Internal dependencies use `"workspace:^"`, which packs as a `^x.y.z` range (`workspace:*` would pack an exact pin).
+
+r-ui-renderer takes the library as a **peer** (`"^0.1.0"`, written by hand, so the workspace never rewrites it) and as a `workspace:^` dev dependency for its own tests and gates. A library minor bump therefore means editing that peer range by hand (see the bump rule in [CLAUDE.md](../CLAUDE.md)).
 
 ## Commands
 

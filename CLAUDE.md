@@ -1,22 +1,23 @@
 Read [ETHOS.md](./ETHOS.md) first. It holds the defining decisions and the design principles; this file holds the working rules.
 
-Three packages in one bun workspace (see [guides/workspace.md](./guides/workspace.md)):
+Four packages in one bun workspace (see [guides/workspace.md](./guides/workspace.md)):
 
 - `r-ui-css/` → `@batthewz/r-ui-css`
 - `r-ui-tw-merge/` → `@batthewz/r-ui-tw-merge`
 - `r-ui-react-components/` → `@batthewz/r-ui-react-components` (showcase app in `showcase/`)
+- `r-ui-renderer/` → `@batthewz/r-ui-renderer` (renders JSON ViewSpec documents as the library's components; playground app in `playground/`)
 
 `mockup/` is the original scratchpad, kept as reference only. Do not build on it.
 
 Dependencies run one way:
 
 ```
-r-ui-css + r-ui-tw-merge  →  r-ui-react-components  →  (renderer: deferred, not in this repo)
+r-ui-css + r-ui-tw-merge  →  r-ui-react-components  →  r-ui-renderer
 ```
 
-**Bump rule.** r-ui-css and r-ui-tw-merge release independently of r-ui-react-components and of each other. When either one bumps, r-ui-react-components bumps its dependency on it. A change to r-ui-css's `@theme` names changes the r-ui-tw-merge mirror in the same change; the mirror check fails otherwise. Pre-1.0, a break bumps the **minor** and gets a changelog entry.
+**Bump rule.** r-ui-css and r-ui-tw-merge release independently of r-ui-react-components and of each other. When either one bumps, r-ui-react-components bumps its dependency on it. When r-ui-react-components bumps, r-ui-renderer moves its peer range on it (a hand-written `^0.x`, which the workspace never rewrites) and re-derives its contracts from the library's build (its `verify:contracts` check fails while they are stale). A change to r-ui-css's `@theme` names changes the r-ui-tw-merge mirror in the same change; the mirror check fails otherwise. Pre-1.0, a break bumps the **minor** and gets a changelog entry.
 
-**Knowledge runs one way too.** r-ui-css's docs never name r-ui-tw-merge or r-ui-react-components: no "if you also use…", no cross-references, no examples that assume a downstream consumer. r-ui-tw-merge may name r-ui-css (it mirrors it) but nothing downstream. Downstream may talk about upstream; upstream never talks about downstream. This rule is the easiest one to break with good intentions.
+**Knowledge runs one way too.** r-ui-css's docs never name r-ui-tw-merge, r-ui-react-components or r-ui-renderer: no "if you also use…", no cross-references, no examples that assume a downstream consumer. r-ui-tw-merge may name r-ui-css (it mirrors it) but nothing downstream. r-ui-react-components never names r-ui-renderer (docs, code, tests or changelog); a library change the renderer needs stands on its own justification. Downstream may talk about upstream; upstream never talks about downstream. This rule is the easiest one to break with good intentions.
 
 ## What belongs in the universal contract
 

@@ -1,6 +1,6 @@
 # r-ui
 
-Workspace for the r-ui design-system family: three packages in one bun workspace. Read
+Workspace for the r-ui design-system family: four packages in one bun workspace. Read
 [ETHOS.md](ETHOS.md) for the decisions behind them and [CLAUDE.md](CLAUDE.md) for the
 working rules.
 
@@ -9,8 +9,9 @@ working rules.
 | [`r-ui-css/`](r-ui-css/) | `@batthewz/r-ui-css`: the token contract (colour, surfaces, type, spacing, shape, depth, motion), the four sizing axes and three example themes, as Tailwind v4 CSS. Zero JavaScript. |
 | [`r-ui-tw-merge/`](r-ui-tw-merge/) | `@batthewz/r-ui-tw-merge`: `cn()`, a tailwind-merge that knows the r-ui-css utility names. Zero CSS. |
 | [`r-ui-react-components/`](r-ui-react-components/) | `@batthewz/r-ui-react-components`: React 19 components on the two packages above (primitives, form, overlays, data, navigation, layout), the domain tokens a dashboard needs, and the showcase app. |
+| [`r-ui-renderer/`](r-ui-renderer/) | `@batthewz/r-ui-renderer`: renders JSON ViewSpec documents (written by a model, a CMS or a backend) as the library's components, while they stream; validates them without React, on a server or from the `r-ui-validate` CLI; and ships the model-facing reference and the playground app. |
 
-Dependencies run one way: `r-ui-css + r-ui-tw-merge → r-ui-react-components`.
+Dependencies run one way: `r-ui-css + r-ui-tw-merge → r-ui-react-components → r-ui-renderer`.
 
 ```sh
 bun install
@@ -37,6 +38,19 @@ package's examples, nightfall, harbour and atelier, plus the showcase's own resk
   components inside it at UI scale.
 - **Stress**: hostile cases: nested density boundaries, floating panels from a clipping card,
   10,000 virtualized rows, extreme and translated content, right-to-left.
+
+## The renderer's playground
+
+```sh
+cd r-ui-renderer
+bun run playground:dev   # open the printed URL
+```
+
+An editor with a live preview and an issue panel, a streaming replay that feeds an example
+document through the parser at a chosen rate, and a **View** panel for theme, density and
+input. The example documents (an operations dashboard, an analytics overview, an incident
+report, a settings form, a team directory, release notes, a marketing page) are in
+`r-ui-renderer/src/examples/`.
 
 ## mockup/
 
