@@ -61,10 +61,21 @@
   --HEADING-WEIGHT: 650;
   --HEADING-TRACKING: -0.012em;
   --DISPLAY-WEIGHT: 400;
-  --DISPLAY-1-tracking: -0.02em;
-  --DISPLAY-2-tracking: -0.015em;
-  --DISPLAY-3-tracking: -0.01em;
-  --DISPLAY-4-tracking: -0.005em;
+  --DISPLAY-1-tracking: -0.01em;
+  --DISPLAY-2-tracking: 0;
+  --DISPLAY-3-tracking: 0;
+  --DISPLAY-4-tracking: 0;
+
+  /* Display: the serif is condensed, hairline and single-weight, so it carries less ink than
+     the body at the same size. The hero keeps the default; the lower steps climb further. */
+  --DISPLAY-1: clamp(2.25rem, 1.663rem + 2.609cqi, 3.75rem);
+  --DISPLAY-1-line-height: 1.05;
+  --DISPLAY-2: clamp(1.875rem, 1.435rem + 1.957cqi, 3rem);
+  --DISPLAY-2-line-height: 1.12;
+  --DISPLAY-3: clamp(1.5rem, 1.255rem + 1.087cqi, 2.125rem);
+  --DISPLAY-3-line-height: 1.22;
+  --DISPLAY-4: clamp(1.3125rem, 1.19rem + 0.543cqi, 1.625rem);
+  --DISPLAY-4-line-height: 1.3;
 
   /* Shape: water-worn. */
   --RADIUS-SM: 0.5rem;

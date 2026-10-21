@@ -162,6 +162,31 @@
 .r-overlays-drawer-bottom[open]::backdrop {
   transition-duration: var(--DURATION-SLOW);
 }
+/* A theme's --EASE-ENTER may overshoot (a spring), which carries an arriving
+   drawer past its edge and would open a gap against the wall. So the fill
+   continues past that edge: a shadow in the drawer's own colour, offset outward
+   by the bleed plus `--r-overlays-drawer-bleed-start` and spread by the bleed,
+   so it starts that far in from the anchored edge and reaches a bleed beyond
+   it. A shadow is ink overflow: it scrolls nothing, and the drawer's own
+   scrolling does not clip it. A quarter of the measure covers a spring that
+   overshoots a quarter of the travel. */
+.r-overlays-drawer-end,
+.r-overlays-drawer-bottom {
+  --r-overlays-drawer-bleed-size: calc(var(--MEASURE) / 4);
+  --r-overlays-drawer-bleed-start: 0px;
+  --r-overlays-drawer-bleed-offset: calc(var(--r-overlays-drawer-bleed-size) + var(--r-overlays-drawer-bleed-start));
+}
+.r-overlays-drawer-end {
+  --r-overlays-drawer-bleed: calc(var(--r-overlays-drawer-bleed-offset) * var(--MOTION-INLINE-SIGN, 1)) 0 0
+    var(--r-overlays-drawer-bleed-size) var(--C-SURFACE-0);
+}
+/* The sheet's spread also reaches sideways, so it starts a corner radius down: its
+   rounded top corners stay rounded. */
+.r-overlays-drawer-bottom {
+  --r-overlays-drawer-bleed-start: var(--RADIUS-LG);
+  --r-overlays-drawer-bleed: 0 var(--r-overlays-drawer-bleed-offset) 0 var(--r-overlays-drawer-bleed-size)
+    var(--C-SURFACE-0);
+}
 .r-overlays-drawer-end:not([open]) {
   translate: calc(100% * var(--MOTION-INLINE-SIGN, 1)) 0;
 }

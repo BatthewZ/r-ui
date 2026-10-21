@@ -343,6 +343,26 @@ describe("Drawer", () => {
     expect(screen.getByRole("dialog")).not.toHaveClass("r-overlays-drawer-end");
   });
 
+  // An overshooting --EASE-ENTER carries a drawer past its edge; the bleed shadow fills the gap.
+  // It must REPLACE the modal's `shadow-lg`: both set the same shadow, and `shadow-lg` sorts later.
+  it.each(["end", "bottom"] as const)("a %s drawer's shadow carries the bleed past its edge, in place of the modal's", async (side) => {
+    const user = userEvent.setup();
+    render(
+      <Drawer>
+        <Drawer.Trigger>Details</Drawer.Trigger>
+        <Drawer.Content side={side}>
+          <Drawer.Title>Incident 4821</Drawer.Title>
+        </Drawer.Content>
+      </Drawer>
+    );
+    await user.click(screen.getByRole("button", { name: "Details" }));
+    const shadows = screen
+      .getByRole("dialog", { name: "Incident 4821" })
+      .className.split(" ")
+      .filter((c) => c.startsWith("shadow"));
+    expect(shadows).toEqual(["shadow-[shadow:var(--SHADOW-LG),var(--r-overlays-drawer-bleed)]"]);
+  });
+
   it("Dialog and Drawer keep their own Content parts", () => {
     expect(Drawer.Content).not.toBe(Dialog.Content);
     expect(Drawer.Title).toBe(Dialog.Title);

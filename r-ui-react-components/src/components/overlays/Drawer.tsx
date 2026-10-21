@@ -15,10 +15,12 @@ export type DrawerContentProps = ModalContentProps & {
   side?: "end" | "bottom";
 };
 
+// Only the edge that faces the page carries the hairline. The second shadow is the drawer's
+// fill continued past the edge it is flush with (`--r-overlays-drawer-bleed`, styles.css).
+const BLEED_SHADOW = "shadow-[shadow:var(--SHADOW-LG),var(--r-overlays-drawer-bleed)]";
 const sideClasses = {
-  // Only the edge that faces the page carries the hairline.
-  end: "r-overlays-drawer-end border-0 border-s",
-  bottom: "r-overlays-drawer-bottom border-0 border-t rounded-ss-lg rounded-se-lg",
+  end: `r-overlays-drawer-end border-0 border-s ${BLEED_SHADOW}`,
+  bottom: `r-overlays-drawer-bottom border-0 border-t rounded-ss-lg rounded-se-lg ${BLEED_SHADOW}`,
 } as const;
 
 /** A modal panel attached to an edge. Same parts and behaviour as `Dialog`. */

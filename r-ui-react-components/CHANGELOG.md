@@ -16,6 +16,7 @@ tokens or the public surface are versioned events and are recorded here.
 
 ### Fixed
 
+- Overlays: a `Drawer` (so `SiteHeader`'s and `FilterBar`'s) no longer pulls away from its edge when a theme's `--EASE-ENTER` overshoots (a spring): its fill continues a quarter of `--MEASURE` past the anchored edge as a second shadow layer (`--r-overlays-drawer-bleed`, in place of the modal's `shadow-lg`), so the arrival's overshoot shows more drawer, not a gap. The bottom sheet's starts a `--RADIUS-LG` down, keeping its rounded corners.
 - Overlays, navigation: on a phone, a bottom toast stack sits above an `AppShell` bottom nav instead of covering it. The region adds `--r-navigation-shell-bottom-inset` (published by the shown bottom nav, see Added) to its `--R-SIZE-2` offset; with no bottom nav, or at wider layouts, it is where it was. Browser check `overlays-toast-bottomnav`.
 - Content: `Markdown` nests at most 8 containers and keeps a ninth level as text, as its comment said; the cap allowed 9.
 - Layout: a `Prose` region's measure counts body characters: r-ui-css's prose region now carries the body prose size, so `max-w-measure` is a count of the text being read, and r-ui-css widens it to 75ch: 75 body characters (about 823px in the default theme at 1280, up from 606px), the same at both densities and in any UI face. Controls inside keep the UI scale. Browser check `layout-prose`.

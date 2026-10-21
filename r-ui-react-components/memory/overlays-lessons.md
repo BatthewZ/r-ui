@@ -44,6 +44,14 @@
 - **A toast raised while a modal dialog is open is inert** (visible, not clickable, not
   announced): everything outside the modal is, top layer or not. Re-promoting the region
   on arrival fixes paint order only.
+- **A spring carries an anchored surface off its anchor.** An `--EASE-ENTER` that
+  overshoots is a theme's right, and on a scale or a free-floating fade it reads as
+  personality; on a panel flush with an edge it opens a gap against the wall for a frame or
+  ten (measured 65px on a 600px drawer at a 1.56 overshoot). Continue the fill past the
+  anchored edge rather than banning the spring: a shadow in the panel's own colour is ink
+  overflow, so it scrolls nothing and the panel's own scrolling does not clip it. A
+  `var()`-only arbitrary shadow is a colour to tailwind-merge; label it (`shadow-[shadow:…]`)
+  or it fails to replace the base `shadow-lg`, which then wins by sort order.
 - **A hit area overhanging a scroll container scrolls it.** `hit-area` grows an invisible
   box to `--HIT-MIN` around a smaller visual one; inside a scroll container (a `<dialog>`
   is one) any overhang past the padding box is scrollable overflow, and a 1px overhang
