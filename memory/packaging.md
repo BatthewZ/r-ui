@@ -16,7 +16,8 @@ dependencies), then typecheck that app with `strict` and `skipLibCheck: false` a
 - **Source maps embed the sources unless told not to.** With `src/` already in the
   tarball, `sourcesContent` was a second copy: dropping it (`sourcemapExcludeSources`) took
   the component package from 1.04 MB to 0.87 MB packed and from 4.0 MB to 3.0 MB unpacked,
-  and the maps still resolve to the shipped sources.
+  and the maps still resolve to the shipped sources. The component package has since grown
+  to 1.44 MB packed and 5.0 MB unpacked, as the consumer check measures it.
 - **A build-time import must not pull in the UI.** A Vite config imported the pre-paint
   script through a components barrel, so the config loaded React components to read one
   string. A subpath export that points at an import-free module keeps build tools out of

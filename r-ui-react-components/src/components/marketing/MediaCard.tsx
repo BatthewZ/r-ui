@@ -37,8 +37,11 @@ export interface MediaCardImage {
 }
 
 export type MediaCardProps = {
-  /** Where the card leads. The whole card is this one link. */
-  href: string;
+  /**
+   * Where the card leads. The whole card is this one link. Without one (or when
+   * `safeUrl` refuses it) the card is no link and the title is text.
+   */
+  href?: string;
   /** The card's name, and the link's. */
   title: ReactNode;
   /** The title's heading level in the page outline (default `h3`). */
@@ -93,7 +96,7 @@ function MediaCardRoot({
   className,
   ...props
 }: MediaCardProps) {
-  const safeHref = safeUrl(href);
+  const safeHref = href === undefined ? "" : safeUrl(href);
   const Link = useLinkElement(linkAs, safeHref);
   const hasFooter = Boolean(meta || actions);
 

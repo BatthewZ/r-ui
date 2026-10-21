@@ -35,6 +35,9 @@ tokens or the public surface are versioned events and are recorded here.
 - Navigation, marketing: `NavList.Item`, `AppShell.NavItem`, `Breadcrumbs.Item` and `TreeView` node `href`s and `Testimonial`'s `sourceUrl` pass through `safeUrl`, as `Link`, `MediaCard` and `FeatureGrid` already do. Behaviour change: a refused scheme (`javascript:` …) is dropped and the item still renders, with no link (a nav item as text that goes nowhere; a crumb as text; a tree node as a plain node that Enter activates).
 - Form: outside a `<form>`, a `RadioGroup` or `SegmentedControl` named by its Field takes its own generated DOM name, so two same-named groups no longer merge into one browser radio group (checking one cleared the other, and the arrows crossed between them). Inside a form, the Field's name is kept.
 - Media: `Image` with an empty, blank or missing `src` shows the error fallback and requests nothing, instead of staying in "loading" (and, for a blank `src`, requesting the page's own URL).
+- Content: the published declarations of `CodeBlock`'s highlighter no longer import `highlight.js/lib/languages/*`, a wildcard module that an app type-checking its libraries (`skipLibCheck: false`) could not resolve (14 TS2307 errors). Each grammar loader states its type.
+- Marketing: `MediaCard`'s `href` is optional. Without one the card renders with its title as text and no link, as it already did for an `href` that `safeUrl` refuses; it threw.
+- Data: `DataTable` (and `VirtualizedTable`) skip the holes of a sparse `rows` array, as filtering already did; every present row keeps its source index for `getRowKey`, and the page count and select-all count present rows only. Unfiltered, a hole reached the column accessors and threw.
 
 ### Breaking
 

@@ -112,6 +112,14 @@ describe("MediaCard", () => {
     expect(screen.getByRole("heading", { name: "Card" })).toBeInTheDocument();
   });
 
+  it("without an href, renders the card with its title as text and its actions intact", () => {
+    render(<MediaCard title="Card" description="About" actions={<button type="button">Share</button>} />);
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Card" })).toBeInTheDocument();
+    expect(screen.getByText("About")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Share" })).toBeInTheDocument();
+  });
+
   it("renders an internal link through the router, and an external one as <a>", () => {
     const RouterLink = forwardRef<HTMLAnchorElement, ComponentProps<"a">>(function RouterLink(props, ref) {
       return <a ref={ref} data-router="" {...props} />;

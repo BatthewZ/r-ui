@@ -167,6 +167,25 @@ describe("DataTable", () => {
     expect(screen.getByRole("row", { selected: true })).toHaveTextContent("checkout");
   });
 
+  it("skips the holes of a sparse `rows`, keeping each present row's source index", async () => {
+    const user = userEvent.setup();
+    const sparse: Svc[] = [];
+    [sparse[1], sparse[4], sparse[6]] = [ROWS[0] as Svc, ROWS[1] as Svc, ROWS[3] as Svc];
+    const getRowKey = vi.fn((_: Svc, index: number) => index);
+    const onSelectedKeysChange = vi.fn();
+    renderTable({ rows: sparse, getRowKey, selectable: true, onSelectedKeysChange, defaultPageSize: 2, pageSizeOptions: [2] });
+    const shownNames = () => screen.getAllByRole("row").slice(1).map((row) => within(row).getAllByRole("cell")[1]?.textContent);
+    expect(shownNames()).toEqual(["auth", "checkout"]);
+    expect(screen.getByText("1–2 of 3")).toBeInTheDocument();
+    expect(getRowKey.mock.calls.length).toBeGreaterThan(0);
+    for (const [row, index] of getRowKey.mock.calls) expect(sparse[index]).toBe(row);
+
+    await user.click(screen.getByRole("button", { name: /p95 ms/ }));
+    expect(shownNames()).toEqual(["checkout", "search"]);
+    await user.click(screen.getByRole("checkbox", { name: "Select all rows" }));
+    expect([...(onSelectedKeysChange.mock.lastCall?.[0] as Set<RowKey>)].sort()).toEqual([4, 6]);
+  });
+
   it("publishes no aria-selected without selection", () => {
     renderTable();
     for (const row of screen.getAllByRole("row")) expect(row).not.toHaveAttribute("aria-selected");

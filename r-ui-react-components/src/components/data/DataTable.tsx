@@ -64,6 +64,7 @@ export interface DataTableProps<Row>
     SelectionParams,
     Omit<TableProps, "children" | "classNames" | "tableProps" | "footer"> {
   columns: readonly DataTableColumn<Row>[];
+  /** The holes of a sparse array are skipped; every other row keeps its index. */
   rows: readonly Row[];
   /**
    * A stable key per row: selection, expansion and React reconciliation all
@@ -255,6 +256,13 @@ const pxLength = (px: number) => `calc(${px} * 1px)`;
 /** A key as an id fragment: ids hold no whitespace. */
 const idPart = (key: RowKey) => String(key).replace(/\s+/g, "_");
 
+/** The indices of `rows` that hold a row: `forEach` passes over a sparse array's holes, as `filterIndices` does. */
+function rowIndices(rows: readonly unknown[]): number[] {
+  const out: number[] = [];
+  rows.forEach((_, i) => out.push(i));
+  return out;
+}
+
 export function DataTableView<Row>({
   columns,
   rows,
@@ -343,9 +351,10 @@ export function DataTableView<Row>({
   });
   const hasFilters = columns.some((c) => c.filter !== undefined);
   const filtersActive = hasFilters && anyFilterActive(columns, filters);
+  const present = useMemo(() => rowIndices(rows), [rows]);
   const filtered = useMemo(
-    () => (manualFiltering || !hasFilters ? rows.map((_, i) => i) : filterIndices(rows, columns, filters, locale)),
-    [manualFiltering, hasFilters, rows, columns, filters, locale],
+    () => (manualFiltering || !hasFilters ? present : filterIndices(rows, columns, filters, locale)),
+    [manualFiltering, hasFilters, present, rows, columns, filters, locale],
   );
   const [sort, setSortState] = useSort({ sort: sortProp, defaultSort, onSortChange });
   const order = useMemo(
@@ -360,7 +369,7 @@ export function DataTableView<Row>({
     onChange: onPageSizeChange,
   });
   const [rawPage, setPage] = useControllableState({ value: pageProp, defaultValue: defaultPage ?? 1, onChange: onPageChange });
-  const total = paginated && manualPagination ? Math.max(0, rowCount ?? rows.length) : order.length;
+  const total = paginated && manualPagination ? Math.max(0, rowCount ?? present.length) : order.length;
   const pager = pageWindow(total, rawPage, pageSize);
   const presented = useMemo(
     () => (paginated && !manualPagination ? order.slice(pager.start, pager.end) : order),

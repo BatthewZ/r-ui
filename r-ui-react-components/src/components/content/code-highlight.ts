@@ -23,6 +23,7 @@ import { useCallback, useSyncExternalStore } from "react";
 type Lowlight = ReturnType<typeof createLowlight>;
 type HastRoot = ReturnType<Lowlight["highlight"]>;
 type HastNode = HastRoot["children"][number];
+type GrammarModule = Promise<{ default: LanguageFn }>;
 
 /**
  * The curated grammar set: the languages a dashboard or marketing site built on
@@ -34,23 +35,28 @@ type HastNode = HastRoot["children"][number];
  * go in `ALIASES` and the grammars it embeds in `EMBEDS` (tests compare both
  * with the grammar itself), and it lands with a snippet in
  * `code-highlight.test.ts` that must produce a coloured role.
+ *
+ * Each loader states its return type. Inferred, it is the wildcard module
+ * highlight.js declares its grammars as (`highlight.js/lib/languages/*`), and
+ * the emitted declarations would import that pattern, which a consumer checking
+ * libraries (`skipLibCheck: false`) cannot resolve.
  */
 const GRAMMARS = {
-  bash: () => import("highlight.js/lib/languages/bash"),
-  css: () => import("highlight.js/lib/languages/css"),
-  diff: () => import("highlight.js/lib/languages/diff"),
-  go: () => import("highlight.js/lib/languages/go"),
-  javascript: () => import("highlight.js/lib/languages/javascript"),
-  json: () => import("highlight.js/lib/languages/json"),
-  markdown: () => import("highlight.js/lib/languages/markdown"),
-  python: () => import("highlight.js/lib/languages/python"),
-  rust: () => import("highlight.js/lib/languages/rust"),
-  shell: () => import("highlight.js/lib/languages/shell"),
-  sql: () => import("highlight.js/lib/languages/sql"),
-  typescript: () => import("highlight.js/lib/languages/typescript"),
-  xml: () => import("highlight.js/lib/languages/xml"),
-  yaml: () => import("highlight.js/lib/languages/yaml"),
-} satisfies Record<string, () => Promise<{ default: LanguageFn }>>;
+  bash: (): GrammarModule => import("highlight.js/lib/languages/bash"),
+  css: (): GrammarModule => import("highlight.js/lib/languages/css"),
+  diff: (): GrammarModule => import("highlight.js/lib/languages/diff"),
+  go: (): GrammarModule => import("highlight.js/lib/languages/go"),
+  javascript: (): GrammarModule => import("highlight.js/lib/languages/javascript"),
+  json: (): GrammarModule => import("highlight.js/lib/languages/json"),
+  markdown: (): GrammarModule => import("highlight.js/lib/languages/markdown"),
+  python: (): GrammarModule => import("highlight.js/lib/languages/python"),
+  rust: (): GrammarModule => import("highlight.js/lib/languages/rust"),
+  shell: (): GrammarModule => import("highlight.js/lib/languages/shell"),
+  sql: (): GrammarModule => import("highlight.js/lib/languages/sql"),
+  typescript: (): GrammarModule => import("highlight.js/lib/languages/typescript"),
+  xml: (): GrammarModule => import("highlight.js/lib/languages/xml"),
+  yaml: (): GrammarModule => import("highlight.js/lib/languages/yaml"),
+};
 
 export type CodeLanguage = keyof typeof GRAMMARS;
 
