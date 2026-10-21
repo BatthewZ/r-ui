@@ -9,7 +9,7 @@
  */
 
 import { contractFor, DECLARED_PATHS, exclusionFor, LIBRARY_COMPONENTS } from "../contracts";
-import { type DropReason, dropReason, isControlledValue, nameRole, refPropKinds } from "./contract-facts";
+import { type DropReason, dropReason, isControlledValue, nameRole, propDoc, refPropKinds } from "./contract-facts";
 import { makeIssue } from "./issue";
 import { isConcatMarker, isFormatMarker, isHandler, isName, isNodeMarker, isPlainObject, isRefMarker, nodeKind } from "./guards";
 import {
@@ -44,7 +44,7 @@ import { defaultAllowImageUrl, defaultAllowUrl, NO_LOCATION_BASE, resolveUrl, sa
 import { isNativeAttribute } from "./validate-attributes";
 import { ADVISORY_DEFS, FORM_STATE_KEYS } from "./validate-schema";
 import { SchemaInterpreter } from "./validate-structure";
-import { closest } from "./validate-suggest";
+import { closest, suggest, suggestValue } from "./validate-suggest";
 import { ISO_SHAPED, isIsoDate, isIsoDateTime } from "./dates";
 import { valuesAt } from "./prop-path";
 import { digitsAccepted, isCurrencyCode, isIntlUnit } from "./validate-values";
@@ -202,10 +202,9 @@ class Advisor {
   private binding(binding: unknown, path: string): void {
     if (!isPlainObject(binding)) return;
     if (binding.type === "api" && typeof binding.endpoint === "string") this.endpoint(binding.endpoint, appendPointer(path, "endpoint"));
-    const stateOnly: Scope = { ...ROOT_SCOPE, inHandler: false };
     if (binding.type === "api") this.query(binding.query, appendPointer(path, "query"));
     for (const key of ["query", "body", "params"]) {
-      if (binding[key] !== undefined) this.value(binding[key], appendPointer(path, key), stateOnly, { stateOnly: true });
+      if (binding[key] !== undefined) this.value(binding[key], appendPointer(path, key), ROOT_SCOPE, { stateOnly: true });
     }
   }
 
@@ -320,8 +319,7 @@ class Advisor {
     }
     const isPart = name.includes(".");
     const candidates = [...this.known].filter((known) => known.includes(".") === isPart);
-    const suggestion = closest(name, candidates);
-    this.warn("unknown-component", at, `No component is registered as \`${name}\`.`, suggestion === undefined ? undefined : quote(suggestion));
+    this.warn("unknown-component", at, `No component is registered as \`${name}\`.`, suggest(name, candidates));
   }
 
   private placement(name: string, contract: ComponentContract | undefined, at: string, scope: Scope): void {
@@ -354,6 +352,7 @@ class Advisor {
     path: string,
     scope: Scope,
   ): Scope {
+    const propsAt = appendPointer(path, "props");
     let form = scope.form;
     let boundField = scope.boundField;
     for (const prop of contract?.formProps ?? []) {
@@ -362,13 +361,13 @@ class Advisor {
     }
     if (nameRole(contract) === "field" && typeof props?.name === "string") {
       boundField = true;
-      this.fieldBinding(props.name, appendPointer(appendPointer(path, "props"), "name"), scope.form);
+      this.fieldBinding(props.name, appendPointer(propsAt, "name"), scope.form);
     }
     const fieldLists = Object.hasOwn(FIELD_LIST_PROPS, name) ? FIELD_LIST_PROPS[name] : undefined;
     for (const prop of fieldLists ?? []) {
       const names = props?.[prop];
       if (!Array.isArray(names)) continue;
-      const at = appendPointer(appendPointer(path, "props"), prop);
+      const at = appendPointer(propsAt, prop);
       names.forEach((field: unknown, index) => {
         if (typeof field === "string") this.fieldBinding(field, appendPointer(at, index), scope.form);
       });
@@ -384,8 +383,7 @@ class Advisor {
     }
     const fields = this.forms.get(form) ?? new Set<string>();
     if (fields.has(field)) return;
-    const suggestion = closest(field, fields);
-    this.warn("undeclared-name", at, `Form \`${form}\` declares no field \`${field}\`.`, suggestion === undefined ? undefined : quote(suggestion));
+    this.warn("undeclared-name", at, `Form \`${form}\` declares no field \`${field}\`.`, suggest(field, fields));
   }
 
   // -------------------------------------------------------------------------
@@ -416,7 +414,7 @@ class Advisor {
         for (const found of valuesAt(props, propPath, path)) {
           if (!isNodeMarker(found.value) || walked.has(found.path)) continue;
           walked.add(found.path);
-          const placed = { ...inner, depth: inner.depth + 1, ancestors: [...inner.ancestors, ...parents] };
+          const placed = { ...inner, ancestors: [...inner.ancestors, ...parents] };
           this.node(found.value.$node, appendPointer(found.path, "$node"), placed);
         }
       }
@@ -468,8 +466,7 @@ class Advisor {
 
     if (!this.takes(name, contract, key)) {
       const candidates = (contract.props ?? []).map((prop) => prop.name);
-      const suggestion = closest(key, candidates);
-      this.warn("unknown-prop", at, `${name} takes no prop \`${key}\`.`, suggestion === undefined ? undefined : quote(suggestion));
+      this.warn("unknown-prop", at, `${name} takes no prop \`${key}\`.`, suggest(key, candidates));
     }
 
     if (key === "className") {
@@ -489,7 +486,7 @@ class Advisor {
 
   /** Whether `name` takes `key`: its own props, its element's attributes, its declared `className`. */
   private takes(name: string, contract: ComponentContract, key: string): boolean {
-    if (contract.props?.some((prop) => prop.name === key)) return true;
+    if (propDoc(contract, key) !== undefined) return true;
     if (contract.nativeAttributes && isNativeAttribute(key)) return true;
     const declared = Object.hasOwn(DECLARED_PATHS, name) ? DECLARED_PATHS[name] : undefined;
     if (key === "className") return contract.nativeAttributes === true || declared?.paths.includes("className") === true;
@@ -538,15 +535,13 @@ class Advisor {
   }
 
   private outside(at: string, message: string, value: unknown, allowed: readonly unknown[]): void {
-    const suggestion =
-      typeof value === "string" ? closest(value, allowed.filter((item): item is string => typeof item === "string")) : undefined;
-    this.warn("invalid-prop-value", at, message, suggestion === undefined ? undefined : quote(suggestion));
+    this.warn("invalid-prop-value", at, message, suggestValue(value, allowed));
   }
 
   /** Path-addressed contract fields: dates, URLs, images, nested drops and node props. */
   private contractPaths(contract: ComponentContract, props: Record<string, unknown>, path: string): void {
     for (const [propPath, kind] of Object.entries(contract.dateProps ?? {})) {
-      for (const { path: at, value } of valuesAt(props, propPath, path)) this.date(value, kind, at);
+      for (const { path: at, value, inCollection } of valuesAt(props, propPath, path)) this.date(value, kind, at, inCollection);
     }
     for (const propPath of contract.urlProps ?? []) {
       for (const { path: at, value } of valuesAt(props, propPath, path)) this.urlValue(value, at, false);
@@ -569,9 +564,15 @@ class Advisor {
     }
   }
 
-  private date(value: unknown, kind: string, at: string): void {
+  /**
+   * As the renderer's `coerceDate`: a date's text must parse, except text in a
+   * collection that does not look like a date (a label). A range's own text is
+   * not coerced; only ISO-shaped text there is judged.
+   */
+  private date(value: unknown, kind: string, at: string, inCollection: boolean): void {
     if (typeof value === "string") {
-      if (ISO_SHAPED.test(value) && !isIsoDateTime(value)) this.warn("invalid-prop-value", at, `Not a real date: ${quote(value)}.`);
+      if ((inCollection || kind === "dateRange") && !ISO_SHAPED.test(value)) return;
+      if (!isIsoDateTime(value)) this.warn("invalid-prop-value", at, `Not a real ISO date (YYYY-MM-DD, or a date-time): ${quote(value)}.`);
       return;
     }
     if (kind !== "dateRange" || !isPlainObject(value)) return;
@@ -599,13 +600,7 @@ class Advisor {
     if (this.classes === null) return;
     for (const name of text.split(/\s+/)) {
       if (name === "" || this.classes.has(name)) continue;
-      const suggestion = closest(name, this.classes);
-      this.warn(
-        "unknown-class",
-        at,
-        `\`${name}\` is not in the class vocabulary, so it would style nothing.`,
-        suggestion === undefined ? undefined : quote(suggestion),
-      );
+      this.warn("unknown-class", at, `\`${name}\` is not in the class vocabulary, so it would style nothing.`, suggest(name, this.classes));
     }
   }
 
@@ -615,9 +610,8 @@ class Advisor {
     for (const [slot, classes] of Object.entries(value)) {
       const slotAt = appendPointer(at, slot);
       if (!slots.includes(slot)) {
-        const suggestion = closest(slot, slots);
         const takes = slots.length === 0 ? "no slots" : `the slots ${list(slots)}`;
-        this.warn("unknown-prop", slotAt, `${name} has ${takes}, not \`${slot}\`.`, suggestion === undefined ? undefined : quote(suggestion));
+        this.warn("unknown-prop", slotAt, `${name} has ${takes}, not \`${slot}\`.`, suggest(slot, slots));
       }
       if (typeof classes === "string") this.classList(classes, slotAt);
     }
@@ -625,8 +619,7 @@ class Advisor {
 
   private icon(name: string, at: string): void {
     if (this.icons.has(name)) return;
-    const suggestion = closest(name, this.icons);
-    this.warn("unknown-icon", at, `No icon \`${name}\` in the icon set.`, suggestion === undefined ? undefined : quote(suggestion));
+    this.warn("unknown-icon", at, `No icon \`${name}\` in the icon set.`, suggest(name, this.icons));
   }
 
   /** A shape the contract decides, checked against the advisory schema and reported as a prop warning (a key it lacks: `unknown-prop`). */
@@ -696,7 +689,8 @@ class Advisor {
       this.ref(value.$ref, appendPointer(at, "$ref"), scope, walk.stateOnly);
     } else if (isNodeMarker(value)) {
       if (walk.walked?.has(at) || walk.stateOnly) return;
-      this.node(value.$node, appendPointer(at, "$node"), { ...scope, depth: scope.depth + 1 });
+      // `scope` is already the component's inner one: a prop's node renders one level below its component.
+      this.node(value.$node, appendPointer(at, "$node"), scope);
     } else if (isFormatMarker(value)) {
       this.format(value.$format, appendPointer(at, "$format"), scope);
     } else if (isConcatMarker(value)) {
@@ -950,11 +944,7 @@ function fitsField(type: FieldType, value: unknown): boolean {
     case "date":
       return value === null || (typeof value === "string" && isIsoDate(value));
     case "dateRange":
-      return (
-        value === null ||
-        (isPlainObject(value) &&
-          ["start", "end"].every((end) => value[end] === null || (typeof value[end] === "string" && isIsoDate(value[end] as string))))
-      );
+      return value === null || (isPlainObject(value) && ["start", "end"].every((end) => fitsField("date", value[end])));
     case "list":
       return Array.isArray(value) && value.every((item) => typeof item === "string");
   }

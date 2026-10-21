@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { appendPointer } from "../spec/pointer";
 import type { Slot } from "./memo";
 import { propNodeScope, type Scope } from "./scope";
 
@@ -51,7 +52,7 @@ export function templateFunction(
     names.forEach((name, index) => {
       vars[name] = nameValue(name, index, args, sources);
     });
-    return render(template, propNodeScope(scope, `${path}/$node`, vars), TEMPLATE_SLOT);
+    return render(template, propNodeScope(scope, appendPointer(path, "$node"), vars), TEMPLATE_SLOT);
   };
 }
 

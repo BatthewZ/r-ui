@@ -37,7 +37,7 @@ const NO_BODY: ReadonlySet<string> = new Set(["GET", "DELETE"]);
 export function prepareRequest(plan: RequestPlan, adapters: RendererAdapters): PreparedRequest {
   const url = resolveUrl(plan.endpoint);
   if (url === null) return { ok: false, message: `"${plan.endpoint}" is not an allowed URL.` };
-  const allow = adapters.allowUrl ?? ((candidate: URL) => defaultAllowUrl(candidate));
+  const allow = adapters.allowUrl ?? defaultAllowUrl;
   if (!allow(url)) return { ok: false, message: `Requests to ${url.origin} are not allowed.` };
 
   const unusable: string[] = [];

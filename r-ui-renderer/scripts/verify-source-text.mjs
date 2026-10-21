@@ -13,7 +13,7 @@ import { relative } from "node:path";
 
 import { globSync } from "glob";
 
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { failWith, PKG, pathArg } from "./lib/gate.mjs";
 
 const ROOT = pathArg("--root", PKG);
 
@@ -48,10 +48,6 @@ if (files.length === 0) {
   process.exit(1);
 }
 if (problems.length > 0) {
-  console.error(
-    `verify:source-text — ${problems.length} line(s) with a raw control character:\n${problems.map((p) => `  ${p}`).join("\n")}\n\n` +
-      'Write it as an escape ("\\u0000") instead.',
-  );
-  process.exit(1);
+  failWith(`verify:source-text — ${problems.length} line(s) with a raw control character`, problems, 'Write it as an escape ("\\u0000") instead.');
 }
 console.log(`verify:source-text — OK (${files.length} file(s))`);

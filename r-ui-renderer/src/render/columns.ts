@@ -37,7 +37,7 @@ export const COLUMN_KEYS: readonly string[] = ["id", "header", "cell", "filter",
 /** A CSS length, a keyword width or a `calc()` of them; it lands in a custom property read as a width. */
 const CSS_LENGTH = /^(?:-?(?:\d+|\d*\.\d+)(?:px|rem|em|ch|ex|lh|%|vw|vh|cqi|cqw)?|auto|min-content|max-content|fit-content|calc\([\w\s.+\-*/(),%]*\))$/;
 
-export function isCssLength(value: unknown): value is string {
+function isCssLength(value: unknown): value is string {
   return typeof value === "string" && CSS_LENGTH.test(value) && !/url\(/i.test(value);
 }
 

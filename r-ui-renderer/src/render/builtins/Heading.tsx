@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 
 import { HEADING_LEVELS, HEADING_SIZES, type HeadingProps } from "../../spec/types";
-import { classes, toneClass } from "./tones";
+import { classes, oneOf, toneClass } from "./tones";
 
 const SIZE_CLASSES: { readonly [S in (typeof HEADING_SIZES)[number]]: string } = {
   h1: "text-h1",
@@ -15,8 +15,8 @@ const SIZE_CLASSES: { readonly [S in (typeof HEADING_SIZES)[number]]: string } =
 /** `h1`–`h6` by `level`, sized by `size` (`text-h1`…`text-h6`). */
 export function Heading(props: HeadingProps & { readonly children?: ReactNode }): ReactNode {
   const { level, size, tone, className, children } = props;
-  const outline = HEADING_LEVELS.find((item) => item === level) ?? 2;
-  const look = HEADING_SIZES.find((item) => item === size) ?? HEADING_SIZES[outline - 1] ?? "h2";
+  const outline = oneOf(HEADING_LEVELS, level) ?? 2;
+  const look = oneOf(HEADING_SIZES, size) ?? HEADING_SIZES[outline - 1] ?? "h2";
   return createElement(
     `h${outline}`,
     { className: classes("min-w-0 break-words", SIZE_CLASSES[look], toneClass(tone) ?? "text-fg-primary", className) },

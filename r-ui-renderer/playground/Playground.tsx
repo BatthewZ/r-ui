@@ -13,6 +13,10 @@ import { ViewPanel } from "./ViewPanel";
 /** Characters per frame the replay control offers; 0 pushes everything at once. */
 const REPLAY_RATES = [1, 4, 16, 64, 256, 0] as const;
 const DEFAULT_RATE = 16;
+const DOCUMENT_GROUPS = [
+  { label: "Product", names: PRODUCT_NAMES },
+  { label: "Coverage", names: COVERAGE_NAMES },
+] as const;
 
 function textOf(name: string): string {
   const entry = corpusDocument(name);
@@ -66,20 +70,15 @@ export function Playground() {
         <Field className="pg-control">
           <Field.Label>Document</Field.Label>
           <Select value={name} onValueChange={choose}>
-            <optgroup label="Product">
-              {PRODUCT_NAMES.map((example) => (
-                <option key={example} value={example}>
-                  {example}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Coverage">
-              {COVERAGE_NAMES.map((example) => (
-                <option key={example} value={example}>
-                  {example}
-                </option>
-              ))}
-            </optgroup>
+            {DOCUMENT_GROUPS.map(({ label, names }) => (
+              <optgroup key={label} label={label}>
+                {names.map((example) => (
+                  <option key={example} value={example}>
+                    {example}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </Select>
         </Field>
         <Field className="pg-control">

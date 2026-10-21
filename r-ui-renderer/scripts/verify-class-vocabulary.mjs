@@ -15,37 +15,20 @@
 // Usage: node scripts/verify-class-vocabulary.mjs [--root <dir>]
 //   --root checks another tree with the same layout (the test's fixtures).
 
-import { readdirSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { __unstable__loadDesignSystem, compile } from "@tailwindcss/node";
 
 import { REPLACED_DEFAULTS } from "./lib/class-vocabulary.mjs";
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { declaredTokens, RAW_COLOUR, ruleBlocks } from "./lib/css.mjs";
+import { failWith, PKG, pathArg } from "./lib/gate.mjs";
 
 const ROOT = pathArg("--root", PKG);
-const require = createRequire(join(PKG, "package.json"));
 
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const cssEscape = (s) => s.replace(/[^\w-]/g, (c) => `\\${c}`);
 const hasClassRule = (compiled, cls) => new RegExp(`\\.${escapeRe(cssEscape(cls))}(?![\\w-])`).test(compiled);
-
-/** Every custom property a package's CSS declares. */
-function declaredProperties(dir) {
-  const names = new Set();
-  const walk = (at) => {
-    for (const entry of readdirSync(at, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
-        if (entry.name !== "node_modules") walk(join(at, entry.name));
-      } else if (entry.name.endsWith(".css")) {
-        for (const match of readFileSync(join(at, entry.name), "utf8").matchAll(/(--[A-Za-z0-9_-]+)\s*:/g)) names.add(match[1]);
-      }
-    }
-  };
-  walk(dir);
-  return names;
-}
 
 /** The stylesheet with comments and the generated `@source` lines removed: its own rules. */
 const ownRules = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "").replace(/@source[^;]*;/g, "");
@@ -71,26 +54,18 @@ for (const cls of REPLACED_DEFAULTS) {
   if (hasClassRule(compiled, cls)) problems.push(`\`${cls}\` is in the compiled stylesheet, a Tailwind default the CSS package replaces`);
 }
 
-const cssPackage = dirname(dirname(require.resolve("@batthewz/r-ui-css")));
-const library = dirname(dirname(require.resolve("@batthewz/r-ui-react-components/styles")));
-const tokens = new Set([...declaredProperties(join(cssPackage, "src")), ...declaredProperties(join(library, "dist"))]);
-const own = ownRules(stylesheet);
-for (const block of own.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-  const selector = block[1].trim();
+const tokens = declaredTokens();
+for (const { selector, declarations } of ruleBlocks(ownRules(stylesheet))) {
   for (const cls of selector.matchAll(/\.([A-Za-z_][\w-]*)/g)) {
     if (!cls[1].startsWith("r-renderer-")) problems.push(`${selector}: the class \`${cls[1]}\` lacks the r-renderer- prefix`);
   }
-  for (const decl of block[2].split(";")) {
-    const colon = decl.indexOf(":");
-    if (colon === -1) continue;
-    const prop = decl.slice(0, colon).trim();
-    const value = decl.slice(colon + 1).trim();
+  for (const { prop, value } of declarations) {
     const raw = value.replace(/var\(--[\w-]+\)/g, "");
     const lengths = [...raw.matchAll(/(?<![\w.-])(\d*\.?\d+)(px|rem|em|%|vh|vw|vi|vb|ch|ex|pt|cqi|cqb|dvh|svh|lvh)(?![\w-])/g)];
     if (lengths.some((length) => Number(length[1]) !== 0)) {
       problems.push(`${selector} { ${prop}: ${value} }: a raw length; use a token`);
     }
-    if (/#[0-9a-f]{3,8}\b|\b(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(/i.test(raw)) {
+    if (RAW_COLOUR.test(raw)) {
       problems.push(`${selector} { ${prop}: ${value} }: a raw colour; use a token`);
     }
     for (const read of value.matchAll(/var\((--[\w-]+)/g)) {
@@ -99,8 +74,5 @@ for (const block of own.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
   }
 }
 
-if (problems.length > 0) {
-  console.error(`verify:class-vocabulary — ${problems.length} problem(s):\n${problems.map((p) => `  ${p}`).join("\n")}`);
-  process.exit(1);
-}
+if (problems.length > 0) failWith(`verify:class-vocabulary — ${problems.length} problem(s)`, problems);
 console.log(`verify:class-vocabulary — OK (${vocabulary.length} classes compile; the stylesheet reads tokens only)`);

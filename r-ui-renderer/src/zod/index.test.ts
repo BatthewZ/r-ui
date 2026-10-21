@@ -263,6 +263,24 @@ describe("the validator, ./zod and schema.json agree on conformance", () => {
     expect(verdicts(doc)).toEqual({ validator: true, zod: true, schema: true });
   });
 
+  it("treats a member whose value is undefined as absent, as the validator does with a host-built value", () => {
+    const button = (props: Record<string, unknown>) => ({ version: 2, title: "t", root: { component: "Button", props } });
+    const absent: unknown[] = [
+      { version: 2, title: "t", root: "x", extra: undefined },
+      { version: 2, title: "t", state: { a: 1, b: undefined }, root: "x" },
+      button({ onClick: { action: "navigate", payload: { to: "/", extra: undefined } } }),
+      button({ icon: { $node: "x", extra: undefined } }),
+      { version: 2, title: "t", root: { $cond: { ref: "state.a", eq: 1, ne: undefined }, then: "x" } },
+    ];
+    for (const doc of absent) {
+      expect(validateViewSpec(doc).ok).toBe(true);
+      expect(viewSpecSchema.safeParse(doc).success).toBe(true);
+    }
+    const present = { version: 2, title: "t", root: "x", extra: null };
+    expect(validateViewSpec(present).ok).toBe(false);
+    expect(viewSpecSchema.safeParse(present).success).toBe(false);
+  });
+
   it("agrees on thousands of random mutations, which land on both answers", { timeout: 60_000 }, () => {
     const next = random(20261020);
     const tally = { valid: 0, invalid: 0 };

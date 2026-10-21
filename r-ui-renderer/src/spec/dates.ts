@@ -32,12 +32,24 @@ function localDate(year: number, month: number, day: number, h = 0, m = 0, s = 0
   return date;
 }
 
+function utcDate(year: number, month: number, day: number, h = 0, m = 0, s = 0, ms = 0): Date {
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(h, m, s, ms);
+  return date;
+}
+
+/** Year, month and day of a `DATE` match, when they name a real calendar date. */
+function calendarDay(match: RegExpExecArray): [year: number, month: number, day: number] | null {
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
+  return validDay(year, month, day) ? [year, month, day] : null;
+}
+
 /** The local calendar date `text` (`YYYY-MM-DD`) names, or null. */
 export function parseIsoDate(text: string): Date | null {
   const match = DATE.exec(text);
-  if (match === null) return null;
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  return validDay(year, month, day) ? localDate(year, month, day) : null;
+  const day = match === null ? null : calendarDay(match);
+  return day === null ? null : localDate(...day);
 }
 
 /** The instant (or local time) `text` names, a bare date included, or null. */
@@ -46,13 +58,7 @@ export function parseIsoDateTime(text: string): Date | null {
   if (bare !== null) return bare;
   const match = DATE_TIME.exec(text);
   if (match === null) return null;
-  const [year, month, day, hour, minute] = [1, 2, 3, 4, 5].map((index) => Number(match[index])) as [
-    number,
-    number,
-    number,
-    number,
-    number,
-  ];
+  const [year, month, day, hour, minute] = [Number(match[1]), Number(match[2]), Number(match[3]), Number(match[4]), Number(match[5])];
   const second = match[6] === undefined ? 0 : Number(match[6]);
   const ms = match[7] === undefined ? 0 : Math.floor(Number(`0.${match[7]}`) * 1000);
   if (!validDay(year, month, day) || hour > 23 || minute > 59 || second > 59) return null;
@@ -66,21 +72,15 @@ export function parseIsoDateTime(text: string): Date | null {
     if (zoneHours > 23 || zoneMinutes > 59) return null;
     offset = sign * (zoneHours * 60 + zoneMinutes);
   }
-  const utc = new Date(0);
-  utc.setUTCFullYear(year, month - 1, day);
-  utc.setUTCHours(hour, minute, second, ms);
-  return new Date(utc.getTime() - offset * 60_000);
+  return new Date(utcDate(year, month, day, hour, minute, second, ms).getTime() - offset * 60_000);
 }
 
 /** A bare date at UTC midnight, for formatting in UTC; other text as `parseIsoDateTime`. */
 export function parseIsoDateTimeUtc(text: string): Date | null {
   const match = DATE.exec(text);
   if (match === null) return parseIsoDateTime(text);
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  if (!validDay(year, month, day)) return null;
-  const utc = new Date(0);
-  utc.setUTCFullYear(year, month - 1, day);
-  return utc;
+  const day = calendarDay(match);
+  return day === null ? null : utcDate(...day);
 }
 
 /** A bare `YYYY-MM-DD` naming a real calendar date. */

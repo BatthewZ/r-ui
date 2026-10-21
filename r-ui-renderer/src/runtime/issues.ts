@@ -11,6 +11,11 @@ export interface IssueChannel {
 
 const NO_ISSUES: readonly Issue[] = Object.freeze([]);
 
+/** What makes an issue the same issue: its code and path. */
+export function issueKey(issue: Issue): string {
+  return `${issue.code}\u0000${issue.path}`;
+}
+
 /**
  * Each issue is delivered once per view (by code and path), on a microtask:
  * a report made while rendering reaches `onIssue` and the issue log after
@@ -33,7 +38,7 @@ export function createIssueChannel(onIssue?: (issue: Issue) => void): IssueChann
   }
 
   const report: IssueReporter = (issue, options) => {
-    const key = `${issue.code}\u0000${issue.path}`;
+    const key = issueKey(issue);
     if (seen.has(key)) return;
     seen.add(key);
     if (queued.length === 0) queueMicrotask(flush);

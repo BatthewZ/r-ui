@@ -39,20 +39,19 @@ const ENTRIES_PER_NODE = 4;
 
 const cache = new WeakMap<object, Entry[]>();
 
-function sameList(a: readonly unknown[], b: readonly unknown[]): boolean {
+/** The same items in the same order, by identity. */
+export function sameList(a: readonly unknown[], b: readonly unknown[]): boolean {
   return a.length === b.length && a.every((item, index) => Object.is(item, b[index]));
 }
 
 /** The same context for rendering: every field identical (roots and lists compared one level down). */
-export function sameContext(a: RenderContext, b: RenderContext): boolean {
+function sameContext(a: RenderContext, b: RenderContext): boolean {
   if (a === b) return true;
-  const aRecord = a as unknown as Record<string, unknown>;
-  const bRecord = b as unknown as Record<string, unknown>;
-  const keys = Object.keys(aRecord);
-  if (keys.length !== Object.keys(bRecord).length) return false;
+  const keys = Object.keys(a) as (keyof RenderContext)[];
+  if (keys.length !== Object.keys(b).length) return false;
   for (const key of keys) {
-    const x = aRecord[key];
-    const y = bRecord[key];
+    const x: unknown = a[key];
+    const y: unknown = b[key];
     if (Object.is(x, y)) continue;
     if (key === "streaming") {
       if (a.streaming.complete !== b.streaming.complete || a.streaming.fallback !== b.streaming.fallback) return false;

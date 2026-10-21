@@ -38,8 +38,8 @@ function collectParts(name: string, component: ElementType, include: NameFilter)
   if (typeof component !== "function" && typeof component !== "object") return undefined;
   const parts = Object.create(null) as Record<string, ElementType>;
   let found = false;
-  for (const key of Object.keys(component)) {
-    const value: unknown = (component as unknown as Record<string, unknown>)[key];
+  const members: [string, unknown][] = Object.entries(component);
+  for (const [key, value] of members) {
     if (isExportedComponent(key, value) && include(`${name}.${key}`)) {
       parts[key] = value;
       found = true;
@@ -74,7 +74,7 @@ export function extendRegistry(
   extra: { readonly [name: string]: RegistryEntry | ElementType },
 ): ComponentRegistry {
   const next = Object.create(null) as Record<string, RegistryEntry>;
-  for (const name of Object.keys(base)) next[name] = base[name] as RegistryEntry;
+  for (const [name, entry] of Object.entries(base)) next[name] = entry;
   for (const [name, value] of Object.entries(extra)) {
     next[name] = isComponentLike(value) ? entryFor(name, value) : value;
   }

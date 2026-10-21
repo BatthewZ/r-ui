@@ -148,10 +148,34 @@ describe("main: verdicts", () => {
     for (const [contents, message] of [
       ["[]", "extra.json must be a JSON object of contracts (name -> contract object).\n"],
       ['{"OrgChart": {"props": 5}}', "extra.json: OrgChart.props must be an array.\n"],
-      ['{"OrgChart": {"props": [{"type": "x"}]}}', "extra.json: OrgChart.props must list objects with a `name`.\n"],
+      ['{"OrgChart": {"props": [{"type": "x"}]}}', "extra.json: OrgChart.props[0] must be an object with a string `name`.\n"],
       ['{"OrgChart": {"colour": "red"}}', "extra.json: OrgChart.colour is not a contract field.\n"],
     ] as const) {
       const bad = io({ readFile: files({ "extra.json": contents }) });
+      expect(await main(["--raw", doc, "--contracts", "extra.json"], bad.value)).toBe(2);
+      expect(bad.err).toEqual([message]);
+      expect(bad.out).toEqual([]);
+    }
+  });
+
+  it("refuses a contracts file whose fields hold the wrong JSON inside (exit 2), rather than crashing (exit 3)", async () => {
+    const doc = JSON.stringify({
+      version: 2,
+      title: "t",
+      root: { component: "OrgChart", props: { size: "big", as: "div", level: 2, render: { $node: { component: "Card" } }, href: "/a" } },
+    });
+    const props = ["size", "as", "level", "render", "href"].map((name) => ({ name, type: "string", required: false }));
+    for (const [over, message] of [
+      [{ propEnums: { size: 5 } }, "extra.json: OrgChart.propEnums.size must be an array.\n"],
+      [{ elementProps: { as: "div" } }, "extra.json: OrgChart.elementProps.as must be an array.\n"],
+      [{ headingLevelProps: { level: 2 } }, "extra.json: OrgChart.headingLevelProps.level must be an array.\n"],
+      [{ templateProps: { render: "row" } }, "extra.json: OrgChart.templateProps.render must be an array.\n"],
+      [{ urlProps: [5] }, "extra.json: OrgChart.urlProps[0] must be a string.\n"],
+      [{ nodeProps: [5] }, "extra.json: OrgChart.nodeProps[0] must be a string.\n"],
+      [{ droppedProps: [5] }, "extra.json: OrgChart.droppedProps[0] must be a string.\n"],
+      [{ props: [{ name: "size", type: 5 }] }, "extra.json: OrgChart.props[0].type must be a string.\n"],
+    ] as const) {
+      const bad = io({ readFile: files({ "extra.json": JSON.stringify({ OrgChart: { props, ...over } }) }) });
       expect(await main(["--raw", doc, "--contracts", "extra.json"], bad.value)).toBe(2);
       expect(bad.err).toEqual([message]);
       expect(bad.out).toEqual([]);

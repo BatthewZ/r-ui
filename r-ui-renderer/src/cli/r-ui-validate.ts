@@ -3,7 +3,7 @@
 
 import { readFile } from "node:fs/promises";
 
-import { INTERNAL_ERROR, main } from "./main";
+import { internalErrorReport, main } from "./main";
 
 async function readStdin(): Promise<string> {
   const chunks: Buffer[] = [];
@@ -20,6 +20,6 @@ try {
     stdinIsTTY: process.stdin.isTTY === true,
   });
 } catch (error) {
-  process.stderr.write(`${INTERNAL_ERROR}${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+  process.stderr.write(internalErrorReport(error));
   process.exitCode = 3;
 }

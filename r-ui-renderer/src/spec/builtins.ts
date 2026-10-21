@@ -14,17 +14,20 @@ import {
   TEXT_WEIGHTS,
 } from "./types";
 
-const TONE_DOC = TEXT_TONES.map((tone) => `"${tone}"`).join(" | ");
+/** A prop's declared type for a closed set of strings: `"a" | "b"`. */
+const literalUnion = (values: readonly string[]) => values.map((value) => `"${value}"`).join(" | ");
+
+const TONE_DOC = literalUnion(TEXT_TONES);
 
 export const BUILTIN_CONTRACTS: ComponentContracts = {
   Text: {
     category: "builtin",
     note: "Body text. `as` picks the element, `size` the UI body step (inherited when absent).",
     props: [
-      { name: "as", type: TEXT_ELEMENTS.map((tag) => `"${tag}"`).join(" | "), required: false },
-      { name: "size", type: TEXT_SIZES.map((size) => `"${size}"`).join(" | "), required: false },
+      { name: "as", type: literalUnion(TEXT_ELEMENTS), required: false },
+      { name: "size", type: literalUnion(TEXT_SIZES), required: false },
       { name: "tone", type: TONE_DOC, required: false },
-      { name: "weight", type: TEXT_WEIGHTS.map((weight) => `"${weight}"`).join(" | "), required: false },
+      { name: "weight", type: literalUnion(TEXT_WEIGHTS), required: false },
       { name: "className", type: "string", required: false },
     ],
     propEnums: { as: TEXT_ELEMENTS, size: TEXT_SIZES, tone: TEXT_TONES, weight: TEXT_WEIGHTS },
@@ -35,7 +38,7 @@ export const BUILTIN_CONTRACTS: ComponentContracts = {
     note: "`level` is the outline (h1–h6); `size` is the look and matches the level when absent.",
     props: [
       { name: "level", type: HEADING_LEVELS.join(" | "), required: false },
-      { name: "size", type: HEADING_SIZES.map((size) => `"${size}"`).join(" | "), required: false },
+      { name: "size", type: literalUnion(HEADING_SIZES), required: false },
       { name: "tone", type: TONE_DOC, required: false },
       { name: "className", type: "string", required: false },
     ],

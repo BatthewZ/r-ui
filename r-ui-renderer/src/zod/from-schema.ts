@@ -11,26 +11,12 @@
 
 import { z } from "zod";
 
-import type { JsonType, SchemaDef } from "../spec/validate-schema";
-import { SCHEMA_KEYWORDS } from "../spec/validate-schema";
+import { isPlainObject } from "../spec/guards";
+import { codePoints, type JsonType, lookupRef, SCHEMA_KEYWORDS, type SchemaDef, type SchemaDefs } from "../spec/validate-schema";
 
 const KNOWN: ReadonlySet<string> = new Set(SCHEMA_KEYWORDS);
-const DEF_PREFIX = "#/$defs/";
 
-type Defs = { readonly [name: string]: SchemaDef };
 type Path = (string | number)[];
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const proto: unknown = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-}
-
-function codePoints(text: string): number {
-  let count = 0;
-  for (const _ of text) count += 1;
-  return count;
-}
 
 function union(options: z.ZodType[]): z.ZodType {
   const [first, second, ...rest] = options;
@@ -54,7 +40,7 @@ export class ZodBuilder {
   private readonly built = new Map<string, z.ZodType>();
   private readonly patterns = new Map<string, RegExp>();
 
-  constructor(private readonly defs: Defs) {}
+  constructor(private readonly defs: SchemaDefs) {}
 
   private regex(pattern: string): RegExp {
     let regex = this.patterns.get(pattern);
@@ -66,9 +52,7 @@ export class ZodBuilder {
   }
 
   private ref(target: string): z.ZodType {
-    const name = target.startsWith(DEF_PREFIX) ? target.slice(DEF_PREFIX.length) : undefined;
-    const def = name === undefined || !Object.hasOwn(this.defs, name) ? undefined : this.defs[name];
-    if (name === undefined || def === undefined) throw new Error(`Schema $ref ${target} names no definition.`);
+    const { name, def } = lookupRef(this.defs, target);
     let schema = this.built.get(name);
     if (schema === undefined) {
       // Registered before it is built, so a cycle meets the lazy wrapper instead of recursing.
@@ -143,9 +127,11 @@ export class ZodBuilder {
     const patterns = Object.entries(schema.patternProperties ?? {}).map(([pattern, value]) => [this.regex(pattern), this.build(value)] as const);
     const additional = schema.additionalProperties;
     let object: z.ZodType;
-    if (patterns.length === 0) {
-      if (additional === false) object = z.strictObject(shape);
-      else object = z.object(shape).catchall(additional === undefined ? z.unknown() : this.build(additional));
+    // Keys beyond `properties` are checked here rather than by Zod's strict or
+    // catchall objects, which would hold a key whose value is undefined to the
+    // rule; the validator counts it absent, as JSON does.
+    if (patterns.length === 0 && additional === undefined) {
+      object = z.object(shape).catchall(z.unknown());
     } else {
       const rest = additional === undefined || additional === false ? additional : this.build(additional);
       object = z
@@ -170,7 +156,7 @@ export class ZodBuilder {
     const names = schema.propertyNames === undefined ? undefined : this.build(schema.propertyNames);
     const min = schema.minProperties;
     return z.unknown().superRefine((value, ctx) => {
-      if (!isObject(value)) return;
+      if (!isPlainObject(value)) return;
       const keys = Object.keys(value).filter((key) => value[key] !== undefined);
       if (min !== undefined && keys.length < min) ctx.addIssue({ code: "custom", message: `At least ${min} keys` });
       if (names !== undefined) for (const key of keys) relay(ctx, names.safeParse(key), [key]);

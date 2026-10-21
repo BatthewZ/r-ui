@@ -13,7 +13,7 @@ function isLocalMidnight(date: Date): boolean {
   return date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0 && date.getMilliseconds() === 0;
 }
 
-export function dateToJson(date: Date, mode: DateMode): string | null {
+function dateToJson(date: Date, mode: DateMode): string | null {
   if (Number.isNaN(date.getTime())) return null;
   if (mode === "date" || (mode === "auto" && isLocalMidnight(date))) return toISODate(date);
   return toISODateTime(date, { seconds: true });

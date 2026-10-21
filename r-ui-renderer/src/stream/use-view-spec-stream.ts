@@ -19,7 +19,7 @@ function isResponse(source: ViewSpecSource): source is Response {
 }
 
 function isReadableStream(source: ViewSpecSource): source is ReadableStream<Chunk> {
-  return typeof (source as { getReader?: unknown }).getReader === "function";
+  return "getReader" in source && typeof source.getReader === "function";
 }
 
 function reasonOf(error: unknown): string {
@@ -28,16 +28,15 @@ function reasonOf(error: unknown): string {
 
 function ignore(): void {}
 
-const frame: { request(callback: () => void): () => void } = {
-  request(callback) {
-    if (typeof requestAnimationFrame === "function") {
-      const handle = requestAnimationFrame(callback);
-      return () => cancelAnimationFrame(handle);
-    }
-    const handle = setTimeout(callback, 16);
-    return () => clearTimeout(handle);
-  },
-};
+/** Runs `callback` on the next animation frame (a 16 ms timer where there are none); returns its cancel. */
+export function requestFrame(callback: () => void): () => void {
+  if (typeof requestAnimationFrame === "function") {
+    const handle = requestAnimationFrame(callback);
+    return () => cancelAnimationFrame(handle);
+  }
+  const handle = setTimeout(callback, 16);
+  return () => clearTimeout(handle);
+}
 
 /**
  * One source read once, however many components watch it: reading starts
@@ -112,7 +111,7 @@ class StreamFeed {
   private feed(chunk: Chunk): void {
     this.latest = this.parser.push(typeof chunk === "string" ? chunk : this.decoder.decode(chunk, { stream: true }));
     if (this.cancelFrame === undefined && this.latest !== this.published) {
-      this.cancelFrame = frame.request(() => {
+      this.cancelFrame = requestFrame(() => {
         this.cancelFrame = undefined;
         this.publish();
       });
@@ -158,10 +157,6 @@ function feedFor(source: ViewSpecSource): StreamFeed {
   return feed;
 }
 
-function noSubscription(): () => void {
-  return ignore;
-}
-
 function emptySnapshot(): StreamSnapshot {
   return EMPTY_SNAPSHOT;
 }
@@ -174,7 +169,7 @@ function emptySnapshot(): StreamSnapshot {
 export function useViewSpecStream(source: ViewSpecSource | null | undefined): StreamSnapshot {
   const feed = source == null ? undefined : feedFor(source);
   const subscribe = useCallback(
-    (listener: () => void) => (feed === undefined ? noSubscription() : feed.subscribe(listener)),
+    (listener: () => void) => (feed === undefined ? ignore : feed.subscribe(listener)),
     [feed],
   );
   const getSnapshot = useCallback(() => feed?.published ?? EMPTY_SNAPSHOT, [feed]);

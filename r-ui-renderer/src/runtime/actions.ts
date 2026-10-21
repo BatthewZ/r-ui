@@ -78,7 +78,7 @@ export function createActionDispatcher(deps: DispatcherDeps): ActionDispatcher {
   }
 
   async function runHandler(handler: unknown, path: string, vars: RefScope, event: EventScope, depth: number): Promise<void> {
-    const list = Array.isArray(handler) ? (handler as readonly unknown[]) : [handler];
+    const list: readonly unknown[] = Array.isArray(handler) ? handler : [handler];
     if (list.length > LIMITS.actionsPerHandler) {
       deps.report(makeIssue("limit-exceeded", path, `A handler runs at most ${LIMITS.actionsPerHandler} actions; the rest did not run.`));
     }

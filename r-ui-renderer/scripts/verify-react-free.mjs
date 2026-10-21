@@ -18,7 +18,7 @@ import { dirname, join, relative, resolve } from "node:path";
 
 import ts from "typescript";
 
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { failWith, PKG, pathArg } from "./lib/gate.mjs";
 
 const ROOT = pathArg("--root", PKG);
 
@@ -109,10 +109,10 @@ if (walked === 0) {
   process.exit(1);
 }
 if (problems.length > 0) {
-  console.error(
-    `verify:react-free — ${problems.length} problem(s):\n${problems.map((p) => `  ${p}`).join("\n")}\n\n` +
-      "These subpaths run on servers and in the CLI. Move the React-side code under a module only the package root imports.",
+  failWith(
+    `verify:react-free — ${problems.length} problem(s)`,
+    problems,
+    "These subpaths run on servers and in the CLI. Move the React-side code under a module only the package root imports.",
   );
-  process.exit(1);
 }
 console.log(`verify:react-free — OK (${ENTRIES.length} entries, ${walked} module(s) walked)`);

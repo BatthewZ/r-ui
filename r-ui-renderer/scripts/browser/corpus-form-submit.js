@@ -25,11 +25,7 @@ async (page) => {
   if ((await name.inputValue()) !== "Northwind Logistics — EMEA Operations") problems.push(`the name field holds ${JSON.stringify(await name.inputValue())}`);
   if ((await slug.inputValue()) !== "northwind-emea") problems.push(`the address field holds ${JSON.stringify(await slug.inputValue())}`);
 
-  const saves = [];
-  const onRequest = (request) => {
-    if (request.url().includes("/fixtures/settings-save.json")) saves.push(request.url());
-  };
-  page.on("request", onRequest);
+  const { urls: saves, stop } = collectRequests(page, "/fixtures/settings-save.json");
   try {
     // 2. invalid: the summary, the marks, the focus, no request
     await name.fill("");
@@ -59,9 +55,9 @@ async (page) => {
     if (saves.length !== 1) problems.push(`a valid submit sent ${saves.length} requests, expected 1`);
     if (await summary.isVisible()) problems.push("the error summary is still showing after a valid submit");
   } finally {
-    page.off("request", onRequest);
+    stop();
   }
 
-  for (const d of await diagnostics(page)) problems.push(`diagnostic ${d.code} at ${d.path}: ${d.text}`);
+  problems.push(...(await diagnosticProblems(page)));
   return report(problems, "invalid: summary, marks, focus, no request; valid: one request and the toast");
 };

@@ -164,6 +164,14 @@ describe("the dispatcher", () => {
     expect(toast.mock.calls).toEqual([[{ title: "percent:0.5", description: "Saved", tone: "success" }], [{ title: "Hi" }]]);
   });
 
+  it("a payload's $format with no style shows its value as plain text, as a prop's does", async () => {
+    const toast = vi.fn();
+    const view = setup({ adapters: { toast } });
+    await view.run({ action: "showToast", payload: { title: { $format: { value: { $ref: "event.value" } } } } }, { args: [0.5] });
+    await view.run({ action: "showToast", payload: { title: { $format: { value: 0.25, style: "percent", colour: "red" } } } });
+    expect(toast.mock.calls).toEqual([[{ title: "0.5" }], [{ title: "percent:0.25" }]]);
+  });
+
   it("showToast without an adapter reports missing-adapter and carries on", async () => {
     const view = setup();
     await view.run([

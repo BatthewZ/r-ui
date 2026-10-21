@@ -109,7 +109,8 @@ export function shardCount(count, availableGb, asked = null) {
   return Math.max(1, Math.min(asked ?? fits, MAX_SHARDS, count || 1));
 }
 
-const costOf = (script, durations) => durations[script.name] ?? script.tags.cost ?? DEFAULT_COST;
+/** Seconds `script` is expected to take: its last recorded pass, its `@cost`, or the default. */
+export const costOf = (script, durations) => durations[script.name] ?? script.tags.cost ?? DEFAULT_COST;
 
 /**
  * `shards`: n lists packed greedily, longest first, onto the lightest; `timing`:

@@ -31,7 +31,7 @@ async (page) => {
     const seen = await colours();
 
     if (seen.theme !== THEME) problems.push(`${name}: <html data-theme> is ${JSON.stringify(seen.theme)}, not "${THEME}"`);
-    for (const d of await diagnostics(page)) problems.push(`${name}: diagnostic ${d.code} at ${d.path}: ${d.text}`);
+    problems.push(...(await diagnosticProblems(page, name)));
     if (seen.canvas !== reference.canvas || seen.ink !== reference.ink) {
       problems.push(`${name}: canvas/ink ${seen.canvas} / ${seen.ink} under "${THEME}", ${reference.canvas} / ${reference.ink} by default`);
     }

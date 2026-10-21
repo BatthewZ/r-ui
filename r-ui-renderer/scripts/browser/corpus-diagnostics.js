@@ -23,7 +23,7 @@ async (page) => {
     await frames(page);
     stop();
 
-    for (const d of await diagnostics(page)) problems.push(`${name}: diagnostic ${d.code} at ${d.path}: ${d.text}`);
+    problems.push(...(await diagnosticProblems(page, name)));
     for (const error of errors) problems.push(`${name}: ${error}`);
 
     const view = await page.evaluate(() => {

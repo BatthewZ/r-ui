@@ -2,7 +2,7 @@ import { createElement, type ReactNode, use } from "react";
 
 import { DIAGNOSTIC_CLASSES, diagnosticAttributes } from "../../diagnostics";
 import type { IconProps } from "../../spec/types";
-import { IconSetContext } from "../icon-context";
+import { glyphFor, IconSetContext } from "../icon-context";
 import { classes, toneClass } from "./tones";
 
 /**
@@ -12,8 +12,7 @@ import { classes, toneClass } from "./tones";
  */
 export function Icon(props: IconProps): ReactNode {
   const { name, label, tone, className } = props;
-  const icons = use(IconSetContext);
-  const Glyph = icons !== undefined && typeof name === "string" && Object.hasOwn(icons, name) ? icons[name] : undefined;
+  const Glyph = glyphFor(use(IconSetContext), name);
   if (Glyph === undefined) {
     return createElement("span", diagnosticAttributes({ code: "unknown-icon", severity: "warning" }, DIAGNOSTIC_CLASSES.missingIcon));
   }

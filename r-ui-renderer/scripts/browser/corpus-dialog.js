@@ -57,11 +57,7 @@ async (page) => {
   if (focused !== "Delete workspace…") problems.push(`after Escape, focus is on ${JSON.stringify(focused)}, not the opening button`);
 
   // 4. the dialog's form: refused unticked, submitted ticked
-  const deletes = [];
-  const onRequest = (request) => {
-    if (request.url().includes("/fixtures/settings-save.json")) deletes.push(request.url());
-  };
-  page.on("request", onRequest);
+  const { urls: deletes, stop } = collectRequests(page, "/fixtures/settings-save.json");
   try {
     await opener.click();
     await dialog.waitFor({ state: "visible", timeout: 5_000 });
@@ -81,9 +77,9 @@ async (page) => {
     await page.waitForFunction(() => location.hash === "#/workspaces", null, { timeout: 5_000 }).catch(() => problems.push("a valid submit did not navigate"));
     if (deletes.length !== 1) problems.push(`a valid submit sent ${deletes.length} requests, expected the one DELETE`);
   } finally {
-    page.off("request", onRequest);
+    stop();
   }
 
-  for (const d of await diagnostics(page)) problems.push(`diagnostic ${d.code} at ${d.path}: ${d.text}`);
+  problems.push(...(await diagnosticProblems(page)));
   return report(problems, "modal in the top layer, the page behind inert, a real click, Escape closes, the form inside validates and submits");
 };

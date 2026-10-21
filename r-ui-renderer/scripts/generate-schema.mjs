@@ -9,10 +9,9 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { publishedSchema } from "../src/spec/validate-schema.ts";
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { isMain, PKG, pathArg } from "./lib/gate.mjs";
 
 /** The file's whole text. */
 export function schemaText() {
@@ -43,4 +42,4 @@ function main() {
   console.log(`generate-schema — written ${relative(root, path)}`);
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
+if (isMain(import.meta.url)) main();

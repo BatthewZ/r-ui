@@ -16,7 +16,7 @@ import { makeIssue } from "./issue";
 export type ParsedInput = { readonly value: unknown; readonly issue?: undefined } | { readonly value?: undefined; readonly issue: Issue };
 
 /** 1-based line and column (UTF-16 units) of `offset` in `text`. */
-export function lineColumn(text: string, offset: number): { line: number; column: number } {
+function lineColumn(text: string, offset: number): { line: number; column: number } {
   let line = 1;
   let lineStart = 0;
   const end = Math.min(Math.max(offset, 0), text.length);
@@ -63,8 +63,7 @@ export function parseText(text: string): ParsedInput {
 export function findNonJson(value: unknown): Issue | undefined {
   const onPath = new Set<object>();
   const stack: { value: unknown; path: string; exit?: object }[] = [{ value, path: "" }];
-  while (stack.length > 0) {
-    const frame = stack.pop() as (typeof stack)[number];
+  for (let frame = stack.pop(); frame !== undefined; frame = stack.pop()) {
     if (frame.exit !== undefined) {
       onPath.delete(frame.exit);
       continue;
@@ -77,7 +76,7 @@ export function findNonJson(value: unknown): Issue | undefined {
     }
     const isArray = Array.isArray(item);
     if (!isArray && !isPlainObject(item)) {
-      const what = typeof item === "object" ? `a ${(item as object).constructor?.name ?? "non-plain"} object` : `a ${typeof item}`;
+      const what = typeof item === "object" ? `a ${item.constructor?.name ?? "non-plain"} object` : `a ${typeof item}`;
       return makeIssue("invalid-type", frame.path, `Not JSON: ${what}.`);
     }
     if (onPath.has(item)) return makeIssue("invalid-type", frame.path, "Not JSON: the value contains itself.");

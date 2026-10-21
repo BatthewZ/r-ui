@@ -2,7 +2,7 @@
 // props as a document writes them, and the `classNames` keys.
 
 import propDocs from "../contracts/generated/prop-docs.json";
-import { dropReason, nameRole, refPropKinds } from "../spec/contract-facts";
+import { isDocumentProp, nameRole, refPropKinds } from "../spec/contract-facts";
 import type { ComponentContract, ComponentContracts, PropDoc } from "../spec/types";
 import { CATEGORY_TITLES } from "./categories";
 
@@ -37,19 +37,8 @@ function declaredType(type: string): string {
   return text.length > TYPE_TEXT_LIMIT ? `${text.slice(0, TYPE_TEXT_LIMIT - 1)}…` : text;
 }
 
-/**
- * Whether a document can set `prop` at all: the renderer does not drop it
- * (`dropReason`, the rule the renderer and the validator read) and it is not
- * a ref that takes nothing JSON holds.
- */
-export function isDocumentProp(contract: ComponentContract, prop: string): boolean {
-  if (dropReason(contract, prop) !== undefined) return false;
-  if (contract.formProps?.includes(prop)) return true;
-  return refPropKinds(contract, prop)?.length !== 0;
-}
-
 /** What a document writes for `prop`, which is not always what the library declares. */
-export function documentType(contract: ComponentContract, prop: PropDoc): string {
+function documentType(contract: ComponentContract, prop: PropDoc): string {
   const { name } = prop;
   if (/^on[A-Z]/.test(name)) return "handler";
   if (contract.formProps?.includes(name)) return "form name";

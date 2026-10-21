@@ -44,15 +44,14 @@ import { execFileSync, spawn } from "node:child_process";
 import { appendFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { freemem } from "node:os";
-import { dirname, join, relative } from "node:path";
+import { join, relative } from "node:path";
 import { clearTimeout, setTimeout } from "node:timers";
-import { fileURLToPath } from "node:url";
 
 import { COVERAGE_EXAMPLES, PRODUCT_EXAMPLES } from "../src/examples/index.ts";
 import { DEFAULT_LOCK, lockHolder, releaseLock, tryLock } from "./browser/lib/lock.mjs";
-import { loadScripts, parseArgs, planShards, RESERVE_GB, SESSION_GB, selectForChanges, selectScripts, shardCount } from "./browser/lib/plan.mjs";
+import { costOf, loadScripts, parseArgs, planShards, RESERVE_GB, SESSION_GB, selectForChanges, selectScripts, shardCount } from "./browser/lib/plan.mjs";
+import { PKG } from "./lib/gate.mjs";
 
-const PKG = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE = join(PKG, "node_modules/.cache/r-ui-renderer-browser-check");
 const DURATIONS = join(CACHE, "durations.json");
 const RUN = join(CACHE, "runs", String(process.pid));
@@ -298,12 +297,10 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
   });
 }
 
-const costOf = (script) => durations[script.name] ?? script.tags.cost ?? 20;
-
 /** One script in `session`: `{ name, ok, seconds, text }`. A script past four times its usual time (three minutes at least) is stopped and fails. */
 async function runScript(session, script) {
   const started = Date.now();
-  const limit = Math.max(180, 4 * costOf(script));
+  const limit = Math.max(180, 4 * costOf(script, durations));
   const { out, timedOut } = await exec("playwright-cli", [`-s=${session}`, "run-code", wrap(script.file, url)], { timeout: limit * 1000 });
   const seconds = Number(((Date.now() - started) / 1000).toFixed(1));
   if (timedOut) return { name: script.name, ok: false, seconds, text: `${script.name} (${seconds}s)\nstopped after ${limit}s: the script hung\n` };

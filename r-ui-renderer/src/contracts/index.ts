@@ -191,7 +191,7 @@ function assembleAll(): ComponentContracts {
     if (exclusionFor(name)) continue;
     contracts[name] = assemble(name, LIBRARY_COMPONENTS[name] as GeneratedComponent);
   }
-  for (const name of Object.keys(BUILTIN_CONTRACTS)) contracts[name] = BUILTIN_CONTRACTS[name] as ComponentContract;
+  for (const [name, contract] of Object.entries(BUILTIN_CONTRACTS)) contracts[name] = contract;
   return contracts;
 }
 
@@ -215,11 +215,7 @@ export function extendContracts(
   extra: { readonly [name: string]: Partial<ComponentContract> },
 ): ComponentContracts {
   const next = Object.create(null) as Record<string, ComponentContract>;
-  for (const name of Object.keys(base)) next[name] = base[name] as ComponentContract;
-  for (const name of Object.keys(extra)) {
-    const over = extra[name] as Partial<ComponentContract>;
-    const under = contractFor(base, name);
-    next[name] = { category: "custom", ...under, ...over };
-  }
+  for (const [name, contract] of Object.entries(base)) next[name] = contract;
+  for (const [name, over] of Object.entries(extra)) next[name] = { category: "custom", ...contractFor(base, name), ...over };
   return next;
 }

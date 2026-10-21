@@ -119,6 +119,28 @@ describe("useDataBindings", () => {
     expect(fetch).toHaveBeenCalledTimes(3);
   });
 
+  it("leaves a loaded binding alone when another binding closes or refetches", async () => {
+    const fetch = vi.fn((url: string) => Promise.resolve(json(new URL(url).pathname)));
+    const bindings = {
+      summary: { type: "api", endpoint: "/api/summary" },
+      rows: { type: "api", endpoint: "/api/rows", query: { region: { $ref: "state.region" } } },
+    };
+    const adapters = { fetch };
+    const view = mount({ bindings, adapters, state: { region: "eu" }, pending: new Set(["", "/data", "/data/rows"]) });
+    await waitFor(() => expect(view.result.current.status).toEqual({ summary: "ready", rows: "loading" }));
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    view.rerender({ bindings, adapters, state: { region: "eu" }, pending: new Set(["", "/root"]) });
+    await waitFor(() => expect(view.result.current.status).toEqual({ summary: "ready", rows: "ready" }));
+    view.rerender({ bindings, adapters, state: { region: "us" } });
+    await waitFor(() => expect(view.result.current.status).toEqual({ summary: "ready", rows: "ready" }));
+    expect(fetch.mock.calls.map(([url]) => new URL(url).pathname + new URL(url).search)).toEqual([
+      "/api/summary",
+      "/api/rows?region=eu",
+      "/api/rows?region=us",
+    ]);
+  });
+
   it("marks a failed binding as error, shows no data and reports data-error", async () => {
     const fetch = vi.fn(() => Promise.resolve(json({ message: "no" }, 500)));
     const view = mount({ bindings: { services: { type: "api", endpoint: "/api/services" } }, adapters: { fetch } });

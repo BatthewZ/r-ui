@@ -8,22 +8,16 @@
 // Usage: node scripts/derive-class-vocabulary.mjs [--check] [--root <dir>]
 //   --root writes into another tree with the same layout (this script's test).
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join, relative } from "node:path";
+import { writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
 
 import { classVocabulary } from "./lib/class-vocabulary.mjs";
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { cssPackageDir } from "./lib/css.mjs";
+import { PKG, pathArg, readText } from "./lib/gate.mjs";
 
 const ROOT = pathArg("--root", PKG);
 const BEGIN = "/* GENERATED:class-vocabulary (scripts/derive-class-vocabulary.mjs); do not edit by hand */";
 const END = "/* /GENERATED:class-vocabulary */";
-
-/** The CSS package's directory, as installed beside this one (its entry is `src/index.css`). */
-function cssPackageDir() {
-  const require = createRequire(join(PKG, "package.json"));
-  return dirname(dirname(require.resolve("@batthewz/r-ui-css")));
-}
 
 /** `@source inline(...)` lines, each under 100 characters, in vocabulary order. */
 function sourceLines(classes) {
@@ -58,12 +52,7 @@ function main() {
 
   const stale = [];
   for (const [path, render] of targets) {
-    let current = "";
-    try {
-      current = readFileSync(path, "utf8");
-    } catch {
-      current = "";
-    }
+    const current = readText(path) ?? "";
     const next = render(current);
     if (next === current) continue;
     if (check) stale.push(relative(ROOT, path));

@@ -98,7 +98,7 @@ export function nodeKind(value: unknown): NodeKind | null {
 }
 
 export function isComponentNode(value: unknown): value is ComponentNode {
-  return nodeKind(value) === "component" && typeof (value as ComponentNode).component === "string";
+  return nodeKind(value) === "component" && isPlainObject(value) && typeof value.component === "string";
 }
 
 export function isEachNode(value: unknown): value is EachNode {

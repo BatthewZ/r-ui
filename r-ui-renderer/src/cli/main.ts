@@ -1,14 +1,14 @@
 import { defaultContracts, extendContracts } from "../contracts";
-import { formatIssuesForModel } from "../spec/format-issues";
+import { formatIssuesForModel, issueLocation } from "../spec/format-issues";
 import { isPlainObject } from "../spec/guards";
-import type { ComponentContract, ComponentContracts, Issue } from "../spec/types";
+import { type ComponentContract, type ComponentContracts, FORMAT_VERSION, type Issue } from "../spec/types";
 import { validateViewSpec } from "../spec/validate";
 
 export const USAGE = `Usage: r-ui-validate [file | -] [options]
        r-ui-validate --raw '<json>' [options]
        <producer> | r-ui-validate [options]
 
-Validates a ViewSpec document (format version 2). A surrounding Markdown code
+Validates a ViewSpec document (format version ${FORMAT_VERSION}). A surrounding Markdown code
 fence is ignored. With no file and no --raw, reads standard input.
 
 Options:
@@ -49,6 +49,11 @@ export class UsageError extends Error {}
 
 /** The first line of the report when r-ui-validate itself fails (exit 3). */
 export const INTERNAL_ERROR = "r-ui-validate failed internally; the document was not judged.\n";
+
+/** The whole report for exit 3: `INTERNAL_ERROR`, then the error's stack (or message). */
+export function internalErrorReport(error: unknown): string {
+  return `${INTERNAL_ERROR}${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`;
+}
 
 const VALUE_FLAGS = new Set(["--raw", "--format", "--contracts", "--origin"]);
 
@@ -100,44 +105,82 @@ export function parseArgs(argv: readonly string[]): CliArgs {
   };
 }
 
-/** The JSON type each contract field holds, so a malformed file is an input error rather than a crash. */
-const CONTRACT_FIELD_TYPES: { readonly [K in keyof Required<ComponentContract>]: "string" | "array" | "object" | "boolean" } = {
+type JsonType = "string" | "number" | "boolean" | "array" | "object";
+
+function jsonType(value: unknown): string {
+  if (Array.isArray(value)) return "array";
+  return isPlainObject(value) ? "object" : typeof value;
+}
+
+/** A contract field's JSON shape: its type, and its items' or values' shape. */
+type Shape = JsonType | { readonly list: Shape } | { readonly record: Shape } | "scalar" | "propDoc";
+
+const strings: Shape = { list: "string" };
+
+/**
+ * Each contract field's shape, so a malformed file is an input error rather
+ * than a crash. Closed sets (date kinds, coercion kinds) are not checked: a
+ * value outside one is ignored, not a crash.
+ */
+const CONTRACT_FIELD_SHAPES: { readonly [K in keyof Required<ComponentContract>]: Shape } = {
   category: "string",
   note: "string",
-  props: "array",
-  slots: "array",
-  propEnums: "object",
-  urlProps: "array",
-  imageProps: "array",
-  dateProps: "object",
-  iconProps: "array",
-  nodeProps: "array",
-  templateProps: "object",
-  setProps: "array",
-  formatProps: "array",
-  eventValue: "object",
-  coercions: "object",
+  props: { list: "propDoc" },
+  slots: strings,
+  propEnums: { record: { list: "scalar" } },
+  urlProps: strings,
+  imageProps: strings,
+  dateProps: { record: "string" },
+  iconProps: strings,
+  nodeProps: strings,
+  templateProps: { record: strings },
+  setProps: strings,
+  formatProps: strings,
+  eventValue: { record: "string" },
+  coercions: { record: "object" },
   childInspection: "string",
   standalone: "boolean",
-  nodePropParents: "object",
-  elementProps: "object",
-  headingLevelProps: "object",
+  nodePropParents: { record: strings },
+  elementProps: { record: strings },
+  headingLevelProps: { record: { list: "number" } },
   sensitive: "boolean",
   textChildren: "boolean",
   dialog: "boolean",
   fieldName: "boolean",
   domName: "boolean",
   structuralChildren: "boolean",
-  formProps: "array",
-  namespacedProps: "array",
-  intlProps: "object",
-  droppedProps: "array",
+  formProps: strings,
+  namespacedProps: strings,
+  intlProps: { record: "string" },
+  droppedProps: strings,
   nativeAttributes: "boolean",
 };
 
-function jsonType(value: unknown): string {
-  if (Array.isArray(value)) return "array";
-  return isPlainObject(value) ? "object" : typeof value;
+/** Why `value` at `at` does not have `shape`, or undefined when it does. */
+function shapeProblem(value: unknown, shape: Shape, at: string): string | undefined {
+  if (shape === "scalar") {
+    return ["string", "number", "boolean"].includes(typeof value) ? undefined : `${at} must be a string, number or boolean.`;
+  }
+  if (shape === "propDoc") {
+    if (!isPlainObject(value) || typeof value.name !== "string") return `${at} must be an object with a string \`name\`.`;
+    for (const key of ["type", "description"] as const) {
+      if (value[key] !== undefined && typeof value[key] !== "string") return `${at}.${key} must be a string.`;
+    }
+    return undefined;
+  }
+  const type: JsonType = typeof shape === "string" ? shape : "list" in shape ? "array" : "object";
+  if (jsonType(value) !== type) return `${at} must be ${type === "array" || type === "object" ? "an" : "a"} ${type}.`;
+  if (typeof shape === "string") return undefined;
+  const members: [string, unknown][] =
+    "list" in shape
+      ? (value as unknown[]).map((item, index) => [`${at}[${index}]`, item])
+      : Object.entries(value as Record<string, unknown>).map(([key, item]) => [`${at}.${key}`, item]);
+  const inner = "list" in shape ? shape.list : shape.record;
+  for (const [where, item] of members) {
+    const problem = shapeProblem(item, inner, where);
+    if (problem !== undefined) return problem;
+  }
+  return undefined;
 }
 
 async function readContracts(path: string, io: CliIO): Promise<ComponentContracts> {
@@ -147,13 +190,10 @@ async function readContracts(path: string, io: CliIO): Promise<ComponentContract
   }
   for (const [name, contract] of Object.entries(parsed as Record<string, Record<string, unknown>>)) {
     for (const [field, value] of Object.entries(contract)) {
-      const expected = Object.hasOwn(CONTRACT_FIELD_TYPES, field) ? CONTRACT_FIELD_TYPES[field as keyof ComponentContract] : undefined;
-      if (expected === undefined) throw new UsageError(`${path}: ${name}.${field} is not a contract field.`);
-      if (jsonType(value) !== expected) throw new UsageError(`${path}: ${name}.${field} must be ${expected === "array" ? "an" : "a"} ${expected}.`);
-    }
-    const props: unknown = contract.props;
-    if (Array.isArray(props) && !props.every((prop) => isPlainObject(prop) && typeof prop.name === "string")) {
-      throw new UsageError(`${path}: ${name}.props must list objects with a \`name\`.`);
+      const shape = Object.hasOwn(CONTRACT_FIELD_SHAPES, field) ? CONTRACT_FIELD_SHAPES[field as keyof ComponentContract] : undefined;
+      if (shape === undefined) throw new UsageError(`${path}: ${name}.${field} is not a contract field.`);
+      const problem = shapeProblem(value, shape, `${name}.${field}`);
+      if (problem !== undefined) throw new UsageError(`${path}: ${problem}`);
     }
   }
   return extendContracts(defaultContracts, parsed as { readonly [name: string]: Partial<ComponentContract> });
@@ -162,10 +202,8 @@ async function readContracts(path: string, io: CliIO): Promise<ComponentContract
 function formatText(issues: readonly Issue[]): string {
   if (issues.length === 0) return "valid: no issues\n";
   const lines = issues.map((issue) => {
-    const at = issue.path === "" ? "(document)" : issue.path;
-    const where = issue.line === undefined ? "" : ` (line ${issue.line}, column ${issue.column ?? 1})`;
     const hint = issue.suggestion === undefined ? "" : `\n    ${issue.suggestion}`;
-    return `${issue.severity}  ${at}${where}  ${issue.code}: ${issue.message}${hint}`;
+    return `${issue.severity}  ${issueLocation(issue)}  ${issue.code}: ${issue.message}${hint}`;
   });
   const errors = issues.filter((issue) => issue.severity === "error").length;
   return `${lines.join("\n")}\n${errors} error(s), ${issues.length - errors} warning(s)\n`;
@@ -208,7 +246,7 @@ export async function main(argv: readonly string[], io: CliIO): Promise<number> 
     else if (args.format === "model") output = `${formatIssuesForModel(result.issues)}\n`;
     else output = formatText(result.issues);
   } catch (error) {
-    io.stderr(`${INTERNAL_ERROR}${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
+    io.stderr(internalErrorReport(error));
     return 3;
   }
 

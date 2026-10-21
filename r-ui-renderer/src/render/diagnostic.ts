@@ -3,7 +3,13 @@ import { createElement, type ReactElement, type ReactNode } from "react";
 import { diagnosticAttributes } from "../diagnostics";
 import { makeIssue } from "../spec/issue";
 import type { Issue, IssueCode } from "../spec/types";
+import type { Slot } from "./memo";
 import type { Scope } from "./scope";
+
+/** What a caught throw says, as a diagnostic's message. */
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /** The element that shows `issue` where its node would have been. */
 export function diagnosticElement(issue: Issue, key?: string, extraClass?: string): ReactElement {
@@ -12,16 +18,16 @@ export function diagnosticElement(issue: Issue, key?: string, extraClass?: strin
 }
 
 /**
- * Shows `issue` in place, or, where no element may stand (`structural`),
+ * Shows `issue` in place, or, where no element may stand (`slot.structural`),
  * hands it to the issue log and renders nothing.
  */
-export function placeDiagnostic(scope: Scope, issue: Issue, structural: boolean, key?: string): ReactNode {
-  if (structural) {
+export function placeDiagnostic(scope: Scope, issue: Issue, slot: Slot): ReactNode {
+  if (slot.structural) {
     scope.ctx.report(issue);
     return null;
   }
   scope.ctx.report(issue, { inPlace: true });
-  return diagnosticElement(issue, key);
+  return diagnosticElement(issue, slot.key);
 }
 
 /** An issue no element shows (a dropped prop, an unrenderable value): the issue log lists it. */

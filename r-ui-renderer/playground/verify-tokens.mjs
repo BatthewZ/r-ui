@@ -15,19 +15,19 @@
 // Usage: node playground/verify-tokens.mjs
 
 import { readdirSync, readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { basename, dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { globSync } from "glob";
 
+import { cssPackageDir, declaredTokens, RAW_COLOUR, ruleBlocks } from "../scripts/lib/css.mjs";
+import { failWith, isMain, PKG } from "../scripts/lib/gate.mjs";
+
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PKG = dirname(HERE);
 const THEME_LIST = new Set(["themes.ts", "themes.css"]);
 
 const ALLOWED_LENGTHS = new Set(["100dvh"]);
 const LENGTH = /(?<![\w.-])(\d*\.?\d+)(px|rem|em|pt|ch|ex|lh|vw|vh|vi|vb|vmin|vmax|cqi|cqb|dvh|svh|lvh)(?![\w-])/g;
-const COLOUR = /#[0-9a-f]{3,8}\b|\b(rgb|rgba|hsl|hsla|hwb|lab|lch|oklab|oklch|color)\(/i;
 const DENSITY_NAMED = /-(COMFORTABLE|COMPACT)$/;
 
 const lineOf = (text, index) => text.slice(0, index).split("\n").length;
@@ -46,20 +46,16 @@ export function cssProblems(css, tokens) {
       problems.push({ line: lineOf(text, at.index), problem: `@${at[1]}${at[2].trimEnd()}: the raw length ${length}; use a token` });
     }
   }
-  for (const block of text.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
-    const selector = block[1].trim();
-    const line = lineOf(text, block.index + block[0].indexOf(selector));
+  for (const { selector, index, declarations } of ruleBlocks(text)) {
+    const line = lineOf(text, index);
     for (const cls of selector.matchAll(/\.([A-Za-z_][\w-]*)/g)) {
       if (!cls[1].startsWith("pg-")) problems.push({ line, problem: `${selector}: the class \`${cls[1]}\` lacks the pg- prefix` });
     }
-    for (const decl of block[2].split(";")) {
-      const colon = decl.indexOf(":");
-      if (colon === -1) continue;
-      const value = decl.slice(colon + 1).trim();
-      const where = `${selector} { ${decl.slice(0, colon).trim()}: ${value} }`;
+    for (const { prop, value } of declarations) {
+      const where = `${selector} { ${prop}: ${value} }`;
       const raw = value.replace(/var\(--[\w-]+\)/g, "");
       for (const length of rawLengths(raw)) problems.push({ line, problem: `${where}: the raw length ${length}; use a token` });
-      if (COLOUR.test(raw)) problems.push({ line, problem: `${where}: a raw colour; use a token` });
+      if (RAW_COLOUR.test(raw)) problems.push({ line, problem: `${where}: a raw colour; use a token` });
       for (const read of value.matchAll(/var\((--[\w-]+)/g)) {
         if (DENSITY_NAMED.test(read[1])) problems.push({ line, problem: `${where}: reads ${read[1]}, a density's named value; read the selected token` });
         else if (!tokens.has(read[1])) problems.push({ line, problem: `${where}: reads ${read[1]}, which no token declares` });
@@ -95,20 +91,10 @@ export function themeNameProblems(source, names) {
   return problems;
 }
 
-function declaredProperties(dir) {
-  const names = new Set();
-  for (const file of globSync("**/*.css", { cwd: dir, absolute: true, ignore: ["**/node_modules/**"] })) {
-    for (const match of readFileSync(file, "utf8").matchAll(/(--[A-Za-z0-9_-]+)\s*:/g)) names.add(match[1]);
-  }
-  return names;
-}
-
 function main() {
-  const require = createRequire(join(PKG, "package.json"));
-  const cssPackage = dirname(dirname(require.resolve("@batthewz/r-ui-css")));
-  const library = dirname(dirname(require.resolve("@batthewz/r-ui-react-components/styles")));
+  const cssPackage = cssPackageDir();
   const playgroundCss = globSync("**/*.css", { cwd: HERE, absolute: true, ignore: ["dist/**", "node_modules/**"] });
-  const tokens = new Set([...declaredProperties(join(cssPackage, "src")), ...declaredProperties(join(library, "dist"))]);
+  const tokens = declaredTokens();
   for (const file of playgroundCss) for (const match of readFileSync(file, "utf8").matchAll(/(--pg-[\w-]+)\s*:/g)) tokens.add(match[1]);
   const vocabulary = new Set(JSON.parse(readFileSync(join(PKG, "src", "spec", "class-vocabulary.json"), "utf8")));
   const themeNames = readdirSync(join(cssPackage, "src", "examples", "themes"))
@@ -130,11 +116,8 @@ function main() {
     for (const { line, problem } of found) offenders.push(`${rel}:${line}  ${problem}`);
   }
 
-  if (offenders.length > 0) {
-    console.error(`verify:playground — ${offenders.length} problem(s):\n${offenders.map((o) => `  ${o}`).join("\n")}`);
-    process.exit(1);
-  }
+  if (offenders.length > 0) failWith(`verify:playground — ${offenders.length} problem(s)`, offenders);
   console.log(`verify:playground — OK (${files.length} files: tokens only, no example theme outside the theme list)`);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) main();
+if (isMain(import.meta.url)) main();

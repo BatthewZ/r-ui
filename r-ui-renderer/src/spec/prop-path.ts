@@ -86,15 +86,20 @@ export function setOwn(target: Record<string, unknown>, key: string, value: unkn
 }
 
 /**
- * Every value `path` reaches in `props`, with its JSON Pointer under `base`.
+ * Every value `path` reaches in `props`, with its JSON Pointer under `base`
+ * and whether it sits in a collection (as `transformAt` tells its visitor).
  * An absent step reaches nothing.
  */
-export function valuesAt(props: Readonly<Record<string, unknown>>, path: PropPath, base: string): { path: string; value: unknown }[] {
+export function valuesAt(
+  props: Readonly<Record<string, unknown>>,
+  path: PropPath,
+  base: string,
+): { path: string; value: unknown; inCollection: boolean }[] {
   const { prop, steps } = parsePropPath(path);
   if (!Object.hasOwn(props, prop)) return [];
-  const found: { path: string; value: unknown }[] = [];
-  transformAt(props[prop], steps, (value, pointer) => {
-    found.push({ path: appendPointer(base, prop) + pointer, value });
+  const found: { path: string; value: unknown; inCollection: boolean }[] = [];
+  transformAt(props[prop], steps, (value, pointer, inCollection) => {
+    found.push({ path: appendPointer(base, prop) + pointer, value, inCollection });
     return value;
   });
   return found;

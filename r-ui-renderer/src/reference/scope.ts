@@ -2,6 +2,12 @@ import { exclusionFor } from "../contracts";
 import type { ComponentContract, ComponentContracts } from "../spec/types";
 import { closest } from "../spec/validate-suggest";
 
+/** The compound root a name belongs to: `Card` for `Card.Header`, the name itself for a root. */
+function rootOf(name: string): string {
+  const dot = name.indexOf(".");
+  return dot === -1 ? name : name.slice(0, dot);
+}
+
 /**
  * The contracts for `include` and nothing else. A part travels with its root
  * both ways: naming a part brings its root, and a root brings every part, so
@@ -24,10 +30,10 @@ export function scopeContracts(contracts: ComponentContracts, include: readonly 
     });
     throw new Error(`the reference scope names components no contract holds: ${detail.join(", ")}`);
   }
-  const roots = new Set(include.map((name) => name.split(".")[0] as string));
+  const roots = new Set(include.map(rootOf));
   const scoped = Object.create(null) as Record<string, ComponentContract>;
-  for (const name of known) {
-    if (roots.has(name.split(".")[0] as string)) scoped[name] = contracts[name] as ComponentContract;
+  for (const [name, contract] of Object.entries(contracts)) {
+    if (roots.has(rootOf(name))) scoped[name] = contract;
   }
   return scoped;
 }

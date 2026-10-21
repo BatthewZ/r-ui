@@ -16,10 +16,8 @@ import { isPlainObject } from "./guards";
 import { makeIssue } from "./issue";
 import { appendPointer } from "./pointer";
 import { ISSUE_CODE_INFO, type Issue, type IssueCode, type JsonPrimitive } from "./types";
-import type { JsonType, SchemaDef } from "./validate-schema";
-import { closest } from "./validate-suggest";
-
-type Defs = { readonly [name: string]: SchemaDef };
+import { codePoints, type JsonType, lookupRef, type SchemaDef, type SchemaDefs } from "./validate-schema";
+import { suggest, suggestValue } from "./validate-suggest";
 
 /** A failure: whether the value has the failing schema's shape at all, and how deep it failed. */
 interface Miss {
@@ -29,8 +27,6 @@ interface Miss {
 
 type Fit = Miss | null;
 
-const DEF_PREFIX = "#/$defs/";
-
 function jsonTypeOf(value: unknown): Exclude<JsonType, "integer"> | "other" {
   if (value === null) return "null";
   if (Array.isArray(value)) return "array";
@@ -39,6 +35,11 @@ function jsonTypeOf(value: unknown): Exclude<JsonType, "integer"> | "other" {
   if (typeof value === "boolean") return "boolean";
   if (typeof value === "number") return Number.isFinite(value) ? "number" : "other";
   return "other";
+}
+
+/** A schema's `type`, as a list (empty when it has none). */
+function typesOf(schema: SchemaDef): readonly JsonType[] {
+  return typeof schema.type === "string" ? [schema.type] : (schema.type ?? []);
 }
 
 function matchesType(value: unknown, type: JsonType): boolean {
@@ -66,12 +67,6 @@ function quote(value: JsonPrimitive): string {
   return JSON.stringify(value);
 }
 
-function codePoints(text: string): number {
-  let count = 0;
-  for (const _ of text) count += 1;
-  return count;
-}
-
 /** Own keys whose value is present (an `undefined` value counts as absent, as in JSON). */
 function presentKeys(value: Record<string, unknown>): string[] {
   return Object.keys(value).filter((key) => value[key] !== undefined);
@@ -82,7 +77,7 @@ const ANNOTATIONS = new Set(["$ref", "title", "description", "x-issue", "x-messa
 export class SchemaInterpreter {
   private readonly patterns = new Map<string, RegExp>();
 
-  constructor(private readonly defs: Defs) {}
+  constructor(private readonly defs: SchemaDefs) {}
 
   /** Every issue `value` raises against `schema`, its paths under `path`. */
   validate(schema: SchemaDef, value: unknown, path: string): Issue[] {
@@ -99,9 +94,7 @@ export class SchemaInterpreter {
   resolve(schema: SchemaDef): SchemaDef {
     let current = schema;
     while (current.$ref !== undefined) {
-      const name = current.$ref.startsWith(DEF_PREFIX) ? current.$ref.slice(DEF_PREFIX.length) : undefined;
-      const target = name === undefined || !Object.hasOwn(this.defs, name) ? undefined : this.defs[name];
-      if (target === undefined) throw new Error(`Schema $ref ${current.$ref} names no definition.`);
+      const target = lookupRef(this.defs, current.$ref).def;
       const extra = Object.keys(current).filter((key) => !ANNOTATIONS.has(key));
       if (extra.length > 0) throw new Error(`Schema $ref ${current.$ref} has validation keywords beside it: ${extra.join(", ")}.`);
       current = target;
@@ -142,7 +135,7 @@ export class SchemaInterpreter {
   }
 
   private typeMatches(schema: SchemaDef, value: unknown, path: string, sink: Issue[] | null): boolean {
-    const types: readonly JsonType[] = typeof schema.type === "string" ? [schema.type] : (schema.type ?? []);
+    const types = typesOf(schema);
     if (types.some((type) => matchesType(value, type))) return true;
     const expected = types.map((type) => TYPE_WORDS[type]).join(" or ");
     const extra = schema["x-message"] === undefined ? "" : ` ${schema["x-message"]}`;
@@ -155,8 +148,7 @@ export class SchemaInterpreter {
     const misses: [IssueCode, string, string?][] = [];
     if (schema.const !== undefined && value !== schema.const) misses.push(["invalid-value", `Must be ${quote(schema.const)}.`]);
     if (schema.enum !== undefined && !schema.enum.includes(value as JsonPrimitive)) {
-      const suggestion = typeof value === "string" ? closest(value, schema.enum.filter((item) => typeof item === "string")) : undefined;
-      misses.push(["invalid-value", `Must be one of ${schema.enum.map(quote).join(", ")}.`, suggestion === undefined ? undefined : quote(suggestion)]);
+      misses.push(["invalid-value", `Must be one of ${schema.enum.map(quote).join(", ")}.`, suggestValue(value, schema.enum)]);
     }
     if (typeof value === "string") {
       const length = schema.minLength !== undefined || schema.maxLength !== undefined ? codePoints(value) : 0;
@@ -244,9 +236,8 @@ export class SchemaInterpreter {
       const known = Object.keys(schema.properties ?? {});
       for (const key of keys) {
         if (this.propertySchema(schema, key) !== undefined) continue;
-        const suggestion = closest(key, known);
         const message = `Unknown key \`${key}\`; this object takes ${known.map((name) => `\`${name}\``).join(", ")}.`;
-        if (fail(() => makeIssue("unknown-key", appendPointer(path, key), message, suggestion === undefined ? undefined : quote(suggestion)))) return true;
+        if (fail(() => makeIssue("unknown-key", appendPointer(path, key), message, suggest(key, known)))) return true;
       }
     }
     if (schema.propertyNames !== undefined) {
@@ -266,10 +257,7 @@ export class SchemaInterpreter {
   /** Whether `schema` takes values of `value`'s JSON type at all. */
   private admits(raw: SchemaDef, value: unknown): boolean {
     const schema = this.resolve(raw);
-    if (schema.type !== undefined) {
-      const types: readonly JsonType[] = typeof schema.type === "string" ? [schema.type] : schema.type;
-      if (!types.some((type) => matchesType(value, type))) return false;
-    }
+    if (schema.type !== undefined && !typesOf(schema).some((type) => matchesType(value, type))) return false;
     return schema.anyOf === undefined || schema.anyOf.some((branch) => this.admits(branch, value));
   }
 
@@ -312,9 +300,8 @@ export class SchemaInterpreter {
     const given = value[key];
     const narrowed = pool.filter((_, index) => accepted[index]?.includes(given as JsonPrimitive) ?? true);
     if (narrowed.length > 0) return narrowed;
-    const suggestion = typeof given === "string" ? closest(given, allowed.filter((item): item is string => typeof item === "string")) : undefined;
     const message = `\`${key}\` is one of ${allowed.map(quote).join(", ")}.`;
-    sink?.push(makeIssue("invalid-value", appendPointer(path, key), message, suggestion === undefined ? undefined : quote(suggestion)));
+    sink?.push(makeIssue("invalid-value", appendPointer(path, key), message, suggestValue(given, allowed)));
     return { applies: true, depth: depth + 1 };
   }
 

@@ -7,6 +7,8 @@ import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { queryDiagnostics } from "../../test-utils";
+import { defaultContracts, extendContracts } from "../contracts";
+import { defaultRegistry, extendRegistry } from "../registry/registry";
 import { renderTree } from "./harness.test.helpers";
 
 describe("forbidden props", () => {
@@ -264,6 +266,28 @@ describe("images", () => {
     expect(view.issuesOf("refused-url")).toEqual([
       ["/root/children/1/props/srcSet", false],
       ["/root/children/2/props/items/1/src", false],
+    ]);
+  });
+
+  it("drops a refused image a host contract places in a list or record, as it does one under a key", () => {
+    const Gallery = (props: { photos?: readonly string[]; byName?: Record<string, string> }) => (
+      <div>
+        {[...(props.photos ?? []), ...Object.values(props.byName ?? {})].map((src) => (
+          <img key={src} src={src} alt="" />
+        ))}
+      </div>
+    );
+    const view = renderTree(
+      { component: "Gallery", props: { photos: ["/a.png", "https://tracker.test/p.gif"], byName: { b: "/b.png", c: "https://tracker.test/c.gif" } } },
+      {
+        registry: extendRegistry(defaultRegistry, { Gallery }),
+        contracts: extendContracts(defaultContracts, { Gallery: { imageProps: ["photos[]", "byName.*"] } }),
+      },
+    );
+    expect([...view.container.querySelectorAll("img")].map((img) => img.getAttribute("src"))).toEqual(["/a.png", "/b.png"]);
+    expect(view.issuesOf("refused-url")).toEqual([
+      ["/root/props/photos/1", false],
+      ["/root/props/byName/c", false],
     ]);
   });
 });

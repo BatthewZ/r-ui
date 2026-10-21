@@ -43,12 +43,17 @@ const OPTION_KEYS: ReadonlySet<string> = new Set([
   "missing",
 ]);
 
-/** The spec as options, or null when it names no style. Unknown keys are left out. */
+/**
+ * The spec as options, or null when it names no style. Unknown keys are left
+ * out, and so is a `missing` that is not text: it is rendered as is.
+ */
 export function toFormatOptions(spec: unknown): FormatOptions | null {
   if (typeof spec === "string") return STYLES.has(spec) ? { style: spec as FormatStyle } : null;
   if (!isPlainObject(spec) || typeof spec.style !== "string" || !STYLES.has(spec.style)) return null;
   const options: Record<string, unknown> = {};
-  for (const key of Object.keys(spec)) if (OPTION_KEYS.has(key)) options[key] = spec[key];
+  for (const key of Object.keys(spec)) {
+    if (OPTION_KEYS.has(key) && (key !== "missing" || typeof spec[key] === "string")) options[key] = spec[key];
+  }
   return options as unknown as FormatOptions;
 }
 

@@ -2,16 +2,16 @@
 
 import { isPlainObject, isRefMarker } from "../spec/guards";
 import { COMPARISON_OPERATORS, type ComparisonOperator } from "../spec/types";
-import { readValue } from "./text";
+import { readValue } from "../runtime/resolve";
 
 /** Missing, `null`, `false`, `0`, `NaN`, `""` and an empty array are false; everything else, `{}` included, true. */
-export function isTruthy(value: unknown): boolean {
+function isTruthy(value: unknown): boolean {
   if (Array.isArray(value)) return value.length > 0;
   return Boolean(value);
 }
 
 /** Strict equality, deep through arrays and plain objects (own keys). */
-export function deepEqual(a: unknown, b: unknown): boolean {
+function deepEqual(a: unknown, b: unknown): boolean {
   if (Object.is(a, b)) return true;
   if (Array.isArray(a) || Array.isArray(b)) {
     return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((item, index) => deepEqual(item, b[index]));

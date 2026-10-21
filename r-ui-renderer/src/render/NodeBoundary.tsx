@@ -2,7 +2,7 @@ import { Component, type ReactNode } from "react";
 
 import type { IssueReporter } from "../runtime/context";
 import { makeIssue } from "../spec/issue";
-import { diagnosticElement } from "./diagnostic";
+import { diagnosticElement, errorMessage } from "./diagnostic";
 
 export interface NodeBoundaryProps {
   /** JSON Pointer of the node it contains. */
@@ -19,10 +19,6 @@ interface NodeBoundaryState {
   readonly failure: string | null;
 }
 
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
 /**
  * Contains a throw to its node. Adds no DOM. It never remembers: new children
  * (anything above re-rendered: a fixed document, a new value from data) are a
@@ -32,12 +28,12 @@ export class NodeBoundary extends Component<NodeBoundaryProps, NodeBoundaryState
   override state: NodeBoundaryState = { failure: null };
 
   static getDerivedStateFromError(error: unknown): NodeBoundaryState {
-    return { failure: messageOf(error) };
+    return { failure: errorMessage(error) };
   }
 
   override componentDidCatch(error: unknown): void {
     if (this.props.pending !== undefined) return;
-    this.props.report(makeIssue("render-error", this.props.path, messageOf(error)), { inPlace: !this.props.structural });
+    this.props.report(makeIssue("render-error", this.props.path, errorMessage(error)), { inPlace: !this.props.structural });
   }
 
   override componentDidUpdate(previous: NodeBoundaryProps): void {

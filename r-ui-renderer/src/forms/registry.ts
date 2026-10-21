@@ -35,7 +35,7 @@ interface Entry {
 }
 
 /** What `forms.<name>` reads: the values as JSON, the errors on show, the form's state. */
-export function formRefState(api: ViewFormApi, def: FormDef): FormRefState {
+function formRefState(api: ViewFormApi, def: FormDef): FormRefState {
   const { store } = api;
   const state = store.getFormSnapshot();
   return {

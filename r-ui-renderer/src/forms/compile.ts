@@ -3,7 +3,7 @@ import { type StandardSchemaIssue, type StandardSchemaV1, toISODate } from "@bat
 import { toJsonValue } from "../runtime/event-value";
 import { parseIsoDate } from "../spec/dates";
 import { isForbiddenSegment, isName, isPlainObject, isRefMarker } from "../spec/guards";
-import { appendPointer } from "../spec/pointer";
+import { toPointer } from "../spec/pointer";
 import { LIMITS } from "../spec/policy";
 import {
   FIELD_TYPES,
@@ -28,6 +28,8 @@ interface CompiledField {
   readonly pattern: RegExp | null | undefined;
   readonly message: string | undefined;
   readonly messages: { readonly [R in RuleName]?: string };
+  /** As the def wrote it: a literal or a `$ref`. */
+  readonly initialValue: unknown;
 }
 
 function isFieldType(value: unknown): value is FieldType {
@@ -63,6 +65,7 @@ function compileFields(def: FormDef): CompiledField[] {
       pattern: compilePattern(rules.pattern),
       message: typeof field.message === "string" ? field.message : undefined,
       messages: textEntries(field.messages),
+      initialValue: field.initialValue,
     });
   }
   return out;
@@ -212,21 +215,15 @@ function coerceIn(type: FieldType, value: unknown): unknown {
  */
 export function formDefaults(def: FormDef, resolve: (path: string) => unknown): FormValues {
   const out: { [field: string]: unknown } = {};
-  const fields = isPlainObject(def.fields) ? def.fields : {};
-  for (const field of compileFields(def)) {
-    const raw = (fields[field.key] as { initialValue?: unknown }).initialValue;
-    out[field.key] = coerceIn(field.type, isRefMarker(raw) ? resolve(raw.$ref) : raw);
+  for (const { key, type, initialValue } of compileFields(def)) {
+    out[key] = coerceIn(type, isRefMarker(initialValue) ? resolve(initialValue.$ref) : initialValue);
   }
   return out;
 }
 
 /** The `$ref` paths the def's initial values read. */
 export function formDefRefs(def: FormDef): string[] {
-  const fields = isPlainObject(def.fields) ? def.fields : {};
-  return compileFields(def).flatMap((field) => {
-    const raw = (fields[field.key] as { initialValue?: unknown }).initialValue;
-    return isRefMarker(raw) ? [raw.$ref] : [];
-  });
+  return compileFields(def).flatMap(({ initialValue }) => (isRefMarker(initialValue) ? [initialValue.$ref] : []));
 }
 
 /** Rules that can never pass as written, by JSON Pointer under the def. */
@@ -234,7 +231,7 @@ export function formDefProblems(def: FormDef): { readonly path: string; readonly
   return compileFields(def)
     .filter((field) => field.pattern === null)
     .map((field) => ({
-      path: ["fields", field.key, "rules", "pattern"].reduce<string>(appendPointer, ""),
+      path: toPointer(["fields", field.key, "rules", "pattern"]),
       message: `The pattern for "${field.key}" is not a valid regular expression; the field can never pass.`,
     }));
 }

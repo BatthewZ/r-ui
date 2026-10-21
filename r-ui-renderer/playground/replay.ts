@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 
+import { requestFrame } from "../src/stream/use-view-spec-stream";
+
 /** Runs `callback` on a later frame; returns its cancel. */
 export type FrameScheduler = (callback: () => void) => () => void;
 
-export const animationFrames: FrameScheduler = (callback) => {
-  const handle = requestAnimationFrame(callback);
-  return () => cancelAnimationFrame(handle);
-};
+export const animationFrames: FrameScheduler = requestFrame;
 
 /**
  * How much of `text` shows after the next frame, from `shown`: `charsPerFrame`

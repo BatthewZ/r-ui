@@ -56,3 +56,15 @@ export function closest(input: string, candidates: Iterable<string>): string | u
   }
   return best !== undefined && bestDistance <= limit && !tied ? best : undefined;
 }
+
+/** `closest`, quoted as an issue's `suggestion` (`"showToast"`). */
+export function suggest(input: string, candidates: Iterable<string>): string | undefined {
+  const nearest = closest(input, candidates);
+  return nearest === undefined ? undefined : JSON.stringify(nearest);
+}
+
+/** `suggest` for a value outside a closed set: only a string value, among the string members. */
+export function suggestValue(value: unknown, allowed: readonly unknown[]): string | undefined {
+  if (typeof value !== "string") return undefined;
+  return suggest(value, allowed.filter((item): item is string => typeof item === "string"));
+}

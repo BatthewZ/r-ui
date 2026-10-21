@@ -155,6 +155,15 @@ describe("FormatSpecs", () => {
       ["/root/props/other", false],
     ]);
   });
+
+  it("shows the default missing text for a `missing` that is not text, leaving the node's siblings standing", () => {
+    const view = renderTree({
+      component: "Stack",
+      children: [{ component: "Text", children: ["Before"] }, { $format: { value: null, style: "number", missing: { text: "none" } } }],
+    });
+    expect(view.issuesOf("render-error")).toEqual([]);
+    expect(view.container.textContent).toBe("Before—");
+  });
 });
 
 describe("DataTable columns", () => {

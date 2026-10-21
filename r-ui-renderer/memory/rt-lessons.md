@@ -24,3 +24,6 @@
 - **Time zones are testable in jsdom.** Assign `process.env.TZ` per test and restore it; prove
   the zone took effect with a positive control (`Date#toJSON` shifting the day) before trusting
   a "keeps the day" assertion.
+- **A settled request is still the request.** Keep each binding's last started key after it
+  settles; forgetting it on settle re-asks every loaded binding whenever another one's key
+  changes.

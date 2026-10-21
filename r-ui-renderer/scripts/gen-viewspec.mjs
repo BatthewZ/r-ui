@@ -11,11 +11,10 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { renderDocument } from "../src/reference/document.ts";
 import { emptyRegions } from "../src/reference/regions.ts";
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { isMain, PKG, pathArg, readText } from "./lib/gate.mjs";
 
 const VIEWSPEC = "VIEWSPEC.md";
 const PROSE = join("src", "reference", "prose.json");
@@ -32,13 +31,7 @@ export function generate(root) {
 /** The files under `root` that differ from a fresh generation (a missing file differs). */
 export function staleFiles(root) {
   return Object.entries(generate(root))
-    .filter(([file, text]) => {
-      try {
-        return readFileSync(join(root, file), "utf8") !== text;
-      } catch {
-        return true;
-      }
-    })
+    .filter(([file, text]) => readText(join(root, file)) !== text)
     .map(([file]) => file);
 }
 
@@ -60,4 +53,4 @@ function main() {
   console.log(`gen-viewspec — written ${relative(root, join(root, VIEWSPEC))} and ${PROSE}`);
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
+if (isMain(import.meta.url)) main();

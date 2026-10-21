@@ -4,7 +4,7 @@
  */
 
 import { isForbiddenProp, isIdReferenceProp, lowerCaseProp } from "./policy";
-import type { ComponentContract } from "./types";
+import type { ComponentContract, PropDoc } from "./types";
 
 /**
  * What `name` means on a component. `dom`: a form control's DOM name, dropped,
@@ -21,6 +21,11 @@ export function nameRole(contract: ComponentContract | undefined): NameRole {
   if (contract?.fieldName === true) return "field";
   if (contract?.domName === true) return "dom";
   return "own";
+}
+
+/** The contract's entry for `prop`, if it lists one. */
+export function propDoc(contract: ComponentContract | undefined, prop: string): PropDoc | undefined {
+  return contract?.props?.find((doc) => doc.name === prop);
 }
 
 /** A declared type's union members, split at the top level only (`RefObject<A | B>` stays whole). */
@@ -56,7 +61,7 @@ function jsonKind(member: string): string | undefined {
  * prop that takes no ref.
  */
 export function refPropKinds(contract: ComponentContract, prop: string): readonly string[] | undefined {
-  const type = contract.props?.find((doc) => doc.name === prop)?.type;
+  const type = propDoc(contract, prop)?.type;
   if (type === undefined) return undefined;
   const members = unionMembers(type);
   if (!members.some((member) => member.startsWith("RefObject<"))) return undefined;
@@ -70,7 +75,7 @@ export function refPropKinds(contract: ComponentContract, prop: string): readonl
  * `list`). A string-typed one reaches the attribute and is dropped.
  */
 function ownsIdReference(contract: ComponentContract | undefined, prop: string): boolean {
-  const type = contract?.props?.find((doc) => doc.name === prop)?.type;
+  const type = propDoc(contract, prop)?.type;
   return type !== undefined && !unionMembers(type).some((member) => jsonKind(member) === "string");
 }
 
@@ -95,6 +100,18 @@ export function dropReason(contract: ComponentContract | undefined, prop: string
   return undefined;
 }
 
+/**
+ * Whether a document can set `prop` at all: the renderer does not drop it
+ * (`dropReason`) and it is not a ref that takes nothing JSON holds. The
+ * validator warns about exactly the props this refuses; the reference lists
+ * exactly the props it accepts.
+ */
+export function isDocumentProp(contract: ComponentContract, prop: string): boolean {
+  if (dropReason(contract, prop) !== undefined) return false;
+  if (contract.formProps?.includes(prop)) return true;
+  return refPropKinds(contract, prop)?.length !== 0;
+}
+
 const CONTROLLED_PROPS: ReadonlySet<string> = new Set(["value", "checked", "defaultValue", "defaultChecked"]);
 
 /**
@@ -104,5 +121,5 @@ const CONTROLLED_PROPS: ReadonlySet<string> = new Set(["value", "checked", "defa
  * being driven: a controlled value is always optional.
  */
 export function isControlledValue(contract: ComponentContract | undefined, prop: string): boolean {
-  return CONTROLLED_PROPS.has(prop) && contract?.props?.find((doc) => doc.name === prop)?.required !== true;
+  return CONTROLLED_PROPS.has(prop) && propDoc(contract, prop)?.required !== true;
 }

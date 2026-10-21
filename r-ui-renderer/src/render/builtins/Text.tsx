@@ -1,7 +1,7 @@
 import { createElement, type ReactNode } from "react";
 
 import { TEXT_ELEMENTS, TEXT_SIZES, TEXT_WEIGHTS, type TextProps } from "../../spec/types";
-import { classes, toneClass } from "./tones";
+import { classes, oneOf, toneClass } from "./tones";
 
 const SIZE_CLASSES: { readonly [S in (typeof TEXT_SIZES)[number]]: string } = {
   "body-1": "text-body-1",
@@ -14,10 +14,6 @@ const WEIGHT_CLASSES: { readonly [W in (typeof TEXT_WEIGHTS)[number]]: string } 
   medium: "font-medium",
   semibold: "font-semibold",
 };
-
-function oneOf<T extends string>(list: readonly T[], value: unknown): T | undefined {
-  return list.find((item) => item === value);
-}
 
 /** Body text on the UI scale, styled with token utilities only. */
 export function Text(props: TextProps & { readonly children?: ReactNode }): ReactNode {

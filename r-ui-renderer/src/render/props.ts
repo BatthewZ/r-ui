@@ -37,6 +37,7 @@ import { coerceColumns } from "./columns";
 import { diagnosticElement } from "./diagnostic";
 import { createFormatter, formatOptionsWork, toFormatOptions } from "./format";
 import { HOST_PROPS } from "./host-policy";
+import { glyphFor } from "./icon-context";
 import { DROP, type ParsedPropPath, parsePropPath, transformAt } from "../spec/prop-path";
 import { handlerCallback, PropResolver } from "./resolve";
 import type { Scope } from "./scope";
@@ -143,8 +144,7 @@ function own<T>(record: { readonly [key: string]: T } | undefined, key: string):
 
 /** The icon `name` names in the view's set, or a missing-icon diagnostic in its place. */
 export function iconElement(scope: Scope, name: string, path: string): ReactNode {
-  const icons = scope.ctx.icons;
-  const Glyph = icons !== undefined && Object.hasOwn(icons, name) ? icons[name] : undefined;
+  const Glyph = glyphFor(scope.ctx.icons, name);
   if (Glyph !== undefined) return createElement(Glyph, { "aria-hidden": true });
   const issue = makeIssue("unknown-icon", path, `No icon is named "${name}".`);
   scope.ctx.report(issue, { inPlace: true });
@@ -184,9 +184,48 @@ export function buildProps(
     return key === "src" ? "" : dropped;
   };
 
+  /**
+   * The policy's and the contract's judgement of a resolved value: what to set
+   * instead (DROP, or a refused `src`'s ""), or undefined when it passes.
+   */
+  const refusedAs = (key: string, value: unknown, path: string): unknown => {
+    const lower = lowerCaseProp(key);
+    if (key === "name" && facts.nameRole === "field" && !isName(value)) {
+      return resolver.drop("invalid-prop-value", path, "`name` is a field name: letters, digits and _, not starting with a digit.");
+    }
+    if (typeof value === "string") {
+      if ((UNIVERSAL_URLS.has(lower) || facts.urls.has(key)) && !urlAllowed(value)) {
+        return resolver.drop("refused-url", path, `"${value}" is not a URL a document may use.`);
+      }
+      if (lower === "srcset" ? !srcSetAllowed(value, ctx.adapters) : (UNIVERSAL_IMAGES.has(lower) || facts.images.has(key)) && !imageAllowed(value, ctx.adapters)) {
+        return refuseImage(key, path, value);
+      }
+    }
+    const elements = own(contract.elementProps, key);
+    if (elements !== undefined && (typeof value !== "string" || !elements.includes(value))) {
+      return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${elements.join(", ")}.`);
+    }
+    const levels = own(contract.headingLevelProps, key);
+    if (levels !== undefined && (typeof value !== "number" || !levels.includes(value))) {
+      return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${levels.join(", ")}.`);
+    }
+    const refKinds = refPropKinds(contract, key);
+    if (refKinds !== undefined && !refKinds.includes(typeof value)) {
+      return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${refKinds.length === 0 ? "nothing a document can write" : refKinds.join(" or ")}: a ref cannot come from a document.`);
+    }
+    const intl = own(contract.intlProps, key);
+    if (intl !== undefined && !intlValueAllowed(value, intl)) {
+      return resolver.drop("invalid-prop-value", path, `\`${key}\` is not a ${intl === "currency" ? "currency code (ISO 4217)" : "unit"} Intl knows.`);
+    }
+    return undefined;
+  };
+
+  /** A coercion's result, or DROP (reported) when it refused the value. */
+  const accepted = (value: unknown, path: string): unknown =>
+    value instanceof Refusal ? resolver.drop("invalid-prop-value", path, value.reason) : value;
+
   /** One top-level prop: the value to set, or DROP. */
   const judge = (key: string, raw: unknown, path: string): unknown => {
-    const lower = lowerCaseProp(key);
     const dropped = dropReason(contract, key);
     if (dropped !== undefined) return resolver.drop("forbidden-prop", path, DROP_MESSAGES[dropped](name, key));
     if (contract.dialog === true && key === "dialogId") {
@@ -214,40 +253,14 @@ export function buildProps(
     let value = resolver.resolve(raw, path);
     if (value === undefined) return DROP;
 
-    if (lower.startsWith("data-")) {
+    if (lowerCaseProp(key).startsWith("data-")) {
       if (!isAllowedDataAttribute(key)) return resolver.drop("forbidden-prop", path, `\`${key}\` is not an attribute a document may set.`);
       if (isAllowedDataValue(key, value)) return value;
       const options = own(CONSTRAINED_DATA_ATTRIBUTES, key);
       return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${options === undefined ? "text, a number or a boolean" : options.join(" or ")}.`);
     }
-    if (key === "name" && facts.nameRole === "field" && !isName(value)) {
-      return resolver.drop("invalid-prop-value", path, "`name` is a field name: letters, digits and _, not starting with a digit.");
-    }
-
-    if (typeof value === "string") {
-      if ((UNIVERSAL_URLS.has(lower) || facts.urls.has(key)) && !urlAllowed(value)) {
-        return resolver.drop("refused-url", path, `"${value}" is not a URL a document may use.`);
-      }
-      if (lower === "srcset" ? !srcSetAllowed(value, ctx.adapters) : (UNIVERSAL_IMAGES.has(lower) || facts.images.has(key)) && !imageAllowed(value, ctx.adapters)) {
-        return refuseImage(key, path, value);
-      }
-    }
-    const elements = own(contract.elementProps, key);
-    if (elements !== undefined && (typeof value !== "string" || !elements.includes(value))) {
-      return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${elements.join(", ")}.`);
-    }
-    const levels = own(contract.headingLevelProps, key);
-    if (levels !== undefined && (typeof value !== "number" || !levels.includes(value))) {
-      return resolver.drop("invalid-prop-value", path, `\`${key}\` is one of ${levels.join(", ")}.`);
-    }
-    const refKinds = refPropKinds(contract, key);
-    if (refKinds !== undefined && !refKinds.includes(typeof value)) {
-      return resolver.drop("invalid-prop-value", path, `\`${key}\` takes ${refKinds.length === 0 ? "nothing a document can write" : refKinds.join(" or ")}: a ref cannot come from a document.`);
-    }
-    const intl = own(contract.intlProps, key);
-    if (intl !== undefined && !intlValueAllowed(value, intl)) {
-      return resolver.drop("invalid-prop-value", path, `\`${key}\` is not a ${intl === "currency" ? "currency code (ISO 4217)" : "unit"} Intl knows.`);
-    }
+    const refused = refusedAs(key, value, path);
+    if (refused !== undefined) return refused;
 
     if (coercion?.kind === "accessor") {
       const segments = fieldSegments(value);
@@ -313,20 +326,16 @@ export function buildProps(
       out = transformAt(out, parsed.steps, (leaf, pointer) => {
         if (typeof leaf !== "string") return leaf;
         const allowed = srcSet ? srcSetAllowed(leaf, ctx.adapters) : urlAllowed(leaf) && imageAllowed(leaf, ctx.adapters);
-        return allowed || last?.kind !== "key" ? leaf : refuseImage(last.key, path + pointer, leaf);
+        if (allowed) return leaf;
+        if (last?.kind === "key") return refuseImage(last.key, path + pointer, leaf);
+        return resolver.drop("refused-url", path + pointer, `The host's image policy refuses "${leaf}".`);
       });
     }
     for (const { path: parsed, kind } of facts.datesNested.get(key) ?? []) {
-      out = transformAt(out, parsed.steps, (leaf, pointer, inCollection) => {
-        const date = coerceDate(leaf, kind, inCollection);
-        return date instanceof Refusal ? resolver.drop("invalid-prop-value", path + pointer, date.reason) : date;
-      });
+      out = transformAt(out, parsed.steps, (leaf, pointer, inCollection) => accepted(coerceDate(leaf, kind, inCollection), path + pointer));
     }
     for (const parsed of facts.setsNested.get(key) ?? []) {
-      out = transformAt(out, parsed.steps, (leaf, pointer) => {
-        const set = coerceSet(leaf);
-        return set instanceof Refusal ? resolver.drop("invalid-prop-value", path + pointer, set.reason) : set;
-      });
+      out = transformAt(out, parsed.steps, (leaf, pointer) => accepted(coerceSet(leaf), path + pointer));
     }
     return out;
   };

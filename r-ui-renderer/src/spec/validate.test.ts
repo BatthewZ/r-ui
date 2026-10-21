@@ -445,6 +445,20 @@ describe("validateViewSpec: warnings", () => {
     expect(warnings(doc(card({ className: "p-4" })), { classes: false })).toEqual([]);
   });
 
+  it("warns on date text exactly where the renderer refuses it: any non-ISO text at a key, ISO-shaped text in a list", () => {
+    const value = doc({
+      component: "Stack",
+      children: [
+        { component: "DatePicker", props: { value: "11/02/2026" } },
+        { component: "LineChart", props: { x: ["Mon", "2026-02-30", "2026-03-01"] } },
+      ],
+    });
+    expect(warnings(value).map(([code, path]) => [code, path])).toEqual([
+      ["invalid-prop-value", "/root/children/0/props/value"],
+      ["invalid-prop-value", "/root/children/1/props/x/1"],
+    ]);
+  });
+
   it("checks DataTable columns, formatters and select options as the contract says", () => {
     expect(
       warnings(
@@ -717,6 +731,25 @@ describe("validateViewSpec: warnings", () => {
       ["limit-exceeded", `/forms/f/onSubmit${"/payload/onSuccess".repeat(LIMITS.actionDepth)}/payload/onSuccess`, undefined],
       ["key-order", "/root", undefined],
       ["limit-exceeded", "/root/props/onClick", undefined],
+    ]);
+  });
+
+  it("counts a node in a prop one level below its component, as the renderer does", () => {
+    const nest = (levels: number, leaf: unknown) => {
+      let node = leaf;
+      for (let i = 0; i < levels; i += 1) node = { component: "Stack", children: [node] };
+      return node;
+    };
+    const prefix = `/root${"/children/0".repeat(LIMITS.depth - 1)}`;
+    const badge = { component: "Badge", children: ["x"] };
+    // Alert at depth LIMITS.depth - 1: its `title` node sits at LIMITS.depth (rendered), the Badge's text one past it.
+    const alert = { component: "Alert", props: { title: { $node: badge } } };
+    expect(warnings(doc(nest(LIMITS.depth - 1, alert)))).toEqual([["limit-exceeded", `${prefix}/props/title/$node/children/0`, undefined]]);
+    // A node placed inside other parents (Toolbar.Item's `menu`) is one level down too.
+    const item = { component: "Toolbar.Item", props: { menu: { $node: badge } } };
+    const toolbar = { component: "Toolbar", children: [item] };
+    expect(warnings(doc(nest(LIMITS.depth - 2, toolbar)))).toEqual([
+      ["limit-exceeded", `${prefix}/props/menu/$node/children/0`, undefined],
     ]);
   });
 

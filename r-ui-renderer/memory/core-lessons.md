@@ -28,3 +28,7 @@
   issue log. The channel delivers on a microtask, so a test of the log awaits one.
 - **Test helpers that are not tests:** a file named `*.test.helpers.tsx` stays out of the
   package (`*.test.*`) and out of the test run (`*.test.tsx` only).
+- **One marker walk.** Props and action payloads resolve markers through one `MarkerResolver`;
+  a prop subclass differs only where it must (a `$node` renders, an `on…` key is a handler,
+  drops are reported). A rule about `$ref`, `$format` or `$concat` changes there, once, or the
+  two drift apart silently.

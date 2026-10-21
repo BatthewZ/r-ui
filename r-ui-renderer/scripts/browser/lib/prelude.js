@@ -47,6 +47,22 @@ function diagnostics(page) {
   );
 }
 
+/** `diagnostics(page)` as problem lines, each led by `label` (a document's name) when there is one. */
+async function diagnosticProblems(page, label) {
+  const lead = label === undefined ? "" : `${label}: `;
+  return (await diagnostics(page)).map((d) => `${lead}diagnostic ${d.code} at ${d.path}: ${d.text}`);
+}
+
+/** Collects the URL of every request whose URL contains `fragment`, until `stop()`. */
+function collectRequests(page, fragment) {
+  const urls = [];
+  const onRequest = (request) => {
+    if (request.url().includes(fragment)) urls.push(request.url());
+  };
+  page.on("request", onRequest);
+  return { urls, stop: () => page.off("request", onRequest) };
+}
+
 const errorCollectors = [];
 
 /**

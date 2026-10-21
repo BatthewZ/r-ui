@@ -221,8 +221,20 @@ const enum Mode {
 }
 
 const QUOTE = 0x22;
+const PLUS = 0x2b;
+const COMMA = 0x2c;
+const MINUS = 0x2d;
+const DOT = 0x2e;
+const ZERO = 0x30;
+const COLON = 0x3a;
+const UPPER_E = 0x45;
+const OPEN_BRACKET = 0x5b;
 const BACKSLASH = 0x5c;
+const CLOSE_BRACKET = 0x5d;
 const BACKTICK = 0x60;
+const LOWER_E = 0x65;
+const OPEN_BRACE = 0x7b;
+const CLOSE_BRACE = 0x7d;
 
 const ESCAPES: ReadonlyMap<string, string> = new Map([
   ['"', '"'],
@@ -242,47 +254,72 @@ const LITERALS: ReadonlyMap<string, readonly [string, unknown]> = new Map<string
 ]);
 
 function isDigit(code: number): boolean {
-  return code >= 0x30 && code <= 0x39;
+  return code >= ZERO && code <= 0x39;
 }
 
 function hexValue(code: number): number {
-  if (isDigit(code)) return code - 0x30;
+  if (isDigit(code)) return code - ZERO;
   const lower = code | 0x20;
   return lower >= 0x61 && lower <= 0x66 ? lower - 0x61 + 10 : -1;
 }
 
 /**
- * Number grammar states: after `-`, a lone `0`, integer digits, after `.`,
- * fraction digits, after `e`, after the exponent's sign, exponent digits.
+ * How far a number's text has got. `Rejected`: the character ends the number
+ * (which must then be in a terminal state); `LeadingZero`: a digit after a
+ * lone `0`, which JSON forbids.
  */
-const NUMBER_TERMINAL: ReadonlySet<number> = new Set([1, 2, 4, 7]);
+const enum NumberState {
+  LeadingZero = -2,
+  Rejected = -1,
+  /** After `-`. */
+  Sign,
+  /** A lone `0`. */
+  Zero,
+  Integer,
+  /** After `.`. */
+  Dot,
+  Fraction,
+  /** After `e` or `E`. */
+  Exponent,
+  ExponentSign,
+  ExponentDigits,
+}
 
-function nextNumberState(state: number, code: number): number {
+const NUMBER_TERMINAL: ReadonlySet<NumberState> = new Set([
+  NumberState.Zero,
+  NumberState.Integer,
+  NumberState.Fraction,
+  NumberState.ExponentDigits,
+]);
+
+function nextNumberState(state: NumberState, code: number): NumberState {
   const digit = isDigit(code);
-  const dot = code === 0x2e;
-  const exponent = code === 0x65 || code === 0x45;
+  const dot = code === DOT;
+  const exponent = code === LOWER_E || code === UPPER_E;
   switch (state) {
-    case 0:
-      return code === 0x30 ? 1 : digit ? 2 : -1;
-    case 1:
-      return dot ? 3 : exponent ? 5 : digit ? -2 : -1;
-    case 2:
-      return digit ? 2 : dot ? 3 : exponent ? 5 : -1;
-    case 3:
-      return digit ? 4 : -1;
-    case 4:
-      return digit ? 4 : exponent ? 5 : -1;
-    case 5:
-      return code === 0x2b || code === 0x2d ? 6 : digit ? 7 : -1;
-    case 6:
-    case 7:
-      return digit ? 7 : -1;
+    case NumberState.Sign:
+      return code === ZERO ? NumberState.Zero : digit ? NumberState.Integer : NumberState.Rejected;
+    case NumberState.Zero:
+      return dot ? NumberState.Dot : exponent ? NumberState.Exponent : digit ? NumberState.LeadingZero : NumberState.Rejected;
+    case NumberState.Integer:
+      return digit ? NumberState.Integer : dot ? NumberState.Dot : exponent ? NumberState.Exponent : NumberState.Rejected;
+    case NumberState.Dot:
+      return digit ? NumberState.Fraction : NumberState.Rejected;
+    case NumberState.Fraction:
+      return digit ? NumberState.Fraction : exponent ? NumberState.Exponent : NumberState.Rejected;
+    case NumberState.Exponent:
+      return code === PLUS || code === MINUS ? NumberState.ExponentSign : digit ? NumberState.ExponentDigits : NumberState.Rejected;
+    case NumberState.ExponentSign:
+    case NumberState.ExponentDigits:
+      return digit ? NumberState.ExponentDigits : NumberState.Rejected;
     default:
-      return -1;
+      return NumberState.Rejected;
   }
 }
 
-function describe(char: string): string {
+/** The character at `index`, quoted, for an error message. */
+function describeAt(chunk: string, index: number): string {
+  const char = chunk[index] ?? "";
   return char === "" ? "end of text" : JSON.stringify(char);
 }
 
@@ -306,7 +343,7 @@ class Parser implements ViewSpecParser {
   private leaf: { readonly token: string | number; readonly textChild: boolean } | undefined;
 
   private numberText = "";
-  private numberState = 0;
+  private numberState = NumberState.Sign;
   private literal: readonly [string, unknown] = ["", null];
   private literalIndex = 0;
 
@@ -368,10 +405,10 @@ class Parser implements ViewSpecParser {
           else if (code === BACKTICK) {
             this.ticks = 0;
             this.mode = Mode.FenceTicks;
-          } else if (code === 0x7b) {
+          } else if (code === OPEN_BRACE) {
             this.openRoot();
             index += 1;
-          } else return this.fail(index, `Expected "{" to start the document, found ${describe(chunk[index] ?? "")}.`);
+          } else return this.fail(index, `Expected "{" to start the document, found ${describeAt(chunk, index)}.`);
           break;
 
         case Mode.FenceTicks:
@@ -396,7 +433,7 @@ class Parser implements ViewSpecParser {
           if (isJsonWhitespace(code)) index += 1;
           else {
             this.jsonStart = this.consumed + index;
-            if (code !== 0x7b) return this.fail(index, `Expected "{" to start the document, found ${describe(chunk[index] ?? "")}.`);
+            if (code !== OPEN_BRACE) return this.fail(index, `Expected "{" to start the document, found ${describeAt(chunk, index)}.`);
             this.openRoot();
             index += 1;
           }
@@ -405,11 +442,11 @@ class Parser implements ViewSpecParser {
         case Mode.Value:
         case Mode.ArrayFirst:
           if (isJsonWhitespace(code)) index += 1;
-          else if (code === 0x5d && this.mode === Mode.ArrayFirst) {
+          else if (code === CLOSE_BRACKET && this.mode === Mode.ArrayFirst) {
             this.closeContainer();
             index += 1;
           } else {
-            if (!this.startValue(code)) return this.fail(index, `Expected a value, found ${describe(chunk[index] ?? "")}.`);
+            if (!this.startValue(code)) return this.fail(index, `Expected a value, found ${describeAt(chunk, index)}.`);
             index += 1;
           }
           break;
@@ -417,21 +454,21 @@ class Parser implements ViewSpecParser {
         case Mode.ObjectFirst:
         case Mode.ObjectKey:
           if (isJsonWhitespace(code)) index += 1;
-          else if (code === 0x7d && this.mode === Mode.ObjectFirst) {
+          else if (code === CLOSE_BRACE && this.mode === Mode.ObjectFirst) {
             this.closeContainer();
             index += 1;
           } else if (code === QUOTE) {
             this.startString(true);
             index += 1;
-          } else return this.fail(index, `Expected a key in double quotes, found ${describe(chunk[index] ?? "")}.`);
+          } else return this.fail(index, `Expected a key in double quotes, found ${describeAt(chunk, index)}.`);
           break;
 
         case Mode.Colon:
           if (isJsonWhitespace(code)) index += 1;
-          else if (code === 0x3a) {
+          else if (code === COLON) {
             this.mode = Mode.Value;
             index += 1;
-          } else return this.fail(index, `Expected ":" after a key, found ${describe(chunk[index] ?? "")}.`);
+          } else return this.fail(index, `Expected ":" after a key, found ${describeAt(chunk, index)}.`);
           break;
 
         case Mode.AfterValue: {
@@ -440,9 +477,9 @@ class Parser implements ViewSpecParser {
             break;
           }
           const array = this.stack[this.stack.length - 1]?.array === true;
-          if (code === 0x2c) this.mode = array ? Mode.Value : Mode.ObjectKey;
-          else if (code === (array ? 0x5d : 0x7d)) this.closeContainer();
-          else return this.fail(index, `Expected "," or "${array ? "]" : "}"}", found ${describe(chunk[index] ?? "")}.`);
+          if (code === COMMA) this.mode = array ? Mode.Value : Mode.ObjectKey;
+          else if (code === (array ? CLOSE_BRACKET : CLOSE_BRACE)) this.closeContainer();
+          else return this.fail(index, `Expected "," or "${array ? "]" : "}"}", found ${describeAt(chunk, index)}.`);
           index += 1;
           break;
         }
@@ -492,12 +529,12 @@ class Parser implements ViewSpecParser {
 
         case Mode.Number: {
           const next = nextNumberState(this.numberState, code);
-          if (next >= 0) {
+          if (next === NumberState.LeadingZero) return this.fail(index, "A number cannot have a leading zero.");
+          if (next !== NumberState.Rejected) {
             this.numberState = next;
             this.numberText += chunk[index] ?? "";
             index += 1;
-          } else if (next === -2) return this.fail(index, "A number cannot have a leading zero.");
-          else if (!NUMBER_TERMINAL.has(this.numberState)) return this.fail(index, `Malformed number "${this.numberText}".`);
+          } else if (!NUMBER_TERMINAL.has(this.numberState)) return this.fail(index, `Malformed number "${this.numberText}".`);
           else this.finishValue(Number(this.numberText));
           break;
         }
@@ -516,7 +553,7 @@ class Parser implements ViewSpecParser {
           else if (code === BACKTICK) {
             this.ticks = 0;
             this.mode = Mode.TrailTicks;
-          } else return this.fail(index, `Unexpected text after the document: ${describe(chunk[index] ?? "")}.`);
+          } else return this.fail(index, `Unexpected text after the document: ${describeAt(chunk, index)}.`);
           break;
 
         case Mode.TrailTicks:
@@ -599,17 +636,17 @@ class Parser implements ViewSpecParser {
   private startValue(code: number): boolean {
     const parent = this.top();
     if (parent === undefined) return false;
-    if (code === 0x7b || code === 0x5b) {
-      const array = code === 0x5b;
+    if (code === OPEN_BRACE || code === OPEN_BRACKET) {
+      const array = code === OPEN_BRACKET;
       this.tokens.push(this.tokenOf(parent));
       this.stack.push(newFrame(array, roleOfChild(parent, array)));
       this.mode = array ? Mode.ArrayFirst : Mode.ObjectFirst;
     } else if (code === QUOTE) {
       this.leaf = { token: this.tokenOf(parent), textChild: parent.role === "children" };
       this.startString(false);
-    } else if (code === 0x2d || isDigit(code)) {
+    } else if (code === MINUS || isDigit(code)) {
       this.leaf = { token: this.tokenOf(parent), textChild: false };
-      this.numberState = code === 0x2d ? 0 : nextNumberState(0, code);
+      this.numberState = code === MINUS ? NumberState.Sign : nextNumberState(NumberState.Sign, code);
       this.numberText = String.fromCharCode(code);
       this.mode = Mode.Number;
     } else {

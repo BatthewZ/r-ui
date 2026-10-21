@@ -128,27 +128,27 @@ export function useDataBindings(bindings: unknown, options: DataBindingsOptions)
   }, [bindings, adapters, state, pending, report]);
 
   const [results, setResults] = useState<{ readonly [name: string]: Result }>({});
-  const inflight = useRef(new Map<string, { key: string; controller: AbortController }>());
+  /** The request started for each binding's current key, in flight or settled (a settled key is not asked again). */
+  const started = useRef(new Map<string, { key: string; controller: AbortController }>());
 
   const requests = [...plans].filter((entry): entry is [string, Extract<Plan, { kind: "request" }>] => entry[1].kind === "request");
   const signature = JSON.stringify(requests.map(([name, plan]) => [name, plan.key]));
 
   useEffect(() => {
-    const running = inflight.current;
+    const requested = started.current;
     const wanted = new Map(requests);
-    for (const [name, entry] of running) {
+    for (const [name, entry] of requested) {
       if (wanted.get(name)?.key === entry.key) continue;
       entry.controller.abort();
-      running.delete(name);
+      requested.delete(name);
     }
     for (const [name, plan] of wanted) {
-      if (running.has(name)) continue;
+      if (requested.has(name)) continue;
       const controller = new AbortController();
-      running.set(name, { key: plan.key, controller });
+      requested.set(name, { key: plan.key, controller });
       plan.run(controller.signal).then(
         (outcome) => {
           if (controller.signal.aborted) return;
-          running.delete(name);
           if (!outcome.ok) {
             report(makeIssue("data-error", appendPointer("/data", name), `Data binding "${name}" failed: ${outcome.message}`));
           }
@@ -163,10 +163,10 @@ export function useDataBindings(bindings: unknown, options: DataBindingsOptions)
   }, [signature]);
 
   useEffect(() => {
-    const running = inflight.current;
+    const requested = started.current;
     return () => {
-      for (const entry of running.values()) entry.controller.abort();
-      running.clear();
+      for (const entry of requested.values()) entry.controller.abort();
+      requested.clear();
     };
   }, []);
 

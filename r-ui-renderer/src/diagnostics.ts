@@ -25,7 +25,7 @@ export const DIAGNOSTIC_CLASSES = {
 
 export const DIAGNOSTIC_SELECTOR = `.${DIAGNOSTIC_CLASSES.diagnostic}`;
 
-export function severityClass(severity: IssueSeverity): string {
+function severityClass(severity: IssueSeverity): string {
   return severity === "error" ? DIAGNOSTIC_CLASSES.error : DIAGNOSTIC_CLASSES.warning;
 }
 

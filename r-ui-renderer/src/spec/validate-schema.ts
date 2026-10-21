@@ -109,6 +109,25 @@ export const SCHEMA_KEYWORDS = [
   "x-discriminator",
 ] as const satisfies readonly (keyof SchemaDef)[];
 
+export type SchemaDefs = { readonly [name: string]: SchemaDef };
+
+const DEF_PREFIX = "#/$defs/";
+
+/** The definition a `$ref` names in `defs`, with its name. Throws when it names none. */
+export function lookupRef(defs: SchemaDefs, target: string): { readonly name: string; readonly def: SchemaDef } {
+  const name = target.startsWith(DEF_PREFIX) ? target.slice(DEF_PREFIX.length) : undefined;
+  const def = name === undefined || !Object.hasOwn(defs, name) ? undefined : defs[name];
+  if (name === undefined || def === undefined) throw new Error(`Schema $ref ${target} names no definition.`);
+  return { name, def };
+}
+
+/** A string's length as `minLength` and `maxLength` count it: in code points. */
+export function codePoints(text: string): number {
+  let count = 0;
+  for (const _ of text) count += 1;
+  return count;
+}
+
 // ---------------------------------------------------------------------------
 // Closed sets the format's types spell inline (`types.ts` holds them as unions;
 // validate-schema.test.ts holds each list equal to its union).
@@ -172,7 +191,7 @@ function shape<T>() {
   });
 }
 
-const ref = (name: string): SchemaDef => ({ $ref: `#/$defs/${name}` });
+const ref = (name: string): SchemaDef => ({ $ref: `${DEF_PREFIX}${name}` });
 const string: SchemaDef = { type: "string" };
 const boolean: SchemaDef = { type: "boolean" };
 const number: SchemaDef = { type: "number" };
@@ -433,7 +452,7 @@ const FORM_DEF = shape<FormDef>()(
 // ---------------------------------------------------------------------------
 // The document
 
-const DEFS: { readonly [name: string]: SchemaDef } = {
+const DEFS: SchemaDefs = {
   Name: {
     type: "string",
     pattern: PATTERNS.name,
@@ -582,7 +601,7 @@ export const VIEWSPEC_SCHEMA: SchemaDef & { readonly $defs: typeof DEFS } = {
  */
 type ColumnFilter<T extends string> = Extract<NonNullable<DataTableColumnSpec["filter"]>, { readonly type: T }>;
 
-export const ADVISORY_DEFS: { readonly [name: string]: SchemaDef } = {
+export const ADVISORY_DEFS: SchemaDefs = {
   ...DEFS,
   FormatSpec: { anyOf: [values(FORMAT_STYLES), formatOptions(false)] },
   Column: shape<DataTableColumnSpec>()(

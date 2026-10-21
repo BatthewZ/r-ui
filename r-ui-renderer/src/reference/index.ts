@@ -13,7 +13,7 @@ export {
 export { scopeContracts } from "./scope";
 
 /** VIEWSPEC.md's hand-written half, its regions empty (written by `gen:viewspec`). */
-const PROSE = (proseLines as readonly string[]).join("\n");
+const PROSE = proseLines.join("\n");
 
 /**
  * The whole reference as Markdown: this package's prose with every region

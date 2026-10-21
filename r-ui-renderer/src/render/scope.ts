@@ -41,13 +41,7 @@ export function childScope(
   tokens: readonly (string | number)[],
   vars?: { readonly [name: string]: unknown },
 ): Scope {
-  return {
-    ctx: scope.ctx,
-    env: scope.env,
-    vars: vars ? { ...scope.vars, ...vars } : scope.vars,
-    path: tokens.reduce<string>(appendPointer, scope.path),
-    depth: scope.depth + 1,
-  };
+  return propNodeScope(scope, tokens.reduce<string>(appendPointer, scope.path), vars);
 }
 
 /** A node held in a prop (`$node`, a row template) at `path`, one level down. */

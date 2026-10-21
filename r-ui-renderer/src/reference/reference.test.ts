@@ -6,11 +6,11 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { defaultContracts, extendContracts, LIBRARY_COMPONENTS, NOT_ADDRESSABLE } from "../contracts";
+import { isDocumentProp } from "../spec/contract-facts";
 import type { ComponentContracts } from "../spec/types";
 import { validateViewSpec } from "../spec/validate";
 import { CLASS_VOCABULARY, ICON_NAMES } from "../spec/vocabulary";
 import { CATEGORY_TITLES } from "./categories";
-import { isDocumentProp } from "./components";
 import { renderReferenceRegions, renderViewSpecReference, scopeContracts } from "./index";
 import { emptyRegions, fillRegions, regionNames } from "./regions";
 

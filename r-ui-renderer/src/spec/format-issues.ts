@@ -5,11 +5,16 @@ export interface FormatIssuesOptions {
   readonly maxIssues?: number;
 }
 
-function line(issue: Issue): string {
+/** An issue's JSON Pointer (`(document)` for the whole), with its line and column when it has them. */
+export function issueLocation(issue: Issue): string {
   const at = issue.path === "" ? "(document)" : issue.path;
   const where = issue.line === undefined ? "" : ` (line ${issue.line}, column ${issue.column ?? 1})`;
+  return `${at}${where}`;
+}
+
+function line(issue: Issue): string {
   const fix = issue.suggestion === undefined ? "" : ` Use ${issue.suggestion}.`;
-  return `${at}${where} ${issue.severity} ${issue.code}: ${issue.message}${fix}`;
+  return `${issueLocation(issue)} ${issue.severity} ${issue.code}: ${issue.message}${fix}`;
 }
 
 function count(n: number, word: string): string {

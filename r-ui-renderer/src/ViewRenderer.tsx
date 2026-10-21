@@ -10,6 +10,7 @@ import { type ComponentRegistry, defaultRegistry, listRegistryNames } from "./re
 import { formatWith } from "./render/format";
 import { IconSetContext } from "./render/icon-context";
 import { IssueLog } from "./render/IssueLog";
+import { sameList } from "./render/memo";
 import { renderNode } from "./render/render-node";
 import { createRootScope, type ViewEnv } from "./render/scope";
 import type { RendererAdapters } from "./runtime/adapters";
@@ -28,8 +29,8 @@ import {
   type ViewSpec,
 } from "./spec/types";
 import { validateViewSpec } from "./spec/validate";
-import type { PartialDocument, StreamSnapshot } from "./stream/snapshot";
-import { useTextStream } from "./stream/use-view-spec-stream";
+import { NOTHING_PENDING, type PartialDocument, type StreamSnapshot } from "./stream/snapshot";
+import { requestFrame, useTextStream } from "./stream/use-view-spec-stream";
 
 /** One of three inputs, fixed for the life of the element. */
 export type ViewRendererInput =
@@ -72,20 +73,10 @@ export interface ViewRendererOptions {
 export type ViewRendererProps = ViewRendererInput & ViewRendererOptions;
 
 const NO_ADAPTERS: RendererAdapters = Object.freeze({});
-const NOTHING_PENDING: ReadonlySet<string> = new Set();
 const NONE: readonly never[] = Object.freeze([]);
 
 function isDensity(value: unknown): value is Density {
   return DENSITIES.some((density) => density === value);
-}
-
-function requestFrame(callback: () => void): () => void {
-  if (typeof requestAnimationFrame === "function") {
-    const handle = requestAnimationFrame(callback);
-    return () => cancelAnimationFrame(handle);
-  }
-  const handle = setTimeout(callback, 16);
-  return () => clearTimeout(handle);
 }
 
 /**
@@ -113,8 +104,7 @@ function useFrameSnapshot(snapshot: StreamSnapshot, coalesce: boolean): StreamSn
 /** A list's identity kept while its items are the same, so a host's inline array does not defeat memoised rendering. */
 function useStableList<T>(list: readonly T[]): readonly T[] {
   const kept = useRef(list);
-  const same = kept.current.length === list.length && kept.current.every((item, index) => Object.is(item, list[index]));
-  if (!same) kept.current = list;
+  if (!sameList(kept.current, list)) kept.current = list;
   return kept.current;
 }
 
@@ -180,6 +170,7 @@ export function ViewRenderer(props: ViewRendererProps): ReactNode {
   );
   const sensitive = useStableList(typeof allowSensitive === "boolean" ? NONE : allowSensitive);
   const allowed = typeof allowSensitive === "boolean" ? allowSensitive : sensitive;
+  const iconNames = useStableList(icons === undefined ? NONE : Object.keys(icons));
 
   useEffect(() => {
     const error = snapshot.error;
@@ -195,8 +186,10 @@ export function ViewRenderer(props: ViewRendererProps): ReactNode {
   useEffect(() => {
     const callback = onValidationRef.current;
     if (callback === undefined || !snapshot.complete || document === undefined) return;
-    callback(validateViewSpec(document, { contracts, components: listRegistryNames(registry), allowSensitive: allowed }));
-  }, [snapshot.complete, document, contracts, registry, allowed]);
+    callback(
+      validateViewSpec(document, { contracts, components: listRegistryNames(registry), icons: iconNames, allowSensitive: allowed }),
+    );
+  }, [snapshot.complete, document, contracts, registry, iconNames, allowed]);
 
   const viewDensity = density ?? (isDensity(document?.density) ? document.density : undefined);
 

@@ -14,7 +14,7 @@ import { relative } from "node:path";
 
 import { globSync } from "glob";
 
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { failWith, PKG, pathArg } from "./lib/gate.mjs";
 
 const ROOT = pathArg("--root", PKG);
 
@@ -42,11 +42,5 @@ if (files.length === 0) {
   console.error("verify:no-suppressions — no source files found; the scan is broken");
   process.exit(1);
 }
-if (problems.length > 0) {
-  console.error(
-    `verify:no-suppressions — ${problems.length} suppression(s):\n${problems.map((p) => `  ${p}`).join("\n")}\n\n` +
-      "Fix the error instead of silencing it.",
-  );
-  process.exit(1);
-}
+if (problems.length > 0) failWith(`verify:no-suppressions — ${problems.length} suppression(s)`, problems, "Fix the error instead of silencing it.");
 console.log(`verify:no-suppressions — OK (${files.length} file(s))`);

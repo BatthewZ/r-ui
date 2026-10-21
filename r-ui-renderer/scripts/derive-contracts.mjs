@@ -33,7 +33,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import ts from "typescript";
 
-import { PKG, pathArg } from "./lib/gate.mjs";
+import { isMain, PKG, pathArg, readText } from "./lib/gate.mjs";
 
 const LIBRARY = "@batthewz/r-ui-react-components";
 
@@ -596,13 +596,7 @@ async function main() {
   for (const [file, value] of Object.entries(files)) {
     const path = join(outDir, file);
     const next = serialise(value);
-    let current = null;
-    try {
-      current = readFileSync(path, "utf8");
-    } catch {
-      current = null;
-    }
-    if (current === next) continue;
+    if (readText(path) === next) continue;
     if (check) stale.push(relative(PKG, path));
     else writeFileSync(path, next);
   }
@@ -617,7 +611,7 @@ async function main() {
   console.log(`derive-contracts — ${check ? "OK" : "written"} (${count} components and parts)`);
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+if (isMain(import.meta.url)) {
   main().catch((error) => {
     console.error(`derive-contracts — ${error.message}`);
     process.exit(1);

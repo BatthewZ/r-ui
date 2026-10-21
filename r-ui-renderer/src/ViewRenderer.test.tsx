@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createMountProbe, queryDiagnostics } from "../test-utils";
 import { defaultContracts, extendContracts } from "./contracts";
 import { defaultRegistry, extendRegistry } from "./registry/registry";
-import type { ViewSpec } from "./spec/types";
+import type { ValidationResult, ViewSpec } from "./spec/types";
 import { ViewRenderer } from "./ViewRenderer";
 
 const view = (root: ViewSpec["root"], extra: Partial<ViewSpec> = {}): ViewSpec => ({ version: 2, title: "Test", ...extra, root });
@@ -87,6 +87,28 @@ describe("host options", () => {
     expect(container.querySelector("img")).toBeNull();
     rerender(<ViewRenderer spec={spec} markdownImageAllowlist={["/assets/"]} />);
     expect(container.querySelector("img")).toHaveAttribute("src", "/assets/plan.png");
+  });
+});
+
+describe("onValidation", () => {
+  const iconWarnings = (onValidation: ReturnType<typeof vi.fn>) =>
+    (onValidation.mock.calls[0]?.[0] as ValidationResult).issues.filter((issue) => issue.code === "unknown-icon").map((issue) => issue.path);
+
+  it("checks icon names against the icon set the view draws from, not the shipped one", () => {
+    const Sparkle = () => <svg data-testid="sparkle" />;
+    const spec = view({ component: "Stack", children: [{ component: "Icon", props: { name: "sparkle" } }, { component: "Icon", props: { name: "activity" } }] });
+
+    const withSet = vi.fn();
+    const { unmount } = render(<ViewRenderer spec={spec} icons={{ sparkle: Sparkle }} onValidation={withSet} />);
+    expect(screen.getByTestId("sparkle")).toBeInTheDocument();
+    expect(withSet).toHaveBeenCalledTimes(1);
+    expect(iconWarnings(withSet)).toEqual(["/root/children/1/props/name"]);
+    unmount();
+
+    const withoutSet = vi.fn();
+    render(<ViewRenderer spec={spec} onValidation={withoutSet} />);
+    expect(withoutSet).toHaveBeenCalledTimes(1);
+    expect(iconWarnings(withoutSet)).toEqual(["/root/children/0/props/name", "/root/children/1/props/name"]);
   });
 });
 

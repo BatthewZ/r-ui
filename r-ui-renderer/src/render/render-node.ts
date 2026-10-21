@@ -14,14 +14,14 @@ import { isPending } from "../stream/pending";
 import { Icon } from "./builtins/Icon";
 import { fieldSegments } from "./coerce";
 import { evaluateCondition } from "./conditions";
-import { placeDiagnostic, reportIssue } from "./diagnostic";
+import { errorMessage, placeDiagnostic, reportIssue } from "./diagnostic";
+import { glyphFor } from "./icon-context";
 import { memoised, type Slot } from "./memo";
 import { NodeBoundary } from "./NodeBoundary";
 import { buildProps, iconElement } from "./props";
 import { PropResolver } from "./resolve";
 import { childScope, refScopeOf, type Scope } from "./scope";
-import { valueText } from "../runtime/resolve";
-import { readValue } from "./text";
+import { readValue, valueText } from "../runtime/resolve";
 
 const ROOT_SLOT: Slot = { boundary: true, structural: false };
 /** Elements a layout component may render as (`as`) whose children are structured: no diagnostic element may stand there. */
@@ -59,21 +59,19 @@ function renderAt(node: unknown, scope: Scope, slot: Slot): ReactNode {
     return placeDiagnostic(
       scope,
       makeIssue("limit-exceeded", scope.path, `Nodes nest deeper than ${LIMITS.depth} levels; the rest is not rendered.`),
-      slot.structural,
-      slot.key,
+      slot,
     );
   }
   if (isPending(node) || node === undefined) return pendingFallback(scope, slot);
   if (typeof node === "string") return keyed(node, slot.key);
   if (!isPlainObject(node)) {
-    return placeDiagnostic(scope, makeIssue("invalid-node", scope.path, "Not a node: text or an object."), slot.structural, slot.key);
+    return placeDiagnostic(scope, makeIssue("invalid-node", scope.path, "Not a node: text or an object."), slot);
   }
   return memoised(node, scope, slot, () => {
     try {
       return renderObject(node, scope, slot);
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return placeDiagnostic(scope, makeIssue("render-error", scope.path, message), slot.structural, slot.key);
+      return placeDiagnostic(scope, makeIssue("render-error", scope.path, errorMessage(error)), slot);
     }
   });
 }
@@ -98,8 +96,7 @@ function renderObject(node: Record<string, unknown>, scope: Scope, slot: Slot): 
   return placeDiagnostic(
     scope,
     makeIssue("invalid-node", scope.path, "Not a node: a node has one of `component`, `$ref`, `$format`, `$each` or `$cond`."),
-    slot.structural,
-    slot.key,
+    slot,
   );
 }
 
@@ -116,7 +113,7 @@ function renderRef(path: string, scope: Scope, slot: Slot): ReactNode {
 function renderEach(node: Record<string, unknown>, source: string, scope: Scope, slot: Slot): ReactNode {
   const alias = node.as;
   if (!isName(alias) || RESERVED.has(alias)) {
-    return placeDiagnostic(scope, makeIssue("invalid-name", appendPointer(scope.path, "as"), "`as` is a name that is not a scope root."), slot.structural, slot.key);
+    return placeDiagnostic(scope, makeIssue("invalid-name", appendPointer(scope.path, "as"), "`as` is a name that is not a scope root."), slot);
   }
   const items = readValue(source, refScopeOf(scope));
   if (!Array.isArray(items)) {
@@ -144,13 +141,22 @@ function renderEach(node: Record<string, unknown>, source: string, scope: Scope,
     return { boundary: slot.boundary, structural: slot.structural, key };
   };
   const rendered = items.map((item: unknown, index) =>
-    renderAt(node.node, childScope(scope, ["node"], { [alias]: item, [`${alias}Index`]: index }), itemSlot(index, item)),
+    renderAt(node.node, itemScope(scope, alias, item, index), itemSlot(index, item)),
   );
   return keyed(rendered, slot.key);
 }
 
+/** The scope an `$each` item renders in: `alias` and `<alias>Index` bound. */
+function itemScope(scope: Scope, alias: string, item: unknown, index: number): Scope {
+  return childScope(scope, ["node"], { [alias]: item, [`${alias}Index`]: index });
+}
+
+function condBranch(node: Record<string, unknown>, scope: Scope): "then" | "else" {
+  return evaluateCondition(node.$cond, refScopeOf(scope)) ? "then" : "else";
+}
+
 function renderCond(node: Record<string, unknown>, scope: Scope, slot: Slot): ReactNode {
-  const branch = evaluateCondition(node.$cond, refScopeOf(scope)) ? "then" : "else";
+  const branch = condBranch(node, scope);
   if (!Object.hasOwn(node, branch)) {
     return scope.ctx.streaming.pending.has(scope.path) ? pendingFallback(scope, slot) : null;
   }
@@ -164,7 +170,7 @@ function sensitiveAllowed(allow: boolean | readonly string[], name: string): boo
 function renderComponent(node: Record<string, unknown>, name: string, scope: Scope, slot: Slot): ReactNode {
   const { ctx } = scope;
   const place = (code: "unknown-component" | "not-addressable" | "sensitive-component", message: string) =>
-    placeDiagnostic(scope, makeIssue(code, appendPointer(scope.path, "component"), message), slot.structural, slot.key);
+    placeDiagnostic(scope, makeIssue(code, appendPointer(scope.path, "component"), message), slot);
   const Component = lookupComponent(ctx.registry, name);
   if (Component === undefined) {
     const exclusion = exclusionFor(name);
@@ -178,14 +184,11 @@ function renderComponent(node: Record<string, unknown>, name: string, scope: Sco
   }
 
   const built = buildProps(name, contract, node.props, scope, renderAt);
-  if (built.failure !== undefined) return placeDiagnostic(scope, built.failure, slot.structural, slot.key);
+  if (built.failure !== undefined) return placeDiagnostic(scope, built.failure, slot);
   if (built.waiting) return pendingFallback(scope, slot);
   const { props } = built;
-  if (Component === Icon) {
-    const iconName = props.name;
-    if (typeof iconName !== "string" || ctx.icons === undefined || !Object.hasOwn(ctx.icons, iconName)) {
-      return keyed(iconElement(scope, String(iconName), appendPointer(appendPointer(scope.path, "props"), "name")), slot.key);
-    }
+  if (Component === Icon && glyphFor(ctx.icons, props.name) === undefined) {
+    return keyed(iconElement(scope, String(props.name), appendPointer(appendPointer(scope.path, "props"), "name")), slot.key);
   }
 
   const structural = contract.structuralChildren === true || (typeof props.as === "string" && STRUCTURAL_ELEMENTS.has(props.as));
@@ -240,12 +243,10 @@ function nodeText(node: unknown, scope: Scope): string {
     const items = readValue(node.$each, refs);
     if (!Array.isArray(items)) return "";
     const alias = node.as;
-    return items
-      .map((item: unknown, index) => nodeText(node.node, childScope(scope, ["node"], { [alias]: item, [`${alias}Index`]: index })))
-      .join("");
+    return items.map((item: unknown, index) => nodeText(node.node, itemScope(scope, alias, item, index))).join("");
   }
   if (Object.hasOwn(node, "$cond")) {
-    const branch = evaluateCondition(node.$cond, refs) ? "then" : "else";
+    const branch = condBranch(node, scope);
     return nodeText(node[branch], childScope(scope, [branch]));
   }
   reportIssue(scope, "not-renderable", scope.path, "This component's children are text; a component here renders nothing.");
