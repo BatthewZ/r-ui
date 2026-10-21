@@ -1,0 +1,111 @@
+{
+  "version": 2,
+  "title": "Coverage: filters",
+  "description": "A filter bar with every kind of filter the format can express, over an order list.",
+  "state": { "filters": { "status": ["late"] } },
+  "data": {
+    "orders": {
+      "type": "static",
+      "value": [
+        { "id": "SO-10422", "customer": "Halcyon Cold Chain", "status": "late", "total": 18240.5 },
+        { "id": "SO-10421", "customer": "Quarry Supply Co.", "status": "delivered", "total": 920 },
+        { "id": "SO-10420", "customer": "Tessera", "status": "in-transit", "total": -125.4 }
+      ]
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Orders"] },
+          {
+            "component": "FilterBar",
+            "props": {
+              "defaultValue": { "status": ["late"] },
+              "resultCount": { "$ref": "data.orders.length" },
+              "collapse": "auto",
+              "drawerSide": "end",
+              "now": "2026-10-21T09:00:00Z",
+              "filters": [
+                { "kind": "search", "id": "q", "label": "Search", "placeholder": "Order number or customer" },
+                {
+                  "kind": "select",
+                  "id": "warehouse",
+                  "label": "Warehouse",
+                  "searchable": true,
+                  "options": [
+                    { "value": "ams", "label": "Amsterdam" },
+                    { "value": "ber", "label": "Berlin" },
+                    { "value": "lis", "label": "Lisbon (opens in December)", "disabled": true }
+                  ]
+                },
+                {
+                  "kind": "multi",
+                  "id": "carrier",
+                  "label": "Carrier",
+                  "selectAll": true,
+                  "options": [{ "value": "dhl", "label": "DHL" }, { "value": "ups", "label": "UPS" }, { "value": "dpd", "label": "DPD" }]
+                },
+                {
+                  "kind": "toggle",
+                  "id": "status",
+                  "label": "Status",
+                  "options": [
+                    { "value": "late", "label": "Late" },
+                    { "value": "in-transit", "label": "In transit" },
+                    { "value": "delivered", "label": "Delivered" }
+                  ]
+                },
+                {
+                  "kind": "range",
+                  "id": "total",
+                  "label": "Order total",
+                  "min": 0,
+                  "max": 50000,
+                  "step": 500,
+                  "formatOptions": { "style": "currency", "currency": "EUR", "maximumFractionDigits": 0 }
+                },
+                { "kind": "dateRange", "id": "placed", "label": "Placed", "placeholder": "Any time", "max": "2026-10-21" }
+              ],
+              "onValueChange": [
+                { "action": "setState", "payload": { "path": "state.filters", "value": null } },
+                { "action": "setState", "payload": { "path": "state.filters", "value": { "$ref": "event.value" } } }
+              ]
+            }
+          },
+          {
+            "component": "Stack",
+            "props": { "gap": "r5" },
+            "children": [
+              {
+                "$each": "data.orders",
+                "as": "order",
+                "key": "id",
+                "node": {
+                  "component": "Inline",
+                  "props": { "justify": "between", "gap": "r4", "className": "border-b pb-r5" },
+                  "children": [
+                    {
+                      "component": "Text",
+                      "props": { "as": "span", "weight": "medium" },
+                      "children": [{ "$ref": "order.id" }, " · ", { "$ref": "order.customer" }]
+                    },
+                    {
+                      "component": "Text",
+                      "props": { "as": "span", "className": "tabular-nums" },
+                      "children": [{ "$format": { "value": { "$ref": "order.total" }, "style": "currency", "currency": "EUR" } }]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

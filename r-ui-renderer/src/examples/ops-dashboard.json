@@ -1,0 +1,417 @@
+{
+  "version": 2,
+  "title": "Production operations",
+  "description": "Availability, latency and cost of every production service, with the services that need attention first.",
+  "density": "compact",
+  "state": { "filters": {} },
+  "data": {
+    "summary": {
+      "type": "static",
+      "value": {
+        "availability": 0.99412,
+        "availabilityChange": -0.0031,
+        "p95": 486,
+        "p95Change": 112,
+        "budgetLeft": -0.124,
+        "requests": 20402867914,
+        "requestsChange": 0.083,
+        "costToDate": null
+      }
+    },
+    "latency": {
+      "type": "static",
+      "value": {
+        "days": [
+          "2026-10-08",
+          "2026-10-09",
+          "2026-10-10",
+          "2026-10-11",
+          "2026-10-12",
+          "2026-10-13",
+          "2026-10-14",
+          "2026-10-15",
+          "2026-10-16",
+          "2026-10-17",
+          "2026-10-18",
+          "2026-10-19",
+          "2026-10-20",
+          "2026-10-21"
+        ],
+        "p50": [88, 91, 86, 84, 90, 97, 95, 101, 99, 93, 92, 104, 118, 131],
+        "p95": [301, 322, 298, 287, 315, null, null, 344, 351, 330, 326, 398, 455, 486],
+        "requests": [1.31, 1.42, 1.38, 1.12, 1.05, 1.47, 1.51, 1.49, 1.53, 1.6, 1.21, 1.18, 1.66, 1.71]
+      }
+    },
+    "services": {
+      "type": "api",
+      "endpoint": "/fixtures/ops-services.json",
+      "query": {
+        "region": { "$ref": "state.filters.region" },
+        "status": { "$ref": "state.filters.status" },
+        "q": { "$ref": "state.filters.q" }
+      }
+    },
+    "incidents": { "type": "static", "value": [] }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          {
+            "component": "Inline",
+            "props": { "justify": "between", "align": "center", "gap": "r4" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r6" },
+                "children": [
+                  { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Production operations"] },
+                  {
+                    "component": "Text",
+                    "props": { "tone": "secondary", "size": "body-2" },
+                    "children": ["Last 14 days across six regions. Figures refresh every five minutes."]
+                  }
+                ]
+              },
+              {
+                "component": "Inline",
+                "props": { "gap": "r5", "align": "center" },
+                "children": [
+                  { "component": "StatusLabel", "props": { "tone": "warning" }, "children": ["2 services need attention"] },
+                  {
+                    "component": "Button",
+                    "props": {
+                      "variant": "secondary",
+                      "iconStart": "refresh-cw",
+                      "onClick": {
+                        "action": "showToast",
+                        "payload": { "title": "Refreshing", "description": "Service figures will update in a moment.", "tone": "info" }
+                      }
+                    },
+                    "children": ["Refresh"]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Grid",
+            "props": { "minColumn": "sm", "gap": "r4" },
+            "children": [
+              {
+                "component": "StatCard",
+                "props": {
+                  "label": "Availability",
+                  "value": {
+                    "$format": { "value": { "$ref": "data.summary.availability" }, "style": "percent", "maximumFractionDigits": 2 }
+                  },
+                  "delta": { "$ref": "data.summary.availabilityChange" },
+                  "formatDelta": { "style": "percent", "maximumFractionDigits": 2, "signDisplay": "exceptZero" },
+                  "deltaLabel": "vs previous 14 days",
+                  "sentiment": "bad"
+                }
+              },
+              {
+                "component": "StatCard",
+                "props": {
+                  "label": "p95 latency",
+                  "value": {
+                    "$format": { "value": { "$ref": "data.summary.p95" }, "style": "unit", "unit": "millisecond", "unitDisplay": "short" }
+                  },
+                  "delta": { "$ref": "data.summary.p95Change" },
+                  "formatDelta": { "style": "unit", "unit": "millisecond", "signDisplay": "exceptZero" },
+                  "deltaLabel": "vs previous 14 days",
+                  "sentiment": "bad",
+                  "sparkline": {
+                    "$node": {
+                      "component": "Sparkline",
+                      "props": {
+                        "label": "p95 latency, last 14 days",
+                        "values": { "$ref": "data.latency.p95" },
+                        "format": { "style": "unit", "unit": "millisecond" }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "component": "StatCard",
+                "props": {
+                  "label": "Error budget left",
+                  "value": { "$format": { "value": { "$ref": "data.summary.budgetLeft" }, "style": "percent", "maximumFractionDigits": 1 } },
+                  "status": { "$node": { "component": "Badge", "props": { "tone": "error" }, "children": ["Exhausted"] } }
+                }
+              },
+              {
+                "component": "StatCard",
+                "props": {
+                  "label": "Requests served",
+                  "value": { "$format": { "value": { "$ref": "data.summary.requests" }, "style": "compact" } },
+                  "delta": { "$ref": "data.summary.requestsChange" },
+                  "formatDelta": { "style": "percent", "maximumFractionDigits": 1, "signDisplay": "exceptZero" },
+                  "deltaLabel": "vs previous 14 days",
+                  "sentiment": "good"
+                }
+              },
+              {
+                "component": "StatCard",
+                "props": {
+                  "label": "Cloud cost to date",
+                  "value": {
+                    "$format": {
+                      "value": { "$ref": "data.summary.costToDate" },
+                      "style": "currency",
+                      "currency": "USD",
+                      "missing": "Not billed yet"
+                    }
+                  },
+                  "stale": "Billing export is 2 days late"
+                }
+              }
+            ]
+          },
+          {
+            "component": "Card",
+            "children": [
+              {
+                "component": "Card.Header",
+                "children": [
+                  { "component": "Card.Title", "props": { "as": "h2" }, "children": ["Latency"] },
+                  {
+                    "component": "Card.Description",
+                    "children": ["Median and 95th percentile across all services. Gaps are days the collector was down."]
+                  }
+                ]
+              },
+              {
+                "component": "Card.Body",
+                "children": [
+                  {
+                    "component": "LineChart",
+                    "props": {
+                      "label": "Request latency per day",
+                      "summary": "p95 latency rose from about 300 ms to 486 ms over the last four days; the median rose less sharply.",
+                      "x": { "$ref": "data.latency.days" },
+                      "xType": "time",
+                      "series": [
+                        { "name": "p50", "values": { "$ref": "data.latency.p50" } },
+                        { "name": "p95", "values": { "$ref": "data.latency.p95" } }
+                      ],
+                      "format": { "style": "unit", "unit": "millisecond" },
+                      "formatX": { "style": "date", "dateStyle": "medium" }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Section",
+            "props": { "as": "section", "padding": "section-3", "aria-label": "Services" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r4" },
+                "children": [
+                  { "component": "Heading", "props": { "level": 2, "size": "h4" }, "children": ["Services"] },
+                  {
+                    "component": "FilterBar",
+                    "props": {
+                      "filters": [
+                        {
+                          "kind": "select",
+                          "id": "region",
+                          "label": "Region",
+                          "options": [
+                            { "value": "eu-west-1", "label": "Europe (Ireland)" },
+                            { "value": "eu-central-1", "label": "Europe (Frankfurt)" },
+                            { "value": "us-east-1", "label": "US East (N. Virginia)" },
+                            { "value": "us-west-2", "label": "US West (Oregon)" },
+                            { "value": "ap-southeast-2", "label": "Asia Pacific (Sydney)" }
+                          ]
+                        },
+                        {
+                          "kind": "select",
+                          "id": "status",
+                          "label": "Status",
+                          "options": [
+                            { "value": "healthy", "label": "Healthy" },
+                            { "value": "degraded", "label": "Degraded" },
+                            { "value": "failed", "label": "Failed" },
+                            { "value": "maintenance", "label": "Maintenance" }
+                          ]
+                        },
+                        { "kind": "search", "id": "q", "label": "Search", "placeholder": "Service or owner" }
+                      ],
+                      "onValueChange": [
+                        { "action": "setState", "payload": { "path": "state.filters", "value": null } },
+                        { "action": "setState", "payload": { "path": "state.filters", "value": { "$ref": "event.value" } } }
+                      ]
+                    }
+                  },
+                  {
+                    "$cond": { "ref": "status.services", "eq": "loading" },
+                    "then": { "component": "Skeleton", "props": { "shape": "block", "lines": 6, "label": "Loading services" } },
+                    "else": {
+                      "$cond": { "ref": "status.services", "eq": "error" },
+                      "then": {
+                        "component": "Alert",
+                        "props": { "tone": "error", "title": "Services could not be loaded" },
+                        "children": ["The service catalogue did not answer. The figures above are still current."]
+                      },
+                      "else": {
+                        "component": "DataTable",
+                        "props": {
+                          "caption": "Production services",
+                          "rows": { "$ref": "data.services" },
+                          "rowKey": "id",
+                          "rowLabel": "name",
+                          "stickyHeader": true,
+                          "defaultSort": { "column": "errorRate", "direction": "desc" },
+                          "defaultPageSize": 10,
+                          "columns": [
+                            { "id": "name", "header": "Service", "truncate": true, "required": true, "minWidth": "12rem" },
+                            {
+                              "id": "status",
+                              "header": "Status",
+                              "cell": {
+                                "$node": {
+                                  "$cond": { "ref": "value", "eq": "healthy" },
+                                  "then": { "component": "Badge", "props": { "tone": "success" }, "children": ["Healthy"] },
+                                  "else": {
+                                    "$cond": { "ref": "value", "eq": "degraded" },
+                                    "then": { "component": "Badge", "props": { "tone": "warning" }, "children": ["Degraded"] },
+                                    "else": {
+                                      "$cond": { "ref": "value", "eq": "failed" },
+                                      "then": { "component": "Badge", "props": { "tone": "error" }, "children": ["Failed"] },
+                                      "else": {
+                                        "$cond": { "ref": "value", "eq": "maintenance" },
+                                        "then": {
+                                          "component": "Badge",
+                                          "props": { "tone": "info", "icon": "wrench" },
+                                          "children": ["Maintenance"]
+                                        },
+                                        "else": { "component": "Badge", "props": { "tone": "neutral" }, "children": [{ "$ref": "value" }] }
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "filter": {
+                                "type": "select",
+                                "options": [
+                                  { "value": "healthy", "label": "Healthy" },
+                                  { "value": "degraded", "label": "Degraded" },
+                                  { "value": "failed", "label": "Failed" },
+                                  { "value": "maintenance", "label": "Maintenance" }
+                                ]
+                              }
+                            },
+                            {
+                              "id": "owner",
+                              "header": "Owner",
+                              "truncate": true,
+                              "priority": 3,
+                              "filter": { "type": "text", "placeholder": "Team" }
+                            },
+                            { "id": "region", "header": "Region", "priority": 4 },
+                            {
+                              "id": "p95",
+                              "header": "p95",
+                              "numeric": true,
+                              "sortable": true,
+                              "firstDirection": "desc",
+                              "format": { "style": "unit", "unit": "millisecond", "missing": "No data" }
+                            },
+                            {
+                              "id": "errorRate",
+                              "header": "Errors",
+                              "numeric": true,
+                              "firstDirection": "desc",
+                              "format": { "style": "percent", "maximumFractionDigits": 2 }
+                            },
+                            { "id": "requests", "header": "Requests", "numeric": true, "priority": 2, "format": "compact" },
+                            {
+                              "id": "cost",
+                              "header": "Cost / mo",
+                              "numeric": true,
+                              "priority": 2,
+                              "format": { "style": "currency", "currency": "USD" }
+                            },
+                            {
+                              "id": "deployedAt",
+                              "header": "Last deploy",
+                              "priority": 5,
+                              "format": { "style": "datetime", "dateStyle": "medium", "timeStyle": "short", "missing": "Never" }
+                            }
+                          ],
+                          "rowActions": {
+                            "$node": { "component": "Link", "props": { "href": { "$ref": "row.runbook" } }, "children": ["Runbook"] }
+                          },
+                          "empty": {
+                            "$node": {
+                              "component": "EmptyState",
+                              "props": {
+                                "icon": "server",
+                                "title": "No services match",
+                                "description": "Clear a filter to see more services."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Section",
+            "props": { "as": "section", "padding": "section-3", "aria-label": "Open incidents" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r4" },
+                "children": [
+                  { "component": "Heading", "props": { "level": 2, "size": "h4" }, "children": ["Open incidents"] },
+                  {
+                    "$cond": "data.incidents",
+                    "then": {
+                      "component": "Stack",
+                      "props": { "gap": "r5" },
+                      "children": [
+                        {
+                          "$each": "data.incidents",
+                          "as": "incident",
+                          "key": "id",
+                          "node": {
+                            "component": "Alert",
+                            "props": { "tone": "serious", "title": { "$ref": "incident.title" } },
+                            "children": [{ "$ref": "incident.summary" }]
+                          }
+                        }
+                      ]
+                    },
+                    "else": {
+                      "component": "EmptyState",
+                      "props": {
+                        "icon": "circle-check",
+                        "title": "No open incidents",
+                        "description": "The last incident was resolved 3 days ago."
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

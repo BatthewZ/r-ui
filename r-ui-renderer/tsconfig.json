@@ -16,6 +16,6 @@
     "lib": ["ES2022", "ES2023.Intl", "DOM", "DOM.Iterable"],
     "types": ["@types/react", "@types/react-dom", "@types/node", "vite/client"]
   },
-  "include": ["src/**/*", "test-setup.ts", "test-utils.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*", "playground/**/*.ts", "playground/**/*.tsx", "test-setup.ts", "test-utils.ts"],
+  "exclude": ["node_modules", "dist", "playground/dist"]
 }

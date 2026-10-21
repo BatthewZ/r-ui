@@ -1,0 +1,144 @@
+{
+  "version": 2,
+  "title": "Coverage: steps",
+  "description": "A stepper showing an order's progress and a wizard that onboards a new warehouse.",
+  "forms": {
+    "warehouse": {
+      "fields": {
+        "name": { "rules": { "required": true, "maxLength": 80 }, "message": "Name the warehouse." },
+        "country": { "rules": { "required": true } },
+        "docks": { "type": "number", "initialValue": 4, "rules": { "required": true, "min": 1, "max": 120 } },
+        "coldStorage": { "type": "boolean" },
+        "opensOn": { "type": "date", "rules": { "required": true, "min": "2026-10-22" } }
+      },
+      "onSubmit": {
+        "action": "apiCall",
+        "payload": {
+          "endpoint": "/fixtures/settings-save.json",
+          "method": "POST",
+          "body": { "$ref": "event.value" },
+          "onSuccess": { "action": "showToast", "payload": { "title": "Warehouse added", "tone": "success" } }
+        }
+      }
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Order SO-10422"] },
+          {
+            "component": "Stepper",
+            "props": { "current": 2, "label": "Order progress", "orientation": "horizontal" },
+            "children": [
+              { "component": "Stepper.Step", "props": { "label": "Placed", "description": "18 Oct" } },
+              { "component": "Stepper.Step", "props": { "label": "Picked", "description": "19 Oct" } },
+              {
+                "component": "Stepper.Step",
+                "props": { "label": "Handed to carrier", "description": "Late: missed the 20 Oct collection", "status": "error" }
+              },
+              { "component": "Stepper.Step", "props": { "label": "Customs", "optional": true, "status": "skipped" } },
+              { "component": "Stepper.Step", "props": { "label": "Delivered" } }
+            ]
+          },
+          {
+            "component": "Wizard",
+            "props": {
+              "form": "warehouse",
+              "label": "Add a warehouse",
+              "headingLevel": 2,
+              "onComplete": { "action": "navigate", "payload": { "to": "/warehouses" } }
+            },
+            "children": [
+              {
+                "component": "Wizard.Step",
+                "props": { "label": "Location", "description": "Where it is", "fields": ["name", "country"] },
+                "children": [
+                  {
+                    "component": "Stack",
+                    "props": { "gap": "r3" },
+                    "children": [
+                      {
+                        "component": "Field",
+                        "props": { "name": "name", "required": true },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Warehouse name"] },
+                          { "component": "Input" },
+                          { "component": "Field.Error" }
+                        ]
+                      },
+                      {
+                        "component": "Field",
+                        "props": { "name": "country", "required": true },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Country"] },
+                          {
+                            "component": "Select",
+                            "props": {
+                              "placeholder": "Choose a country",
+                              "options": [
+                                { "value": "NL", "label": "Netherlands" },
+                                { "value": "DE", "label": "Germany" },
+                                { "value": "PT", "label": "Portugal" }
+                              ]
+                            }
+                          },
+                          { "component": "Field.Error" }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Wizard.Step",
+                "props": { "label": "Capacity", "fields": ["docks", "coldStorage"] },
+                "children": [
+                  {
+                    "component": "Stack",
+                    "props": { "gap": "r3" },
+                    "children": [
+                      {
+                        "component": "Field",
+                        "props": { "name": "docks", "required": true },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Loading docks"] },
+                          { "component": "NumberInput", "props": { "min": 1, "max": 120 } },
+                          { "component": "Field.Error" }
+                        ]
+                      },
+                      {
+                        "component": "Field",
+                        "props": { "name": "coldStorage" },
+                        "children": [{ "component": "Checkbox", "children": ["Has cold storage"] }]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Wizard.Step",
+                "props": { "label": "Opening", "optional": false, "fields": ["opensOn"] },
+                "children": [
+                  {
+                    "component": "Field",
+                    "props": { "name": "opensOn", "required": true },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Opens on"] },
+                      { "component": "DatePicker", "props": { "min": "2026-10-22" } },
+                      { "component": "Field.Error" }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

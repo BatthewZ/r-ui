@@ -1,0 +1,73 @@
+{
+  "version": 2,
+  "title": "Coverage: charts",
+  "description": "Line, bar and heatmap charts of a mobile app's crash and usage figures.",
+  "data": {
+    "app": {
+      "type": "static",
+      "value": {
+        "weeks": [1, 2, 3, 4, 5, 6, 7, 8],
+        "crashFree": [99.2, 99.4, 98.1, 97.6, 99.0, 99.5, 99.6, null],
+        "sessions": [210400, 220900, 231500, 229000, 244100, 251800, 260300, 268900],
+        "versions": ["5.1", "5.2", "5.3 (rolled back after the login crash)", "5.4"],
+        "iosCrashes": [120, 95, 1430, 60],
+        "androidCrashes": [210, 180, 2210, 0],
+        "devices": ["Phone", "Tablet", "Watch"],
+        "regions": ["Europe", "Americas", "Asia Pacific", "Africa"],
+        "share": [[0.41, 0.33, 0.29, 0.52], [0.07, 0.09, 0.04, null], [0.01, 0.02, 0.01, 0]]
+      }
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Mobile app health"] },
+          {
+            "component": "LineChart",
+            "props": {
+              "label": "Crash-free sessions by week",
+              "x": { "$ref": "data.app.weeks" },
+              "xType": "number",
+              "series": [{ "name": "Crash-free sessions", "values": { "$ref": "data.app.crashFree" }, "slot": 3 }],
+              "min": 95,
+              "max": 100,
+              "unit": "%",
+              "format": { "style": "number", "maximumFractionDigits": 1 },
+              "formatX": { "style": "number", "maximumFractionDigits": 0 }
+            }
+          },
+          {
+            "component": "BarChart",
+            "props": {
+              "label": "Crashes by version and platform",
+              "summary": "Version 5.3 crashed fifteen times as often as 5.2 on both platforms.",
+              "x": { "$ref": "data.app.versions" },
+              "series": [
+                { "name": "iOS", "values": { "$ref": "data.app.iosCrashes" } },
+                { "name": "Android", "values": { "$ref": "data.app.androidCrashes" } }
+              ],
+              "format": "integer"
+            }
+          },
+          {
+            "component": "Heatmap",
+            "props": {
+              "label": "Share of sessions by device and region",
+              "rows": { "$ref": "data.app.devices" },
+              "columns": { "$ref": "data.app.regions" },
+              "values": { "$ref": "data.app.share" },
+              "valueLabel": "Share of sessions",
+              "format": { "style": "percent", "maximumFractionDigits": 0 },
+              "summary": "Phones carry most sessions everywhere; tablet figures for Africa are not reported."
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

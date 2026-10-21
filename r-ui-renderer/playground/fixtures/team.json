@@ -1,0 +1,125 @@
+{
+  "updatedAt": "2026-10-20T17:30:00Z",
+  "headcount": 9,
+  "openRoles": 3,
+  "departments": [
+    {
+      "id": "engineering",
+      "name": "Engineering",
+      "people": [
+        {
+          "id": "p-101",
+          "name": "Mariana Okonkwo-Fitzgerald",
+          "role": "Director of Engineering",
+          "email": "mariana.okonkwo-fitzgerald@northwind.example",
+          "location": "Lisbon",
+          "avatar": "/fixtures/img/avatar-2.svg",
+          "startedOn": "2019-03-04",
+          "status": "active",
+          "skills": ["Incident command", "Hiring", "Go"]
+        },
+        {
+          "id": "p-102",
+          "name": "Tomasz Kowalczyk",
+          "role": "Staff Site Reliability Engineer",
+          "email": "tomasz.kowalczyk@northwind.example",
+          "location": "Kraków",
+          "avatar": "/fixtures/img/avatar-3.svg",
+          "startedOn": "2021-08-16",
+          "status": "active",
+          "skills": ["Kubernetes", "Postgres", "Terraform", "On-call"]
+        },
+        {
+          "id": "p-103",
+          "name": "Siddharth Venkataraman Raghunathan",
+          "role": "Senior Backend Engineer, Payments and Ledger Reconciliation",
+          "email": "sid.raghunathan@northwind.example",
+          "location": "Bengaluru",
+          "avatar": null,
+          "startedOn": "2023-01-09",
+          "status": "leave",
+          "skills": ["Java", "Kafka"]
+        },
+        {
+          "id": "p-104",
+          "name": "Jun Li",
+          "role": "Frontend Engineer",
+          "email": "jun.li@northwind.example",
+          "location": "Remote (Taipei)",
+          "avatar": "/fixtures/img/avatar-4.svg",
+          "startedOn": "2026-10-13",
+          "status": "new",
+          "skills": []
+        }
+      ]
+    },
+    {
+      "id": "design",
+      "name": "Design & Research",
+      "people": [
+        {
+          "id": "p-201",
+          "name": "Elif Polat",
+          "role": "Principal Product Designer",
+          "email": "elif.polat@northwind.example",
+          "location": "Istanbul",
+          "avatar": null,
+          "startedOn": "2020-06-01",
+          "status": "active",
+          "skills": ["Design systems", "Accessibility"]
+        },
+        {
+          "id": "p-202",
+          "name": "Aiyana Blackfeather",
+          "role": "User Researcher",
+          "email": "aiyana.blackfeather@northwind.example",
+          "location": "Denver",
+          "avatar": "/fixtures/img/avatar-1.svg",
+          "startedOn": "2024-02-19",
+          "status": "active",
+          "skills": ["Interviews", "Diary studies"]
+        }
+      ]
+    },
+    {
+      "id": "operations",
+      "name": "Operations",
+      "people": [
+        {
+          "id": "p-301",
+          "name": "Grace O'Malley",
+          "role": "Head of Customer Operations",
+          "email": "grace.omalley@northwind.example",
+          "location": "Dublin",
+          "avatar": "/fixtures/img/avatar-5.svg",
+          "startedOn": "2018-11-12",
+          "status": "active",
+          "skills": ["Support tooling", "Forecasting"]
+        },
+        {
+          "id": "p-302",
+          "name": "Kwame Mensah",
+          "role": "Support Specialist",
+          "email": "kwame.mensah@northwind.example",
+          "location": "Accra",
+          "avatar": "/fixtures/img/avatar-6.svg",
+          "startedOn": "2025-05-05",
+          "status": "active",
+          "skills": ["Billing", "Escalations"]
+        },
+        {
+          "id": "p-303",
+          "name": "Zoë Van der Berg",
+          "role": "Support Specialist",
+          "email": "zoe.vanderberg@northwind.example",
+          "location": "Rotterdam",
+          "avatar": null,
+          "startedOn": "2025-09-01",
+          "status": "leave",
+          "skills": ["Logistics"]
+        }
+      ]
+    },
+    { "id": "data", "name": "Data", "people": [] }
+  ]
+}

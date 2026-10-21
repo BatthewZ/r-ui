@@ -1,0 +1,80 @@
+[
+  {
+    "id": "checkout-api",
+    "name": "Checkout API",
+    "owner": "Payments Platform",
+    "region": "eu-west-1",
+    "status": "healthy",
+    "p95": 182,
+    "errorRate": 0.0012,
+    "requests": 48210933,
+    "cost": 12840.5,
+    "deployedAt": "2026-10-20T16:42:00Z",
+    "runbook": "/runbooks/checkout-api"
+  },
+  {
+    "id": "search-indexer",
+    "name": "Search indexer (catalogue, availability and price re-ranking pipeline)",
+    "owner": "Discovery & Recommendations — Relevance Engineering",
+    "region": "us-east-1",
+    "status": "degraded",
+    "p95": 2340,
+    "errorRate": 0.0431,
+    "requests": 1903377102,
+    "cost": 48211.07,
+    "deployedAt": "2026-10-21T07:05:00Z",
+    "runbook": "/runbooks/search-indexer"
+  },
+  {
+    "id": "ledger",
+    "name": "Ledger",
+    "owner": "Finance Systems",
+    "region": "eu-central-1",
+    "status": "failed",
+    "p95": null,
+    "errorRate": 0.2875,
+    "requests": 0,
+    "cost": 3120,
+    "deployedAt": "2026-10-21T08:58:00Z",
+    "runbook": "/runbooks/ledger"
+  },
+  {
+    "id": "notifications",
+    "name": "Notifications",
+    "owner": "Growth",
+    "region": "ap-southeast-2",
+    "status": "healthy",
+    "p95": 64,
+    "errorRate": 0,
+    "requests": 912004,
+    "cost": -240.18,
+    "deployedAt": "2026-09-30T11:20:00Z",
+    "runbook": "/runbooks/notifications"
+  },
+  {
+    "id": "image-resizer",
+    "name": "Image resizer",
+    "owner": "Media",
+    "region": "us-west-2",
+    "status": "maintenance",
+    "p95": 410,
+    "errorRate": null,
+    "requests": 7340021,
+    "cost": null,
+    "deployedAt": null,
+    "runbook": "/runbooks/image-resizer"
+  },
+  {
+    "id": "feature-flags",
+    "name": "Feature flags",
+    "owner": "Developer Experience",
+    "region": "eu-west-1",
+    "status": "healthy",
+    "p95": 9,
+    "errorRate": 0.00003,
+    "requests": 18440229817,
+    "cost": 990.99,
+    "deployedAt": "2026-10-18T09:00:00Z",
+    "runbook": "/runbooks/feature-flags"
+  }
+]

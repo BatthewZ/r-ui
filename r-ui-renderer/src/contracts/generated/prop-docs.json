@@ -1,0 +1,1171 @@
+{
+  "Accordion": [
+    {"name":"collapsible","description":"Whether the open item can be closed again, leaving none open."},
+    {"name":"headingLevel","description":"The rank of the heading each trigger sits in, so the sections appear in a screen reader's heading list under the right parent."},
+    {"name":"multiple","description":"One item open at a time (the default)."},
+    {"name":"value","description":"The open item, `null` for none."}
+  ],
+  "Accordion.Item": [
+    {"name":"value","description":"Identifies the item in `value`."}
+  ],
+  "ActivityFeed": [
+    {"name":"empty","description":"Replaces the default empty state."},
+    {"name":"groupByDay","description":"Group under a sticky header per local day (default)."},
+    {"name":"hasMore","description":"More events exist beyond `events`: \"Show more\" (after any local pages) calls `onLoadMore`."},
+    {"name":"headingLevel","description":"Day headers as headings at this level."},
+    {"name":"label","description":"Accessible name: of the scroll region when `scrollable`, else of the list when ungrouped."},
+    {"name":"loading","description":"First load: skeleton rows and one announced status, instead of the events."},
+    {"name":"loadingMore","description":"`onLoadMore` is in flight: the button is busy and the list `aria-busy`."},
+    {"name":"locale","description":"BCP 47 locale for every date, time and relative word."},
+    {"name":"now","description":"The reference instant for relative times and Today/Yesterday."},
+    {"name":"order","description":"Default `newest-first`."},
+    {"name":"pageSize","description":"Show this many events, and that many more per \"Show more\" press."},
+    {"name":"scrollable","description":"The timeline is its own scroller: a keyboard-focusable, labelled region the day headers stick to the top of."},
+    {"name":"timeFormat","description":"`relative` (default): \"5 minutes ago\", re-read every minute."}
+  ],
+  "Alert": [
+    {"name":"actions","description":"Buttons or links acting on the message, under the body."},
+    {"name":"icon","description":"Replaces the tone's glyph; `null` removes it."},
+    {"name":"onDismiss","description":"Shows a dismiss button."},
+    {"name":"title","description":"Short headline, in the tone's ink."}
+  ],
+  "AppShell": [
+    {"name":"collapsed","description":"Controlled: the sidebar is collapsed to its icon rail."},
+    {"name":"defaultCollapsed","description":"Uncontrolled initial collapse."}
+  ],
+  "AppShell.BottomNav": [
+    {"name":"label","description":"The navigation landmark's name."}
+  ],
+  "AppShell.Brand": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"mark","description":"The logo mark, shown alone in the rail."}
+  ],
+  "AppShell.Main": [
+    {"name":"as","description":"The element."}
+  ],
+  "AppShell.NavItem": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"badge","description":"A count or short status after the label, read as part of the item's name."},
+    {"name":"current","description":"This item is the current page: sets `aria-current=\"page\"` and draws the accent marker."},
+    {"name":"icon","description":"Decorative icon (give it `aria-hidden`); the label is the accessible name."}
+  ],
+  "AppShell.Sidebar": [
+    {"name":"label","description":"The navigation landmark's name."}
+  ],
+  "AppShell.SidebarSection": [
+    {"name":"position","description":"`end` pushes the section to the bottom of the sidebar (settings, account)."},
+    {"name":"title","description":"A short group heading; in the rail it becomes a hairline divider."}
+  ],
+  "Avatar": [
+    {"name":"alt","description":"Accessible name override."},
+    {"name":"name","description":"The person or thing."},
+    {"name":"size","description":"The one size prop, because one density needs two sizes: `control` (default) matches buttons and inputs (a header, a list row); `icon` sits inline in a line of text or a dense table cell."},
+    {"name":"src","description":"Image URL."}
+  ],
+  "AvatarGroup": [
+    {"name":"items","description":"The people, in order; each face overlaps the one before it."},
+    {"name":"label","description":"Names the list (\"Team\", \"Assigned to\")."},
+    {"name":"max","description":"Most circles drawn, the surplus chip included: 9 people with `max={5}` show four faces and \"+5\"."},
+    {"name":"renderOverflow","description":"Draws the surplus chip's content instead of the plain count, e.g. a button that opens a Popover listing the rest."},
+    {"name":"size","description":"An `Avatar` size: `control` (default) or `icon`."}
+  ],
+  "AvatarUpload": [
+    {"name":"accept","description":"The native `accept` grammar."},
+    {"name":"getSrc","description":"The image URL for a value."},
+    {"name":"maxSize","description":"Largest file picked, in bytes (checked before the crop)."},
+    {"name":"maxZoom","description":"The closest zoom the crop allows (1 = the largest centred square)."},
+    {"name":"name","description":"Submits the value: a string or number from a hidden input, a `File` from a hidden file input."},
+    {"name":"onUpload","description":"Without `onUpload`, choosing a photo makes the value the cropped `File`; a string is an image URL."},
+    {"name":"outputSize","description":"The cropped image's side, in pixels."},
+    {"name":"outputType","description":"The cropped image's encoding."},
+    {"name":"personName","description":"Whose photo: the initials while there is none."},
+    {"name":"validate","description":"A refusal message for a picked file, or nothing to accept it."}
+  ],
+  "Badge": [
+    {"name":"icon","description":"Optional decorative glyph before the text, sized to `--ICON`."}
+  ],
+  "Banner": [
+    {"name":"actions","description":"Links or buttons acting on the announcement."},
+    {"name":"dismissKey","description":"Makes the banner dismissible and remembers it: the dismissal is written to `storage` under this exact key (namespace it, and change it when the announcement changes), and a banner whose key is stored renders nothing."},
+    {"name":"icon","description":"Replaces the tone's glyph; `null` removes it."},
+    {"name":"onDismiss","description":"Makes the banner dismissible: the banner hides itself, then calls this."},
+    {"name":"placement","description":"`inline` (default): a bordered box in the content."},
+    {"name":"sticky","description":"Sticks to the top of its scroller, on the sticky layer (`z-sticky`); prints in the flow."},
+    {"name":"storage","description":"Where `dismissKey` is stored."},
+    {"name":"title","description":"Short headline, in the tone's ink; also the region's name."},
+    {"name":"urgent","description":"`role=\"alert\"`, announced when it appears, for an announcement that cannot wait (an outage now)."}
+  ],
+  "BarChart": [
+    {"name":"format","description":"Formats every value (tooltip, table, summary)."},
+    {"name":"formatTick","description":"Formats the value axis's ticks."},
+    {"name":"label","description":"The chart's accessible name, and its table's caption (\"Requests per second, last 7 days\")."},
+    {"name":"labels","description":"Every string the chart writes itself."},
+    {"name":"locale","description":"BCP 47 locale for every number and date."},
+    {"name":"max","description":"Pins the value axis's upper end."},
+    {"name":"min","description":"Pins the value axis's lower end (it always holds zero otherwise)."},
+    {"name":"orientation","description":"`vertical` columns rise from the x axis; `horizontal` bars run from a category gutter."},
+    {"name":"series","description":"Up to eight are drawn (one series colour and shape each); the table lists up to 24."},
+    {"name":"stacked","description":"Stack the series in one bar per category (positive up, negative down) instead of grouping them."},
+    {"name":"summary","description":"What a screen reader hears after the name."},
+    {"name":"timeZone","description":"The calendar time labels are read in."},
+    {"name":"unit","description":"An Intl unit identifier (`\"millisecond\"`, `\"megabyte-per-second\"`, `\"percent\"`) formatted by `Intl`; any other text (`\"req/s\"`) is appended after the number."},
+    {"name":"x","description":"One category per bar group, shared by every series."}
+  ],
+  "Breadcrumbs": [
+    {"name":"itemsAfterCollapse","description":"Crumbs kept after the collapsed run."},
+    {"name":"itemsBeforeCollapse","description":"Crumbs kept before the collapsed run."},
+    {"name":"maxItems","description":"Collapse the middle crumbs behind a \"more\" button when there are more than this many."}
+  ],
+  "Breadcrumbs.Item": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"current","description":"The page this trail ends on: `aria-current=\"page\"`, not styled as a link."}
+  ],
+  "Button": [
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "Calendar": [
+    {"name":"autoFocus","description":"Move focus to the active day on mount (inside a popup)."},
+    {"name":"isDateUnavailable","description":"Days that can be focused but not chosen (booked, holidays)."},
+    {"name":"locale","description":"BCP 47 tag for month and weekday names, day names and week start."},
+    {"name":"max","description":"Latest selectable day (inclusive)."},
+    {"name":"min","description":"Earliest selectable day (inclusive, by calendar day)."},
+    {"name":"month","description":"The first month shown (controlled)."},
+    {"name":"months","description":"The most months shown side by side."},
+    {"name":"onValueChange","description":"The chosen day, at local midnight (a press never clears it)."},
+    {"name":"value","description":"The chosen day (a calendar date: local midnight; a time of day is ignored)."},
+    {"name":"weekStartsOn","description":"First column, 0 = Sunday."}
+  ],
+  "CallToAction": [
+    {"name":"actions","description":"The calls to action, usually one primary and one secondary `Button`."},
+    {"name":"body","description":"A sentence or two under the title, on the prose scale."},
+    {"name":"headingLevel","description":"The title's heading level (default 2)."},
+    {"name":"layout","description":"- `stacked` (default): centred, the actions under the text. - `split`: text on the start side, actions on the end side when the BAND is wide (`@4xl`, a 56rem container), stacked when it is narrow."},
+    {"name":"title","description":"The heading, on the display scale."},
+    {"name":"variant","description":"Default `band`: the raised band with hairlines, as `Section variant=\"band\"`."}
+  ],
+  "Card.Title": [
+    {"name":"as","description":"The heading level that fits the page outline."}
+  ],
+  "Carousel": [
+    {"name":"autoplay","description":"Off by default."},
+    {"name":"dots","description":"`true` makes the indicator a tablist of dots, one per slide, and each slide its tab panel."},
+    {"name":"label","description":"The carousel's accessible name (it is a region)."},
+    {"name":"perView","description":"Default 1."}
+  ],
+  "Checkbox": [
+    {"name":"indeterminate","description":"The \"some of these\" state."}
+  ],
+  "Chip": [
+    {"name":"as","description":"`li` for a chip in a list (a field's choices, a filter row); `span` otherwise."},
+    {"name":"disabled","description":"Keeps the remove button in place but refuses it (a disabled field's chips)."},
+    {"name":"onRemove","description":"Adds a remove button after the text; Backspace or Delete on it removes too."}
+  ],
+  "CodeBlock": [
+    {"name":"code","description":"The source, rendered verbatim (CRLF normalised, one trailing newline dropped)."},
+    {"name":"copyable","description":"Show the copy button (default true)."},
+    {"name":"filename","description":"Shown in the header (and names the block for assistive tech)."},
+    {"name":"highlightLines","description":"1-based line numbers to mark (a band and an inline-start bar)."},
+    {"name":"language","description":"A grammar name or alias (`ts`, `tsx`, `html`, `sh`…)."},
+    {"name":"lineNumbers","description":"A gutter of line numbers."},
+    {"name":"wrap","description":"Wrap long lines instead of scrolling them."},
+    {"name":"wrapToggle","description":"Show the wrap toggle (default true)."}
+  ],
+  "Collapsible.Trigger": [
+    {"name":"hideChevron","description":"Hide the chevron that turns with the state."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "ColorPicker": [
+    {"name":"alpha","description":"Show an opacity slider and keep alpha in the value."},
+    {"name":"contrast","description":"Show the WCAG contrast of the colour against `against` (any CSS colour, a custom property included: `var(--C-SURFACE-0)` follows the theme), named `label` in the readout."},
+    {"name":"eyeDropper","description":"Offer the EyeDropper API where the browser has it."},
+    {"name":"format","description":"The wire format of `value`: `#rrggbb` (`#rrggbbaa` with alpha) or `oklch(L C H [/ A])`."},
+    {"name":"onValueChange","description":"Every change: a drag, a key, a swatch, a typed entry on Enter or blur."},
+    {"name":"open","description":"The popup (controlled)."},
+    {"name":"swatches","description":"Colours to choose from (a brand palette), as a radio group."},
+    {"name":"value","description":"The colour in `format`, or `\"\"` for none."}
+  ],
+  "Combobox": [
+    {"name":"allowCustomValue","description":"Accept typed text that matches no option (\"Use “abc”\")."},
+    {"name":"filter","description":"Default: contains, ignoring case and diacritics."},
+    {"name":"inputValue","description":"The text in the field."},
+    {"name":"loadError","description":"Loading failed: shown in place of the options."},
+    {"name":"loading","description":"Results are on their way: a loading row, and `aria-busy` on the list."},
+    {"name":"name","description":"Submitted through a hidden input holding `value`."},
+    {"name":"start","description":"Leading adornment (a search icon)."},
+    {"name":"value","description":"The chosen option's `value` (or, with `allowCustomValue`, any text)."},
+    {"name":"virtualizeThreshold","description":"Lists longer than this are windowed."}
+  ],
+  "CommandPalette": [
+    {"name":"initialFocus","description":"Where focus lands on open, for an element `autoFocus` cannot reach (one that is not a form control or button)."},
+    {"name":"lightDismiss","description":"Close on a press that starts and ends on the scrim."},
+    {"name":"loading","description":"The root commands are still arriving (fetched by the caller)."},
+    {"name":"onRecentChange","description":"Persist recent commands here (localStorage, a user profile) and pass them back as `defaultRecent`."},
+    {"name":"recent","description":"Ids of recently run commands, newest first, listed when the field is empty."}
+  ],
+  "Container": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"gutter","description":"Pad the sides with the fluid page gutter (`--GUTTER`)."},
+    {"name":"width","description":"The cap on the content's inline size."}
+  ],
+  "ContextMenu.CheckboxItem": [
+    {"name":"onSelect","description":"Runs on click, Enter or Space."},
+    {"name":"shortcut","description":"Keyboard shortcut hint shown at the end of the row."}
+  ],
+  "ContextMenu.Item": [
+    {"name":"icon","description":"Leading icon, decorative."},
+    {"name":"onSelect","description":"Runs on click, Enter or Space."},
+    {"name":"shortcut","description":"Keyboard shortcut hint shown at the end of the row."},
+    {"name":"variant","description":"`danger` marks a destructive action, as on `Button`."}
+  ],
+  "ContextMenu.RadioItem": [
+    {"name":"onSelect","description":"Runs on click, Enter or Space."},
+    {"name":"shortcut","description":"Keyboard shortcut hint shown at the end of the row."}
+  ],
+  "ContextMenu.Trigger": [
+    {"name":"asChild","description":"Put the trigger behaviour on your own single child (a table, a card) instead of a `div`."},
+    {"name":"disabled","description":"Leave the browser's own menu in place."},
+    {"name":"onBeforeOpen","description":"Called before the menu opens with the element it is for: the element under the pointer, or the focused element for a keyboard open."}
+  ],
+  "CopyButton": [
+    {"name":"onCopy","description":"Called once per successful copy, with the value written."},
+    {"name":"onCopyError","description":"Called when neither the Clipboard API nor the fallback could write."},
+    {"name":"resetAfter","description":"How long the confirmation stays, in ms."},
+    {"name":"showLabel","description":"Show the label beside the icon (a `Button`)."},
+    {"name":"value","description":"The text that goes on the clipboard."}
+  ],
+  "CountUp": [
+    {"name":"format","description":"Formats every frame and the final value instead of `formatNumber` (a currency, a unit, a suffix)."},
+    {"name":"formatOptions","description":"Options for `formatNumber`, applied to every frame and to the final value."},
+    {"name":"from","description":"Where the count starts."},
+    {"name":"locale","description":"Omitted: the `LocaleProvider`'s, else the runtime's."},
+    {"name":"threshold","description":"How much must be in view before it counts (as `ScrollReveal`)."},
+    {"name":"value","description":"The number it lands on, and the only one assistive tech reads."}
+  ],
+  "CurrencyInput": [
+    {"name":"allowNegative","description":"Negative amounts (a refund, an adjustment): a minus or accounting brackets."},
+    {"name":"currency","description":"ISO 4217 code (`\"EUR\"`, `\"JPY\"`)."},
+    {"name":"currencyDisplay","description":"How the currency is named beside the amount."},
+    {"name":"end","description":"Trailing adornment: a unit (\"ms\"), an icon, or a small button."},
+    {"name":"locale","description":"BCP 47 locale for the separators typed and shown."},
+    {"name":"min","description":"Bounds, in the same units as the value."},
+    {"name":"minorUnits","description":"The value is an integer in the currency's minor unit (1250 is €12.50; 1250 is ¥1,250)."},
+    {"name":"onValueChange","description":"The committed amount: on blur or Enter, never mid-typing."},
+    {"name":"value","description":"The amount, `null` for an empty field."}
+  ],
+  "DataTable": [
+    {"name":"bulkActions","description":"With `selectable`: a bar at the bottom of the table's frame while rows are selected, with the count, these actions and \"Clear selection\"."},
+    {"name":"caption","description":"A visible caption naming the table (or pass `aria-label`)."},
+    {"name":"columnsMenu","description":"A columns menu in the head's trailing cell: one checkbox per column (`required` columns stay)."},
+    {"name":"columnWidths","description":"Widths set by resizing, px by column id (controlled)."},
+    {"name":"empty","description":"What an empty table shows."},
+    {"name":"error","description":"A failure message."},
+    {"name":"expandedKeys","description":"The open rows' keys (controlled)."},
+    {"name":"filters","description":"The column filters' values, by column id (controlled)."},
+    {"name":"getRowKey","description":"A stable key per row: selection, expansion and React reconciliation all use it."},
+    {"name":"getRowLabel","description":"The accessible name of a row's checkbox."},
+    {"name":"loading","description":"Show skeleton rows (the head stays) and mark the table busy."},
+    {"name":"loadingRows","description":"How many skeleton rows to draw while loading."},
+    {"name":"manualFiltering","description":"The rows arrive already filtered (a server filters them); the table still shows and reports the filters."},
+    {"name":"manualPagination","description":"`rows` is the current page (a server pages them); `rowCount` is the total the pages are cut from."},
+    {"name":"manualSorting","description":"The rows arrive already in `sort` order (a server sorts them)."},
+    {"name":"page","description":"The page, 1-based (controlled)."},
+    {"name":"pageSize","description":"Rows per page (controlled)."},
+    {"name":"pageSizeOptions","description":"The choices of the rows-per-page select."},
+    {"name":"renderDetail","description":"A detail row under each row, opened by a disclosure button in a leading column."},
+    {"name":"resizableColumns","description":"A resize handle on every header (a column's `resizable: false` opts out): drag it, or focus it and use the arrows, Home and End."},
+    {"name":"rowActions","description":"Per-row trailing actions (icon buttons, a menu)."},
+    {"name":"rowCount","description":"With `manualPagination`: how many rows there are in all."},
+    {"name":"selectable","description":"Adds a checkbox column with a select-all header (over every row the table presents: all filtered rows, or the page)."},
+    {"name":"stickyColumns","description":"Pin this many leading columns (and the expand and checkbox columns before them) to the inline-start edge while the table scrolls sideways."},
+    {"name":"stickyHeader","description":"Pin the head while the table's own scroll area scrolls."},
+    {"name":"striped","description":"Band every other body row."},
+    {"name":"visibleColumns","description":"The ids of the columns shown (controlled)."}
+  ],
+  "DatePicker": [
+    {"name":"hint","description":"The line under the field."},
+    {"name":"locale","description":"Reads and writes dates in this locale's order and names."},
+    {"name":"months","description":"Months side by side in the popup, while it fits."},
+    {"name":"onValueChange","description":"The committed date: after a pick, or a typed date on blur / Enter."},
+    {"name":"open","description":"The calendar popup (controlled)."},
+    {"name":"value","description":"A calendar date (local midnight; a time of day is ignored), or `null` for none."}
+  ],
+  "DateRangePicker": [
+    {"name":"hourCycle","description":"With `withTime`: a 12- or 24-hour clock."},
+    {"name":"locale","description":"Names, order and week start of the calendar and the typed entry."},
+    {"name":"months","description":"Months side by side in the popup, while it fits."},
+    {"name":"now","description":"The instant the presets resolve against, for an app whose \"now\" is its data's rather than the device's (a frozen specimen, a replay)."},
+    {"name":"onValueChange","description":"On a preset, on Apply after a custom range, and `null` on Clear."},
+    {"name":"open","description":"The popup (controlled)."},
+    {"name":"placeholder","description":"Trigger text with no value."},
+    {"name":"presets","description":"Quick ranges listed beside the calendar."},
+    {"name":"timeStep","description":"With `withTime`: minutes per arrow press on the times' minutes."},
+    {"name":"variant","description":"The trigger's look."},
+    {"name":"withTime","description":"A time of day on each end: a `TimeField` beside the typed start and end (00:00 and 23:59 until set)."}
+  ],
+  "DensitySwitcher": [
+    {"name":"labels","description":"The control's name (`density`) and each density's words."},
+    {"name":"storageKey","description":"The `localStorage` key holding the saved preferences."},
+    {"name":"variant","description":"`segmented` (default) or `select`."}
+  ],
+  "DescriptionList": [
+    {"name":"variant","description":"`divided` draws a hairline between items; `plain` separates by space alone."}
+  ],
+  "Dialog.Close": [
+    {"name":"asChild","description":"Put the close behaviour on your own single child instead of a `Button`."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "Dialog.Content": [
+    {"name":"initialFocus","description":"Where focus lands on open, for an element `autoFocus` cannot reach (one that is not a form control or button)."},
+    {"name":"lightDismiss","description":"Close on a press that starts and ends on the scrim."},
+    {"name":"role","description":"`alertdialog` for a confirmation that interrupts: it has no corner close button and no light dismiss, so the reader must answer it (Escape still cancels)."},
+    {"name":"showClose","description":"Show the corner close button."}
+  ],
+  "Dialog.Trigger": [
+    {"name":"asChild","description":"Put the open behaviour on your own single child instead of a `Button`."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "DocumentTitleProvider": [
+    {"name":"base","description":"The app's name, appended to every page title (\"Billing | Acme\")."},
+    {"name":"separator","description":"Between the page title and the base."}
+  ],
+  "Drawer.Close": [
+    {"name":"asChild","description":"Put the close behaviour on your own single child instead of a `Button`."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "Drawer.Content": [
+    {"name":"initialFocus","description":"Where focus lands on open, for an element `autoFocus` cannot reach (one that is not a form control or button)."},
+    {"name":"lightDismiss","description":"Close on a press that starts and ends on the scrim."},
+    {"name":"role","description":"`alertdialog` for a confirmation that interrupts: it has no corner close button and no light dismiss, so the reader must answer it (Escape still cancels)."},
+    {"name":"showClose","description":"Show the corner close button."},
+    {"name":"side","description":"The edge it slides from."}
+  ],
+  "Drawer.Trigger": [
+    {"name":"asChild","description":"Put the open behaviour on your own single child instead of a `Button`."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "DropdownMenu.CheckboxItem": [
+    {"name":"onSelect","description":"Runs on click, Enter or Space."},
+    {"name":"shortcut","description":"Keyboard shortcut hint shown at the end of the row."}
+  ],
+  "DropdownMenu.Item": [
+    {"name":"icon","description":"Leading icon, decorative."},
+    {"name":"onSelect","description":"Runs on click, Enter or Space."},
+    {"name":"shortcut","description":"Keyboard shortcut hint shown at the end of the row."},
+    {"name":"variant","description":"`danger` marks a destructive action, as on `Button`."}
+  ],
+  "DropdownMenu.RadioItem": [
+    {"name":"onSelect","description":"Runs on click, Enter or Space."},
+    {"name":"shortcut","description":"Keyboard shortcut hint shown at the end of the row."}
+  ],
+  "DropdownMenu.Trigger": [
+    {"name":"asChild","description":"Put the trigger behaviour on your own single child (an `IconButton`, say) instead of a `Button`."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "EmailCapture": [
+    {"name":"consent","description":"The consent checkbox's label."},
+    {"name":"consentRequired","description":"Whether the consent box must be ticked to submit (default `true`)."},
+    {"name":"description","description":"A note under the field (what you will send, how often, a privacy link)."},
+    {"name":"hideLabel","description":"Hides the field's label visually; it still names the field."},
+    {"name":"honeypot","description":"Adds a honeypot: a field people never see or reach (`true` names it `website`; a string names it)."},
+    {"name":"onSubmit","description":"Called with the trimmed address once it is valid."}
+  ],
+  "EmptyState": [
+    {"name":"actions","description":"Buttons or links: what the reader can do about it."},
+    {"name":"headingLevel","description":"Render the title as a heading at this level."},
+    {"name":"icon","description":"A decorative icon (lucide), drawn large and muted."},
+    {"name":"tone","description":"`error` tints the icon with the error mark: \"this failed\", not \"this is empty\"."}
+  ],
+  "ErrorBoundary": [
+    {"name":"details","description":"Passed to the default fallback."},
+    {"name":"fallback","description":"Replaces the `ErrorFallback`."},
+    {"name":"labels","description":"Passed to the default fallback."},
+    {"name":"onError","description":"Reports what was caught (to your logger), once per error, with React's component stack."},
+    {"name":"onReset","description":"Called as the boundary clears its error, before the children render again: put right what made them throw here (clear a cache, refetch)."},
+    {"name":"resetKeys","description":"Values whose change clears the error by itself (a route, a filter, the record shown): compared item by item with `Object.is`."}
+  ],
+  "ErrorFallback": [
+    {"name":"details","description":"Shows the error's text (the stack, where there is one) in a disclosure."},
+    {"name":"error","description":"What was thrown; shown under `details`."},
+    {"name":"onRetry","description":"Shows the retry button."}
+  ],
+  "ErrorSummary": [
+    {"name":"title","description":"This summary's own headline (rich content); wins over `labels.title`."}
+  ],
+  "FeatureGrid": [
+    {"name":"columns","description":"Column counts by the GRID's own width (default one, two from `@xl`, three from `@4xl`)."},
+    {"name":"gap","description":"Space between items (default `r1` plain, `r2` card)."},
+    {"name":"headingLevel","description":"Every item title's heading level (default 3)."},
+    {"name":"minColumn","description":"Auto-fits columns at this floor (`--COLUMN-*`) instead of fixed counts."}
+  ],
+  "FeatureGrid.Item": [
+    {"name":"href","description":"Makes the whole item one link, named by the title: a press anywhere on the item follows it, and its focus ring draws around the item."},
+    {"name":"icon","description":"A decorative glyph (an SVG icon), sized to `--ICON` in a quiet tile."},
+    {"name":"linkAs","description":"Renders the link (default: the router's link for an internal `href`, else `<a>`)."},
+    {"name":"title","description":"The feature's name, and its link's when it has one."}
+  ],
+  "FeatureRows": [
+    {"name":"headingLevel","description":"Every row title's heading level (default 3)."},
+    {"name":"mediaSide","description":"Where each row's media sits once the rows are wide (a 48rem container)."},
+    {"name":"stackedMedia","description":"Whether the media shows above (`first`, default) or below the text once the rows stack."}
+  ],
+  "FeatureRows.Row": [
+    {"name":"actions","description":"Links or buttons under the body."},
+    {"name":"eyebrow","description":"A quiet line above the title (UI scale)."},
+    {"name":"media","description":"The visual: an image, a product shot, an illustration."},
+    {"name":"mediaSide","description":"Overrides the rows' side for this row."}
+  ],
+  "Field": [
+    {"name":"invalid","description":"Marks the control invalid."},
+    {"name":"name","description":"The value's path in the surrounding `Form` (`email`, `conditions[0].metric`)."},
+    {"name":"orientation","description":"`horizontal` puts the label beside the control once the Field's OWN width reaches the container `md` step, and stacks below it."},
+    {"name":"required","description":"Sets `required` on the control and shows the label's marker."},
+    {"name":"validate","description":"A check of this field alone, typically async (\"is this name taken?\")."}
+  ],
+  "Field.Error": [
+    {"name":"icon","description":"The leading status icon."}
+  ],
+  "Field.Label": [
+    {"name":"required","description":"Overrides the Field's `required` for the marker only."}
+  ],
+  "FileUpload": [
+    {"name":"accept","description":"The native `accept` grammar (`\"image/*,.pdf\"`); also checked on drop and paste."},
+    {"name":"describe","description":"Shows a value this session did not upload."},
+    {"name":"maxFiles","description":"Most files at once (uploading and failed ones count)."},
+    {"name":"maxSize","description":"Largest file, in bytes."},
+    {"name":"multiple","description":"Several files; without it, a new file replaces the current one."},
+    {"name":"name","description":"Native submission: without `onUpload`, the hidden `<input type=\"file\">` carries the files; with it, one hidden input per uploaded value (strings and numbers)."},
+    {"name":"onUpload","description":"Without `onUpload`, the value is the files themselves."},
+    {"name":"paste","description":"Take files pasted while focus is in the control."},
+    {"name":"validate","description":"A refusal message for a file, or nothing to accept it."}
+  ],
+  "FilterBar": [
+    {"name":"collapse","description":"`auto` (default) lays the controls inline while the bar's own width (a container query, never the viewport) reaches the container `2xl` step, and below it folds them into a \"Filters (n)\" button that opens a drawer holding the same controls."},
+    {"name":"drawerSide","description":"The drawer's edge."},
+    {"name":"filters","description":"The filters, in the order the controls and chips show them."},
+    {"name":"loading","description":"The results are being fetched again: the count shows `labels.loading` (and is `aria-busy`, so nothing is announced meanwhile)."},
+    {"name":"locale","description":"For chip numbers and dates, the sliders and the pickers."},
+    {"name":"now","description":"The instant a time range's presets resolve against (`DateRangePicker`'s `now`), for data whose \"now\" is not the device's; pass the same to `searchParamsToFilters`."},
+    {"name":"onValueChange","description":"Every change: a control, a chip's removal, Clear all."},
+    {"name":"open","description":"The drawer (controlled)."},
+    {"name":"resultCount","description":"How many results the filters leave."},
+    {"name":"value","description":"The applied filters, by id (controlled)."}
+  ],
+  "Footer": [
+    {"name":"as","description":"`div` where the page already has its `contentinfo` (a footer inside a card or a dialog)."},
+    {"name":"brand","description":"The brand: a logo and a line about the product."},
+    {"name":"copyright","description":"The copyright holder (\"Kiln Labs, Inc.\"), written through the `copyright` label with `year`."},
+    {"name":"headingLevel","description":"The columns' heading level for the page outline (default 2)."},
+    {"name":"legal","description":"Policy links (`Footer.Link`s), each put in a list item of the \"Legal\" navigation."},
+    {"name":"localeSwitcher","description":"A language / region control (a `Select` bound to the app's `LocaleProvider`, any node), in the bottom row."},
+    {"name":"newsletter","description":"A sign-up form (an email capture, any node), under the brand."},
+    {"name":"social","description":"`Footer.SocialLink`s (or any elements), each put in a list item of a named list."},
+    {"name":"year","description":"The copyright year."}
+  ],
+  "Footer.Column": [
+    {"name":"defaultOpen","description":"Open at first in the narrow (accordion) form."},
+    {"name":"title","description":"The column's heading, which also names its navigation landmark."}
+  ],
+  "Footer.Link": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"external","description":"Leaves the site: draws an external-link glyph and, with `target=\"_blank\"`, says so to assistive tech."},
+    {"name":"variant","description":"`accent` (default): accent text-safe ink."}
+  ],
+  "Footer.SocialLink": [
+    {"name":"icon","description":"The glyph, sized to `--ICON`."},
+    {"name":"label","description":"The link's name (`aria-label` and the native `title` hint): \"GitHub\"."}
+  ],
+  "FormActions": [
+    {"name":"sticky","description":"Keeps the row at the bottom of its scroll container while the form runs past it, on `surface-0` with a top hairline, at the sticky layer."}
+  ],
+  "FormActions.Submit": [
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "Grid": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"columns","description":"Fixed column counts by container size."},
+    {"name":"gap","description":"Space between cells, from the UI scale."},
+    {"name":"minColumn","description":"The auto-fit column floor."},
+    {"name":"rowGap","description":"Space between rows when it should differ from `gap`."}
+  ],
+  "Heatmap": [
+    {"name":"columns","description":"Column labels, start to end (\"00\" … \"23\")."},
+    {"name":"format","description":"Formats every value (tooltip, table, summary)."},
+    {"name":"label","description":"The chart's accessible name, and its table's caption (\"Requests per second, last 7 days\")."},
+    {"name":"labels","description":"Every string the chart writes itself."},
+    {"name":"locale","description":"BCP 47 locale for every number and date."},
+    {"name":"rows","description":"Row labels, top to bottom (\"Mon\" … \"Sun\")."},
+    {"name":"summary","description":"What a screen reader hears after the name."},
+    {"name":"unit","description":"An Intl unit identifier (`\"millisecond\"`, `\"megabyte-per-second\"`, `\"percent\"`) formatted by `Intl`; any other text (`\"req/s\"`) is appended after the number."},
+    {"name":"valueLabel","description":"What a value is (\"5xx errors\"), for the tooltip."},
+    {"name":"values","description":"`values[row][column]`."}
+  ],
+  "Hero": [
+    {"name":"actions","description":"The calls to action, usually one primary and one secondary `Button`."},
+    {"name":"backdrop","description":"A decorative layer behind everything (a pattern, a picture, a `Parallax`): it covers the hero (its band fill too) and is clipped to it, painted under the text, `aria-hidden` and `inert`, and takes no pointer."},
+    {"name":"eyebrow","description":"A quiet line above the title (UI scale): a category, or a link to news."},
+    {"name":"headingLevel","description":"The title's heading level for the page outline (default 1)."},
+    {"name":"layout","description":"- `stacked` (default): centred, the media under the text. - `split`: text on the start side and media on the end side when the HERO is wide (`@4xl`, a 56rem container), stacked when it is narrow, whatever the viewport."},
+    {"name":"lead","description":"One or two sentences under the title, on the prose scale."},
+    {"name":"media","description":"The one confident visual: an image, an illustration, a product card."},
+    {"name":"proof","description":"Social proof under everything: customer names, a rating, a figure."},
+    {"name":"title","description":"The heading, on the fluid display scale in the display face."}
+  ],
+  "HoverCard": [
+    {"name":"closeDelay","description":"Wait before closing once the pointer leaves, in ms; the pointer can cross onto the card meanwhile."},
+    {"name":"disabled","description":"Suppress the card without unwrapping the trigger."},
+    {"name":"openDelay","description":"Wait before opening, on hover and on keyboard focus, in ms."}
+  ],
+  "HoverCard.Toggle": [
+    {"name":"icon","description":"Default: an eye."},
+    {"name":"label","description":"Default: `labels.toggle`."},
+    {"name":"variant","description":"Default `ghost`."}
+  ],
+  "HowItWorks": [
+    {"name":"headingLevel","description":"Every step title's heading level (default 3)."},
+    {"name":"label","description":"The list's accessible name, when no heading right before it names the steps."}
+  ],
+  "HowItWorks.Step": [
+    {"name":"media","description":"An image or illustration for the step, under its text."}
+  ],
+  "IconButton": [
+    {"name":"icon","description":"The glyph, sized to `--ICON`."},
+    {"name":"label","description":"The accessible name (`aria-label`) and the native `title` hint."},
+    {"name":"variant","description":"Default `ghost`."}
+  ],
+  "Image": [
+    {"name":"alt","description":"What the picture shows, read in its place."},
+    {"name":"fit","description":"Default `cover`."},
+    {"name":"height","description":"The file's intrinsic height in pixels."},
+    {"name":"placeholder","description":"A tiny preview of the picture (an 8 to 32px wide data URL), scaled up and blurred until the picture arrives, then cross-faded away."},
+    {"name":"placeholderColor","description":"A colour that fills the box until the picture arrives: the picture's dominant colour from your image pipeline, or a token (`var(--C-SURFACE-2)`)."},
+    {"name":"priority","description":"Above the fold and the page's main picture (a hero, the image a lightbox opens on): loads at once with `fetchpriority=\"high\"`."},
+    {"name":"radius","description":"Default `md`."},
+    {"name":"ratio","description":"Default `intrinsic`."},
+    {"name":"src","description":"The file."},
+    {"name":"width","description":"The file's intrinsic width in pixels."}
+  ],
+  "Inline": [
+    {"name":"align","description":"Cross-axis alignment."},
+    {"name":"as","description":"The element or component to render."},
+    {"name":"gap","description":"Space between children, from the UI scale."},
+    {"name":"justify","description":"Main-axis distribution."},
+    {"name":"rowGap","description":"Space between wrapped lines when it should differ from `gap`."},
+    {"name":"wrap","description":"Wrap onto new lines when out of room."}
+  ],
+  "Input": [
+    {"name":"end","description":"Trailing adornment: a unit (\"ms\"), an icon, or a small button."},
+    {"name":"start","description":"Leading adornment: an icon, a prefix (\"https://\"), a unit."},
+    {"name":"type","description":"Text-like types only."}
+  ],
+  "InputSwitcher": [
+    {"name":"labels","description":"The control's name (`input`) and each mode's words."},
+    {"name":"storageKey","description":"The `localStorage` key holding the saved preferences."},
+    {"name":"variant","description":"`segmented` (default) or `select`."}
+  ],
+  "Kanban": [
+    {"name":"cardLabel","description":"A card's name in announcements."},
+    {"name":"collapsed","description":"The collapsed columns' ids (controlled)."},
+    {"name":"collapsible","description":"Gives each column a button that folds it to a narrow strip (it still takes drops, at its end)."},
+    {"name":"columns","description":"The columns, in reading order."},
+    {"name":"disabled","description":"Nothing can be moved; cards and their content stay usable."},
+    {"name":"loading","description":"Placeholder cards in every column, and the board says it is busy."},
+    {"name":"locale","description":"For the counts."},
+    {"name":"onValueChange","description":"Called once per drop that moved a card, with the whole new array (the card moved, its `columnId` updated, every other card in its order) and the move."},
+    {"name":"renderAddCard","description":"An \"add card\" slot under each expanded column's cards."},
+    {"name":"renderCard","description":"A card's content."},
+    {"name":"value","description":"Every card."}
+  ],
+  "Lightbox": [
+    {"name":"index","description":"The picture shown, 0-based."},
+    {"name":"label","description":"The gallery's name: the dialog's title and accessible name (\"Release day photos\")."}
+  ],
+  "Lightbox.Trigger": [
+    {"name":"asChild","description":"Put the open behaviour on your own single child instead of a `<button>`."},
+    {"name":"index","description":"The picture to open on, 0-based."}
+  ],
+  "LineChart": [
+    {"name":"area","description":"Fill under each line with a wash of its colour."},
+    {"name":"format","description":"Formats every value (tooltip, table, summary)."},
+    {"name":"formatTick","description":"Formats the value axis's ticks."},
+    {"name":"formatX","description":"Formats a number-axis x value."},
+    {"name":"label","description":"The chart's accessible name, and its table's caption (\"Requests per second, last 7 days\")."},
+    {"name":"labels","description":"Every string the chart writes itself."},
+    {"name":"locale","description":"BCP 47 locale for every number and date."},
+    {"name":"max","description":"Pins the value axis's upper end."},
+    {"name":"min","description":"Pins the value axis's lower end."},
+    {"name":"series","description":"Up to eight are drawn (one series colour and shape each); the table lists up to 24."},
+    {"name":"summary","description":"What a screen reader hears after the name."},
+    {"name":"timeZone","description":"The calendar time ticks and labels are read in."},
+    {"name":"unit","description":"An Intl unit identifier (`\"millisecond\"`, `\"megabyte-per-second\"`, `\"percent\"`) formatted by `Intl`; any other text (`\"req/s\"`) is appended after the number."},
+    {"name":"x","description":"One x per point, shared by every series."},
+    {"name":"xType","description":"Overrides the axis type inferred from `x`."}
+  ],
+  "Link": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"external","description":"Leaves the site: draws an external-link glyph and, with `target=\"_blank\"`, says so to assistive tech."},
+    {"name":"variant","description":"`accent` (default): accent text-safe ink."}
+  ],
+  "LocaleProvider": [
+    {"name":"dir","description":"Writing direction for the subtree."},
+    {"name":"labels","description":"Translations, keyed by component (`{ Dialog: { close: \"Schließen\" } }`)."},
+    {"name":"locale","description":"BCP 47 locale for every number, date and collation beneath."}
+  ],
+  "LogoCloud": [
+    {"name":"colorOnHover","description":"Each logo takes its own colours under the pointer."},
+    {"name":"marquee","description":"Off by default: the logos wrap, centred."},
+    {"name":"title","description":"A quiet line above the logos that also names their list: \"Trusted by teams at\"."}
+  ],
+  "Markdown": [
+    {"name":"components","description":"Override how any node renders."},
+    {"name":"headingOffset","description":"Added to every heading level, capped at 6: `1` makes `#` an `<h2>` under the page's own `<h1>`."},
+    {"name":"imageAllowlist","description":"Where images may come from."},
+    {"name":"measure","description":"Cap the line length at the reading measure."}
+  ],
+  "MaskedInput": [
+    {"name":"end","description":"Trailing adornment: a unit (\"ms\"), an icon, or a small button."},
+    {"name":"mask","description":"The pattern: `9` a digit, `A` a letter, `*` a letter or digit, anything else a literal shown as it is (`\\9` is a literal 9)."},
+    {"name":"onComplete","description":"Once the last slot is filled."},
+    {"name":"onValueChange","description":"Every edit: the raw value and the text shown for it."},
+    {"name":"placeholderChar","description":"Draws each empty slot in the default placeholder (`\"(___) ___-____\"`)."},
+    {"name":"start","description":"Leading adornment: an icon, a prefix (\"https://\"), a unit."},
+    {"name":"tokens","description":"More slot characters, or other meanings for the defaults (`{ h: { test: (c) => /[0-9a-f]/i.test(c) } }`)."},
+    {"name":"type","description":"`tel` brings the phone keypad on touch devices."},
+    {"name":"value","description":"The RAW value: the slot characters only (\"5551234567\")."}
+  ],
+  "MasonryGrid": [
+    {"name":"gap","description":"Space between columns and between stacked items, from the UI scale."},
+    {"name":"list","description":"Announce it as a list (`role=\"list\"`, each item a `listitem`): a gallery or a feed is one."},
+    {"name":"maxColumns","description":"The most columns, however wide the grid gets."},
+    {"name":"minColumn","description":"The column floor (`--COLUMN-SM`, `--COLUMN-MD`, `--COLUMN-LG`)."}
+  ],
+  "MediaCard": [
+    {"name":"actions","description":"Secondary controls (save, share)."},
+    {"name":"badge","description":"A `Badge`, pinned to the media box's start corner."},
+    {"name":"href","description":"Where the card leads."},
+    {"name":"image","description":"Lazy-loaded, through `Image` (a failure shows its glyph and `alt`)."},
+    {"name":"linkAs","description":"Renders the link (default: the router's link for an internal `href`, else `<a>`)."},
+    {"name":"meta","description":"A short line under the description: author, date, reading time."},
+    {"name":"ratio","description":"Default `wide` (16:9)."},
+    {"name":"title","description":"The card's name, and the link's."},
+    {"name":"titleAs","description":"The title's heading level in the page outline (default `h3`)."}
+  ],
+  "MediaCard.Skeleton": [
+    {"name":"label","description":"Makes this skeleton the loading status (`role=\"status\"` with this text)."}
+  ],
+  "Meter": [
+    {"name":"label","description":"What is measured."},
+    {"name":"thresholds","description":"Boundaries that turn the fill into a status."},
+    {"name":"valueText","description":"The value as text."},
+    {"name":"variant","description":"`stacked`: label and value above a full-width track (a list, a card)."}
+  ],
+  "MultiSelect": [
+    {"name":"filter","description":"Default: contains, ignoring case and diacritics."},
+    {"name":"inputValue","description":"The search text."},
+    {"name":"max","description":"At most this many; the other options disable once it is reached."},
+    {"name":"name","description":"Submitted as one hidden input per value."},
+    {"name":"selectAll","description":"A first row that chooses every listed (filtered, enabled) option, or clears them."},
+    {"name":"value","description":"Chosen values, in the order they were chosen."},
+    {"name":"virtualizeThreshold","description":"Lists longer than this are windowed."}
+  ],
+  "NavList": [
+    {"name":"label","description":"The navigation landmark's name, e.g. \"Settings\"."}
+  ],
+  "NavList.Item": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"badge","description":"A count or short status after the label, read as part of the item's name."},
+    {"name":"current","description":"This item is the current page: sets `aria-current=\"page\"` and draws the accent marker."},
+    {"name":"icon","description":"Decorative icon (give it `aria-hidden`); the label is the accessible name."}
+  ],
+  "NavList.Section": [
+    {"name":"title","description":"The group's heading."}
+  ],
+  "NavigationMenu": [
+    {"name":"anchorRef","description":"The box a mega panel lines up under and spans (a site header's bar)."},
+    {"name":"closeDelay","description":"How long a hover-opened panel waits once the pointer has left it and its button, in ms."},
+    {"name":"open","description":"The open item's `id`, `null` for none."},
+    {"name":"openDelay","description":"Hover intent: how long a fine pointer rests on a closed menu's button before its panel opens, in ms."}
+  ],
+  "NumberInput": [
+    {"name":"end","description":"Trailing adornment: a unit (\"ms\"), an icon, or a small button."},
+    {"name":"formatOptions","description":"Display options, e.g."},
+    {"name":"locale","description":"BCP 47 locale for display and for reading typed text."},
+    {"name":"onValueChange","description":"The committed number: on blur, Enter, a step or a stepper press; never mid-typing."},
+    {"name":"precision","description":"Fraction digits a committed value is rounded to."},
+    {"name":"start","description":"Leading adornment: an icon, a prefix (\"https://\"), a unit."},
+    {"name":"step","description":"Arrow keys and steppers move by `step`; PageUp/PageDown by ten steps."},
+    {"name":"value","description":"`null` is an empty field."}
+  ],
+  "OTPInput": [
+    {"name":"groups","description":"Sizes of the visual groups, e.g."},
+    {"name":"length","description":"How many characters the code has."},
+    {"name":"mask","description":"Shows a dot in each filled box and makes the input a password field."},
+    {"name":"mode","description":"`numeric` keeps 0–9 and opens the number pad; `alphanumeric` keeps A–Z, a–z, 0–9."},
+    {"name":"onComplete","description":"Called once per complete code (typed, pasted or autofilled); the same code again does not repeat it."},
+    {"name":"separator","description":"Drawn between groups."}
+  ],
+  "Pagination": [
+    {"name":"defaultPage","description":"Uncontrolled initial page."},
+    {"name":"getHref","description":"Link mode: every page, previous and next become real links to `getHref(page)`, rendered by the `RouterProvider`'s link (an `<a>` without one), so they can be opened in a new tab and work without JavaScript."},
+    {"name":"onPageChange","description":"Called with the page chosen (in link mode too, as the link is followed)."},
+    {"name":"page","description":"Controlled current page, 1-based."},
+    {"name":"pageCount","description":"Total pages (at least 1)."},
+    {"name":"siblings","description":"Pages shown either side of the current one."}
+  ],
+  "Parallax": [
+    {"name":"strength","description":"How far the layer drifts each way: the domain token `--PARALLAX-SHIFT` (medium), half of it (subtle) or one and a half (strong)."}
+  ],
+  "PasswordInput": [
+    {"name":"autoComplete","description":"`current-password` (default: a sign-in) or `new-password` (a sign-up or a change, where a password manager offers to generate one)."},
+    {"name":"capsLockWarning","description":"Warns while Caps Lock is on."},
+    {"name":"end","description":"Trailing adornment: a unit (\"ms\"), an icon, or a small button."},
+    {"name":"minStrengthLength","description":"The length the built-in estimator asks for."},
+    {"name":"start","description":"Leading adornment: an icon, a prefix (\"https://\"), a unit."},
+    {"name":"strength","description":"A strength meter under the field while it holds text."},
+    {"name":"visible","description":"Shows the password as text."}
+  ],
+  "Popover.Close": [
+    {"name":"asChild","description":"Put the close behaviour on your own single child instead of a `Button`."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "Popover.Content": [
+    {"name":"arrow","description":"Draw a pointer back at the trigger."},
+    {"name":"initialFocus","description":"Where focus goes on open: the first tabbable element (default), or a ref."}
+  ],
+  "Popover.Trigger": [
+    {"name":"asChild","description":"Put the trigger behaviour on your own single child instead of a `Button`."},
+    {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
+    {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
+  ],
+  "PreferencesMenu": [
+    {"name":"hide","description":"Leave out the density or input group."},
+    {"name":"placement","description":"Default \"bottom-end\": the menu usually sits at the end of a header."},
+    {"name":"storageKey","description":"The `localStorage` key holding the saved preferences."},
+    {"name":"themes","description":"The themes to offer, first = default."}
+  ],
+  "Pricing": [
+    {"name":"currency","description":"ISO 4217 code every price is in (`\"USD\"`, `\"EUR\"`, `\"JPY\"`)."},
+    {"name":"currencyDisplay","description":"How the currency is named beside an amount."},
+    {"name":"headingLevel","description":"The plan names' heading level in the page outline (default 3)."},
+    {"name":"loading","description":"Skeleton cards in the plans' place (as many as `plans`, else three), spoken once."},
+    {"name":"locale","description":"BCP 47 locale for the prices and the plan list."}
+  ],
+  "PricingTable": [
+    {"name":"plans","description":"The plans as columns, in order (the same objects `Pricing` takes will do)."},
+    {"name":"tableProps","description":"Props for the `<table>` element itself (`aria-rowcount`, `aria-busy`…)."}
+  ],
+  "ProgressBar": [
+    {"name":"hideLabel","description":"Keeps `label` as the bar's name but hides it (a table cell, a row that already says it)."},
+    {"name":"label","description":"What is progressing."},
+    {"name":"locale","description":"Omitted: the `LocaleProvider`'s, else the runtime's."},
+    {"name":"max","description":"The total."},
+    {"name":"showValue","description":"Shows the value (a percentage, \"2 of 5\", or the indeterminate word)."},
+    {"name":"tone","description":"`accent` (default) is ordinary progress."},
+    {"name":"value","description":"Work done, from 0 to `max`."},
+    {"name":"valueText","description":"The value as text, shown and spoken (\"3.2 of 10 MB\")."},
+    {"name":"variant","description":"`continuous` (default): one track."}
+  ],
+  "ProgressRing": [
+    {"name":"label","description":"The ring's accessible name: what is progressing."},
+    {"name":"locale","description":"Omitted: the `LocaleProvider`'s, else the runtime's."},
+    {"name":"showValue","description":"Shows the percentage in the centre (`control` and `large`)."},
+    {"name":"tone","description":"`accent` (default) or a status tone, spoken after the value."},
+    {"name":"value","description":"Work done, from 0 to `max`."},
+    {"name":"valueText","description":"The value as text, spoken and (with `showValue`) shown."}
+  ],
+  "Prose": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"measure","description":"Cap the line length at the reading measure."}
+  ],
+  "RadioGroup": [
+    {"name":"invalid","description":"On the group: ARIA allows `aria-invalid` on `radiogroup`, not on `radio`."},
+    {"name":"name","description":"The radios' shared `name`, for form submission."}
+  ],
+  "RangeCalendar": [
+    {"name":"autoFocus","description":"Move focus to the active day on mount (inside a popup)."},
+    {"name":"isDateUnavailable","description":"Days that can be focused but not chosen (booked, holidays)."},
+    {"name":"locale","description":"BCP 47 tag for month and weekday names, day names and week start."},
+    {"name":"max","description":"Latest selectable day (inclusive)."},
+    {"name":"min","description":"Earliest selectable day (inclusive, by calendar day)."},
+    {"name":"month","description":"The first month shown (controlled)."},
+    {"name":"months","description":"The most months shown side by side."},
+    {"name":"onValueChange","description":"Called on each press: `{ start, end: null }` after the first, the ordered range after the second."},
+    {"name":"weekStartsOn","description":"First column, 0 = Sunday."}
+  ],
+  "RangeSlider": [
+    {"name":"defaultValue","description":"Default `[min, max]`."},
+    {"name":"formatOptions","description":"Number formatting for the value, e.g."},
+    {"name":"formatValue","description":"The value as words, for `aria-valuetext` and the bubble (e.g."},
+    {"name":"largeStep","description":"Page Up/Down and Shift + arrow."},
+    {"name":"locale","description":"BCP 47 locale for the value text, the bubble and numeric mark labels."},
+    {"name":"max","description":"Default 100."},
+    {"name":"min","description":"Default 0."},
+    {"name":"minStepsBetweenThumbs","description":"Steps the thumbs always keep between them."},
+    {"name":"name","description":"Submitted as two hidden inputs of this name, low then high."},
+    {"name":"onValueChange","description":"Every change, as it happens."},
+    {"name":"onValueCommit","description":"Once per gesture that changed the range: on release, or on key up."},
+    {"name":"showValue","description":"Shows each thumb's value in a bubble while it is dragged or keyboard-focused."},
+    {"name":"step","description":"Default 1."}
+  ],
+  "Rating": [
+    {"name":"allowHalf","description":"Half steps: a press on an icon's inline-start half, and every key step, moves by a half."},
+    {"name":"clearable","description":"Pressing the current value, Delete, Backspace or 0 clears it (and arrows can step down to none)."},
+    {"name":"icon","description":"The icon drawn for each step (default a star)."},
+    {"name":"max","description":"How many icons."},
+    {"name":"name","description":"Submitted as one hidden input (empty when there is no rating)."},
+    {"name":"readOnly","description":"A display, not a control: an image named by its value (\"4.3 out of 5\"), out of the tab order, drawn at any fraction."},
+    {"name":"value","description":"`null` is no rating."}
+  ],
+  "ReadingProgress": [
+    {"name":"as","description":"The element or component to render."}
+  ],
+  "RequireAuth": [
+    {"name":"authorize","description":"Roles or permissions, once signed in: `false` renders the forbidden fallback instead of `children`."},
+    {"name":"forbiddenFallback","description":"Replaces the default \"no access\" message."},
+    {"name":"loadingFallback","description":"Replaces the default wait (a spinner and `labels.loading`, a status)."},
+    {"name":"onUnauthenticated","description":"Called once each time `status` becomes `\"unauthenticated\"`: navigate to your sign-in route with your router here."},
+    {"name":"signInHref","description":"The default signed-out fallback links here, through the `RouterProvider`'s link."},
+    {"name":"status","description":"Where your auth library stands."},
+    {"name":"unauthenticatedFallback","description":"Replaces the default signed-out message (with a sign-in link when `signInHref` is set)."}
+  ],
+  "RouterProvider": [
+    {"name":"isCurrent","description":"Whether `href` is the page being shown."},
+    {"name":"link","description":"Renders an internal link."}
+  ],
+  "ScrollReveal": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"once","description":"Play once, then stay."},
+    {"name":"rootMargin","description":"Grows or shrinks the viewport the threshold is measured against."},
+    {"name":"threshold","description":"How much must be in view before it plays (0–1): that share of the element, or of the viewport's height for an element taller than the view (which could otherwise never reach it)."}
+  ],
+  "SearchInput": [
+    {"name":"end","description":"Trailing adornment: a unit (\"ms\"), an icon, or a small button."},
+    {"name":"loading","description":"Results are on their way: the magnifier becomes a spinner and the field `aria-busy`."},
+    {"name":"onClear","description":"Called after the clear button or Escape empties the field."}
+  ],
+  "Section": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"padding","description":"Block padding from the fluid section scale."}
+  ],
+  "SectionHeading": [
+    {"name":"align","description":"`center` for a section whose content is centred under it."},
+    {"name":"eyebrow","description":"A quiet line above it (UI scale): what the section is about."},
+    {"name":"lead","description":"One or two sentences under it, on the prose scale."},
+    {"name":"title","description":"The heading, on the fluid display scale."},
+    {"name":"titleId","description":"The heading's id, for the section's `aria-labelledby`."}
+  ],
+  "SegmentedControl": [
+    {"name":"name","description":"The radios' shared `name`, for form submission."}
+  ],
+  "SegmentedControl.Item": [
+    {"name":"icon","description":"A leading icon, `size-icon`."}
+  ],
+  "Select": [
+    {"name":"onValueChange","description":"The chosen option's `value`, after the native `onChange`."},
+    {"name":"placeholder","description":"A first, unselectable option shown while the value is `\"\"`."},
+    {"name":"readOnly","description":"Native `<select>` has no read-only state."},
+    {"name":"value","description":"The chosen option's `value` (controlled)."}
+  ],
+  "SiteHeader": [
+    {"name":"actions","description":"The calls to action (sign in, start free)."},
+    {"name":"brand","description":"The logo or wordmark, usually a link home."},
+    {"name":"collapseBelow","description":"Below this header width the navigation and actions fold into the menu."},
+    {"name":"hideOnScroll","description":"Slide away while the reader scrolls down and come back on any scroll up."},
+    {"name":"items","description":"The site navigation: drawn as a `NavigationMenu` when the header is wide, and as an accordion in the menu when narrow."},
+    {"name":"menuOpen","description":"The narrow header's menu (a drawer)."},
+    {"name":"navigationProps","description":"Passed to the `NavigationMenu` (its labels also name the menu's navigation)."},
+    {"name":"skipTo","description":"An in-page target (`\"#main\"`) for a skip link, rendered first and shown on focus."},
+    {"name":"sticky","description":"Stick to the top of its scroller (the page, or the nearest scrolling ancestor), on the sticky layer, `--r-marketing-site-header-top` below it (default 0)."}
+  ],
+  "Skeleton": [
+    {"name":"label","description":"Makes this skeleton the status for its group: `role=\"status\"` plus this text, visually hidden."},
+    {"name":"lines","description":"`text` only: number of lines; the last one is shorter, as real text runs out."},
+    {"name":"shape","description":"- `text` (default): one line box of the inherited type (a 1em bar centred in 1lh), so it takes the space the text will; `lines` stacks several. - `block`: a rectangle you size with `className` (`h-chart`, `h-control`…). - `circle`: a disc, `size-control` by default (an avatar's stand-in)."}
+  ],
+  "Slider": [
+    {"name":"defaultValue","description":"Default `min`."},
+    {"name":"form","description":"The `<form>` the hidden input belongs to, by id."},
+    {"name":"formatOptions","description":"Number formatting for the value, e.g."},
+    {"name":"formatValue","description":"The value as words, for `aria-valuetext` and the bubble (e.g."},
+    {"name":"largeStep","description":"Page Up/Down and Shift + arrow."},
+    {"name":"locale","description":"BCP 47 locale for the value text, the bubble and numeric mark labels."},
+    {"name":"marks","description":"Ticks on the track; a mark with a `label` also shows it under (beside) the track."},
+    {"name":"max","description":"Default 100."},
+    {"name":"min","description":"Default 0."},
+    {"name":"name","description":"Submitted as one hidden input."},
+    {"name":"onValueChange","description":"Every change, as it happens (each drag move, each key)."},
+    {"name":"onValueCommit","description":"Once per gesture that changed the value: on release, or on key up."},
+    {"name":"orientation","description":"Default `horizontal`."},
+    {"name":"readOnly","description":"Focusable and announced, but neither keys nor presses move it."},
+    {"name":"showValue","description":"Shows the value in a bubble on the thumb while it is dragged or keyboard-focused."},
+    {"name":"step","description":"Default 1."}
+  ],
+  "Sparkline": [
+    {"name":"format","description":"Formats the numbers in the default summary."},
+    {"name":"label","description":"What the line is, for its accessible name (\"Requests per second, last 24h\")."},
+    {"name":"series","description":"The entity's series slot (fixed per entity, never cycled)."},
+    {"name":"summary","description":"The spoken summary after the name."},
+    {"name":"values","description":"The series, oldest first."}
+  ],
+  "Spinner": [
+    {"name":"label","description":"Makes this spinner the status for what it waits on: `role=\"status\"` plus this text, visually hidden, in the caller's language."}
+  ],
+  "Splitter": [
+    {"name":"defaultSizes","description":"Uncontrolled starting sizes."},
+    {"name":"keyboardStep","description":"How far an arrow key moves a separator, as a share (0–100)."},
+    {"name":"onSizesChange","description":"Every change, including each step of a drag."},
+    {"name":"onSizesCommit","description":"Once per gesture (a drag's release, a key's release), with the sizes it left: persist these."},
+    {"name":"orientation","description":"`horizontal`: panes side by side, separators upright (default)."},
+    {"name":"sizes","description":"Each pane's share (0–100) of the space, in pane order."}
+  ],
+  "Splitter.Pane": [
+    {"name":"collapsible","description":"It may collapse to nothing: Enter on its separator, Home, a drag past half its `min`."},
+    {"name":"label","description":"Names the separator that resizes this pane (\"Resize {label}\")."},
+    {"name":"max","description":"Largest size: a share (0–100) or a token length."},
+    {"name":"min","description":"Smallest open size: a share (0–100) or a token length."}
+  ],
+  "Spotlight": [
+    {"name":"as","description":"The element or component to render."}
+  ],
+  "Stack": [
+    {"name":"align","description":"Cross-axis alignment."},
+    {"name":"as","description":"The element or component to render."},
+    {"name":"gap","description":"Space between children, from the UI scale."},
+    {"name":"justify","description":"Main-axis distribution."}
+  ],
+  "Stagger": [
+    {"name":"as","description":"The element or component to render."},
+    {"name":"trigger","description":"`scroll`: play when the group first scrolls into view (as `ScrollReveal`, and only if it was below the fold)."}
+  ],
+  "StatCard": [
+    {"name":"delta","description":"The signed change."},
+    {"name":"deltaLabel","description":"Context for the delta: \"vs prior 7d\"."},
+    {"name":"formatDelta","description":"Formats `delta`."},
+    {"name":"labels","description":"The tile's words, per instance (translate them, or say \"faster\" for latency)."},
+    {"name":"loading","description":"Skeleton value and delta while the first value loads."},
+    {"name":"sentiment","description":"Is this change good news? \"Error rate down\" is `good`; \"latency up\" is `bad`."},
+    {"name":"sparkline","description":"A `Sparkline` (or any small chart)."},
+    {"name":"stale","description":"How old the value is, when it is old (\"12 min old\")."},
+    {"name":"status","description":"A status for the metric (a `StatusLabel`), under the delta."},
+    {"name":"unit","description":"A unit set beside the value, smaller and quieter (\"ms\", \"%\")."},
+    {"name":"value","description":"The figure, already formatted (`formatNumber`, `formatCompact`…)."}
+  ],
+  "StatusLabel": [
+    {"name":"icon","description":"Replaces the tone's default glyph (decorative; the label names the state)."}
+  ],
+  "Stepper": [
+    {"name":"current","description":"The current step's index."},
+    {"name":"label","description":"The list's name (the `nav` landmark's when steps can be selected)."},
+    {"name":"onStepSelect","description":"Makes steps selectable: by default every step before the current one (complete, skipped or in error) renders as a button that calls this."},
+    {"name":"orientation","description":"`horizontal` (default): equal steps in a row, each label under its marker and a line from marker to marker; collapses to \"Step 2 of 5 · Name\" when its own container is narrow."}
+  ],
+  "Stepper.Step": [
+    {"name":"href","description":"Renders a selectable step as a link (through the router config) instead of a button."},
+    {"name":"optional","description":"Says \"Optional\" beside the label."},
+    {"name":"selectable","description":"Overrides whether the step can be selected (default: a step before the current one)."},
+    {"name":"status","description":"`error` (it has problems to fix) or `skipped`; shown over its position."}
+  ],
+  "Table": [
+    {"name":"footer","description":"Content after the `<table>`, inside the scroll area: a bar that sticks to its bottom edge."},
+    {"name":"stickyHeader","description":"Pin the head while the table's own scroll area scrolls."},
+    {"name":"striped","description":"Band every other body row."},
+    {"name":"tableProps","description":"Props for the `<table>` element itself (`aria-rowcount`, `aria-busy`…)."}
+  ],
+  "Table.Caption": [
+    {"name":"visuallyHidden","description":"Keep the caption as the table's accessible name without showing it."}
+  ],
+  "Table.Cell": [
+    {"name":"truncate","description":"One line with an ellipsis (default); the full text becomes `title`."},
+    {"name":"wrap","description":"Text wraps onto more lines and the row grows to fit."}
+  ],
+  "Table.HeaderCell": [
+    {"name":"after","description":"Rendered after the content, outside the sort button: a resize handle."},
+    {"name":"numeric","description":"End-aligned and tabular; sized to its content (auto layout), so never truncated there."},
+    {"name":"onSort","description":"Makes the header a sort button."},
+    {"name":"sort","description":"The column's current sort."},
+    {"name":"truncate","description":"One line with an ellipsis (default)."},
+    {"name":"wrap","description":"Text wraps onto more lines and the row grows to fit (prose-like values, a pricing grid)."}
+  ],
+  "Table.Row": [
+    {"name":"index","description":"The row's position in the DATA, from 0."},
+    {"name":"selected","description":"Selected state."}
+  ],
+  "Tabs.Tab": [
+    {"name":"icon","description":"Decorative icon before the label."}
+  ],
+  "TagInput": [
+    {"name":"caseSensitive","description":"Compare tags with case and diacritics when refusing duplicates."},
+    {"name":"commitOnBlur","description":"Commit the typed tag when focus leaves the field."},
+    {"name":"delimiter","description":"Splits typed and pasted text into tags; Enter always commits."},
+    {"name":"inputValue","description":"The tag being typed."},
+    {"name":"name","description":"Submitted as one hidden input per tag."},
+    {"name":"suggestions","description":"Offered in a list while typing; choosing one adds its `value`."},
+    {"name":"validate","description":"A refusal message for a tag, or nothing to accept it."}
+  ],
+  "Testimonial": [
+    {"name":"avatar","description":"The person's photo URL."},
+    {"name":"logo","description":"The company's logo, carrying its own accessible name (an `<img alt>`, a labelled `svg`)."},
+    {"name":"name","description":"Who said it."},
+    {"name":"quote","description":"What they said."},
+    {"name":"rating","description":"A score shown with a read-only `Rating`, named by `labels.rating`."},
+    {"name":"source","description":"The work the quote comes from (a case study, a review site), as a `<cite>`."},
+    {"name":"sourceUrl","description":"The source's URL, as the blockquote's `cite` attribute."}
+  ],
+  "Textarea": [
+    {"name":"autosize","description":"Grow with the content instead of scrolling."},
+    {"name":"maxRows","description":"With `autosize`: the most rows to grow to."}
+  ],
+  "ThemeScript": [
+    {"name":"nonce","description":"For a Content-Security-Policy that allows inline scripts by nonce."},
+    {"name":"storageKey","description":"The `localStorage` key holding the saved preferences."},
+    {"name":"themes","description":"The themes this app ships."}
+  ],
+  "ThemeSwitcher": [
+    {"name":"labels","description":"The control's name (`theme`)."},
+    {"name":"storageKey","description":"The `localStorage` key holding the saved preferences."},
+    {"name":"themes","description":"The themes to offer, in order."},
+    {"name":"variant","description":"`segmented` (default) shows every theme; `select` suits a long list or a tight space."}
+  ],
+  "TimeField": [
+    {"name":"end","description":"Trailing adornment inside the frame (a `TimePicker`'s button)."},
+    {"name":"hourCycle","description":"12 (with AM/PM) or 24 hours."},
+    {"name":"locale","description":"Segment order, digits, separators and day-period words."},
+    {"name":"max","description":"Latest time, `HH:mm`, inclusive."},
+    {"name":"min","description":"Earliest time, `HH:mm`."},
+    {"name":"name","description":"Submits the value (`HH:mm`) in a hidden input."},
+    {"name":"onValueChange","description":"The time the segments show, once it is complete and inside `min`/`max`; `null` while a segment is empty or the time is refused."},
+    {"name":"step","description":"Minutes per arrow press on the minutes segment (and a `TimePicker`'s list stride)."},
+    {"name":"value","description":"A wall-clock time of day, 24-hour `HH:mm` (`HH:mm:ss` with `withSeconds`), or `null` for none."},
+    {"name":"withSeconds","description":"Adds a seconds segment; the value becomes `HH:mm:ss`."}
+  ],
+  "TimePicker": [
+    {"name":"hourCycle","description":"12 (with AM/PM) or 24 hours."},
+    {"name":"locale","description":"Segment order, digits, separators and day-period words."},
+    {"name":"max","description":"Latest time, `HH:mm`, inclusive."},
+    {"name":"min","description":"Earliest time, `HH:mm`."},
+    {"name":"name","description":"Submits the value (`HH:mm`) in a hidden input."},
+    {"name":"onValueChange","description":"The time the segments show, once it is complete and inside `min`/`max`; `null` while a segment is empty or the time is refused."},
+    {"name":"open","description":"The list popup (controlled)."},
+    {"name":"step","description":"The list's stride in minutes, and the minutes segment's arrows."},
+    {"name":"value","description":"A wall-clock time of day, 24-hour `HH:mm` (`HH:mm:ss` with `withSeconds`), or `null` for none."},
+    {"name":"withSeconds","description":"Adds a seconds segment; the value becomes `HH:mm:ss`."}
+  ],
+  "Timeline": [
+    {"name":"empty","description":"Replaces the default empty state."},
+    {"name":"groupByDay","description":"Group under a sticky header per local day (default)."},
+    {"name":"hasMore","description":"More events exist beyond `events`: \"Show more\" (after any local pages) calls `onLoadMore`."},
+    {"name":"headingLevel","description":"Day headers as headings at this level."},
+    {"name":"label","description":"Accessible name: of the scroll region when `scrollable`, else of the list when ungrouped."},
+    {"name":"loading","description":"First load: skeleton rows and one announced status, instead of the events."},
+    {"name":"loadingMore","description":"`onLoadMore` is in flight: the button is busy and the list `aria-busy`."},
+    {"name":"locale","description":"BCP 47 locale for every date, time and relative word."},
+    {"name":"now","description":"The reference instant for relative times and Today/Yesterday."},
+    {"name":"order","description":"Default `newest-first`."},
+    {"name":"pageSize","description":"Show this many events, and that many more per \"Show more\" press."},
+    {"name":"scrollable","description":"The timeline is its own scroller: a keyboard-focusable, labelled region the day headers stick to the top of."},
+    {"name":"timeFormat","description":"`relative` (default): \"5 minutes ago\", re-read every minute."}
+  ],
+  "ToastProvider": [
+    {"name":"duration","description":"Default auto-dismiss time in ms."},
+    {"name":"labels","description":"Translations; `tones` merges per tone over `DEFAULT_TOAST_LABELS.tones`."},
+    {"name":"max","description":"Most toasts on screen; the oldest leaves first."},
+    {"name":"position","description":"Corner of the viewport, in logical terms (`end` is the right in LTR)."}
+  ],
+  "ToggleGroup": [
+    {"name":"name","description":"Submitted as one hidden input per pressed value."},
+    {"name":"orientation","description":"Inside a Toolbar, the toolbar's; elsewhere horizontal."},
+    {"name":"required","description":"A single-choice group must have a choice (`aria-required`)."}
+  ],
+  "ToggleGroup.Item": [
+    {"name":"value","description":"What the item contributes to the group's value."}
+  ],
+  "Toolbar": [
+    {"name":"overflow","description":"Horizontal only: when the toolbar's own width cannot hold every item, the trailing ones that have a menu form move, in order, into a \"More\" menu at the end."}
+  ],
+  "Toolbar.Item": [
+    {"name":"menu","description":"What it becomes in the overflow menu: a `DropdownMenu.Item` (or `CheckboxItem`, `RadioGroup`…) doing the same thing."}
+  ],
+  "Tooltip": [
+    {"name":"arrow","description":"Draw a pointer back at the trigger."},
+    {"name":"content","description":"A short supplementary description."},
+    {"name":"delay","description":"Hover delay before opening, in ms."},
+    {"name":"disabled","description":"Suppress the tooltip without unwrapping the trigger."}
+  ],
+  "TreeView": [
+    {"name":"checkedIds","description":"`multiple`: the fully checked ids, in tree order (a checked parent's unloaded children are implied)."},
+    {"name":"defaultExpandedIds","description":"Omitted: the ancestors of the current link (a nav tree opens down to the page you are on)."},
+    {"name":"error","description":"The whole tree failed: this message instead of rows."},
+    {"name":"items","description":"The nodes, as data."},
+    {"name":"loadChildren","description":"Fetches a `hasChildren` node's children the first time it opens."},
+    {"name":"loading","description":"The whole tree is loading: skeleton rows."},
+    {"name":"onAction","description":"Enter or a press on an enabled node (after the selection changes, if it does)."},
+    {"name":"renderActions","description":"Controls at the end of a row (rename, delete)."},
+    {"name":"selectionMode","description":"- `none` (default): Enter or a press activates (a link follows; a parent opens or closes). - `single`: one node is selected (`aria-selected`); Enter, Space or a press selects. - `multiple`: a tri-state check per node (`aria-checked`); a parent checks everything under it and shows mixed when some of it is checked."},
+    {"name":"virtualizeAbove","description":"Past this many visible rows, only the rows in view are mounted."}
+  ],
+  "TreeView.Item": [
+    {"name":"current","description":"This link is the page being shown."},
+    {"name":"disabled","description":"Not selectable, checkable or activatable; still focusable and expandable."},
+    {"name":"hasChildren","description":"Children exist but are not loaded: expanding calls the tree's `loadChildren(id)`."},
+    {"name":"href","description":"Makes the node a link (the `RouterProvider`'s link for an internal href)."},
+    {"name":"icon","description":"Decorative glyph before the label."},
+    {"name":"id","description":"Unique across the whole tree: selection, expansion and DOM ids key on it."},
+    {"name":"textValue","description":"What typeahead matches."}
+  ],
+  "VirtualizedTable": [
+    {"name":"bulkActions","description":"With `selectable`: a bar at the bottom of the table's frame while rows are selected, with the count, these actions and \"Clear selection\"."},
+    {"name":"caption","description":"A visible caption naming the table (or pass `aria-label`)."},
+    {"name":"columnsMenu","description":"A columns menu in the head's trailing cell: one checkbox per column (`required` columns stay)."},
+    {"name":"columnWidths","description":"Widths set by resizing, px by column id (controlled)."},
+    {"name":"empty","description":"What an empty table shows."},
+    {"name":"error","description":"A failure message."},
+    {"name":"filters","description":"The column filters' values, by column id (controlled)."},
+    {"name":"getRowKey","description":"A stable key per row: selection, expansion and React reconciliation all use it."},
+    {"name":"getRowLabel","description":"The accessible name of a row's checkbox."},
+    {"name":"loading","description":"Show skeleton rows (the head stays) and mark the table busy."},
+    {"name":"loadingRows","description":"How many skeleton rows to draw while loading."},
+    {"name":"manualFiltering","description":"The rows arrive already filtered (a server filters them); the table still shows and reports the filters."},
+    {"name":"manualSorting","description":"The rows arrive already in `sort` order (a server sorts them)."},
+    {"name":"overscan","description":"Rows mounted beyond each edge of the viewport."},
+    {"name":"resizableColumns","description":"A resize handle on every header (a column's `resizable: false` opts out): drag it, or focus it and use the arrows, Home and End."},
+    {"name":"rowActions","description":"Per-row trailing actions (icon buttons, a menu)."},
+    {"name":"selectable","description":"Adds a checkbox column with a select-all header (over every row the table presents: all filtered rows, or the page)."},
+    {"name":"stickyColumns","description":"Pin this many leading columns (and the expand and checkbox columns before them) to the inline-start edge while the table scrolls sideways."},
+    {"name":"stickyHeader","description":"Pin the head while the table's own scroll area scrolls."},
+    {"name":"striped","description":"Band every other body row."},
+    {"name":"visibleColumns","description":"The ids of the columns shown (controlled)."},
+    {"name":"visibleRows","description":"How many rows the viewport shows; its height is that many `--ROW-H` plus the head, so it follows density and input."}
+  ],
+  "Wizard": [
+    {"name":"form","description":"The form the steps fill (`useForm`)."},
+    {"name":"headingLevel","description":"The step heading's level."},
+    {"name":"label","description":"The Stepper's name."},
+    {"name":"onComplete","description":"Finish was pressed (plain steps), or the form's `onSubmit` succeeded."},
+    {"name":"step","description":"The current step's index (controlled)."}
+  ],
+  "Wizard.Step": [
+    {"name":"description","description":"A line under the label in the Stepper."},
+    {"name":"fields","description":"The form paths this step owns (`email`, `members`): only their errors block Next, and Next reveals them."},
+    {"name":"label","description":"The step's name: its Stepper label and its heading."},
+    {"name":"optional","description":"Offers \"Skip\" and says \"Optional\" in the Stepper."},
+    {"name":"validate","description":"A check of the whole step once its fields pass, typically async (\"are these people already members?\")."}
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "version": 2,
+  "title": "Coverage: navigation",
+  "description": "Side navigation, breadcrumbs, tabs, a file tree and pagination, as a documentation site.",
+  "state": { "page": 3, "openFile": null },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Inline",
+        "props": { "gap": "r2", "align": "start" },
+        "children": [
+          {
+            "component": "NavList",
+            "props": { "label": "Documentation", "className": "w-column-sm" },
+            "children": [
+              {
+                "component": "NavList.Section",
+                "props": { "title": "Get started" },
+                "children": [
+                  { "component": "NavList.Item", "props": { "href": "/docs", "icon": "house" }, "children": ["Overview"] },
+                  {
+                    "component": "NavList.Item",
+                    "props": { "href": "/docs/install", "icon": "download", "current": true },
+                    "children": ["Install"]
+                  }
+                ]
+              },
+              {
+                "component": "NavList.Section",
+                "props": { "title": "Guides" },
+                "children": [
+                  {
+                    "component": "NavList.Item",
+                    "props": { "href": "/docs/guides/webhooks", "icon": "plug", "badge": "New" },
+                    "children": ["Webhooks"]
+                  },
+                  {
+                    "component": "NavList.Item",
+                    "props": { "href": "/docs/guides/migrating-from-v1-to-v2-of-the-public-api", "icon": "workflow" },
+                    "children": ["Migrating from v1 to v2 of the public API"]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Stack",
+            "props": { "gap": "r3", "className": "flex-1 min-w-column-md" },
+            "children": [
+              {
+                "component": "Breadcrumbs",
+                "props": { "maxItems": 4, "itemsBeforeCollapse": 1, "itemsAfterCollapse": 2 },
+                "children": [
+                  { "component": "Breadcrumbs.Item", "props": { "href": "/" }, "children": ["Home"] },
+                  { "component": "Breadcrumbs.Item", "props": { "href": "/docs" }, "children": ["Docs"] },
+                  { "component": "Breadcrumbs.Item", "props": { "href": "/docs/get-started" }, "children": ["Get started"] },
+                  { "component": "Breadcrumbs.Item", "props": { "href": "/docs/get-started/platforms" }, "children": ["Platforms"] },
+                  { "component": "Breadcrumbs.Item", "props": { "current": true }, "children": ["Install"] }
+                ]
+              },
+              { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Install"] },
+              {
+                "component": "Tabs",
+                "props": { "defaultValue": "npm", "variant": "enclosed", "activation": "manual" },
+                "children": [
+                  {
+                    "component": "Tabs.List",
+                    "props": { "aria-label": "Package manager" },
+                    "children": [
+                      { "component": "Tabs.Tab", "props": { "value": "npm", "icon": "package" }, "children": ["npm"] },
+                      { "component": "Tabs.Tab", "props": { "value": "bun" }, "children": ["Bun"] },
+                      { "component": "Tabs.Tab", "props": { "value": "yarn", "disabled": true }, "children": ["Yarn (unsupported)"] }
+                    ]
+                  },
+                  {
+                    "component": "Tabs.Panel",
+                    "props": { "value": "npm" },
+                    "children": [
+                      {
+                        "component": "Text",
+                        "children": [{ "component": "Text", "props": { "as": "code" }, "children": ["npm install @northwind/sdk"] }]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Tabs.Panel",
+                    "props": { "value": "bun" },
+                    "children": [
+                      {
+                        "component": "Text",
+                        "children": [{ "component": "Text", "props": { "as": "code" }, "children": ["bun add @northwind/sdk"] }]
+                      }
+                    ]
+                  },
+                  { "component": "Tabs.Panel", "props": { "value": "yarn" }, "children": ["Yarn 1 is not supported."] }
+                ]
+              },
+              {
+                "component": "TreeView",
+                "props": {
+                  "aria-label": "Example project files",
+                  "selectionMode": "single",
+                  "defaultExpandedIds": ["src", "src/routes"],
+                  "defaultSelectedId": "src/routes/orders.ts",
+                  "onSelectedIdChange": {
+                    "action": "setState",
+                    "payload": { "path": "state.openFile", "value": { "$ref": "event.value" } }
+                  },
+                  "items": [
+                    {
+                      "id": "src",
+                      "label": "src",
+                      "icon": "folder-open",
+                      "children": [
+                        {
+                          "id": "src/routes",
+                          "label": "routes",
+                          "icon": "folder",
+                          "children": [
+                            { "id": "src/routes/orders.ts", "label": "orders.ts", "icon": "file-text" },
+                            { "id": "src/routes/webhooks.ts", "label": "webhooks.ts", "icon": "file-text", "href": "/docs/guides/webhooks" }
+                          ]
+                        },
+                        { "id": "src/client.ts", "label": "client.ts", "icon": "file-text" }
+                      ]
+                    },
+                    { "id": "generated", "label": "generated (read-only)", "icon": "lock", "disabled": true },
+                    { "id": "package.json", "label": "package.json", "icon": "file" }
+                  ]
+                }
+              },
+              {
+                "component": "Pagination",
+                "props": {
+                  "pageCount": 12,
+                  "page": { "$ref": "state.page" },
+                  "siblings": 1,
+                  "onPageChange": { "action": "setState", "payload": { "path": "state.page", "value": { "$ref": "event.value" } } }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

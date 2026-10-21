@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "title": "Coverage: motion",
+  "description": "Counting figures and content that reveals on scroll, as a year-in-review page.",
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["2026 in numbers"] },
+          {
+            "component": "Stagger",
+            "props": { "as": "ul", "animation": "fade-up", "trigger": "mount", "className": "flex flex-wrap gap-r2" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "as": "li", "gap": "r6" },
+                "children": [
+                  { "component": "CountUp", "props": { "value": 48210933, "format": "compact", "className": "text-display-3" } },
+                  { "component": "Text", "props": { "tone": "secondary" }, "children": ["shipments tracked"] }
+                ]
+              },
+              {
+                "component": "Stack",
+                "props": { "as": "li", "gap": "r6" },
+                "children": [
+                  {
+                    "component": "CountUp",
+                    "props": {
+                      "value": 0.962,
+                      "from": 0.9,
+                      "formatOptions": { "style": "percent", "maximumFractionDigits": 1 },
+                      "className": "text-display-3"
+                    }
+                  },
+                  { "component": "Text", "props": { "tone": "secondary" }, "children": ["delivered on time"] }
+                ]
+              },
+              {
+                "component": "Stack",
+                "props": { "as": "li", "gap": "r6" },
+                "children": [
+                  { "component": "CountUp", "props": { "value": null, "className": "text-display-3" } },
+                  { "component": "Text", "props": { "tone": "secondary" }, "children": ["carbon saved (reported in January)"] }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "ScrollReveal",
+            "props": { "as": "section", "animation": "fade-in", "once": true, "threshold": 0.2, "aria-label": "Highlights" },
+            "children": [
+              {
+                "component": "Card",
+                "children": [
+                  {
+                    "component": "Card.Header",
+                    "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["The busiest day"] }]
+                  },
+                  { "component": "Card.Body", "children": ["Black Friday: 1.9 million shipments, 97.1% on time."] }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "ScrollReveal",
+            "props": { "animation": "scale-in", "rootMargin": "0px 0px -10% 0px" },
+            "children": [
+              {
+                "component": "Text",
+                "props": { "tone": "muted", "size": "body-3" },
+                "children": ["Figures are for 1 January to 20 October 2026."]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

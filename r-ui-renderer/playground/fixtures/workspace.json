@@ -1,0 +1,13 @@
+{
+  "name": "Northwind Logistics — EMEA Operations",
+  "slug": "northwind-emea",
+  "billingEmail": "accounts.payable@northwind-logistics.example",
+  "seats": 148,
+  "seatsUsed": 151,
+  "timezone": "Europe/Amsterdam",
+  "plan": "business",
+  "renewsOn": "2027-01-31",
+  "weeklyDigest": true,
+  "domains": ["northwind-logistics.example", "nwl.example"],
+  "notes": ""
+}

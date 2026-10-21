@@ -4,14 +4,17 @@
 //
 //   components.json      every component and compound part the runtime barrel
 //                        exports (addressable or not: the curated tables decide
-//                        that), with its category, props (name, type, required,
-//                        first doc sentence), closed value sets, `classNames`
+//                        that), with its category, props (name, type, required),
+//                        closed value sets, `classNames`
 //                        slot keys, React-node props (nested ones too),
 //                        whether it spreads native element attributes and
 //                        whether those carry a DOM `name` (a form control's);
 //   declared-paths.json  every prop path the declarations allow, nested ones
 //                        (`items[].href`) included: what the curated tables
-//                        are gated against.
+//                        are gated against;
+//   prop-docs.json       each prop's first doc sentence. Only the reference
+//                        (`./reference`) reads it, so the renderer and the
+//                        validator never ship it.
 //
 // Two sources, read from the INSTALLED package (node_modules), never the
 // sibling's working tree: the runtime barrel (what renders) and its built
@@ -400,7 +403,7 @@ function describe(ctx, name, classNamesSeen) {
     regexp: new Set(),
     callbacks: { date: new Set(), set: new Set() },
   };
-  const record = { props: [], sink };
+  const record = { props: [], sink, docs: [] };
   if (propsType === null) return record;
 
   const properties = collectProperties(ctx, propsType);
@@ -439,12 +442,8 @@ function describe(ctx, name, classNamesSeen) {
     if (texts.includes("true") && texts.includes("false")) texts = ["boolean", ...texts.filter((t) => t !== "true" && t !== "false")];
     if (texts.length > 1) texts = texts.map((t) => (t.includes("=>") ? `(${t})` : t));
     const description = entry.symbols.map((s) => firstSentence(s, checker)).find(Boolean);
-    record.props.push({
-      name: prop,
-      type: texts.join(" | "),
-      required: entry.required,
-      ...(description ? { description } : {}),
-    });
+    if (description) record.docs.push({ name: prop, description });
+    record.props.push({ name: prop, type: texts.join(" | "), required: entry.required });
     const sets = entry.symbols.map((s, i) => literalSet(checker, s, types[i]));
     if (sets.every(Boolean)) enums[prop] = [...new Set(sets.flat())];
     if (types.some((t) => takesNode(ctx, t))) sink.nodes.add(prop);
@@ -533,10 +532,12 @@ export async function derive(root = installedLibrary()) {
   const seen = new Set();
   const components = {};
   const declaredPaths = {};
+  const propDocs = {};
   const sorted = (set) => [...set].sort();
   for (const name of [...names].sort()) {
-    const { sink, ...record } = describe(ctx, name, seen);
+    const { sink, docs, ...record } = describe(ctx, name, seen);
     components[name] = { category: categoryOf(ctx, barrel, name.split(".")[0]), ...record };
+    if (docs.length > 0) propDocs[name] = docs.sort((a, b) => a.name.localeCompare(b.name));
     declaredPaths[name] = {
       paths: sorted(sink.paths),
       ...(sink.functions.size > 0 && { functions: sorted(sink.functions) }),
@@ -564,6 +565,7 @@ export async function derive(root = installedLibrary()) {
   return {
     "components.json": { library: { name: pkg.name, version: pkg.version }, components },
     "declared-paths.json": declaredPaths,
+    "prop-docs.json": propDocs,
   };
 }
 

@@ -1,0 +1,344 @@
+{
+  "version": 2,
+  "title": "Coverage: forms",
+  "description": "Every form control bound to a validated form, as a new-shipment request.",
+  "state": { "temperature": [2, 8], "lastSearch": "" },
+  "data": {
+    "carriers": {
+      "type": "static",
+      "value": [
+        { "value": "dhl", "label": "DHL Express", "description": "Next day in the EU" },
+        { "value": "ups", "label": "UPS", "description": "2–3 days" },
+        { "value": "dpd", "label": "DPD" },
+        { "value": "nwl", "label": "Northwind Line Haul (own fleet, pallets only)", "group": "Own fleet" }
+      ]
+    }
+  },
+  "forms": {
+    "shipment": {
+      "fields": {
+        "reference": {
+          "rules": { "required": true, "pattern": "^[A-Z]{3}-[0-9]{6}$" },
+          "messages": { "pattern": "References look like ABC-123456." }
+        },
+        "carrier": { "rules": { "required": true }, "message": "Choose a carrier." },
+        "incoterm": { "initialValue": "DAP", "rules": { "required": true } },
+        "service": { "initialValue": "standard" },
+        "contents": { "rules": { "required": true, "minLength": 10, "maxLength": 500 } },
+        "recipientEmail": { "rules": { "pattern": "^[^@\\s]+@[^@\\s]+$" } },
+        "phone": {},
+        "parcels": { "type": "number", "initialValue": 1, "rules": { "required": true, "min": 1, "max": 99 } },
+        "declaredValue": {
+          "type": "number",
+          "rules": { "min": 0, "max": 250000 },
+          "messages": { "max": "Shipments over €250,000 need a specialist carrier." }
+        },
+        "priority": { "type": "number", "initialValue": 50, "rules": { "min": 0, "max": 100 } },
+        "satisfaction": { "type": "number" },
+        "pickup": { "type": "date", "rules": { "required": true, "min": "2026-10-22" } },
+        "deliveryWindow": { "type": "dateRange" },
+        "handling": { "type": "list", "rules": { "maxLength": 3 } },
+        "tags": { "type": "list" },
+        "labelColour": { "initialValue": "#1f6feb" },
+        "insured": { "type": "boolean", "initialValue": true },
+        "fragile": { "type": "boolean" },
+        "packaging": { "rules": { "required": true } }
+      },
+      "validateOn": "submit",
+      "onSubmit": {
+        "action": "apiCall",
+        "payload": {
+          "endpoint": "/fixtures/settings-save.json",
+          "method": "POST",
+          "body": { "$ref": "event.value" },
+          "onSuccess": { "action": "showToast", "payload": { "title": "Shipment requested", "tone": "success" } }
+        }
+      },
+      "onInvalid": { "action": "showToast", "payload": { "title": "Check the highlighted fields", "tone": "error" } }
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Request a shipment"] },
+          {
+            "component": "SearchInput",
+            "props": {
+              "aria-label": "Find a previous shipment",
+              "placeholder": "Find a previous shipment",
+              "onValueChange": { "action": "setState", "payload": { "path": "state.lastSearch", "value": { "$ref": "event.value" } } }
+            }
+          },
+          {
+            "component": "Form",
+            "props": { "form": "shipment" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r3" },
+                "children": [
+                  { "component": "ErrorSummary", "props": { "title": "The shipment cannot be requested yet" } },
+                  {
+                    "component": "Field",
+                    "props": { "name": "reference", "required": true },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Order reference"] },
+                      { "component": "MaskedInput", "props": { "mask": "AAA-999999", "placeholderChar": "_" } },
+                      { "component": "Field.Error" }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "carrier", "required": true },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Carrier"] },
+                      { "component": "Combobox", "props": { "options": { "$ref": "data.carriers" }, "placeholder": "Search carriers" } },
+                      { "component": "Field.Error" }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "incoterm", "required": true },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Delivery terms"] },
+                      { "component": "Field.Description", "children": ["Who pays duties and carries the risk in transit."] },
+                      {
+                        "component": "Select",
+                        "props": {
+                          "options": [
+                            { "value": "EXW", "label": "EXW: the customer collects" },
+                            { "value": "DAP", "label": "DAP: we deliver, the customer pays duties" },
+                            { "value": "DDP", "label": "DDP: we deliver and pay duties" },
+                            { "value": "CIF", "label": "CIF (sea freight only)", "disabled": true }
+                          ]
+                        }
+                      },
+                      { "component": "Field.Error" }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "service" },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Service"] },
+                      {
+                        "component": "SegmentedControl",
+                        "children": [
+                          { "component": "SegmentedControl.Item", "props": { "value": "economy" }, "children": ["Economy"] },
+                          { "component": "SegmentedControl.Item", "props": { "value": "standard" }, "children": ["Standard"] },
+                          { "component": "SegmentedControl.Item", "props": { "value": "express", "icon": "zap" }, "children": ["Express"] }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "contents", "required": true },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Contents"] },
+                      { "component": "Field.Description", "children": ["What is inside, as a customs officer would need to know it."] },
+                      { "component": "Textarea", "props": { "autosize": true, "maxRows": 8 } },
+                      { "component": "Field.Error" }
+                    ]
+                  },
+                  {
+                    "component": "Grid",
+                    "props": { "minColumn": "sm", "gap": "r4" },
+                    "children": [
+                      {
+                        "component": "Field",
+                        "props": { "name": "recipientEmail" },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Recipient email"] },
+                          {
+                            "component": "Input",
+                            "props": { "type": "email", "start": { "$node": { "component": "Icon", "props": { "name": "at-sign" } } } }
+                          },
+                          { "component": "Field.Error" }
+                        ]
+                      },
+                      {
+                        "component": "Field",
+                        "props": { "name": "phone" },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Recipient phone"] },
+                          { "component": "Input", "props": { "type": "tel", "autoComplete": "tel" } }
+                        ]
+                      },
+                      {
+                        "component": "Field",
+                        "props": { "name": "parcels", "required": true },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Parcels"] },
+                          { "component": "NumberInput", "props": { "min": 1, "max": 99, "step": 1 } },
+                          { "component": "Field.Error" }
+                        ]
+                      },
+                      {
+                        "component": "Field",
+                        "props": { "name": "declaredValue" },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Declared value"] },
+                          { "component": "CurrencyInput", "props": { "currency": "EUR" } },
+                          { "component": "Field.Error" }
+                        ]
+                      },
+                      {
+                        "component": "Field",
+                        "props": { "name": "pickup", "required": true },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Pickup day"] },
+                          { "component": "DatePicker", "props": { "min": "2026-10-22" } },
+                          { "component": "Field.Error" }
+                        ]
+                      },
+                      {
+                        "component": "Field",
+                        "props": { "name": "labelColour" },
+                        "children": [
+                          { "component": "Field.Label", "children": ["Label colour"] },
+                          {
+                            "component": "ColorPicker",
+                            "props": {
+                              "swatches": [
+                                { "value": "#1f6feb", "label": "Blue" },
+                                { "value": "#d1242f", "label": "Red" },
+                                { "value": "#1a7f37", "label": "Green" }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "deliveryWindow" },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Delivery window"] },
+                      { "component": "DateRangePicker", "props": { "variant": "field", "min": "2026-10-22" } }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "handling" },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Handling instructions"] },
+                      {
+                        "component": "MultiSelect",
+                        "props": {
+                          "options": [
+                            { "value": "upright", "label": "Keep upright" },
+                            { "value": "cold", "label": "Keep refrigerated (2–8 °C)" },
+                            { "value": "signature", "label": "Signature on delivery" },
+                            { "value": "noStack", "label": "Do not stack" }
+                          ],
+                          "max": 3
+                        }
+                      },
+                      { "component": "Field.Error" }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "tags" },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Tags"] },
+                      { "component": "TagInput", "props": { "suggestions": ["urgent", "b2b", "returns"], "max": 6 } }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "priority" },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Priority"] },
+                      {
+                        "component": "Slider",
+                        "props": {
+                          "min": 0,
+                          "max": 100,
+                          "step": 10,
+                          "showValue": true,
+                          "marks": [0, 50, { "value": 100, "label": "Highest" }]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "packaging", "required": true },
+                    "children": [
+                      { "component": "Field.Label", "children": ["Packaging"] },
+                      {
+                        "component": "RadioGroup",
+                        "props": { "orientation": "horizontal" },
+                        "children": [
+                          { "component": "Radio", "props": { "value": "box" }, "children": ["Box"] },
+                          { "component": "Radio", "props": { "value": "pallet" }, "children": ["Pallet"] },
+                          { "component": "Radio", "props": { "value": "envelope" }, "children": ["Envelope"] }
+                        ]
+                      },
+                      { "component": "Field.Error" }
+                    ]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "insured" },
+                    "children": [{ "component": "Switch", "children": ["Insure for the declared value"] }]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "fragile" },
+                    "children": [{ "component": "Checkbox", "children": ["Fragile"] }]
+                  },
+                  {
+                    "component": "Field",
+                    "props": { "name": "satisfaction" },
+                    "children": [
+                      { "component": "Field.Label", "children": ["How was your last shipment?"] },
+                      { "component": "Rating", "props": { "max": 5, "clearable": true } }
+                    ]
+                  },
+                  {
+                    "component": "FormActions",
+                    "children": [
+                      {
+                        "component": "Button",
+                        "props": { "variant": "ghost", "onClick": { "action": "resetForm", "payload": { "form": "shipment" } } },
+                        "children": ["Start again"]
+                      },
+                      { "component": "FormActions.Submit", "props": { "iconEnd": "send" }, "children": ["Request shipment"] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Field",
+            "children": [
+              { "component": "Field.Label", "children": ["Temperature range for cold-chain parcels"] },
+              {
+                "component": "RangeSlider",
+                "props": {
+                  "defaultValue": [2, 8],
+                  "min": -25,
+                  "max": 25,
+                  "step": 1,
+                  "showValue": true,
+                  "formatOptions": { "style": "unit", "unit": "celsius" },
+                  "onValueCommit": { "action": "setState", "payload": { "path": "state.temperature", "value": { "$ref": "event.value" } } }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

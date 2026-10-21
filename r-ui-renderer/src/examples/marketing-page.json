@@ -1,0 +1,397 @@
+{
+  "version": 2,
+  "title": "Northwind Pulse: operations analytics for logistics teams",
+  "description": "The product page for Northwind Pulse: what it does, who uses it, and what it costs.",
+  "root": {
+    "component": "Stack",
+    "props": { "gap": "r1" },
+    "children": [
+      {
+        "component": "Hero",
+        "props": {
+          "headingLevel": 1,
+          "layout": "split",
+          "variant": "band",
+          "eyebrow": "Northwind Pulse",
+          "title": "Know where every shipment is late before your customers do",
+          "lead": "Pulse watches carriers, warehouses and order systems together, and tells the right team the moment a delivery promise is at risk.",
+          "actions": {
+            "$node": {
+              "component": "Inline",
+              "props": { "gap": "r5" },
+              "children": [
+                {
+                  "component": "Button",
+                  "props": { "variant": "primary", "onClick": { "action": "navigate", "payload": { "to": "/signup" } } },
+                  "children": ["Start a 30-day trial"]
+                },
+                {
+                  "component": "Button",
+                  "props": {
+                    "variant": "secondary",
+                    "iconEnd": "arrow-right",
+                    "onClick": { "action": "navigate", "payload": { "to": "/demo" } }
+                  },
+                  "children": ["Book a demo"]
+                }
+              ]
+            }
+          },
+          "media": {
+            "$node": {
+              "component": "Image",
+              "props": {
+                "src": "/fixtures/img/product-dashboard.svg",
+                "alt": "The Pulse dashboard: late shipments by carrier, and a chart of on-time rate over a week",
+                "width": 1200,
+                "height": 750,
+                "radius": "lg",
+                "priority": true
+              }
+            }
+          },
+          "proof": "Trusted by 1,200 logistics teams in 38 countries"
+        }
+      },
+      {
+        "component": "Container",
+        "props": { "width": "page", "gutter": true },
+        "children": [
+          {
+            "component": "LogoCloud",
+            "props": { "title": "Shipping with Pulse" },
+            "children": [
+              {
+                "component": "Image",
+                "props": { "src": "/fixtures/img/logo-northwind.svg", "alt": "Northwind", "width": 160, "height": 48 }
+              },
+              {
+                "component": "Image",
+                "props": { "src": "/fixtures/img/logo-lumen.svg", "alt": "Lumen Freight", "width": 160, "height": 48 }
+              },
+              {
+                "component": "Image",
+                "props": { "src": "/fixtures/img/logo-quarry.svg", "alt": "Quarry Supply Co.", "width": 160, "height": 48 }
+              },
+              { "component": "Image", "props": { "src": "/fixtures/img/logo-tessera.svg", "alt": "Tessera", "width": 160, "height": 48 } },
+              {
+                "component": "Image",
+                "props": { "src": "/fixtures/img/logo-halcyon.svg", "alt": "Halcyon Cold Chain", "width": 160, "height": 48 }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Section",
+        "props": { "padding": "section-2" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "page", "gutter": true },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r2" },
+                "children": [
+                  {
+                    "component": "SectionHeading",
+                    "props": {
+                      "align": "center",
+                      "eyebrow": "Why Pulse",
+                      "title": "One view of every promise you have made",
+                      "lead": "Carrier feeds, scans and order data arrive in different shapes at different times. Pulse lines them up."
+                    }
+                  },
+                  {
+                    "component": "FeatureGrid",
+                    "props": { "variant": "card", "minColumn": "sm", "headingLevel": 3 },
+                    "children": [
+                      {
+                        "component": "FeatureGrid.Item",
+                        "props": { "icon": "truck", "title": "Every carrier, one feed" },
+                        "children": [
+                          "Connect 140 carriers by API or EDI. Pulse normalises their events so a delay means the same thing everywhere."
+                        ]
+                      },
+                      {
+                        "component": "FeatureGrid.Item",
+                        "props": { "icon": "siren", "title": "Alerts that reach the right desk" },
+                        "children": [
+                          "Route a late pallet to the warehouse, a missed connection to transport, and a lost parcel to customer care."
+                        ]
+                      },
+                      {
+                        "component": "FeatureGrid.Item",
+                        "props": { "icon": "gauge", "title": "On-time rate you can trust" },
+                        "children": ["Measured against the promise you made at checkout, not the carrier's own estimate."]
+                      },
+                      {
+                        "component": "FeatureGrid.Item",
+                        "props": { "icon": "shield-check", "title": "Audit-ready by default", "href": "/security" },
+                        "children": ["SOC 2 Type II, ISO 27001 and data residency in the EU, the US or Australia."]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Section",
+        "props": { "variant": "band", "padding": "section-2" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "page", "gutter": true },
+            "children": [
+              {
+                "component": "FeatureRows",
+                "props": { "headingLevel": 2, "mediaSide": "alternate" },
+                "children": [
+                  {
+                    "component": "FeatureRows.Row",
+                    "props": {
+                      "eyebrow": "Alerts",
+                      "title": "Hear about a delay while there is still time to fix it",
+                      "media": {
+                        "$node": {
+                          "component": "Image",
+                          "props": {
+                            "src": "/fixtures/img/product-alerts.svg",
+                            "alt": "An alert for a delayed refrigerated shipment, with the affected orders listed",
+                            "width": 1200,
+                            "height": 750,
+                            "radius": "lg"
+                          }
+                        }
+                      },
+                      "actions": {
+                        "$node": { "component": "Link", "props": { "href": "/features/alerts" }, "children": ["How alerts work"] }
+                      }
+                    },
+                    "children": [
+                      "Pulse predicts a missed delivery window from scan gaps and carrier history, on average 9 hours before the carrier reports it."
+                    ]
+                  },
+                  {
+                    "component": "FeatureRows.Row",
+                    "props": {
+                      "eyebrow": "Reports",
+                      "title": "Show finance exactly what late deliveries cost",
+                      "media": {
+                        "$node": {
+                          "component": "Image",
+                          "props": {
+                            "src": "/fixtures/img/product-reports.svg",
+                            "alt": "A weekly report of refunds and credits caused by late deliveries",
+                            "width": 1200,
+                            "height": 750,
+                            "radius": "lg"
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      "Refunds, credits and penalty clauses, joined to the shipments that caused them and exported on a schedule."
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Section",
+        "props": { "padding": "section-2" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "page", "gutter": true },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r2" },
+                "children": [
+                  { "component": "SectionHeading", "props": { "title": "Live in an afternoon", "align": "center" } },
+                  {
+                    "component": "HowItWorks",
+                    "props": { "label": "Getting started", "headingLevel": 3 },
+                    "children": [
+                      {
+                        "component": "HowItWorks.Step",
+                        "props": { "title": "Connect your carriers" },
+                        "children": ["Paste API keys or upload an EDI sample; most carriers connect in minutes."]
+                      },
+                      {
+                        "component": "HowItWorks.Step",
+                        "props": { "title": "Import your promises" },
+                        "children": ["Pulse reads delivery promises from your order system or a nightly CSV."]
+                      },
+                      {
+                        "component": "HowItWorks.Step",
+                        "props": { "title": "Route the alerts" },
+                        "children": ["Send each kind of delay to the team that can act on it: Slack, Teams, email or webhook."]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Section",
+        "props": { "variant": "band", "padding": "section-2" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "measure", "gutter": true },
+            "children": [
+              {
+                "component": "Testimonial",
+                "props": {
+                  "variant": "pull",
+                  "quote": "We used to find out about a missed cold-chain handover from an angry customer. Now the warehouse hears first, and most of the time nobody else ever has to.",
+                  "name": "Grace O'Malley",
+                  "role": "Head of Customer Operations",
+                  "company": "Halcyon Cold Chain",
+                  "avatar": "/fixtures/img/avatar-5.svg",
+                  "rating": 5
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Section",
+        "props": { "padding": "section-2" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "page", "gutter": true },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r2" },
+                "children": [
+                  {
+                    "component": "SectionHeading",
+                    "props": { "align": "center", "title": "Pricing", "lead": "Every plan includes unlimited users. Prices exclude VAT." }
+                  },
+                  {
+                    "component": "Pricing",
+                    "props": {
+                      "currency": "EUR",
+                      "defaultBilling": "annual",
+                      "headingLevel": 3,
+                      "plans": [
+                        {
+                          "id": "starter",
+                          "name": "Starter",
+                          "description": "For a single warehouse getting started.",
+                          "price": { "monthly": 0 },
+                          "priceNote": "Up to 500 shipments a month",
+                          "features": ["3 carrier connections", "Email alerts", { "label": "Scheduled reports", "included": false }],
+                          "action": {
+                            "$node": {
+                              "component": "Button",
+                              "props": {
+                                "variant": "secondary",
+                                "onClick": { "action": "navigate", "payload": { "to": "/signup?plan=starter" } }
+                              },
+                              "children": ["Start free"]
+                            }
+                          }
+                        },
+                        {
+                          "id": "growth",
+                          "name": "Growth",
+                          "description": "For regional networks with several carriers.",
+                          "price": { "monthly": 349, "annual": 3490 },
+                          "priceNote": "Up to 25,000 shipments a month",
+                          "features": ["Unlimited carriers", "Slack, Teams and webhooks", "Scheduled reports", "Delay prediction"],
+                          "highlighted": true,
+                          "action": {
+                            "$node": {
+                              "component": "Button",
+                              "props": {
+                                "variant": "primary",
+                                "onClick": { "action": "navigate", "payload": { "to": "/signup?plan=growth" } }
+                              },
+                              "children": ["Start a 30-day trial"]
+                            }
+                          }
+                        },
+                        {
+                          "id": "enterprise",
+                          "name": "Enterprise",
+                          "description": "For global operations with their own compliance needs.",
+                          "priceNote": "Volume pricing",
+                          "features": ["Everything in Growth", "Data residency", "SAML single sign-on", "A named support engineer"],
+                          "action": {
+                            "$node": {
+                              "component": "Button",
+                              "props": {
+                                "variant": "secondary",
+                                "onClick": { "action": "navigate", "payload": { "to": "/contact-sales" } }
+                              },
+                              "children": ["Talk to sales"]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Section",
+        "props": { "padding": "section-2" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "page", "gutter": true },
+            "children": [
+              {
+                "component": "CallToAction",
+                "props": {
+                  "variant": "band",
+                  "layout": "split",
+                  "headingLevel": 2,
+                  "title": "Get the monthly logistics briefing",
+                  "body": "Carrier performance across Europe and North America, one email a month. No product news.",
+                  "actions": {
+                    "$node": {
+                      "component": "EmailCapture",
+                      "props": {
+                        "description": "We send one email a month and never share your address.",
+                        "onSubmit": {
+                          "action": "apiCall",
+                          "payload": {
+                            "endpoint": "/fixtures/newsletter-signup.json",
+                            "method": "POST",
+                            "body": { "email": { "$ref": "event.value" } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

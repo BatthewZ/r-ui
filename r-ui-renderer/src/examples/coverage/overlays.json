@@ -1,0 +1,325 @@
+{
+  "version": 2,
+  "title": "Coverage: overlays",
+  "description": "Dialogs, drawers, menus, popovers, hover cards and tooltips, around one shipment's detail page.",
+  "state": { "sort": "newest", "showArchived": false, "note": "" },
+  "forms": {
+    "reschedule": {
+      "fields": {
+        "day": { "type": "date", "rules": { "required": true, "min": "2026-10-22" }, "message": "Pick a day from tomorrow on." },
+        "reason": { "rules": { "required": true, "minLength": 5 } }
+      },
+      "onSubmit": [
+        { "action": "closeDialog", "payload": { "dialogId": "reschedule" } },
+        { "action": "showToast", "payload": { "title": "Collection rescheduled", "tone": "success" } }
+      ]
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          {
+            "component": "Inline",
+            "props": { "justify": "between", "align": "center", "gap": "r4" },
+            "children": [
+              { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Shipment SHP-2026-0042"] },
+              {
+                "component": "Inline",
+                "props": { "gap": "r5", "align": "center" },
+                "children": [
+                  {
+                    "component": "Tooltip",
+                    "props": { "content": "Copy a link to this shipment", "placement": "bottom", "arrow": true },
+                    "children": [{ "component": "IconButton", "props": { "icon": "link", "label": "Copy link", "variant": "ghost" } }]
+                  },
+                  {
+                    "component": "DropdownMenu",
+                    "props": { "placement": "bottom-end" },
+                    "children": [
+                      {
+                        "component": "DropdownMenu.Trigger",
+                        "props": { "variant": "secondary", "iconEnd": "chevron-down" },
+                        "children": ["Actions"]
+                      },
+                      {
+                        "component": "DropdownMenu.Content",
+                        "children": [
+                          { "component": "DropdownMenu.Label", "children": ["Shipment"] },
+                          {
+                            "component": "DropdownMenu.Item",
+                            "props": { "icon": "calendar", "onSelect": { "action": "openDialog", "payload": { "dialogId": "reschedule" } } },
+                            "children": ["Reschedule collection…"]
+                          },
+                          {
+                            "component": "DropdownMenu.Item",
+                            "props": { "icon": "printer", "shortcut": "Ctrl+P" },
+                            "children": ["Print labels"]
+                          },
+                          { "component": "DropdownMenu.Separator" },
+                          { "component": "DropdownMenu.Label", "children": ["Sort events"] },
+                          {
+                            "component": "DropdownMenu.RadioGroup",
+                            "props": {
+                              "defaultValue": "newest",
+                              "onValueChange": {
+                                "action": "setState",
+                                "payload": { "path": "state.sort", "value": { "$ref": "event.value" } }
+                              }
+                            },
+                            "children": [
+                              { "component": "DropdownMenu.RadioItem", "props": { "value": "newest" }, "children": ["Newest first"] },
+                              { "component": "DropdownMenu.RadioItem", "props": { "value": "oldest" }, "children": ["Oldest first"] }
+                            ]
+                          },
+                          {
+                            "component": "DropdownMenu.CheckboxItem",
+                            "props": {
+                              "defaultChecked": false,
+                              "onCheckedChange": {
+                                "action": "setState",
+                                "payload": { "path": "state.showArchived", "value": { "$ref": "event.value" } }
+                              }
+                            },
+                            "children": ["Show archived events"]
+                          },
+                          { "component": "DropdownMenu.Separator" },
+                          {
+                            "component": "DropdownMenu.Item",
+                            "props": {
+                              "variant": "danger",
+                              "icon": "ban",
+                              "onSelect": { "action": "openDialog", "payload": { "dialogId": "cancelShipment" } }
+                            },
+                            "children": ["Cancel shipment"]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Text",
+            "children": [
+              "Handled by ",
+              {
+                "component": "HoverCard",
+                "props": { "placement": "top", "openDelay": 300 },
+                "children": [
+                  {
+                    "component": "HoverCard.Trigger",
+                    "children": [{ "component": "Link", "props": { "href": "/people/tomasz-kowalczyk" }, "children": ["Tomasz Kowalczyk"] }]
+                  },
+                  { "component": "HoverCard.Toggle", "props": { "label": "Preview Tomasz Kowalczyk" } },
+                  {
+                    "component": "HoverCard.Content",
+                    "children": [
+                      {
+                        "component": "Inline",
+                        "props": { "gap": "r5", "align": "center", "wrap": false },
+                        "children": [
+                          { "component": "Avatar", "props": { "name": "Tomasz Kowalczyk", "src": "/fixtures/img/avatar-3.svg" } },
+                          {
+                            "component": "Text",
+                            "props": { "as": "span", "size": "body-2" },
+                            "children": ["Head of Carrier Relations · Kraków"]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              " in the carrier relations team."
+            ]
+          },
+          {
+            "component": "Inline",
+            "props": { "gap": "r5" },
+            "children": [
+              {
+                "component": "Popover",
+                "props": { "placement": "bottom-start" },
+                "children": [
+                  {
+                    "component": "Popover.Trigger",
+                    "props": { "variant": "secondary", "iconStart": "message-square" },
+                    "children": ["Add a note"]
+                  },
+                  {
+                    "component": "Popover.Content",
+                    "props": { "arrow": true, "initialFocus": 0 },
+                    "children": [
+                      {
+                        "component": "Stack",
+                        "props": { "gap": "r5" },
+                        "children": [
+                          {
+                            "component": "Text",
+                            "props": { "size": "body-2" },
+                            "children": ["Notes are visible to everyone handling this shipment."]
+                          },
+                          {
+                            "component": "Textarea",
+                            "props": {
+                              "aria-label": "Note",
+                              "onChange": { "action": "setState", "payload": { "path": "state.note", "value": { "$ref": "event.value" } } }
+                            }
+                          },
+                          { "component": "Popover.Close", "props": { "variant": "primary" }, "children": ["Save note"] }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Drawer",
+                "props": { "dialogId": "history" },
+                "children": [
+                  {
+                    "component": "Drawer.Trigger",
+                    "props": { "variant": "secondary", "iconStart": "history" },
+                    "children": ["Full history"]
+                  },
+                  {
+                    "component": "Drawer.Content",
+                    "props": { "side": "end", "lightDismiss": true },
+                    "children": [
+                      {
+                        "component": "Drawer.Header",
+                        "children": [
+                          { "component": "Drawer.Title", "children": ["History"] },
+                          { "component": "Drawer.Description", "children": ["Every scan and status change, newest first."] }
+                        ]
+                      },
+                      {
+                        "component": "Drawer.Body",
+                        "children": [
+                          { "component": "Text", "children": ["21 Oct 08:40 · Out for delivery, Amsterdam depot"] },
+                          { "component": "Text", "children": ["20 Oct 22:15 · Missed collection: carrier did not arrive before cut-off"] }
+                        ]
+                      },
+                      {
+                        "component": "Drawer.Footer",
+                        "children": [{ "component": "Drawer.Close", "props": { "variant": "secondary" }, "children": ["Close"] }]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Dialog",
+            "props": { "dialogId": "reschedule" },
+            "children": [
+              {
+                "component": "Dialog.Content",
+                "props": { "showClose": true },
+                "children": [
+                  {
+                    "component": "Dialog.Header",
+                    "children": [
+                      { "component": "Dialog.Title", "children": ["Reschedule collection"] },
+                      {
+                        "component": "Dialog.Description",
+                        "children": ["The carrier is told at once; a change after 16:00 applies from the day after tomorrow."]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Dialog.Body",
+                    "children": [
+                      {
+                        "component": "Form",
+                        "props": { "form": "reschedule" },
+                        "children": [
+                          {
+                            "component": "Stack",
+                            "props": { "gap": "r4" },
+                            "children": [
+                              {
+                                "component": "Field",
+                                "props": { "name": "day", "required": true },
+                                "children": [
+                                  { "component": "Field.Label", "children": ["New collection day"] },
+                                  { "component": "DatePicker", "props": { "min": "2026-10-22" } },
+                                  { "component": "Field.Error" }
+                                ]
+                              },
+                              {
+                                "component": "Field",
+                                "props": { "name": "reason", "required": true },
+                                "children": [
+                                  { "component": "Field.Label", "children": ["Reason"] },
+                                  { "component": "Input" },
+                                  { "component": "Field.Error" }
+                                ]
+                              },
+                              {
+                                "component": "FormActions",
+                                "children": [
+                                  { "component": "Dialog.Close", "props": { "variant": "ghost" }, "children": ["Cancel"] },
+                                  { "component": "FormActions.Submit", "children": ["Reschedule"] }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Dialog",
+            "props": { "dialogId": "cancelShipment" },
+            "children": [
+              { "component": "Dialog.Trigger", "props": { "variant": "danger" }, "children": ["Cancel shipment"] },
+              {
+                "component": "Dialog.Content",
+                "props": { "role": "alertdialog" },
+                "children": [
+                  { "component": "Dialog.Header", "children": [{ "component": "Dialog.Title", "children": ["Cancel this shipment?"] }] },
+                  {
+                    "component": "Dialog.Body",
+                    "children": [
+                      { "component": "Text", "children": ["The customer is refunded €182.40 and the carrier booking is released."] }
+                    ]
+                  },
+                  {
+                    "component": "Dialog.Footer",
+                    "children": [
+                      { "component": "Dialog.Close", "props": { "variant": "secondary" }, "children": ["Keep shipment"] },
+                      {
+                        "component": "Button",
+                        "props": {
+                          "variant": "danger",
+                          "onClick": [
+                            { "action": "closeDialog", "payload": { "dialogId": "cancelShipment" } },
+                            { "action": "showToast", "payload": { "title": "Shipment cancelled", "tone": "warning" } }
+                          ]
+                        },
+                        "children": ["Cancel shipment"]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "version": 2,
+  "title": "Coverage: toolbar",
+  "description": "A toolbar with grouped buttons, toggle groups and an overflow menu, above a report editor.",
+  "state": { "chart": "line", "series": ["orders"] },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Edit report: weekly late deliveries"] },
+          {
+            "component": "Toolbar",
+            "props": { "aria-label": "Report editor", "overflow": true, "className": "rounded-md border bg-surface-0 p-r6" },
+            "children": [
+              {
+                "component": "Toolbar.Group",
+                "props": { "aria-label": "History" },
+                "children": [
+                  {
+                    "component": "Toolbar.Item",
+                    "props": {
+                      "menu": {
+                        "$node": {
+                          "component": "DropdownMenu.Item",
+                          "props": { "onSelect": { "action": "showToast", "payload": { "title": "Undone", "tone": "neutral" } } },
+                          "children": ["Undo"]
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "component": "IconButton",
+                        "props": {
+                          "icon": "undo-2",
+                          "label": "Undo",
+                          "variant": "ghost",
+                          "onClick": { "action": "showToast", "payload": { "title": "Undone", "tone": "neutral" } }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Toolbar.Item",
+                    "props": {
+                      "menu": {
+                        "$node": {
+                          "component": "DropdownMenu.Item",
+                          "props": { "onSelect": { "action": "showToast", "payload": { "title": "Redone", "tone": "neutral" } } },
+                          "children": ["Redo"]
+                        }
+                      }
+                    },
+                    "children": [
+                      {
+                        "component": "IconButton",
+                        "props": {
+                          "icon": "redo-2",
+                          "label": "Redo",
+                          "variant": "ghost",
+                          "onClick": { "action": "showToast", "payload": { "title": "Redone", "tone": "neutral" } }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              { "component": "Toolbar.Separator" },
+              {
+                "component": "ToggleGroup",
+                "props": {
+                  "type": "single",
+                  "aria-label": "Chart type",
+                  "defaultValue": "line",
+                  "onValueChange": { "action": "setState", "payload": { "path": "state.chart", "value": { "$ref": "event.value" } } }
+                },
+                "children": [
+                  { "component": "ToggleGroup.Item", "props": { "value": "line", "icon": "chart-line", "label": "Line chart" } },
+                  { "component": "ToggleGroup.Item", "props": { "value": "bar", "icon": "chart-column", "label": "Bar chart" } },
+                  { "component": "ToggleGroup.Item", "props": { "value": "table", "icon": "list", "label": "Table", "disabled": true } }
+                ]
+              },
+              { "component": "Toolbar.Separator" },
+              {
+                "component": "ToggleGroup",
+                "props": {
+                  "type": "multiple",
+                  "aria-label": "Series",
+                  "defaultValue": ["orders"],
+                  "onValueChange": { "action": "setState", "payload": { "path": "state.series", "value": { "$ref": "event.value" } } }
+                },
+                "children": [
+                  { "component": "ToggleGroup.Item", "props": { "value": "orders" }, "children": ["Orders"] },
+                  { "component": "ToggleGroup.Item", "props": { "value": "late" }, "children": ["Late"] },
+                  { "component": "ToggleGroup.Item", "props": { "value": "refunds" }, "children": ["Refunds"] }
+                ]
+              },
+              { "component": "Toolbar.Separator" },
+              {
+                "component": "Toolbar.Item",
+                "props": {
+                  "menu": {
+                    "$node": {
+                      "component": "DropdownMenu.Item",
+                      "props": { "onSelect": { "action": "showToast", "payload": { "title": "Export started", "tone": "info" } } },
+                      "children": ["Export"]
+                    }
+                  }
+                },
+                "children": [
+                  {
+                    "component": "Button",
+                    "props": {
+                      "variant": "secondary",
+                      "iconStart": "download",
+                      "onClick": { "action": "showToast", "payload": { "title": "Export started", "tone": "info" } }
+                    },
+                    "children": ["Export"]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Text",
+            "props": { "tone": "secondary" },
+            "children": ["Showing a ", { "$ref": "state.chart" }, " chart of ", { "$ref": "state.series.length" }, " series."]
+          }
+        ]
+      }
+    ]
+  }
+}

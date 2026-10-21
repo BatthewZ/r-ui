@@ -1,0 +1,77 @@
+{
+  "version": 2,
+  "title": "Coverage: built-in components",
+  "description": "Text, Heading and Icon, the three components the renderer provides itself.",
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r4" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1 }, "children": ["Release checklist"] },
+          { "component": "Heading", "props": { "level": 2, "size": "h4", "tone": "secondary" }, "children": ["Before you tag the build"] },
+          {
+            "component": "Text",
+            "children": [
+              "Every step below must pass on ",
+              { "component": "Text", "props": { "as": "strong" }, "children": ["main"] },
+              " before the release branch is cut. Run ",
+              { "component": "Text", "props": { "as": "code" }, "children": ["bun run check"] },
+              " locally first."
+            ]
+          },
+          {
+            "component": "Stack",
+            "props": { "gap": "r6" },
+            "children": [
+              {
+                "component": "Inline",
+                "props": { "gap": "r5", "align": "center" },
+                "children": [
+                  { "component": "Icon", "props": { "name": "circle-check", "tone": "success", "label": "Passed" } },
+                  { "component": "Text", "props": { "as": "span", "weight": "medium" }, "children": ["Type check and lint"] }
+                ]
+              },
+              {
+                "component": "Inline",
+                "props": { "gap": "r5", "align": "center" },
+                "children": [
+                  { "component": "Icon", "props": { "name": "triangle-alert", "tone": "warning", "label": "Warning" } },
+                  { "component": "Text", "props": { "as": "span", "weight": "medium" }, "children": ["Bundle size grew 4.2% (budget: 5%)"] }
+                ]
+              },
+              {
+                "component": "Inline",
+                "props": { "gap": "r5", "align": "center" },
+                "children": [
+                  { "component": "Icon", "props": { "name": "circle-x", "tone": "error", "label": "Failed" } },
+                  {
+                    "component": "Text",
+                    "props": { "as": "span", "weight": "semibold", "tone": "error" },
+                    "children": ["Accessibility audit: 3 contrast failures"]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Text",
+            "props": { "as": "blockquote", "size": "body-2", "tone": "muted" },
+            "children": ["Ship small, ship often, and never on a Friday afternoon."]
+          },
+          {
+            "component": "Text",
+            "props": { "as": "small", "size": "body-3", "tone": "muted" },
+            "children": [
+              { "component": "Icon", "props": { "name": "clock" } },
+              " Last run ",
+              { "component": "Text", "props": { "as": "em" }, "children": ["4 minutes ago"] }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

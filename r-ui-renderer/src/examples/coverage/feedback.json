@@ -1,0 +1,80 @@
+{
+  "version": 2,
+  "title": "Coverage: feedback",
+  "description": "Banners, progress bars and rings, and the error fallback, as an import screen.",
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Import customers"] },
+          {
+            "component": "Banner",
+            "props": { "tone": "info", "title": "Imports run overnight", "dismissKey": "imports-overnight" },
+            "children": ["Files uploaded after 22:00 UTC are processed the next morning."]
+          },
+          {
+            "component": "Banner",
+            "props": {
+              "tone": "error",
+              "urgent": true,
+              "title": "The last import stopped at row 18,204",
+              "icon": "octagon-alert",
+              "actions": {
+                "$node": {
+                  "component": "Button",
+                  "props": { "variant": "secondary", "onClick": { "action": "navigate", "payload": { "to": "/imports/8812/errors" } } },
+                  "children": ["See the 37 errors"]
+                }
+              }
+            },
+            "children": ["Rows before it were imported; nothing after it was changed."]
+          },
+          {
+            "component": "ProgressBar",
+            "props": {
+              "label": "customers-2026-10.csv",
+              "value": 18204,
+              "max": 52000,
+              "showValue": true,
+              "valueText": "18,204 of 52,000 rows",
+              "tone": "error"
+            }
+          },
+          { "component": "ProgressBar", "props": { "label": "Validating addresses", "value": null } },
+          {
+            "component": "ProgressBar",
+            "props": { "label": "Setup steps", "value": 3, "max": 5, "variant": "segmented", "tone": "success", "showValue": true }
+          },
+          { "component": "ProgressBar", "props": { "label": "Storage used", "value": 61, "hideLabel": true, "tone": "accent" } },
+          {
+            "component": "Inline",
+            "props": { "gap": "r3", "align": "center" },
+            "children": [
+              {
+                "component": "ProgressRing",
+                "props": { "label": "Deduplicating", "value": 72, "showValue": true, "size": "large", "tone": "info" }
+              },
+              { "component": "ProgressRing", "props": { "label": "Uploading", "value": null, "size": "control" } },
+              {
+                "component": "ProgressRing",
+                "props": { "label": "Quota", "value": 9.5, "max": 10, "size": "icon", "tone": "warning", "valueText": "9.5 of 10 GB" }
+              }
+            ]
+          },
+          {
+            "component": "ErrorFallback",
+            "props": {
+              "error": { "name": "ImportError", "message": "Column \"email\" is missing from the header row." },
+              "details": true,
+              "onRetry": { "action": "showToast", "payload": { "title": "Retrying the import", "tone": "info" } }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

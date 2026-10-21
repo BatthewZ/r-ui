@@ -1,0 +1,131 @@
+{
+  "version": 2,
+  "title": "Release notes",
+  "description": "What changed in each release of the Northwind app, newest first.",
+  "data": { "changelog": { "type": "api", "endpoint": "/fixtures/releases.json" } },
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          {
+            "component": "Prose",
+            "children": [
+              { "component": "Heading", "props": { "level": 1 }, "children": ["Release notes"] },
+              {
+                "component": "Text",
+                "children": [
+                  "Every change that reaches customers is listed here on the day it ships. Releases follow semantic versioning: a ",
+                  { "component": "Text", "props": { "as": "strong" }, "children": ["major"] },
+                  " version can break an integration, so read its notes before you upgrade."
+                ]
+              }
+            ]
+          },
+          {
+            "$cond": { "ref": "status.changelog", "eq": "loading" },
+            "then": { "component": "Skeleton", "props": { "lines": 12, "label": "Loading release notes" } },
+            "else": {
+              "$cond": { "ref": "status.changelog", "eq": "error" },
+              "then": {
+                "component": "Alert",
+                "props": { "tone": "error", "title": "Release notes are unavailable" },
+                "children": ["Try again in a few minutes."]
+              },
+              "else": {
+                "component": "Stack",
+                "props": { "gap": "r2" },
+                "children": [
+                  {
+                    "$each": "data.changelog.releases",
+                    "as": "release",
+                    "key": "version",
+                    "node": {
+                      "component": "Section",
+                      "props": { "as": "article", "padding": "section-3", "className": "border-t" },
+                      "children": [
+                        {
+                          "component": "Stack",
+                          "props": { "gap": "r4" },
+                          "children": [
+                            {
+                              "component": "Stack",
+                              "props": { "gap": "r6" },
+                              "children": [
+                                {
+                                  "component": "Inline",
+                                  "props": { "gap": "r5", "align": "center" },
+                                  "children": [
+                                    {
+                                      "component": "Heading",
+                                      "props": { "level": 2, "size": "h3" },
+                                      "children": ["Version ", { "$ref": "release.version" }]
+                                    },
+                                    {
+                                      "$cond": { "ref": "release.version", "eq": { "$ref": "data.changelog.latest" } },
+                                      "then": { "component": "Badge", "props": { "tone": "accent", "icon": null }, "children": ["Latest"] }
+                                    },
+                                    {
+                                      "$cond": "release.breaking",
+                                      "then": {
+                                        "component": "Badge",
+                                        "props": { "tone": "warning", "variant": "solid" },
+                                        "children": ["Breaking changes"]
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "component": "Text",
+                                  "props": { "size": "body-3", "tone": "muted" },
+                                  "children": [
+                                    { "$format": { "value": { "$ref": "release.date" }, "style": "date", "dateStyle": "long" } },
+                                    " · ",
+                                    { "$ref": "release.kind" },
+                                    " release"
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$cond": "release.highlights",
+                              "then": {
+                                "component": "Text",
+                                "props": { "size": "body-1", "weight": "medium" },
+                                "children": [{ "$ref": "release.highlights" }]
+                              }
+                            },
+                            {
+                              "$cond": "release.notes",
+                              "then": { "component": "Markdown", "children": [{ "$ref": "release.notes" }] },
+                              "else": {
+                                "component": "Text",
+                                "props": { "tone": "muted" },
+                                "children": ["No notes were written for this release."]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "component": "Inline",
+                    "props": { "gap": "r5", "align": "center", "className": "border-t pt-r3" },
+                    "children": [
+                      { "component": "Icon", "props": { "name": "history", "tone": "muted" } },
+                      { "component": "Link", "props": { "href": "/changelog/archive" }, "children": ["Releases before 3.9"] }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

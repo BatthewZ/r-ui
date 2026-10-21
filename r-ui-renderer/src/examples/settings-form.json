@@ -1,0 +1,457 @@
+{
+  "version": 2,
+  "title": "Workspace settings",
+  "description": "Edit the workspace's name, billing contact, seats and notifications, or delete the workspace.",
+  "state": { "saved": null },
+  "data": { "workspace": { "type": "api", "endpoint": "/fixtures/workspace.json" } },
+  "forms": {
+    "settings": {
+      "fields": {
+        "name": {
+          "initialValue": { "$ref": "data.workspace.name" },
+          "rules": { "required": true, "maxLength": 60 },
+          "messages": { "required": "Give the workspace a name.", "maxLength": "Keep the name under 60 characters." }
+        },
+        "slug": {
+          "initialValue": { "$ref": "data.workspace.slug" },
+          "rules": { "required": true, "minLength": 3, "maxLength": 32, "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+          "messages": { "pattern": "Use lowercase letters, digits and single hyphens." }
+        },
+        "billingEmail": {
+          "initialValue": { "$ref": "data.workspace.billingEmail" },
+          "rules": { "required": true, "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$" },
+          "messages": { "required": "Invoices need somewhere to go.", "pattern": "Enter an email address like name@example.com." }
+        },
+        "seats": {
+          "type": "number",
+          "initialValue": { "$ref": "data.workspace.seats" },
+          "rules": { "required": true, "min": 1, "max": 500 },
+          "messages": { "max": "Above 500 seats, talk to sales." }
+        },
+        "timezone": { "initialValue": { "$ref": "data.workspace.timezone" }, "rules": { "required": true } },
+        "plan": { "initialValue": { "$ref": "data.workspace.plan" }, "rules": { "required": true } },
+        "renewsOn": {
+          "type": "date",
+          "initialValue": { "$ref": "data.workspace.renewsOn" },
+          "rules": { "required": true, "min": "2026-11-01", "max": "2028-12-31" },
+          "messages": { "min": "Renewal must be at least a week away." }
+        },
+        "domains": {
+          "type": "list",
+          "initialValue": { "$ref": "data.workspace.domains" },
+          "rules": { "maxLength": 5 },
+          "messages": { "maxLength": "Up to five domains." }
+        },
+        "weeklyDigest": { "type": "boolean", "initialValue": { "$ref": "data.workspace.weeklyDigest" } },
+        "notes": { "rules": { "maxLength": 280 } }
+      },
+      "validateOn": "blur",
+      "revalidateOn": "change",
+      "onSubmit": {
+        "action": "apiCall",
+        "payload": {
+          "endpoint": "/fixtures/settings-save.json",
+          "method": "PUT",
+          "body": { "$ref": "event.value" },
+          "into": "state.saved",
+          "onSuccess": { "action": "showToast", "payload": { "title": "Settings saved", "tone": "success" } },
+          "onError": {
+            "action": "showToast",
+            "payload": { "title": "Settings were not saved", "description": { "$ref": "event.value.message" }, "tone": "error" }
+          }
+        }
+      }
+    },
+    "confirmDelete": {
+      "fields": {
+        "understood": { "type": "boolean", "rules": { "required": true }, "message": "Confirm that you understand this cannot be undone." }
+      },
+      "validateOn": "submit",
+      "onSubmit": [
+        { "action": "apiCall", "payload": { "endpoint": "/fixtures/settings-save.json", "method": "DELETE" } },
+        { "action": "closeDialog", "payload": { "dialogId": "deleteWorkspace" } },
+        {
+          "action": "showToast",
+          "payload": {
+            "title": "Workspace scheduled for deletion",
+            "description": "It will be removed in 30 days unless you restore it.",
+            "tone": "warning"
+          }
+        },
+        { "action": "navigate", "payload": { "to": "/workspaces" } }
+      ]
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          {
+            "component": "Stack",
+            "props": { "gap": "r6" },
+            "children": [
+              { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Workspace settings"] },
+              { "component": "Text", "props": { "tone": "secondary" }, "children": ["Changes apply to everyone in the workspace."] }
+            ]
+          },
+          {
+            "$cond": { "ref": "status.workspace", "eq": "loading" },
+            "then": { "component": "Skeleton", "props": { "shape": "block", "lines": 10, "label": "Loading settings" } },
+            "else": {
+              "$cond": { "ref": "status.workspace", "eq": "error" },
+              "then": {
+                "component": "Alert",
+                "props": { "tone": "error", "title": "Settings could not be loaded" },
+                "children": ["Reload the page to try again. Nothing has been changed."]
+              },
+              "else": {
+                "component": "Stack",
+                "props": { "gap": "r2" },
+                "children": [
+                  {
+                    "$cond": { "ref": "data.workspace.seatsUsed", "gt": { "$ref": "data.workspace.seats" } },
+                    "then": {
+                      "component": "Banner",
+                      "props": { "tone": "warning", "title": "More members than seats" },
+                      "children": [
+                        { "$ref": "data.workspace.seatsUsed" },
+                        " people are members, but the plan has ",
+                        { "$ref": "data.workspace.seats" },
+                        " seats. Add seats before renewal or remove members."
+                      ]
+                    }
+                  },
+                  {
+                    "$cond": "state.saved",
+                    "then": {
+                      "component": "Alert",
+                      "props": { "tone": "success", "title": "Saved" },
+                      "children": [
+                        "Saved at ",
+                        { "$format": { "value": { "$ref": "state.saved.savedAt" }, "style": "time", "timeStyle": "short" } },
+                        "."
+                      ]
+                    }
+                  },
+                  {
+                    "component": "Form",
+                    "props": { "form": "settings" },
+                    "children": [
+                      {
+                        "component": "Stack",
+                        "props": { "gap": "r3" },
+                        "children": [
+                          { "component": "ErrorSummary", "props": { "title": "Some settings need fixing" } },
+                          {
+                            "component": "Card",
+                            "children": [
+                              {
+                                "component": "Card.Header",
+                                "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["General"] }]
+                              },
+                              {
+                                "component": "Card.Body",
+                                "children": [
+                                  {
+                                    "component": "Stack",
+                                    "props": { "gap": "r3" },
+                                    "children": [
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "name", "required": true },
+                                        "children": [
+                                          { "component": "Field.Label", "children": ["Workspace name"] },
+                                          { "component": "Input", "props": { "autoComplete": "organization" } },
+                                          { "component": "Field.Error" }
+                                        ]
+                                      },
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "slug", "required": true },
+                                        "children": [
+                                          { "component": "Field.Label", "children": ["Address"] },
+                                          {
+                                            "component": "Field.Description",
+                                            "children": ["Part of every link to this workspace. Changing it breaks old links."]
+                                          },
+                                          { "component": "Input", "props": { "start": "app.example.com/", "spellCheck": false } },
+                                          { "component": "Field.Error" }
+                                        ]
+                                      },
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "timezone", "required": true },
+                                        "children": [
+                                          { "component": "Field.Label", "children": ["Time zone"] },
+                                          {
+                                            "component": "Select",
+                                            "props": {
+                                              "options": [
+                                                { "value": "Europe/London", "label": "London (GMT/BST)" },
+                                                { "value": "Europe/Amsterdam", "label": "Amsterdam (CET/CEST)" },
+                                                { "value": "Europe/Istanbul", "label": "Istanbul (TRT)" },
+                                                { "value": "America/New_York", "label": "New York (ET)" },
+                                                { "value": "America/Los_Angeles", "label": "Los Angeles (PT)" },
+                                                { "value": "Asia/Kolkata", "label": "Kolkata (IST)" },
+                                                { "value": "Australia/Sydney", "label": "Sydney (AET)" }
+                                              ]
+                                            }
+                                          },
+                                          { "component": "Field.Error" }
+                                        ]
+                                      },
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "domains" },
+                                        "children": [
+                                          { "component": "Field.Label", "children": ["Sign-in domains"] },
+                                          {
+                                            "component": "Field.Description",
+                                            "children": ["Anyone with an address at these domains can join without an invitation."]
+                                          },
+                                          { "component": "TagInput", "props": { "delimiter": ",", "commitOnBlur": true } },
+                                          { "component": "Field.Error" }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "component": "Card",
+                            "children": [
+                              {
+                                "component": "Card.Header",
+                                "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Billing"] }]
+                              },
+                              {
+                                "component": "Card.Body",
+                                "children": [
+                                  {
+                                    "component": "Stack",
+                                    "props": { "gap": "r3" },
+                                    "children": [
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "plan", "required": true },
+                                        "children": [
+                                          { "component": "Field.Label", "children": ["Plan"] },
+                                          {
+                                            "component": "RadioGroup",
+                                            "children": [
+                                              {
+                                                "component": "Radio",
+                                                "props": { "value": "team" },
+                                                "children": ["Team: up to 50 seats, email support"]
+                                              },
+                                              {
+                                                "component": "Radio",
+                                                "props": { "value": "business" },
+                                                "children": ["Business: up to 500 seats, SSO and audit log"]
+                                              },
+                                              {
+                                                "component": "Radio",
+                                                "props": { "value": "enterprise", "disabled": true },
+                                                "children": ["Enterprise: contact sales"]
+                                              }
+                                            ]
+                                          },
+                                          { "component": "Field.Error" }
+                                        ]
+                                      },
+                                      {
+                                        "component": "Grid",
+                                        "props": { "minColumn": "sm", "gap": "r4" },
+                                        "children": [
+                                          {
+                                            "component": "Field",
+                                            "props": { "name": "seats", "required": true },
+                                            "children": [
+                                              { "component": "Field.Label", "children": ["Seats"] },
+                                              { "component": "NumberInput", "props": { "step": 1, "min": 1, "max": 500 } },
+                                              { "component": "Field.Error" }
+                                            ]
+                                          },
+                                          {
+                                            "component": "Field",
+                                            "props": { "name": "renewsOn", "required": true },
+                                            "children": [
+                                              { "component": "Field.Label", "children": ["Renews on"] },
+                                              { "component": "DatePicker", "props": { "min": "2026-11-01", "max": "2028-12-31" } },
+                                              { "component": "Field.Error" }
+                                            ]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "billingEmail", "required": true },
+                                        "children": [
+                                          { "component": "Field.Label", "children": ["Billing email"] },
+                                          { "component": "Input", "props": { "type": "email", "autoComplete": "email" } },
+                                          { "component": "Field.Error" }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "component": "Card",
+                            "children": [
+                              {
+                                "component": "Card.Header",
+                                "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Notifications"] }]
+                              },
+                              {
+                                "component": "Card.Body",
+                                "children": [
+                                  {
+                                    "component": "Stack",
+                                    "props": { "gap": "r3" },
+                                    "children": [
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "weeklyDigest", "orientation": "horizontal" },
+                                        "children": [
+                                          { "component": "Switch", "children": ["Weekly digest"] },
+                                          {
+                                            "component": "Field.Description",
+                                            "children": ["A Monday summary of activity, sent to every admin."]
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "component": "Field",
+                                        "props": { "name": "notes" },
+                                        "children": [
+                                          { "component": "Field.Label", "children": ["Note for admins"] },
+                                          {
+                                            "component": "Field.Description",
+                                            "children": ["Shown at the top of the admin console. Up to 280 characters."]
+                                          },
+                                          { "component": "Textarea", "props": { "autosize": true, "maxRows": 6 } },
+                                          { "component": "Field.Error" }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "component": "FormActions",
+                            "props": { "sticky": true },
+                            "children": [
+                              {
+                                "component": "Button",
+                                "props": { "variant": "ghost", "onClick": { "action": "resetForm", "payload": { "form": "settings" } } },
+                                "children": ["Discard changes"]
+                              },
+                              { "component": "FormActions.Submit", "children": ["Save settings"] }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Card",
+                    "props": { "className": "border-status-error" },
+                    "children": [
+                      {
+                        "component": "Card.Header",
+                        "children": [
+                          { "component": "Card.Title", "props": { "as": "h2" }, "children": ["Delete workspace"] },
+                          {
+                            "component": "Card.Description",
+                            "children": ["Removes every project, file and member after 30 days. Billing stops at once."]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Card.Footer",
+                        "children": [
+                          {
+                            "component": "Button",
+                            "props": {
+                              "variant": "danger",
+                              "iconStart": "trash-2",
+                              "onClick": { "action": "openDialog", "payload": { "dialogId": "deleteWorkspace" } }
+                            },
+                            "children": ["Delete workspace…"]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "component": "Dialog",
+            "props": { "dialogId": "deleteWorkspace" },
+            "children": [
+              {
+                "component": "Dialog.Content",
+                "props": { "role": "alertdialog" },
+                "children": [
+                  {
+                    "component": "Dialog.Header",
+                    "children": [
+                      { "component": "Dialog.Title", "children": ["Delete this workspace?"] },
+                      {
+                        "component": "Dialog.Description",
+                        "children": ["Everything in it is removed after 30 days, and cannot be recovered after that."]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Dialog.Body",
+                    "children": [
+                      {
+                        "component": "Form",
+                        "props": { "form": "confirmDelete" },
+                        "children": [
+                          {
+                            "component": "Field",
+                            "props": { "name": "understood" },
+                            "children": [
+                              { "component": "Checkbox", "children": ["I understand that deleting the workspace cannot be undone"] },
+                              { "component": "Field.Error" }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Dialog.Footer",
+                    "children": [
+                      { "component": "Dialog.Close", "props": { "variant": "secondary" }, "children": ["Keep workspace"] },
+                      {
+                        "component": "Button",
+                        "props": { "variant": "danger", "onClick": { "action": "submitForm", "payload": { "form": "confirmDelete" } } },
+                        "children": ["Delete workspace"]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

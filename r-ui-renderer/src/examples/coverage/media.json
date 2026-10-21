@@ -1,0 +1,209 @@
+{
+  "version": 2,
+  "title": "Coverage: media",
+  "description": "Images, a masonry gallery and a lightbox, as a warehouse photo library.",
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Warehouse photos"] },
+          {
+            "component": "Image",
+            "props": {
+              "src": "/fixtures/img/hero.svg",
+              "alt": "The Northwind network at dusk: warehouses joined by the routes between them",
+              "width": 1600,
+              "height": 900,
+              "ratio": "wide",
+              "fit": "cover",
+              "radius": "lg",
+              "priority": true
+            }
+          },
+          {
+            "component": "Image",
+            "props": {
+              "src": "/fixtures/img/missing-photo.svg",
+              "alt": "The Porto site (photo not uploaded yet)",
+              "width": 1200,
+              "height": 800,
+              "ratio": "classic",
+              "radius": "md",
+              "sizes": "(min-width: 60rem) 50vw, 100vw"
+            }
+          },
+          {
+            "component": "Lightbox",
+            "props": {
+              "label": "Warehouse photos",
+              "items": [
+                {
+                  "id": "g1",
+                  "src": "/fixtures/img/gallery-1.svg",
+                  "alt": "Pallets stacked in the Amsterdam cross-dock at dawn",
+                  "width": 1200,
+                  "height": 800,
+                  "caption": "Pallets stacked in the Amsterdam cross-dock at dawn."
+                },
+                {
+                  "id": "g2",
+                  "src": "/fixtures/img/gallery-2.svg",
+                  "alt": "A driver scanning a parcel at the back of a van",
+                  "width": 800,
+                  "height": 1200,
+                  "caption": "A driver scanning a parcel at the back of a van."
+                },
+                {
+                  "id": "g3",
+                  "src": "/fixtures/img/gallery-3.svg",
+                  "alt": "An aerial view of the Berlin yard",
+                  "width": 1200,
+                  "height": 1200,
+                  "caption": "An aerial view of the Berlin yard."
+                },
+                {
+                  "id": "g4",
+                  "src": "/fixtures/img/gallery-4.svg",
+                  "alt": "Reefer trailers lined up at loading docks",
+                  "width": 1600,
+                  "height": 900,
+                  "caption": "Reefer trailers lined up at loading docks."
+                },
+                {
+                  "id": "g5",
+                  "src": "/fixtures/img/gallery-5.svg",
+                  "alt": "A picker reaching for a box on a high shelf",
+                  "width": 900,
+                  "height": 1200,
+                  "caption": "A picker reaching for a box on a high shelf."
+                },
+                {
+                  "id": "g6",
+                  "src": "/fixtures/img/gallery-6.svg",
+                  "alt": "The Lisbon warehouse under construction, October 2026",
+                  "width": 1200,
+                  "height": 900,
+                  "caption": "The Lisbon warehouse under construction, October 2026."
+                }
+              ]
+            },
+            "children": [
+              {
+                "component": "MasonryGrid",
+                "props": { "list": true, "minColumn": "sm", "gap": "r4", "maxColumns": 3 },
+                "children": [
+                  {
+                    "component": "Lightbox.Trigger",
+                    "props": { "index": 0 },
+                    "children": [
+                      {
+                        "component": "Image",
+                        "props": {
+                          "src": "/fixtures/img/gallery-1.svg",
+                          "alt": "Pallets stacked in the Amsterdam cross-dock at dawn",
+                          "width": 1200,
+                          "height": 800,
+                          "radius": "md",
+                          "className": "w-full"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Lightbox.Trigger",
+                    "props": { "index": 1 },
+                    "children": [
+                      {
+                        "component": "Image",
+                        "props": {
+                          "src": "/fixtures/img/gallery-2.svg",
+                          "alt": "A driver scanning a parcel at the back of a van",
+                          "width": 800,
+                          "height": 1200,
+                          "radius": "md",
+                          "className": "w-full"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Lightbox.Trigger",
+                    "props": { "index": 2 },
+                    "children": [
+                      {
+                        "component": "Image",
+                        "props": {
+                          "src": "/fixtures/img/gallery-3.svg",
+                          "alt": "An aerial view of the Berlin yard",
+                          "width": 1200,
+                          "height": 1200,
+                          "radius": "md",
+                          "className": "w-full"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Lightbox.Trigger",
+                    "props": { "index": 3 },
+                    "children": [
+                      {
+                        "component": "Image",
+                        "props": {
+                          "src": "/fixtures/img/gallery-4.svg",
+                          "alt": "Reefer trailers lined up at loading docks",
+                          "width": 1600,
+                          "height": 900,
+                          "radius": "md",
+                          "className": "w-full"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Lightbox.Trigger",
+                    "props": { "index": 4 },
+                    "children": [
+                      {
+                        "component": "Image",
+                        "props": {
+                          "src": "/fixtures/img/gallery-5.svg",
+                          "alt": "A picker reaching for a box on a high shelf",
+                          "width": 900,
+                          "height": 1200,
+                          "radius": "md",
+                          "className": "w-full"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Lightbox.Trigger",
+                    "props": { "index": 5 },
+                    "children": [
+                      {
+                        "component": "Image",
+                        "props": {
+                          "src": "/fixtures/img/gallery-6.svg",
+                          "alt": "The Lisbon warehouse under construction, October 2026",
+                          "width": 1200,
+                          "height": 900,
+                          "radius": "md",
+                          "className": "w-full"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

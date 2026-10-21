@@ -1,0 +1,400 @@
+{
+  "version": 2,
+  "title": "Coverage: data display",
+  "description": "Tables, stat cards, meters, sparklines, timelines and empty states over one deployment pipeline's data.",
+  "density": "compact",
+  "state": { "selected": [], "sortDeploys": "desc" },
+  "data": {
+    "pipeline": {
+      "type": "static",
+      "value": {
+        "deploys": [
+          {
+            "id": "d-9312",
+            "service": "checkout-api",
+            "author": "Jun Li",
+            "commit": "a91f3c2",
+            "duration": 412,
+            "status": "succeeded",
+            "at": "2026-10-21T08:40:00Z",
+            "notes": "Raises the payment timeout to 45 s."
+          },
+          {
+            "id": "d-9311",
+            "service": "search-indexer",
+            "author": "Siddharth Venkataraman Raghunathan",
+            "commit": "77be010",
+            "duration": 1893,
+            "status": "failed",
+            "at": "2026-10-21T07:05:00Z",
+            "notes": "Re-ranking migration; rolled back after the canary failed."
+          },
+          {
+            "id": "d-9310",
+            "service": "ledger",
+            "author": "Tomasz Kowalczyk",
+            "commit": "0c4d9e1",
+            "duration": null,
+            "status": "running",
+            "at": "2026-10-21T09:12:00Z",
+            "notes": ""
+          },
+          {
+            "id": "d-9309",
+            "service": "notifications",
+            "author": "Elif Polat",
+            "commit": "e2201aa",
+            "duration": 95,
+            "status": "succeeded",
+            "at": "2026-10-20T16:02:00Z",
+            "notes": "Copy changes to the weekly digest."
+          }
+        ],
+        "builds": [
+          { "id": "b-1", "branch": "main", "minutes": 8.2 },
+          { "id": "b-2", "branch": "release/4.2", "minutes": 11.9 },
+          { "id": "b-3", "branch": "feature/scheduled-exports-with-a-very-long-branch-name", "minutes": 23.4 },
+          { "id": "b-4", "branch": "fix/yen-rounding", "minutes": 6.1 },
+          { "id": "b-5", "branch": "chore/bump-deps", "minutes": 7.7 },
+          { "id": "b-6", "branch": "main", "minutes": 8.0 }
+        ],
+        "frequency": [4, 6, 5, 9, 7, 0, 1, 8, 11, 7, 6, 10, null, 12],
+        "events": [
+          {
+            "id": "ev1",
+            "time": "2026-10-21T09:12:00Z",
+            "title": "Deploy started: ledger 0c4d9e1",
+            "tone": "info",
+            "actor": "Tomasz Kowalczyk"
+          },
+          {
+            "id": "ev2",
+            "time": "2026-10-21T07:31:00Z",
+            "title": "Rolled back search-indexer",
+            "description": "The canary's error rate passed 2% within four minutes.",
+            "tone": "warning",
+            "actor": { "name": "Siddharth Venkataraman Raghunathan" }
+          },
+          { "id": "ev3", "time": "2026-10-20T16:02:00Z", "title": "Deployed notifications e2201aa", "tone": "success", "meta": "95 s" }
+        ],
+        "activity": [
+          {
+            "id": "ac1",
+            "time": "2026-10-21T08:55:00Z",
+            "actor": { "name": "Jun Li", "avatar": "/fixtures/img/avatar-4.svg" },
+            "verb": "approved",
+            "object": "release 4.2.1"
+          },
+          {
+            "id": "ac2",
+            "time": "2026-10-21T08:20:00Z",
+            "actor": "Elif Polat",
+            "verb": "commented on",
+            "object": "PR #4190",
+            "description": "Can we keep the old label for one more release?"
+          },
+          { "id": "ac3", "time": "2026-10-20T13:47:00Z", "actor": "Grace O'Malley", "verb": "paused", "object": "the Friday deploy freeze" }
+        ]
+      }
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Deployments"] },
+          {
+            "component": "Grid",
+            "props": { "minColumn": "sm", "gap": "r4" },
+            "children": [
+              {
+                "component": "StatCard",
+                "props": {
+                  "label": "Deploys this week",
+                  "value": "41",
+                  "delta": 6,
+                  "formatDelta": { "style": "delta" },
+                  "sentiment": "good",
+                  "sparkline": {
+                    "$node": {
+                      "component": "Sparkline",
+                      "props": {
+                        "label": "Deploys per day, last 14 days",
+                        "values": { "$ref": "data.pipeline.frequency" },
+                        "series": "total"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "component": "StatCard",
+                "props": {
+                  "label": "Change failure rate",
+                  "value": { "$format": { "value": 0.073, "style": "percent", "maximumFractionDigits": 1 } },
+                  "delta": 0.021,
+                  "formatDelta": { "style": "percent", "maximumFractionDigits": 1, "signDisplay": "exceptZero" },
+                  "sentiment": "bad"
+                }
+              },
+              {
+                "component": "StatCard",
+                "props": { "label": "Lead time", "value": "3.4", "unit": "hours", "loading": false, "status": "Within target" }
+              },
+              { "component": "StatCard", "props": { "label": "Mean time to restore", "value": "—", "loading": true } }
+            ]
+          },
+          {
+            "component": "Inline",
+            "props": { "gap": "r3", "align": "start" },
+            "children": [
+              {
+                "component": "Meter",
+                "props": {
+                  "label": "Build minutes used",
+                  "value": 8410,
+                  "max": 10000,
+                  "valueText": "8,410 of 10,000 minutes",
+                  "thresholds": [{ "at": 7500, "tone": "warning" }, { "at": 9500, "tone": "error" }],
+                  "className": "flex-1"
+                }
+              },
+              {
+                "component": "Meter",
+                "props": { "label": "Cache hit rate", "value": 0.62, "max": 1, "worse": "low", "variant": "inline", "className": "flex-1" }
+              }
+            ]
+          },
+          {
+            "component": "DataTable",
+            "props": {
+              "caption": "Recent deploys",
+              "rows": { "$ref": "data.pipeline.deploys" },
+              "rowKey": "id",
+              "rowLabel": "service",
+              "selectable": true,
+              "striped": true,
+              "variant": "boxed",
+              "columnsMenu": true,
+              "defaultSort": { "column": "at", "direction": "desc" },
+              "defaultPageSize": 25,
+              "pageSizeOptions": [10, 25, 50],
+              "onSelectedKeysChange": { "action": "setState", "payload": { "path": "state.selected", "value": { "$ref": "event.value" } } },
+              "columns": [
+                { "id": "service", "header": "Service", "sortable": true, "filter": { "type": "text", "placeholder": "Service" } },
+                { "id": "author", "header": "Author", "truncate": true, "maxWidth": "14rem" },
+                { "id": "commit", "header": "Commit", "cell": { "$node": { "component": "Kbd", "children": [{ "$ref": "value" }] } } },
+                {
+                  "id": "duration",
+                  "header": "Duration",
+                  "numeric": true,
+                  "format": { "style": "unit", "unit": "second", "missing": "Running" }
+                },
+                {
+                  "id": "status",
+                  "header": "Status",
+                  "cell": {
+                    "$node": {
+                      "$cond": { "ref": "value", "eq": "failed" },
+                      "then": { "component": "StatusLabel", "props": { "tone": "error" }, "children": ["Failed"] },
+                      "else": {
+                        "$cond": { "ref": "value", "eq": "running" },
+                        "then": { "component": "StatusLabel", "props": { "tone": "info" }, "children": ["Running"] },
+                        "else": { "component": "StatusLabel", "props": { "tone": "success" }, "children": ["Succeeded"] }
+                      }
+                    }
+                  },
+                  "filter": {
+                    "type": "select",
+                    "options": [
+                      { "value": "succeeded", "label": "Succeeded" },
+                      { "value": "failed", "label": "Failed" },
+                      { "value": "running", "label": "Running" }
+                    ]
+                  }
+                },
+                {
+                  "id": "at",
+                  "header": "Started",
+                  "format": { "style": "datetime", "dateStyle": "short", "timeStyle": "short" },
+                  "firstDirection": "desc"
+                }
+              ],
+              "renderDetail": {
+                "$node": {
+                  "$cond": "row.notes",
+                  "then": { "component": "Text", "props": { "size": "body-2" }, "children": [{ "$ref": "row.notes" }] },
+                  "else": { "component": "Text", "props": { "size": "body-2", "tone": "muted" }, "children": ["No release notes."] }
+                }
+              },
+              "rowActions": {
+                "$node": {
+                  "component": "IconButton",
+                  "props": {
+                    "icon": "rotate-ccw",
+                    "label": "Roll back",
+                    "variant": "ghost",
+                    "onClick": {
+                      "action": "showToast",
+                      "payload": { "title": "Rollback requested", "description": { "$ref": "row.service" }, "tone": "warning" }
+                    }
+                  }
+                }
+              },
+              "bulkActions": {
+                "$node": {
+                  "component": "Button",
+                  "props": {
+                    "variant": "secondary",
+                    "onClick": { "action": "showToast", "payload": { "title": "Deploys exported", "tone": "success" } }
+                  },
+                  "children": ["Export ", { "$ref": "selectedKeys.length" }, " selected"]
+                }
+              }
+            }
+          },
+          {
+            "component": "VirtualizedTable",
+            "props": {
+              "caption": "Build durations",
+              "rows": { "$ref": "data.pipeline.builds" },
+              "rowKey": "id",
+              "visibleRows": 4,
+              "columns": [
+                { "id": "branch", "header": "Branch", "truncate": true },
+                { "id": "minutes", "header": "Minutes", "numeric": true, "format": { "style": "number", "maximumFractionDigits": 1 } }
+              ],
+              "empty": "No builds yet"
+            }
+          },
+          {
+            "component": "Table",
+            "props": { "variant": "plain", "footer": "Times are p50 over the last 30 days." },
+            "children": [
+              { "component": "Table.Caption", "children": ["Pipeline stages"] },
+              {
+                "component": "Table.Head",
+                "children": [
+                  {
+                    "component": "Table.Row",
+                    "children": [
+                      { "component": "Table.HeaderCell", "children": ["Stage"] },
+                      {
+                        "component": "Table.HeaderCell",
+                        "props": {
+                          "numeric": true,
+                          "sort": { "$ref": "state.sortDeploys" },
+                          "onSort": { "action": "setState", "payload": { "path": "state.sortDeploys", "value": "asc" } }
+                        },
+                        "children": ["Minutes"]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Table.Body",
+                "children": [
+                  {
+                    "component": "Table.Row",
+                    "children": [
+                      { "component": "Table.Cell", "children": ["Build and unit tests"] },
+                      { "component": "Table.Cell", "props": { "numeric": true }, "children": ["6.4"] }
+                    ]
+                  },
+                  {
+                    "component": "Table.Row",
+                    "props": { "selected": true },
+                    "children": [
+                      {
+                        "component": "Table.Cell",
+                        "props": { "wrap": true },
+                        "children": ["Integration tests against a production-sized dataset"]
+                      },
+                      { "component": "Table.Cell", "props": { "numeric": true }, "children": ["14.9"] }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Grid",
+            "props": { "columns": { "base": 1, "lg": 2 }, "gap": "r3", "className": "items-start" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r4" },
+                "children": [
+                  { "component": "Heading", "props": { "level": 2, "size": "h4" }, "children": ["Pipeline events"] },
+                  {
+                    "component": "Timeline",
+                    "props": {
+                      "label": "Pipeline events",
+                      "events": { "$ref": "data.pipeline.events" },
+                      "now": "2026-10-21T09:30:00Z",
+                      "groupByDay": true,
+                      "headingLevel": 3
+                    }
+                  }
+                ]
+              },
+              {
+                "component": "Stack",
+                "props": { "gap": "r4" },
+                "children": [
+                  { "component": "Heading", "props": { "level": 2, "size": "h4" }, "children": ["Team activity"] },
+                  {
+                    "component": "ActivityFeed",
+                    "props": {
+                      "label": "Team activity",
+                      "items": { "$ref": "data.pipeline.activity" },
+                      "now": "2026-10-21T09:30:00Z",
+                      "headingLevel": 3
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "DescriptionList",
+            "children": [
+              { "component": "DescriptionList.Item", "props": { "term": "Default branch" }, "children": ["main"] },
+              {
+                "component": "DescriptionList.Item",
+                "props": { "term": "Deploy freeze" },
+                "children": ["Fridays after 15:00, and 20 December to 2 January"]
+              },
+              {
+                "component": "DescriptionList.Item",
+                "props": { "term": "Selected deploys" },
+                "children": [{ "$ref": "state.selected.length" }]
+              }
+            ]
+          },
+          {
+            "component": "EmptyState",
+            "props": {
+              "icon": "inbox",
+              "title": "No scheduled deploys",
+              "description": "Schedule a deploy to have it start in the next deploy window.",
+              "headingLevel": 2,
+              "actions": {
+                "$node": {
+                  "component": "Button",
+                  "props": { "variant": "secondary", "onClick": { "action": "navigate", "payload": { "to": "/deploys/schedule" } } },
+                  "children": ["Schedule a deploy"]
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "latest": "4.2.0",
+  "releases": [
+    {
+      "version": "4.2.0",
+      "date": "2026-10-20",
+      "kind": "minor",
+      "breaking": false,
+      "highlights": "Scheduled exports and a faster search index.",
+      "notes": "### Added\n\n- **Scheduled exports.** Send any saved report as CSV or XLSX on a daily, weekly or monthly schedule. Recipients outside the workspace receive a link that expires after 7 days.\n- Search now matches order numbers with or without the `#` prefix.\n- New keyboard shortcut: press `g` then `r` to jump to Reports.\n\n### Changed\n\n- Search results appear about **3× faster** on workspaces with more than a million orders.\n- The *Customers* table remembers its column widths per person, not per workspace.\n\n### Fixed\n\n- Totals in the weekly digest no longer double-count refunds issued on a Sunday.\n- Exported dates use the workspace time zone instead of UTC ([#4182](https://github.com/northwind/app/issues/4182))."
+    },
+    {
+      "version": "4.1.3",
+      "date": "2026-10-07",
+      "kind": "patch",
+      "breaking": false,
+      "highlights": "Fixes for currency rounding.",
+      "notes": "### Fixed\n\n- Amounts in Japanese yen and Korean won are no longer shown with two decimal places.\n- A negative balance after a partial refund now reads `-€12.40`, not `€-12.40`.\n\n| Currency | Before | After |\n| --- | ---: | ---: |\n| JPY | ¥1,200.00 | ¥1,200 |\n| KRW | ₩15,000.00 | ₩15,000 |\n| EUR (refund) | €-12.40 | -€12.40 |"
+    },
+    {
+      "version": "4.0.0",
+      "date": "2026-09-15",
+      "kind": "major",
+      "breaking": true,
+      "highlights": "A new permissions model and the end of API v1.",
+      "notes": "### Breaking changes\n\n> API v1 stops answering on **1 December 2026**. Every endpoint has a v2 equivalent; see the migration guide.\n\n1. Roles are now *Owner*, *Admin*, *Member* and *Viewer*. Custom roles created before 4.0 were mapped to the closest one.\n2. Personal API tokens expire after 90 days unless an admin allows longer.\n\nTo check which of your integrations still call v1:\n\n```bash\ncurl -s https://api.example.com/v2/usage \\\n  -H \"Authorization: Bearer $TOKEN\" \\\n  | jq '.calls[] | select(.version == \"v1\")'\n```\n\n### Migration checklist\n\n- [x] Map custom roles\n- [x] Rotate tokens older than 90 days\n- [ ] Move webhooks to v2 payloads\n\n---\n\nThanks to everyone in the beta programme for 1,400 pieces of feedback."
+    },
+    { "version": "3.9.0", "date": "2026-08-02", "kind": "minor", "breaking": false, "highlights": "", "notes": "" }
+  ]
+}

@@ -1,0 +1,326 @@
+{
+  "version": 2,
+  "title": "Coverage: marketing",
+  "description": "Every marketing section, as a customer-stories page with a plan comparison.",
+  "root": {
+    "component": "Stack",
+    "props": { "gap": "r1" },
+    "children": [
+      {
+        "component": "Hero",
+        "props": {
+          "headingLevel": 1,
+          "layout": "stacked",
+          "variant": "plain",
+          "eyebrow": "Customer stories",
+          "title": "How logistics teams cut late deliveries",
+          "lead": "Twelve companies, from a two-van florist to a 40-country freight forwarder, on what changed when they could see delays coming.",
+          "backdrop": {
+            "$node": {
+              "component": "Image",
+              "props": { "src": "/fixtures/img/hero.svg", "alt": "", "width": 1600, "height": 900, "fit": "cover", "priority": true }
+            }
+          },
+          "actions": {
+            "$node": {
+              "component": "Button",
+              "props": { "variant": "primary", "onClick": { "action": "navigate", "payload": { "to": "/stories/all" } } },
+              "children": ["Read all stories"]
+            }
+          }
+        }
+      },
+      {
+        "component": "Container",
+        "props": { "width": "page", "gutter": true },
+        "children": [
+          {
+            "component": "Stack",
+            "props": { "gap": "r1" },
+            "children": [
+              {
+                "component": "LogoCloud",
+                "props": { "title": "Featured in these stories", "marquee": true, "colorOnHover": true },
+                "children": [
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-northwind.svg", "alt": "Northwind", "width": 160, "height": 48 }
+                  },
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-lumen.svg", "alt": "Lumen Freight", "width": 160, "height": 48 }
+                  },
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-quarry.svg", "alt": "Quarry Supply Co.", "width": 160, "height": 48 }
+                  },
+                  {
+                    "component": "Image",
+                    "props": { "src": "/fixtures/img/logo-tessera.svg", "alt": "Tessera", "width": 160, "height": 48 }
+                  }
+                ]
+              },
+              {
+                "component": "Stack",
+                "props": { "gap": "r3" },
+                "children": [
+                  {
+                    "component": "SectionHeading",
+                    "props": {
+                      "eyebrow": "Latest",
+                      "title": "New this month",
+                      "lead": "Stories published in October 2026.",
+                      "headingLevel": 2
+                    }
+                  },
+                  {
+                    "component": "Carousel",
+                    "props": { "label": "Latest customer stories", "perView": 2, "dots": true },
+                    "children": [
+                      {
+                        "component": "Carousel.Slide",
+                        "children": [
+                          {
+                            "component": "MediaCard",
+                            "props": {
+                              "href": "/stories/halcyon",
+                              "title": "Halcyon Cold Chain kept 99.7% of vaccine shipments in range",
+                              "description": "Alerts reach the warehouse floor before a reefer unit's temperature drifts.",
+                              "meta": "8 min read",
+                              "badge": "Healthcare",
+                              "ratio": "wide",
+                              "titleAs": "h3",
+                              "image": { "src": "/fixtures/img/gallery-4.svg", "alt": "", "width": 1600, "height": 900 }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Carousel.Slide",
+                        "children": [
+                          {
+                            "component": "MediaCard",
+                            "props": {
+                              "href": "/stories/quarry",
+                              "title": "Quarry Supply Co. halved missed delivery windows in a quarter",
+                              "meta": "5 min read",
+                              "ratio": "wide",
+                              "titleAs": "h3",
+                              "image": { "src": "/fixtures/img/gallery-1.svg", "alt": "", "width": 1200, "height": 800 }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Carousel.Slide",
+                        "children": [{ "component": "MediaCard.Skeleton", "props": { "label": "Loading the next story", "ratio": "wide" } }]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "FeatureGrid",
+                "props": { "columns": 3, "gap": "r3", "headingLevel": 2, "variant": "plain" },
+                "children": [
+                  {
+                    "component": "FeatureGrid.Item",
+                    "props": { "icon": "trending-down", "title": "-38% late deliveries" },
+                    "children": ["Median across the twelve companies, first year against the year before."]
+                  },
+                  {
+                    "component": "FeatureGrid.Item",
+                    "props": { "icon": "timer", "title": "9 hours of warning" },
+                    "children": ["How far ahead of the carrier Pulse flagged a delay, on average."]
+                  },
+                  {
+                    "component": "FeatureGrid.Item",
+                    "props": { "icon": "wallet", "title": "€2.1M in credits avoided" },
+                    "children": ["Penalty clauses not triggered because a delay was fixed in time."]
+                  }
+                ]
+              },
+              {
+                "component": "FeatureRows",
+                "props": { "headingLevel": 2, "mediaSide": "end", "stackedMedia": "first" },
+                "children": [
+                  {
+                    "component": "FeatureRows.Row",
+                    "props": {
+                      "title": "From a spreadsheet to a shared screen",
+                      "media": {
+                        "$node": {
+                          "component": "Image",
+                          "props": {
+                            "src": "/fixtures/img/gallery-6.svg",
+                            "alt": "A dispatch office with the Pulse dashboard on a wall screen",
+                            "width": 1200,
+                            "height": 900,
+                            "radius": "lg"
+                          }
+                        }
+                      }
+                    },
+                    "children": [
+                      "Lumen Freight's dispatchers used to rebuild the day's exceptions by hand each morning. Now the list is on the wall when they arrive."
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "HowItWorks",
+                "props": { "label": "How a story is made", "orientation": "vertical", "headingLevel": 3 },
+                "children": [
+                  {
+                    "component": "HowItWorks.Step",
+                    "props": { "title": "We interview the team" },
+                    "children": ["An hour with the people who use Pulse every day."]
+                  },
+                  {
+                    "component": "HowItWorks.Step",
+                    "props": { "title": "They check the numbers" },
+                    "children": ["Every figure comes from their own reports and is approved by them."]
+                  }
+                ]
+              },
+              {
+                "component": "Grid",
+                "props": { "minColumn": "md", "gap": "r3", "className": "items-start" },
+                "children": [
+                  {
+                    "component": "Testimonial",
+                    "props": {
+                      "variant": "card",
+                      "quote": "The first week we found three carriers who were scanning parcels as delivered from their depot.",
+                      "name": "Tomasz Kowalczyk",
+                      "role": "Head of Carrier Relations",
+                      "company": "Quarry Supply Co.",
+                      "avatar": "/fixtures/img/avatar-3.svg",
+                      "source": "Logistics Weekly",
+                      "sourceUrl": "/press/logistics-weekly-2026-09",
+                      "rating": 4.5,
+                      "ratingMax": 5
+                    }
+                  },
+                  {
+                    "component": "Testimonial",
+                    "props": {
+                      "variant": "compact",
+                      "quote": "Setup took an afternoon. Honestly.",
+                      "name": "Aiyana Blackfeather",
+                      "company": "Tessera",
+                      "avatar": false
+                    }
+                  }
+                ]
+              },
+              {
+                "component": "PricingTable",
+                "props": {
+                  "plans": [
+                    { "id": "starter", "name": "Starter" },
+                    { "id": "growth", "name": "Growth", "highlighted": true },
+                    { "id": "enterprise", "name": "Enterprise", "badge": "Custom" }
+                  ],
+                  "groups": [
+                    {
+                      "id": "tracking",
+                      "label": "Tracking",
+                      "features": [
+                        {
+                          "id": "carriers",
+                          "label": "Carrier connections",
+                          "values": { "starter": "3", "growth": "Unlimited", "enterprise": "Unlimited" }
+                        },
+                        {
+                          "id": "prediction",
+                          "label": "Delay prediction",
+                          "description": "Flags a likely late delivery from scan gaps and carrier history.",
+                          "values": { "starter": false, "growth": true, "enterprise": true }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "security",
+                      "label": "Security",
+                      "features": [
+                        { "id": "sso", "label": "SAML single sign-on", "values": { "enterprise": true } },
+                        {
+                          "id": "residency",
+                          "label": "Data residency",
+                          "values": { "starter": false, "growth": "EU only", "enterprise": "EU, US or Australia" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "component": "Pricing",
+                "props": {
+                  "currency": "GBP",
+                  "currencyDisplay": "symbol",
+                  "billing": "monthly",
+                  "plans": [
+                    {
+                      "id": "growth",
+                      "name": "Growth",
+                      "price": { "monthly": 299, "annual": 2990 },
+                      "features": ["Unlimited carriers", "Delay prediction"],
+                      "highlighted": true,
+                      "badge": "Best for most teams"
+                    },
+                    { "id": "enterprise", "name": "Enterprise", "features": ["Everything in Growth", "SAML single sign-on"] }
+                  ]
+                }
+              },
+              {
+                "component": "CallToAction",
+                "props": {
+                  "title": "Have a story of your own?",
+                  "body": "We feature one customer a month, and send them to the conference of their choice.",
+                  "layout": "stacked",
+                  "variant": "plain",
+                  "actions": {
+                    "$node": {
+                      "component": "Button",
+                      "props": { "variant": "primary", "onClick": { "action": "navigate", "payload": { "to": "/stories/nominate" } } },
+                      "children": ["Nominate your team"]
+                    }
+                  }
+                }
+              },
+              {
+                "component": "EmailCapture",
+                "props": {
+                  "description": "New stories, once a month.",
+                  "consent": "I agree to receive the stories email and can unsubscribe at any time.",
+                  "consentRequired": true,
+                  "honeypot": true,
+                  "onSubmit": [
+                    {
+                      "action": "apiCall",
+                      "payload": {
+                        "endpoint": "/fixtures/newsletter-signup.json",
+                        "method": "POST",
+                        "body": { "email": { "$ref": "event.value" }, "list": "stories" }
+                      }
+                    },
+                    {
+                      "action": "showToast",
+                      "payload": {
+                        "title": "Subscribed",
+                        "description": "The next stories email goes out on 1 November.",
+                        "tone": "success"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

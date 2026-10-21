@@ -1,0 +1,194 @@
+{
+  "version": 2,
+  "title": "Coverage: primitives",
+  "description": "Buttons, badges, cards, alerts, avatars, links and the other building blocks, as a project overview.",
+  "state": { "labels": ["frontend", "payments", "needs-design-review"] },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h3" }, "children": ["Projects"] },
+          {
+            "component": "Card",
+            "children": [
+              {
+                "component": "Card.Header",
+                "children": [
+                  { "component": "Card.Title", "props": { "as": "h2" }, "children": ["Checkout redesign"] },
+                  { "component": "Card.Description", "children": ["Owned by Payments Platform · started 2 September 2026"] },
+                  {
+                    "component": "Card.Actions",
+                    "children": [
+                      { "component": "IconButton", "props": { "icon": "share-2", "label": "Share project", "variant": "ghost" } },
+                      { "component": "IconButton", "props": { "icon": "ellipsis", "label": "More actions", "variant": "ghost" } }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Card.Body",
+                "children": [
+                  {
+                    "component": "Stack",
+                    "props": { "gap": "r4" },
+                    "children": [
+                      {
+                        "component": "Inline",
+                        "props": { "gap": "r5", "align": "center" },
+                        "children": [
+                          { "component": "StatusLabel", "props": { "tone": "warning" }, "children": ["At risk"] },
+                          { "component": "Badge", "props": { "tone": "accent" }, "children": ["Q4 priority"] },
+                          {
+                            "component": "Badge",
+                            "props": { "tone": "neutral", "variant": "outline", "icon": "git-branch" },
+                            "children": ["release/4.2"]
+                          },
+                          { "component": "Badge", "props": { "tone": "info", "variant": "subtle", "icon": null }, "children": ["Beta"] }
+                        ]
+                      },
+                      {
+                        "component": "Alert",
+                        "props": {
+                          "tone": "warning",
+                          "title": "Design review is two weeks late",
+                          "actions": {
+                            "$node": {
+                              "component": "Button",
+                              "props": { "variant": "secondary", "onClick": { "action": "navigate", "payload": { "to": "/reviews/new" } } },
+                              "children": ["Book a review"]
+                            }
+                          }
+                        },
+                        "children": ["The payment step cannot ship until accessibility has signed off on the new card form."]
+                      },
+                      {
+                        "component": "Alert",
+                        "props": { "tone": "info", "icon": "lightbulb" },
+                        "children": [
+                          "Tip: press ",
+                          { "component": "Kbd", "children": ["Ctrl"] },
+                          " + ",
+                          { "component": "Kbd", "children": ["K"] },
+                          " to search every project."
+                        ]
+                      },
+                      { "component": "Divider", "children": ["Team"] },
+                      {
+                        "component": "Inline",
+                        "props": { "gap": "r4", "align": "center" },
+                        "children": [
+                          {
+                            "component": "Avatar",
+                            "props": {
+                              "name": "Mariana Okonkwo-Fitzgerald",
+                              "src": "/fixtures/img/avatar-2.svg",
+                              "alt": "Mariana Okonkwo-Fitzgerald",
+                              "size": "control"
+                            }
+                          },
+                          { "component": "Avatar", "props": { "name": "Kwame Mensah", "src": null } },
+                          {
+                            "component": "AvatarGroup",
+                            "props": {
+                              "label": "Reviewers",
+                              "max": 3,
+                              "items": [
+                                { "key": "jl", "name": "Jun Li", "src": "/fixtures/img/avatar-4.svg" },
+                                { "key": "ep", "name": "Elif Polat" },
+                                { "key": "tk", "name": "Tomasz Kowalczyk", "src": "/fixtures/img/avatar-3.svg" },
+                                { "key": "go", "name": "Grace O'Malley", "src": "/fixtures/img/avatar-5.svg" },
+                                { "key": "zv", "name": "Zoë Van der Berg" }
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      { "component": "Divider" },
+                      {
+                        "component": "Inline",
+                        "props": { "as": "ul", "gap": "r6", "aria-label": "Labels" },
+                        "children": [
+                          {
+                            "$each": "state.labels",
+                            "as": "label",
+                            "node": {
+                              "component": "Chip",
+                              "props": {
+                                "as": "li",
+                                "onRemove": { "action": "showToast", "payload": { "title": "Label removed", "tone": "neutral" } }
+                              },
+                              "children": [{ "$ref": "label" }]
+                            }
+                          },
+                          { "component": "Chip", "props": { "as": "li", "disabled": true }, "children": ["archived"] }
+                        ]
+                      },
+                      {
+                        "component": "Inline",
+                        "props": { "gap": "r4", "align": "center" },
+                        "children": [
+                          { "component": "Link", "props": { "href": "/projects/checkout-redesign/brief" }, "children": ["Read the brief"] },
+                          {
+                            "component": "Link",
+                            "props": { "href": "https://www.w3.org/WAI/WCAG22/quickref/", "external": true },
+                            "children": ["WCAG 2.2 quick reference"]
+                          },
+                          {
+                            "component": "Link",
+                            "props": { "href": "mailto:payments-platform@northwind.example", "variant": "inherit" },
+                            "children": ["Email the team"]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Inline",
+                        "props": { "gap": "r5", "align": "center" },
+                        "children": [
+                          { "component": "Spinner", "props": { "label": "Syncing with the tracker" } },
+                          {
+                            "component": "Text",
+                            "props": { "as": "span", "size": "body-2", "tone": "secondary" },
+                            "children": ["Syncing 214 issues from the tracker…"]
+                          }
+                        ]
+                      },
+                      { "component": "Skeleton", "props": { "lines": 3, "label": "Loading the project history" } },
+                      { "component": "Skeleton", "props": { "shape": "circle", "label": "Loading the owner's photo" } }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Card.Footer",
+                "children": [
+                  {
+                    "component": "Inline",
+                    "props": { "gap": "r5", "justify": "end" },
+                    "children": [
+                      { "component": "Button", "props": { "variant": "ghost" }, "children": ["Archive"] },
+                      { "component": "Button", "props": { "variant": "danger", "iconStart": "trash-2" }, "children": ["Delete"] },
+                      { "component": "Button", "props": { "variant": "secondary", "loading": true }, "children": ["Exporting"] },
+                      {
+                        "component": "Button",
+                        "props": {
+                          "variant": "primary",
+                          "iconEnd": "arrow-right",
+                          "onClick": { "action": "navigate", "payload": { "to": "/projects/checkout-redesign" } }
+                        },
+                        "children": ["Open project"]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

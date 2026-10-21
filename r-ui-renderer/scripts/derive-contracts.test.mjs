@@ -36,7 +36,7 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
         { name: "format", type: "(value: number) => string", required: false },
         { name: "label", type: "ReactNode", required: true },
         { name: "onTurn", type: "(at: Date) => void", required: false },
-        { name: "size", type: '"small" | "large"', required: false, description: "How big." },
+        { name: "size", type: '"small" | "large"', required: false },
         { name: "when", type: "Date", required: false },
       ],
       slots: ["face", "needle"],
@@ -48,6 +48,8 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
     // An <input>'s native attributes carry a DOM `name`; a <div>'s do not.
     expect(components["Dial.Knob"]).toMatchObject({ nativeAttributes: true, domName: true });
     expect(components.Dial.domName).toBeUndefined();
+    // Doc sentences are the reference's alone, in their own file: the first sentence only.
+    expect(JSON.parse(readFileSync(join(out, "prop-docs.json"), "utf8"))).toEqual({ Dial: [{ name: "size", description: "How big." }] });
     const paths = JSON.parse(readFileSync(join(out, "declared-paths.json"), "utf8"));
     expect(paths.Dial).toEqual({
       paths: ["format", "label", "onTurn", "size", "when"],
@@ -64,11 +66,12 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
     expect(fresh.stderr).toBe("");
     expect(fresh.status).toBe(0);
 
-    const file = join(out, "components.json");
+    const file = join(out, "prop-docs.json");
     writeFileSync(file, readFileSync(file, "utf8").replace('"How big."', '"How large."'));
     const stale = run("--check", "--library", join(FIXTURES, "good"), "--out", out);
     expect(stale.status).toBe(1);
-    expect(stale.stderr).toMatch(/stale: \S*components\.json\n/);
+    expect(stale.stderr).toMatch(/stale: \S*prop-docs\.json\n/);
+    expect(stale.stderr).not.toContain("components.json");
     expect(stale.stderr).not.toContain("declared-paths.json");
 
     rmSync(join(out, "declared-paths.json"));

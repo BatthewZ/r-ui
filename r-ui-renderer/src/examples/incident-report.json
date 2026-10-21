@@ -1,0 +1,375 @@
+{
+  "version": 2,
+  "title": "INC-2291: Checkout payments failing in eu-central-1",
+  "description": "Post-incident report: what happened, how it was handled, and what changes as a result.",
+  "data": {
+    "incident": {
+      "type": "static",
+      "value": {
+        "id": "INC-2291",
+        "severity": "SEV-1",
+        "startedAt": "2026-10-21T08:52:00Z",
+        "resolvedAt": "2026-10-21T11:34:00Z",
+        "durationMinutes": 162,
+        "failedPayments": 18342,
+        "revenueAtRisk": 1284390.12,
+        "customersAffected": 9671,
+        "detectedBy": "Synthetic checkout probe",
+        "commander": "Mariana Okonkwo-Fitzgerald",
+        "responders": [
+          { "key": "mo", "name": "Mariana Okonkwo-Fitzgerald", "src": "/fixtures/img/avatar-2.svg" },
+          { "key": "tk", "name": "Tomasz Kowalczyk", "src": "/fixtures/img/avatar-3.svg" },
+          { "key": "ab", "name": "Aiyana Blackfeather", "src": null },
+          { "key": "jl", "name": "Jun Li", "src": "/fixtures/img/avatar-4.svg" },
+          { "key": "sr", "name": "Siddharth Raghunathan", "src": "/fixtures/img/avatar-5.svg" },
+          { "key": "ep", "name": "Elif Polat", "src": null }
+        ],
+        "events": [
+          {
+            "id": "e1",
+            "time": "2026-10-21T08:52:00Z",
+            "title": "Ledger connection pool exhausted",
+            "description": "A configuration change shipped at 08:47 lowered the ledger's connection pool from 200 to 20. Payment authorisations queued and began timing out after 30 seconds.",
+            "tone": "error",
+            "meta": "ledger · eu-central-1"
+          },
+          {
+            "id": "e2",
+            "time": "2026-10-21T08:58:00Z",
+            "title": "Synthetic checkout probe paged on-call",
+            "tone": "warning",
+            "actor": { "name": "Tomasz Kowalczyk", "avatar": "/fixtures/img/avatar-3.svg" },
+            "meta": "PagerDuty · payments-primary"
+          },
+          {
+            "id": "e3",
+            "time": "2026-10-21T09:10:00Z",
+            "title": "Incident declared, SEV-1",
+            "description": "Customer-facing checkout failures above 40%. Status page updated and support briefed.",
+            "tone": "serious",
+            "actor": { "name": "Mariana Okonkwo-Fitzgerald", "avatar": "/fixtures/img/avatar-2.svg" }
+          },
+          {
+            "id": "e4",
+            "time": "2026-10-21T09:41:00Z",
+            "title": "Rolled back the configuration change",
+            "description": "The rollback did not take effect: the ledger reads its pool size only at start-up, and no instance had restarted.",
+            "tone": "warning",
+            "actor": "Jun Li",
+            "meta": "deploy #88213"
+          },
+          {
+            "id": "e5",
+            "time": "2026-10-21T10:22:00Z",
+            "title": "Rolling restart of ledger instances",
+            "tone": "info",
+            "actor": "Siddharth Raghunathan",
+            "meta": "24 of 24 instances"
+          },
+          {
+            "id": "e6",
+            "time": "2026-10-21T11:34:00Z",
+            "title": "Payment success rate back above 99.5% for 30 minutes; resolved",
+            "tone": "success",
+            "actor": { "name": "Mariana Okonkwo-Fitzgerald", "avatar": "/fixtures/img/avatar-2.svg" }
+          }
+        ],
+        "actions": [
+          {
+            "id": "a1",
+            "title": "Read pool size on every config reload, not only at start-up",
+            "owner": "Ledger team",
+            "due": "2026-11-04",
+            "done": false
+          },
+          {
+            "id": "a2",
+            "title": "Block configuration changes that lower a pool by more than half without a second approver",
+            "owner": "Platform reliability",
+            "due": "2026-11-11",
+            "done": false
+          },
+          {
+            "id": "a3",
+            "title": "Page on payment success rate, not only on probe failures",
+            "owner": "Payments",
+            "due": "2026-10-28",
+            "done": true
+          }
+        ]
+      }
+    }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          {
+            "component": "Breadcrumbs",
+            "children": [
+              { "component": "Breadcrumbs.Item", "props": { "href": "/incidents" }, "children": ["Incidents"] },
+              { "component": "Breadcrumbs.Item", "props": { "href": "/incidents?year=2026" }, "children": ["2026"] },
+              { "component": "Breadcrumbs.Item", "props": { "current": true }, "children": [{ "$ref": "data.incident.id" }] }
+            ]
+          },
+          {
+            "component": "Stack",
+            "props": { "gap": "r5" },
+            "children": [
+              {
+                "component": "Inline",
+                "props": { "gap": "r5", "align": "center" },
+                "children": [
+                  {
+                    "component": "Badge",
+                    "props": { "tone": "error", "variant": "solid" },
+                    "children": [{ "$ref": "data.incident.severity" }]
+                  },
+                  { "component": "StatusLabel", "props": { "tone": "success" }, "children": ["Resolved"] },
+                  {
+                    "component": "Text",
+                    "props": { "as": "span", "size": "body-3", "tone": "muted" },
+                    "children": ["Report published 21 October 2026"]
+                  }
+                ]
+              },
+              { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Checkout payments failing in eu-central-1"] }
+            ]
+          },
+          {
+            "component": "Alert",
+            "props": { "tone": "success", "title": "Resolved after 2 hours 42 minutes" },
+            "children": [
+              "Every failed payment was retried automatically by 13:05 UTC. ",
+              { "$format": { "value": { "$ref": "data.incident.failedPayments" }, "style": "integer" } },
+              " payments failed at first; none were charged twice."
+            ]
+          },
+          {
+            "component": "Grid",
+            "props": { "columns": { "base": 1, "lg": 2 }, "gap": "r3", "className": "items-start" },
+            "children": [
+              {
+                "component": "Card",
+                "children": [
+                  {
+                    "component": "Card.Header",
+                    "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Summary"] }]
+                  },
+                  {
+                    "component": "Card.Body",
+                    "children": [
+                      {
+                        "component": "DescriptionList",
+                        "props": { "variant": "divided" },
+                        "children": [
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Started" },
+                            "children": [
+                              {
+                                "$format": {
+                                  "value": { "$ref": "data.incident.startedAt" },
+                                  "style": "datetime",
+                                  "dateStyle": "medium",
+                                  "timeStyle": "short",
+                                  "timeZone": "UTC"
+                                }
+                              },
+                              " UTC"
+                            ]
+                          },
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Resolved" },
+                            "children": [
+                              {
+                                "$format": {
+                                  "value": { "$ref": "data.incident.resolvedAt" },
+                                  "style": "datetime",
+                                  "dateStyle": "medium",
+                                  "timeStyle": "short",
+                                  "timeZone": "UTC"
+                                }
+                              },
+                              " UTC"
+                            ]
+                          },
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Duration" },
+                            "children": [
+                              {
+                                "$format": {
+                                  "value": { "$ref": "data.incident.durationMinutes" },
+                                  "style": "unit",
+                                  "unit": "minute",
+                                  "unitDisplay": "long"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Detected by" },
+                            "children": [{ "$ref": "data.incident.detectedBy" }]
+                          },
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Incident commander" },
+                            "children": [{ "$ref": "data.incident.commander" }]
+                          },
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Customers affected" },
+                            "children": [{ "$format": { "value": { "$ref": "data.incident.customersAffected" }, "style": "integer" } }]
+                          },
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Revenue at risk" },
+                            "children": [
+                              { "$format": { "value": { "$ref": "data.incident.revenueAtRisk" }, "style": "currency", "currency": "EUR" } }
+                            ]
+                          },
+                          {
+                            "component": "DescriptionList.Item",
+                            "props": { "term": "Responders" },
+                            "children": [
+                              {
+                                "component": "AvatarGroup",
+                                "props": { "label": "Responders", "items": { "$ref": "data.incident.responders" }, "max": 4 }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Card",
+                "children": [
+                  {
+                    "component": "Card.Header",
+                    "children": [
+                      { "component": "Card.Title", "props": { "as": "h2" }, "children": ["Timeline"] },
+                      { "component": "Card.Description", "children": ["Times are shown in your time zone."] }
+                    ]
+                  },
+                  {
+                    "component": "Card.Body",
+                    "children": [
+                      {
+                        "component": "Timeline",
+                        "props": {
+                          "label": "Incident timeline",
+                          "events": { "$ref": "data.incident.events" },
+                          "order": "oldest-first",
+                          "timeFormat": "absolute",
+                          "headingLevel": 3
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Card",
+            "children": [
+              {
+                "component": "Card.Header",
+                "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Root cause"] }]
+              },
+              {
+                "component": "Card.Body",
+                "children": [
+                  {
+                    "component": "Stack",
+                    "props": { "gap": "r4" },
+                    "children": [
+                      {
+                        "component": "Markdown",
+                        "props": { "headingOffset": 2 },
+                        "children": [
+                          "The ledger sizes its database connection pool from `LEDGER_POOL_MAX`, read **once, at start-up**. A change meant for the staging overlay was applied to production, lowering the pool to 20.\n\nUnder Tuesday-morning load the ledger needs roughly 140 connections. Authorisations queued behind the pool and timed out after 30 seconds, which the checkout service reported to shoppers as *Payment failed*.\n\n### Why the rollback did not help\n\nRolling back restored the configuration but not the running pool. The fix only took effect after the rolling restart at 10:22."
+                        ]
+                      },
+                      {
+                        "component": "CodeBlock",
+                        "props": {
+                          "filename": "overlays/production/ledger.env",
+                          "language": "diff",
+                          "highlightLines": [3],
+                          "code": " LEDGER_REGION=eu-central-1\n LEDGER_POOL_MIN=10\n-LEDGER_POOL_MAX=200\n+LEDGER_POOL_MAX=20\n LEDGER_POOL_TIMEOUT_MS=30000"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Card",
+            "children": [
+              {
+                "component": "Card.Header",
+                "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Follow-up actions"] }]
+              },
+              {
+                "component": "Card.Body",
+                "children": [
+                  {
+                    "component": "Stack",
+                    "props": { "as": "ul", "gap": "r4" },
+                    "children": [
+                      {
+                        "$each": "data.incident.actions",
+                        "as": "action",
+                        "key": "id",
+                        "node": {
+                          "component": "Inline",
+                          "props": { "as": "li", "gap": "r5", "align": "start", "wrap": false },
+                          "children": [
+                            {
+                              "$cond": "action.done",
+                              "then": { "component": "Icon", "props": { "name": "circle-check", "tone": "success", "label": "Done" } },
+                              "else": { "component": "Icon", "props": { "name": "circle", "tone": "muted", "label": "Open" } }
+                            },
+                            {
+                              "component": "Stack",
+                              "props": { "gap": "r6" },
+                              "children": [
+                                { "component": "Text", "props": { "weight": "medium" }, "children": [{ "$ref": "action.title" }] },
+                                {
+                                  "component": "Text",
+                                  "props": { "size": "body-3", "tone": "muted" },
+                                  "children": [
+                                    { "$ref": "action.owner" },
+                                    " · due ",
+                                    { "$format": { "value": { "$ref": "action.due" }, "style": "date", "dateStyle": "medium" } }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

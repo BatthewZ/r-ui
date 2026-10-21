@@ -1,0 +1,61 @@
+{
+  "version": 2,
+  "title": "Coverage: content",
+  "description": "Markdown, a code block and a copy button, as an API quick-start.",
+  "state": { "copied": false },
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          {
+            "component": "Markdown",
+            "props": { "measure": true },
+            "children": [
+              "# Send your first event\n\nEvery request needs an API key. Create one under **Settings → API keys**; keys starting with `test_` never touch live data.\n\n1. Install the SDK.\n2. Set `NORTHWIND_KEY` in your environment.\n3. Send the event below.\n\n> Keys are shown once. Store yours in a secret manager, never in source control.\n\nSee the [authentication guide](/docs/auth) for scopes and rotation."
+            ]
+          },
+          {
+            "component": "CodeBlock",
+            "props": {
+              "filename": "send-event.ts",
+              "language": "ts",
+              "lineNumbers": true,
+              "highlightLines": [4, 5],
+              "copyable": true,
+              "wrapToggle": true,
+              "code": "import { Northwind } from \"@northwind/sdk\";\n\nconst client = new Northwind({ key: process.env.NORTHWIND_KEY });\nawait client.events.send({\n  type: \"shipment.delayed\",\n  shipmentId: \"SHP-2026-0042\",\n  minutesLate: 95,\n});"
+            }
+          },
+          {
+            "component": "Inline",
+            "props": { "gap": "r5", "align": "center" },
+            "children": [
+              { "component": "Text", "props": { "as": "code" }, "children": ["test_9f2c41d8e07b"] },
+              {
+                "component": "CopyButton",
+                "props": {
+                  "value": "test_9f2c41d8e07b",
+                  "showLabel": true,
+                  "variant": "secondary",
+                  "onCopy": { "action": "setState", "payload": { "path": "state.copied", "value": true } }
+                }
+              }
+            ]
+          },
+          {
+            "$cond": "state.copied",
+            "then": {
+              "component": "Text",
+              "props": { "size": "body-3", "tone": "success" },
+              "children": ["Copied. Paste it into your environment, not your code."]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

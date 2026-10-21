@@ -259,6 +259,45 @@ The renderer provides three components the library leaves to the page. They are 
 **Only classes in the vocabulary work.** A class is CSS only if the host's stylesheet already contains it, and a document arrives long after that stylesheet was built, so any other class styles nothing, silently. The vocabulary is the design system's token utilities (spacing `p-r3`, `gap-r4`; type `text-body-2`, `text-h3`; colour `text-fg-secondary`, `bg-surface-1`; `rounded-md`, `shadow-sm`, `border`) and a short list of layout utilities. There are no raw sizes or colours (`p-4`, `text-sm`, `bg-blue-500`, `w-[37%]`). The validator warns on any other class (`unknown-class`). Spacing steps run `r1` (largest) to `r6` (smallest).
 
 <!-- GENERATED:classes -->
+- `aspect-square` `aspect-video`
+- `bg-accent` `bg-accent-hover` `bg-canvas` `bg-primary` `bg-primary-active` `bg-primary-hover` `bg-scrim` `bg-selection` `bg-status-error` `bg-status-error-bg` `bg-status-info` `bg-status-info-bg` `bg-status-success` `bg-status-success-bg` `bg-status-warning` `bg-status-warning-bg` `bg-surface-0` `bg-surface-1` `bg-surface-2` `bg-surface-3`
+- `border` `border-0` `border-accent` `border-b` `border-border` `border-border-strong` `border-e` `border-s` `border-status-error` `border-status-info` `border-status-success` `border-status-warning` `border-t` `border-x` `border-y`
+- `col-span-1` `col-span-10` `col-span-11` `col-span-12` `col-span-2` `col-span-3` `col-span-4` `col-span-5` `col-span-6` `col-span-7` `col-span-8` `col-span-9` `col-span-full`
+- `divide-border` `divide-border-strong` `divide-x` `divide-y`
+- `flex` `flex-1` `flex-auto` `flex-col` `flex-none` `flex-nowrap` `flex-row` `flex-wrap`
+- `font-display` `font-heading` `font-medium` `font-mono` `font-normal` `font-semibold` `font-ui`
+- `gap-0` `gap-r1` `gap-r2` `gap-r3` `gap-r4` `gap-r5` `gap-r6` `gap-section-1` `gap-section-2` `gap-section-3` `gap-x-r1` `gap-x-r2` `gap-x-r3` `gap-x-r4` `gap-x-r5` `gap-x-r6` `gap-y-r1` `gap-y-r2` `gap-y-r3` `gap-y-r4` `gap-y-r5` `gap-y-r6` `gap-y-section-1` `gap-y-section-2` `gap-y-section-3`
+- `grid` `grid-cols-1` `grid-cols-10` `grid-cols-11` `grid-cols-12` `grid-cols-2` `grid-cols-3` `grid-cols-4` `grid-cols-5` `grid-cols-6` `grid-cols-7` `grid-cols-8` `grid-cols-9`
+- `h-control` `h-full` `h-row`
+- `inline` `inline-block` `inline-flex`
+- `items-baseline` `items-center` `items-end` `items-start` `items-stretch`
+- `justify-between` `justify-center` `justify-end` `justify-start`
+- `m-0` `m-r1` `m-r2` `m-r3` `m-r4` `m-r5` `m-r6`
+- `max-w-column-lg` `max-w-column-md` `max-w-column-sm` `max-w-full` `max-w-measure` `max-w-page`
+- `mb-r1` `mb-r2` `mb-r3` `mb-r4` `mb-r5` `mb-r6` `mb-section-1` `mb-section-2` `mb-section-3`
+- `me-auto` `me-r1` `me-r2` `me-r3` `me-r4` `me-r5` `me-r6`
+- `min-h-0` `min-h-control` `min-h-hit` `min-h-row` `min-w-0` `min-w-column-lg` `min-w-column-md` `min-w-column-sm` `min-w-hit`
+- `ms-auto` `ms-r1` `ms-r2` `ms-r3` `ms-r4` `ms-r5` `ms-r6`
+- `mt-r1` `mt-r2` `mt-r3` `mt-r4` `mt-r5` `mt-r6` `mt-section-1` `mt-section-2` `mt-section-3`
+- `mx-auto` `mx-r1` `mx-r2` `mx-r3` `mx-r4` `mx-r5` `mx-r6`
+- `my-r1` `my-r2` `my-r3` `my-r4` `my-r5` `my-r6` `my-section-1` `my-section-2` `my-section-3`
+- `object-contain` `object-cover`
+- `overflow-auto` `overflow-hidden` `overflow-x-auto` `overflow-y-auto`
+- `p-0` `p-r1` `p-r2` `p-r3` `p-r4` `p-r5` `p-r6`
+- `pb-r1` `pb-r2` `pb-r3` `pb-r4` `pb-r5` `pb-r6` `pb-section-1` `pb-section-2` `pb-section-3`
+- `pe-gutter` `pe-r1` `pe-r2` `pe-r3` `pe-r4` `pe-r5` `pe-r6`
+- `ps-gutter` `ps-r1` `ps-r2` `ps-r3` `ps-r4` `ps-r5` `ps-r6`
+- `pt-r1` `pt-r2` `pt-r3` `pt-r4` `pt-r5` `pt-r6` `pt-section-1` `pt-section-2` `pt-section-3`
+- `px-control-pad` `px-gutter` `px-r1` `px-r2` `px-r3` `px-r4` `px-r5` `px-r6`
+- `py-r1` `py-r2` `py-r3` `py-r4` `py-r5` `py-r6` `py-section-1` `py-section-2` `py-section-3`
+- `rounded-full` `rounded-lg` `rounded-md` `rounded-none` `rounded-sm` `rounded-xl`
+- `self-center` `self-end` `self-start` `self-stretch`
+- `shadow-lg` `shadow-md` `shadow-none` `shadow-sm`
+- `size-full` `size-icon`
+- `space-x-r1` `space-x-r2` `space-x-r3` `space-x-r4` `space-x-r5` `space-x-r6` `space-y-r1` `space-y-r2` `space-y-r3` `space-y-r4` `space-y-r5` `space-y-r6`
+- `text-body-1` `text-body-2` `text-body-3` `text-center` `text-display-1` `text-display-2` `text-display-3` `text-display-4` `text-end` `text-fg-accent` `text-fg-error` `text-fg-info` `text-fg-inverse` `text-fg-muted` `text-fg-on-accent` `text-fg-on-error` `text-fg-on-info` `text-fg-on-primary` `text-fg-on-selection` `text-fg-on-success` `text-fg-on-warning` `text-fg-primary` `text-fg-secondary` `text-fg-success` `text-fg-warning` `text-h1` `text-h2` `text-h3` `text-h4` `text-h5` `text-h6` `text-prose-1` `text-prose-2` `text-prose-3` `text-start`
+- `w-column-lg` `w-column-md` `w-column-sm` `w-full`
+- `block` `break-words` `grow` `hidden` `italic` `no-underline` `place-items-center` `relative` `shrink-0` `sr-only` `tabular-nums` `truncate` `underline` `whitespace-nowrap`
 <!-- /GENERATED:classes -->
 
 ## Density
@@ -297,11 +336,423 @@ The renderer provides three components the library leaves to the page. They are 
 `validateViewSpec` and the renderer report issues as `{ "code", "path", "severity", "message", "suggestion"? }`. `path` is a JSON Pointer into the document (`/root/children/2/props/href`; `""` is the document). An **error** means the document does not conform; a **warning** means it conforms but something will be dropped, refused or will not work. Fix both. A document nested thousands of levels deep is not checked at all: `too-deep`, an error.
 
 <!-- GENERATED:issue-codes -->
+| Code | Severity | Meaning |
+| --- | --- | --- |
+| `invalid-json` | error | The text is not JSON. |
+| `invalid-type` | error | A value has the wrong JSON type for its place in the format. |
+| `invalid-value` | error | A value is outside the set the format allows there. |
+| `missing-key` | error | A required key is absent. |
+| `unknown-key` | error | A key the format does not define. |
+| `unsupported-version` | error | `version` is not 2. |
+| `invalid-node` | error | A node matches none of the node shapes. |
+| `invalid-ref` | error | A reference path is malformed. |
+| `invalid-name` | error | A name breaks the name rules or is reserved. |
+| `too-deep` | error | Nested beyond what a checker's call stack can walk (thousands of levels); not validated. |
+| `limit-exceeded` | warning | Past a limit (depth, handler chain); the excess is not rendered or run. |
+| `undeclared-name` | warning | A reference, form, field, dialog or binding name nothing declares. |
+| `unknown-component` | warning | A component name nothing registers. |
+| `not-addressable` | warning | A library component documents cannot use. |
+| `misplaced-part` | warning | A compound part outside its parent. |
+| `unknown-prop` | warning | A prop the component does not take. |
+| `invalid-prop-value` | warning | A prop value outside the component's set or shape. |
+| `unknown-icon` | warning | An icon name the icon set does not have. |
+| `forbidden-prop` | warning | A prop the renderer drops. |
+| `refused-url` | warning | A URL the scheme allowlist or the origin policy refuses. |
+| `unknown-class` | warning | A class outside the class vocabulary; it would style nothing. |
+| `sensitive-component` | warning | A component the host must allow before it renders. |
+| `controlled-in-field` | warning | A value on a control inside a bound Field; it would detach the binding. |
+| `unusable-value` | warning | A value that conforms but cannot work: a rule its field's type ignores, a pattern that does not compile, a code `Intl` refuses. |
+| `key-order` | warning | Keys out of the streaming order; the object renders only once it closes. |
+| `duplicate-key` | warning | Two siblings share a key; positions are used instead. Reported only while rendering. |
+| `missing-adapter` | warning | The host did not provide the adapter this needs; nothing was sent. Reported only while rendering. |
+| `data-error` | error | A data binding failed. Reported only while rendering. |
+| `action-failed` | error | An action failed. Reported only while rendering. |
+| `render-error` | error | A node threw while rendering. Reported only while rendering. |
+| `not-renderable` | warning | A value its place cannot use: not text where text renders, not an array under `$each`. Reported only while rendering. |
+| `stream-incomplete` | error | The stream ended before the document closed. Reported only while rendering. |
 <!-- /GENERATED:issue-codes -->
 
 ## Components
 
 <!-- GENERATED:components -->
+### Layout
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Container` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `gutter?`: boolean · `width?`: "measure" \| "page" \| "full" |  |
+| `Grid` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `columns?`: GridColumns \| GridColumnMap · `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `minColumn?`: "sm" \| "md" \| "lg" · `rowGap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" |  |
+| `Inline` | — | `align?`: "start" \| "center" \| "end" \| "stretch" \| "baseline" · `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `justify?`: "start" \| "center" \| "end" \| "between" · `rowGap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `wrap?`: boolean |  |
+| `Prose` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `measure?`: boolean |  |
+| `ScrollPanel` | `.Body` `.Footer` | — | Scrolls only when its parent bounds its height; the class vocabulary holds no heights. |
+| `ScrollPanel.Body` | — | — |  |
+| `ScrollPanel.Footer` | — | — |  |
+| `Section` | — | `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `padding?`: "section-1" \| "section-2" \| "section-3" · `variant?`: "plain" \| "band" |  |
+| `Stack` | — | `align?`: "center" \| "start" \| "end" \| "stretch" · `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `justify?`: "start" \| "center" \| "end" \| "between" |  |
+
+### Built-in
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Heading` | — | `className?`: string · `level?`: 1 \| 2 \| 3 \| 4 \| 5 \| 6 · `size?`: "h1" \| "h2" \| "h3" \| "h4" \| "h5" \| "h6" · `tone?`: "primary" \| "secondary" \| "muted" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" | `level` is the outline (h1–h6); `size` is the look and matches the level when absent. |
+| `Icon` | — | `name`: string · `className?`: string · `label?`: string · `tone?`: "primary" \| "secondary" \| "muted" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" | Decorative unless `label` names it. Sized by the density's icon step. |
+| `Text` | — | `as?`: "p" \| "span" \| "strong" \| "em" \| "small" \| "code" \| "blockquote" · `className?`: string · `size?`: "body-1" \| "body-2" \| "body-3" · `tone?`: "primary" \| "secondary" \| "muted" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" · `weight?`: "normal" \| "medium" \| "semibold" | Body text. `as` picks the element, `size` the UI body step (inherited when absent). |
+
+### Primitives
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Alert` | — | `actions?`: node · `icon?`: icon name · `labels?`: LabelsProp<AlertLabels> · `onDismiss?`: handler · `title?`: node · `tone?`: "neutral" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" |  |
+| `Avatar` | — | `alt?`: string · `name?`: string · `size?`: "control" \| "icon" · `src?`: string \| null |  |
+| `AvatarGroup` | — | `items`: AvatarGroupItem[] · `label`: string · `labels?`: LabelsProp<AvatarGroupLabels> · `max?`: number · `size?`: "icon" \| "control" |  |
+| `Badge` | — | `icon?`: icon name · `tone?`: "neutral" \| "accent" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" · `variant?`: "subtle" \| "solid" \| "outline" |  |
+| `Button` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Card` | `.Actions` `.Body` `.Description` `.Footer` `.Header` `.Title` | — |  |
+| `Card.Actions` | — | — |  |
+| `Card.Body` | — | — |  |
+| `Card.Description` | — | — |  |
+| `Card.Footer` | — | — |  |
+| `Card.Header` | — | — | Put `Card.Actions` directly among its children; it is picked out by type and placed on the end. |
+| `Card.Title` | — | `as?`: "h2" \| "h3" \| "h4" \| "h5" \| "h6" |  |
+| `Chip` | — | `as?`: "span" \| "li" · `disabled?`: boolean · `labels?`: LabelsProp<ChipLabels> · `onRemove?`: handler | Children are plain text (the chip's name, also used by its remove button), not nodes. |
+| `Divider` | — | `orientation?`: "horizontal" \| "vertical" |  |
+| `IconButton` | — | `icon`: icon name · `label`: string · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Kbd` | — | — |  |
+| `Link` | — | `external?`: boolean · `href?`: string · `labels?`: LabelsProp<LinkLabels> · `rel?`: string · `target?`: string · `variant?`: "accent" \| "inherit" |  |
+| `Skeleton` | — | `label?`: string · `lines?`: number · `shape?`: "text" \| "block" \| "circle" |  |
+| `Spinner` | — | `label?`: string |  |
+| `StatusLabel` | — | `icon?`: icon name · `tone?`: "neutral" \| "accent" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" |  |
+
+### Content
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `CodeBlock` | — | `code`: string · `copyable?`: boolean · `defaultWrap?`: boolean · `filename?`: string · `highlightLines?`: number[] · `labels?`: LabelsProp<CodeBlockLabels> · `language?`: string · `lineNumbers?`: boolean · `onWrapChange?`: handler · `wrap?`: boolean · `wrapToggle?`: boolean |  |
+| `CopyButton` | — | `value`: string · `labels?`: LabelsProp<CopyButtonLabels> · `onCopy?`: handler · `onCopyError?`: handler · `resetAfter?`: number · `showLabel?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Markdown` | — | `headingOffset?`: number · `labels?`: LabelsProp<MarkdownLabels> · `measure?`: boolean | Children are the Markdown source as text. Images load only where the host allows them. |
+
+### Data
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `ActivityFeed` | — | `items`: ActivityItem[] · `empty?`: node · `groupByDay?`: boolean · `hasMore?`: boolean · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `label?`: string · `labels?`: LabelsProp<TimelineLabels> · `loading?`: boolean · `loadingMore?`: boolean · `now?`: ISO date-time · `onLoadMore?`: handler · `order?`: "newest-first" \| "oldest-first" · `pageSize?`: number · `scrollable?`: boolean · `timeFormat?`: "relative" \| "absolute" |  |
+| `DataTable` | — | `columns`: DataTableColumnSpec[] · `rows`: Row[] · `bulkActions?`: template (selectedKeys) · `caption?`: node · `columnsMenu?`: boolean · `columnWidths?`: Readonly<Record<string, number>> · `defaultColumnWidths?`: Readonly<Record<string, number>> · `defaultExpandedKeys?`: RowKey[] · `defaultFilters?`: DataTableFilters · `defaultPage?`: number · `defaultPageSize?`: number · `defaultSelectedKeys?`: RowKey[] · `defaultSort?`: SortState · `defaultVisibleColumns?`: string[] · `empty?`: node · `error?`: node · `errorActions?`: node · `expandedKeys?`: RowKey[] · `filters?`: DataTableFilters · `labels?`: LabelsProp<DataTableLabels> · `layout?`: "auto" \| "fixed" · `loading?`: boolean · `loadingRows?`: number · `manualFiltering?`: boolean · `manualPagination?`: boolean · `manualSorting?`: boolean · `onColumnWidthsChange?`: handler · `onExpandedKeysChange?`: handler · `onFiltersChange?`: handler · `onPageChange?`: handler · `onPageSizeChange?`: handler · `onSelectedKeysChange?`: handler · `onSortChange?`: handler · `onVisibleColumnsChange?`: handler · `page?`: number · `pageSize?`: number · `pageSizeOptions?`: number[] · `renderDetail?`: template (row, rowIndex) · `resizableColumns?`: boolean · `rowActions?`: template (row, rowIndex) · `rowCount?`: number · `rowKey?`: string · `rowLabel?`: string · `selectable?`: boolean · `selectedKeys?`: RowKey[] · `sort?`: SortState · `stickyColumns?`: number · `stickyHeader?`: boolean · `striped?`: boolean · `variant?`: "boxed" \| "rules" \| "plain" · `visibleColumns?`: string[] | `columns` are data and `rowKey` names the field that identifies a row; rows usually come from `{ "$ref": "data.…" }`. |
+| `DescriptionList` | `.Item` | `variant?`: "plain" \| "divided" |  |
+| `DescriptionList.Item` | — | `term`: node |  |
+| `EmptyState` | — | `title`: node · `actions?`: node · `description?`: node · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `icon?`: icon name · `tone?`: "neutral" \| "error" |  |
+| `Meter` | — | `label`: node · `value`: number \| null \| undefined · `labels?`: LabelsProp<MeterLabels> · `max?`: number · `min?`: number · `thresholds?`: MeterThreshold[] · `valueText?`: string · `variant?`: "stacked" \| "inline" · `worse?`: "high" \| "low" | `value` is read on the `min`–`max` scale; outside it the fill clamps while the text keeps the real share. |
+| `Sparkline` | — | `label`: string · `values`: (number \| null \| undefined)[] · `format?`: FormatSpec · `labels?`: LabelsProp<SparklineLabels> · `series?`: 1 \| 2 \| 3 \| 4 \| 5 \| 6 \| 7 \| 8 \| "total" · `summary?`: string |  |
+| `StatCard` | — | `label`: node · `value`: node · `delta?`: number \| null · `deltaLabel?`: node · `formatDelta?`: FormatSpec · `labels?`: LabelsProp<StatCardLabels> · `loading?`: boolean · `sentiment?`: "good" \| "bad" \| "neutral" · `sparkline?`: node · `stale?`: node · `status?`: node · `unit?`: node | `value` renders as given: format numbers with `$format`. |
+| `Table` | `.Body` `.Caption` `.Cell` `.Head` `.HeaderCell` `.Row` | `footer?`: node · `layout?`: "auto" \| "fixed" · `stickyHeader?`: boolean · `striped?`: boolean · `variant?`: "boxed" \| "rules" \| "plain" |  |
+| `Table.Body` | — | — |  |
+| `Table.Caption` | — | `visuallyHidden?`: boolean |  |
+| `Table.Cell` | — | `numeric?`: boolean · `priority?`: 1 \| 2 \| 3 \| 4 \| 5 · `truncate?`: boolean · `wrap?`: boolean |  |
+| `Table.Head` | — | — |  |
+| `Table.HeaderCell` | — | `after?`: node · `numeric?`: boolean · `onSort?`: handler · `priority?`: 1 \| 2 \| 3 \| 4 \| 5 · `sort?`: SortDirection \| null · `truncate?`: boolean · `wrap?`: boolean |  |
+| `Table.Row` | — | `index?`: number · `selected?`: boolean |  |
+| `Timeline` | — | `events`: TimelineEvent[] · `empty?`: node · `groupByDay?`: boolean · `hasMore?`: boolean · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `label?`: string · `labels?`: LabelsProp<TimelineLabels> · `loading?`: boolean · `loadingMore?`: boolean · `now?`: ISO date-time · `onLoadMore?`: handler · `order?`: "newest-first" \| "oldest-first" · `pageSize?`: number · `scrollable?`: boolean · `timeFormat?`: "relative" \| "absolute" |  |
+| `VirtualizedTable` | — | `columns`: DataTableColumnSpec[] · `rows`: Row[] · `bulkActions?`: template (selectedKeys) · `caption?`: node · `columnsMenu?`: boolean · `columnWidths?`: Readonly<Record<string, number>> · `defaultColumnWidths?`: Readonly<Record<string, number>> · `defaultFilters?`: DataTableFilters · `defaultSelectedKeys?`: RowKey[] · `defaultSort?`: SortState · `defaultVisibleColumns?`: string[] · `empty?`: node · `error?`: node · `errorActions?`: node · `filters?`: DataTableFilters · `labels?`: LabelsProp<DataTableLabels> · `layout?`: "auto" \| "fixed" · `loading?`: boolean · `loadingRows?`: number · `manualFiltering?`: boolean · `manualSorting?`: boolean · `onColumnWidthsChange?`: handler · `onFiltersChange?`: handler · `onSelectedKeysChange?`: handler · `onSortChange?`: handler · `onVisibleColumnsChange?`: handler · `overscan?`: number · `resizableColumns?`: boolean · `rowActions?`: template (row, rowIndex) · `rowKey?`: string · `rowLabel?`: string · `selectable?`: boolean · `selectedKeys?`: RowKey[] · `sort?`: SortState · `stickyColumns?`: number · `stickyHeader?`: boolean · `striped?`: boolean · `variant?`: "boxed" \| "rules" \| "plain" · `visibleColumns?`: string[] · `visibleRows?`: number |  |
+
+### Charts
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `BarChart` | — | `label`: string · `series`: ChartSeries[] · `format?`: FormatSpec · `formatTick?`: FormatSpec · `labels?`: LabelsProp<ChartLabels> · `max?`: number · `min?`: number · `orientation?`: "vertical" \| "horizontal" · `stacked?`: boolean · `summary?`: string · `timeZone?`: "local" \| "UTC" · `unit?`: string · `x?`: ChartX[] |  |
+| `Heatmap` | — | `columns`: string[] · `label`: string · `rows`: string[] · `values`: ((number \| null \| undefined)[])[] · `format?`: FormatSpec · `labels?`: LabelsProp<ChartLabels> · `summary?`: string · `unit?`: string · `valueLabel?`: string |  |
+| `LineChart` | — | `label`: string · `series`: ChartSeries[] · `area?`: boolean · `format?`: FormatSpec · `formatTick?`: FormatSpec · `formatX?`: FormatSpec · `labels?`: LabelsProp<ChartLabels> · `max?`: number · `min?`: number · `summary?`: string · `timeZone?`: "local" \| "UTC" · `unit?`: string · `x?`: ChartX[] · `xType?`: "category" \| "number" \| "time" |  |
+
+### Feedback
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Banner` | — | `actions?`: node · `dismissKey?`: string · `icon?`: icon name · `labels?`: LabelsProp<BannerLabels> · `onDismiss?`: handler · `title?`: node · `tone?`: "neutral" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" · `urgent?`: boolean | Inline only. `dismissKey` remembers a dismissal per view; the renderer prefixes it. |
+| `ErrorFallback` | — | `details?`: boolean · `error?`: unknown · `labels?`: LabelsProp<ErrorFallbackLabels> · `onRetry?`: handler |  |
+| `ProgressBar` | — | `label`: node · `hideLabel?`: boolean · `labels?`: LabelsProp<ProgressLabels> · `max?`: number · `showValue?`: boolean · `tone?`: "neutral" \| "accent" \| "error" \| "success" \| "warning" \| "info" \| "serious" · `value?`: number \| null · `valueText?`: string · `variant?`: "continuous" \| "segmented" | `value` is on the 0–`max` scale; `null` is indeterminate. |
+| `ProgressRing` | — | `label`: string · `labels?`: LabelsProp<ProgressLabels> · `max?`: number · `showValue?`: boolean · `size?`: "icon" \| "control" \| "large" · `tone?`: "neutral" \| "accent" \| "error" \| "success" \| "warning" \| "info" \| "serious" · `value?`: number \| null · `valueText?`: string |  |
+
+### Forms
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Checkbox` | — | `checked?`: boolean · `defaultChecked?`: boolean · `disabled?`: boolean · `indeterminate?`: boolean · `invalid?`: boolean · `onCheckedChange?`: handler |  |
+| `ColorPicker` | — | `alpha?`: boolean · `contrast?`: { against: string; label: string; } · `defaultOpen?`: boolean · `defaultValue?`: string · `eyeDropper?`: boolean · `format?`: "hex" \| "oklch" · `invalid?`: boolean · `labels?`: LabelsProp<ColorPickerLabels> · `onOpenChange?`: handler · `onValueChange?`: handler · `open?`: boolean · `readOnly?`: boolean · `required?`: boolean · `swatches?`: ColorSwatch[] · `value?`: string |  |
+| `Combobox` | — | `options`: ComboboxOption[] · `allowCustomValue?`: boolean · `defaultInputValue?`: string · `defaultOpen?`: boolean · `defaultValue?`: string \| null · `filter?`: ComboboxFilter \| false · `inputValue?`: string · `invalid?`: boolean · `labels?`: LabelsProp<ComboboxLabels> · `loadError?`: string · `loading?`: boolean · `onInputChange?`: handler · `onOpenChange?`: handler · `onValueChange?`: handler · `open?`: boolean · `start?`: node · `value?`: string \| null · `virtualizeThreshold?`: number |  |
+| `CurrencyInput` | — | `currency`: ISO 4217 code · `allowNegative?`: boolean · `currencyDisplay?`: "symbol" \| "narrowSymbol" \| "code" · `defaultValue?`: number \| null · `end?`: node · `invalid?`: boolean · `max?`: number · `min?`: number · `minorUnits?`: boolean · `onValueChange?`: handler · `value?`: number \| null |  |
+| `ErrorSummary` | — | `labels?`: LabelsProp<ErrorSummaryLabels> · `title?`: node | Must sit inside a `Form`; it lists that form's errors. |
+| `Field` | `.Description` `.Error` `.Label` | `disabled?`: boolean · `invalid?`: boolean · `name?`: field name · `orientation?`: "vertical" \| "horizontal" · `readOnly?`: boolean · `required?`: boolean | `name` binds the control inside it to that form field: give the control no `value`, `checked` or `defaultValue`. |
+| `Field.Description` | — | — |  |
+| `Field.Error` | — | `icon?`: icon name |  |
+| `Field.Label` | — | `required?`: boolean |  |
+| `Form` | — | `form`: form name | `form` names a declared form. Forms do not nest; a Wizard renders its own. |
+| `FormActions` | `.Submit` | `sticky?`: boolean |  |
+| `FormActions.Submit` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Input` | — | `end?`: node · `invalid?`: boolean · `start?`: node · `type?`: "text" \| "email" \| "password" \| "search" \| "tel" \| "url" |  |
+| `MaskedInput` | — | `mask`: string · `defaultValue?`: string · `end?`: node · `invalid?`: boolean · `onComplete?`: handler · `onValueChange?`: handler · `placeholderChar?`: string · `start?`: node · `type?`: "text" \| "tel" · `value?`: string |  |
+| `MultiSelect` | — | `options`: ComboboxOption[] · `defaultInputValue?`: string · `defaultOpen?`: boolean · `defaultValue?`: string[] · `filter?`: ComboboxFilter \| false · `inputValue?`: string · `invalid?`: boolean · `labels?`: LabelsProp<MultiSelectLabels> · `loadError?`: string · `loading?`: boolean · `max?`: number · `onInputChange?`: handler · `onOpenChange?`: handler · `onValueChange?`: handler · `open?`: boolean · `selectAll?`: boolean · `value?`: string[] · `virtualizeThreshold?`: number |  |
+| `NumberInput` | — | `defaultValue?`: number \| null · `end?`: node · `formatOptions?`: Pick<FormatNumberOptions, "minimumFractionDigits" \| "maximumFractionDig… · `invalid?`: boolean · `labels?`: LabelsProp<NumberInputLabels> · `max?`: number · `min?`: number · `onValueChange?`: handler · `precision?`: number · `start?`: node · `step?`: number · `value?`: number \| null |  |
+| `OTPInput` | — | `defaultValue?`: string · `groups?`: number[] · `invalid?`: boolean · `labels?`: LabelsProp<OTPInputLabels> · `length?`: number · `mask?`: boolean · `mode?`: "numeric" \| "alphanumeric" · `onComplete?`: handler · `onValueChange?`: handler · `separator?`: node · `value?`: string |  |
+| `PasswordInput` | — | `autoComplete?`: "current-password" \| "new-password" \| "one-time-code" \| "off" · `capsLockWarning?`: boolean · `defaultValue?`: string · `defaultVisible?`: boolean · `end?`: node · `invalid?`: boolean · `labels?`: LabelsProp<PasswordInputLabels> · `minStrengthLength?`: number · `onValueChange?`: handler · `onVisibleChange?`: handler · `start?`: node · `strength?`: boolean \| PasswordStrengthEstimator · `value?`: string · `visible?`: boolean |  |
+| `Radio` | — | `value`: string · `disabled?`: boolean | Only inside a `RadioGroup`. |
+| `RadioGroup` | — | `defaultValue?`: string · `disabled?`: boolean · `invalid?`: boolean · `onValueChange?`: handler · `orientation?`: "vertical" \| "horizontal" · `readOnly?`: boolean · `required?`: boolean · `value?`: string |  |
+| `RangeSlider` | — | `defaultValue?`: RangeSliderValue · `disabled?`: boolean · `formatOptions?`: Omit<FormatNumberOptions, "locale" \| "missing"> · `invalid?`: boolean · `labels?`: LabelsProp<RangeSliderLabels> · `largeStep?`: number · `marks?`: SliderMark[] · `max?`: number · `min?`: number · `minStepsBetweenThumbs?`: number · `onValueChange?`: handler · `onValueCommit?`: handler · `orientation?`: "horizontal" \| "vertical" · `readOnly?`: boolean · `showValue?`: boolean · `step?`: number · `value?`: RangeSliderValue |  |
+| `Rating` | — | `allowHalf?`: boolean · `clearable?`: boolean · `defaultValue?`: number \| null · `disabled?`: boolean · `icon?`: icon name · `invalid?`: boolean · `labels?`: LabelsProp<RatingLabels> · `max?`: number · `onValueChange?`: handler · `readOnly?`: boolean · `value?`: number \| null |  |
+| `SearchInput` | — | `defaultValue?`: string · `end?`: node · `invalid?`: boolean · `labels?`: LabelsProp<SearchInputLabels> · `loading?`: boolean · `onClear?`: handler · `onValueChange?`: handler · `value?`: string |  |
+| `SegmentedControl` | `.Item` | `defaultValue?`: string · `disabled?`: boolean · `invalid?`: boolean · `onValueChange?`: handler · `readOnly?`: boolean · `value?`: string |  |
+| `SegmentedControl.Item` | — | `value`: string · `disabled?`: boolean · `icon?`: icon name |  |
+| `Select` | — | `defaultValue?`: string · `invalid?`: boolean · `onValueChange?`: handler · `options?`: { value: string; label: string; disabled?: boolean }[] · `placeholder?`: string · `readOnly?`: boolean · `value?`: string | Choices go in `options`, not children. |
+| `Slider` | — | `defaultValue?`: number · `disabled?`: boolean · `formatOptions?`: Omit<FormatNumberOptions, "locale" \| "missing"> · `invalid?`: boolean · `largeStep?`: number · `marks?`: SliderMark[] · `max?`: number · `min?`: number · `onValueChange?`: handler · `onValueCommit?`: handler · `orientation?`: "horizontal" \| "vertical" · `readOnly?`: boolean · `showValue?`: boolean · `step?`: number · `value?`: number |  |
+| `Switch` | — | `checked?`: boolean · `defaultChecked?`: boolean · `disabled?`: boolean · `invalid?`: boolean · `onCheckedChange?`: handler |  |
+| `TagInput` | — | `caseSensitive?`: boolean · `commitOnBlur?`: boolean · `defaultInputValue?`: string · `defaultValue?`: string[] · `delimiter?`: string · `inputValue?`: string · `invalid?`: boolean · `labels?`: LabelsProp<TagInputLabels> · `max?`: number · `onInputChange?`: handler · `onValueChange?`: handler · `suggestions?`: (string \| ComboboxOption)[] · `value?`: string[] |  |
+| `Textarea` | — | `autosize?`: boolean · `invalid?`: boolean · `maxRows?`: number |  |
+
+### Dates
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Calendar` | — | `autoFocus?`: boolean · `defaultMonth?`: ISO date · `defaultValue?`: ISO date · `disabled?`: boolean · `labels?`: LabelsProp<CalendarLabels> · `max?`: ISO date · `min?`: ISO date · `month?`: ISO date · `months?`: number · `onMonthChange?`: handler · `onValueChange?`: handler · `value?`: ISO date · `weekStartsOn?`: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 |  |
+| `DatePicker` | — | `defaultOpen?`: boolean · `defaultValue?`: ISO date · `hint?`: node · `invalid?`: boolean · `labels?`: LabelsProp<DatePickerLabels> · `max?`: ISO date · `min?`: ISO date · `months?`: number · `onOpenChange?`: handler · `onValueChange?`: handler · `open?`: boolean · `value?`: ISO date · `weekStartsOn?`: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 |  |
+| `DateRangePicker` | — | `defaultOpen?`: boolean · `defaultValue?`: { start, end } of ISO dates · `hourCycle?`: 12 \| 24 · `invalid?`: boolean · `labels?`: LabelsProp<DateRangePickerLabels> · `max?`: ISO date · `min?`: ISO date · `months?`: number · `now?`: ISO date-time · `onOpenChange?`: handler · `onValueChange?`: handler · `open?`: boolean · `placeholder?`: string · `placement?`: "top" \| "right" \| "bottom" \| "left" \| "top-start" \| "top-end" \| "right-start" \| "right-end" \| "bottom-start" \| "bottom-end" \| "left-start" \| "left-end" · `timeStep?`: number · `value?`: { start, end } of ISO dates · `variant?`: "button" \| "field" · `weekStartsOn?`: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 · `withTime?`: boolean |  |
+| `RangeCalendar` | — | `autoFocus?`: boolean · `defaultMonth?`: ISO date · `defaultValue?`: { start, end } of ISO dates · `disabled?`: boolean · `labels?`: LabelsProp<CalendarLabels> · `max?`: ISO date · `min?`: ISO date · `month?`: ISO date · `months?`: number · `onMonthChange?`: handler · `onValueChange?`: handler · `value?`: { start, end } of ISO dates · `weekStartsOn?`: 0 \| 1 \| 2 \| 3 \| 4 \| 5 \| 6 |  |
+| `TimeField` | — | `defaultValue?`: string \| null · `disabled?`: boolean · `end?`: node · `hourCycle?`: 12 \| 24 · `invalid?`: boolean · `labels?`: LabelsProp<TimeFieldLabels> · `max?`: string · `min?`: string · `onValueChange?`: handler · `readOnly?`: boolean · `required?`: boolean · `step?`: number · `value?`: string \| null · `withSeconds?`: boolean |  |
+| `TimePicker` | — | `defaultOpen?`: boolean · `defaultValue?`: string \| null · `disabled?`: boolean · `hourCycle?`: 12 \| 24 · `invalid?`: boolean · `labels?`: LabelsProp<TimePickerLabels> · `max?`: string · `min?`: string · `onOpenChange?`: handler · `onValueChange?`: handler · `open?`: boolean · `readOnly?`: boolean · `required?`: boolean · `step?`: number · `value?`: string \| null · `withSeconds?`: boolean |  |
+
+### Filters
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `FilterBar` | — | `filters`: FilterDefinition[] · `collapse?`: "auto" \| "always" \| "never" · `defaultOpen?`: boolean · `defaultValue?`: FilterValues · `disabled?`: boolean · `drawerSide?`: "end" \| "bottom" · `labels?`: LabelsProp<FilterBarLabels> · `loading?`: boolean · `now?`: ISO date-time · `onOpenChange?`: handler · `onValueChange?`: handler · `open?`: boolean · `resultCount?`: number · `value?`: FilterValues |  |
+
+### Steps
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Stepper` | `.Step` | `current`: number · `label?`: string · `labels?`: LabelsProp<StepperLabels> · `onStepSelect?`: handler · `orientation?`: "horizontal" \| "vertical" | `current` is required; its children are `Stepper.Step` nodes with nothing between. |
+| `Stepper.Step` | — | `label`: node · `description?`: node · `href?`: string · `optional?`: boolean · `selectable?`: boolean · `status?`: "error" \| "skipped" |  |
+| `Wizard` | `.Step` | `defaultStep?`: number · `form?`: form name · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `label?`: string · `labels?`: LabelsProp<WizardLabels> · `onComplete?`: handler · `onStepChange?`: handler · `orientation?`: "horizontal" \| "vertical" · `step?`: number | `form` names a declared form; each `Wizard.Step` lists its `fields`, which Next validates. |
+| `Wizard.Step` | — | `label`: node · `description?`: node · `fields?`: string[] · `optional?`: boolean |  |
+
+### Toolbars
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `ToggleGroup` | `.Item` | `type`: "single" \| "multiple" · `defaultValue?`: string \| string[] · `disabled?`: boolean · `invalid?`: boolean · `onValueChange?`: handler · `orientation?`: "horizontal" \| "vertical" · `required?`: boolean · `value?`: string \| string[] | `type` (`single` or `multiple`) is required and sets the value's shape: a string or an array. |
+| `ToggleGroup.Item` | — | `value`: string · `disabled?`: boolean · `icon?`: icon name · `label?`: string \| undefined |  |
+| `Toolbar` | `.Group` `.Item` `.Separator` | `aria-label?`: string · `labels?`: LabelsProp<ToolbarLabels> · `orientation?`: "horizontal" \| "vertical" · `overflow?`: boolean | `aria-label` is required; its units are direct children, so overflow can move them into More. |
+| `Toolbar.Group` | — | — |  |
+| `Toolbar.Item` | — | `menu?`: node |  |
+| `Toolbar.Separator` | — | — |  |
+
+### Navigation
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Breadcrumbs` | `.Item` | `itemsAfterCollapse?`: number · `itemsBeforeCollapse?`: number · `labels?`: LabelsProp<BreadcrumbsLabels> · `maxItems?`: number |  |
+| `Breadcrumbs.Item` | — | `current?`: boolean |  |
+| `NavList` | `.Item` `.Section` | `label`: string |  |
+| `NavList.Item` | — | `badge?`: node · `current?`: boolean · `icon?`: icon name |  |
+| `NavList.Section` | — | `title`: ReactNode |  |
+| `Pagination` | — | `pageCount`: number · `defaultPage?`: number · `labels?`: LabelsProp<PaginationLabels> · `onPageChange?`: handler · `page?`: number · `siblings?`: number |  |
+| `Tabs` | `.List` `.Panel` `.Tab` | `activation?`: "automatic" \| "manual" · `defaultValue?`: string · `onValueChange?`: handler · `value?`: string · `variant?`: "underline" \| "enclosed" | Each `Tabs.Tab` and `Tabs.Panel` pair shares a `value` string. |
+| `Tabs.List` | — | — |  |
+| `Tabs.Panel` | — | `value`: string |  |
+| `Tabs.Tab` | — | `value`: string · `icon?`: icon name |  |
+| `TreeView` | — | `aria-label?`: string · `checkedIds?`: string[] · `defaultCheckedIds?`: string[] · `defaultExpandedIds?`: string[] · `defaultSelectedId?`: string \| null · `error?`: node · `expandedIds?`: string[] · `items?`: TreeNode[] · `labels?`: LabelsProp<TreeViewLabels> · `loading?`: boolean · `onAction?`: handler · `onCheckedIdsChange?`: handler · `onExpandedIdsChange?`: handler · `onSelectedIdChange?`: handler · `selectedId?`: string \| null · `selectionMode?`: "none" \| "single" \| "multiple" · `virtualizeAbove?`: number | Give it `items` as data; items nest through `children`, and every level's `href` passes the URL rules. |
+
+### Disclosure
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Accordion` | `.Content` `.Item` `.Trigger` | `collapsible?`: boolean · `defaultValue?`: string \| null \| string[] · `headingLevel?`: 1 \| 2 \| 3 \| 4 \| 5 \| 6 · `multiple?`: boolean · `onValueChange?`: handler · `value?`: string \| null \| string[] |  |
+| `Accordion.Content` | — | — |  |
+| `Accordion.Item` | — | `value`: string · `disabled?`: boolean | `value` is required and unique among its siblings; the root's `value`/`defaultValue` names open items by it. |
+| `Accordion.Trigger` | — | — |  |
+| `Collapsible` | `.Content` `.Trigger` | `defaultOpen?`: boolean · `disabled?`: boolean · `onOpenChange?`: handler · `open?`: boolean |  |
+| `Collapsible.Content` | — | — |  |
+| `Collapsible.Trigger` | — | `hideChevron?`: boolean · `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+
+### Overlays
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Dialog` | `.Body` `.Close` `.Content` `.Description` `.Footer` `.Header` `.Title` `.Trigger` | `defaultOpen?`: boolean · `dialogId?`: string · `onOpenChange?`: handler | Give it a `dialogId`; `openDialog`/`closeDialog` and its own trigger and close buttons share one open state. |
+| `Dialog.Body` | — | — |  |
+| `Dialog.Close` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Dialog.Content` | — | `labels?`: LabelsProp<DialogLabels> · `lightDismiss?`: boolean · `role?`: "dialog" \| "alertdialog" · `showClose?`: boolean |  |
+| `Dialog.Description` | — | — |  |
+| `Dialog.Footer` | — | — |  |
+| `Dialog.Header` | — | — |  |
+| `Dialog.Title` | — | — |  |
+| `Dialog.Trigger` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Drawer` | `.Body` `.Close` `.Content` `.Description` `.Footer` `.Header` `.Title` `.Trigger` | `defaultOpen?`: boolean · `dialogId?`: string · `onOpenChange?`: handler | Give it a `dialogId`; `openDialog`/`closeDialog` and its own trigger and close buttons share one open state. |
+| `Drawer.Body` | — | — |  |
+| `Drawer.Close` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Drawer.Content` | — | `labels?`: LabelsProp<DialogLabels> · `lightDismiss?`: boolean · `role?`: "dialog" \| "alertdialog" · `showClose?`: boolean · `side?`: "end" \| "bottom" |  |
+| `Drawer.Description` | — | — |  |
+| `Drawer.Footer` | — | — |  |
+| `Drawer.Header` | — | — |  |
+| `Drawer.Title` | — | — |  |
+| `Drawer.Trigger` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `DropdownMenu` | `.CheckboxItem` `.Content` `.Item` `.Label` `.RadioGroup` `.RadioItem` `.Separator` `.Trigger` | `defaultOpen?`: boolean · `onOpenChange?`: handler · `open?`: boolean · `placement?`: "top" \| "right" \| "bottom" \| "left" \| "top-start" \| "top-end" \| "right-start" \| "right-end" \| "bottom-start" \| "bottom-end" \| "left-start" \| "left-end" |  |
+| `DropdownMenu.CheckboxItem` | — | `checked?`: boolean · `closeOnSelect?`: boolean · `defaultChecked?`: boolean · `disabled?`: boolean · `onCheckedChange?`: handler · `onSelect?`: handler · `shortcut?`: node |  |
+| `DropdownMenu.Content` | — | — |  |
+| `DropdownMenu.Item` | — | `closeOnSelect?`: boolean · `disabled?`: boolean · `icon?`: icon name · `onSelect?`: handler · `shortcut?`: node · `variant?`: "default" \| "danger" |  |
+| `DropdownMenu.Label` | — | — |  |
+| `DropdownMenu.RadioGroup` | — | `defaultValue?`: string · `onValueChange?`: handler · `value?`: string |  |
+| `DropdownMenu.RadioItem` | — | `value`: string · `closeOnSelect?`: boolean · `disabled?`: boolean · `onSelect?`: handler · `shortcut?`: node |  |
+| `DropdownMenu.Separator` | — | — |  |
+| `DropdownMenu.Trigger` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `HoverCard` | `.Content` `.Toggle` `.Trigger` | `closeDelay?`: number · `defaultOpen?`: boolean · `disabled?`: boolean · `labels?`: LabelsProp<HoverCardLabels> · `onOpenChange?`: handler · `open?`: boolean · `openDelay?`: number · `placement?`: "top" \| "right" \| "bottom" \| "left" \| "top-start" \| "top-end" \| "right-start" \| "right-end" \| "bottom-start" \| "bottom-end" \| "left-start" \| "left-end" |  |
+| `HoverCard.Content` | — | — |  |
+| `HoverCard.Toggle` | — | `icon?`: icon name · `label?`: string · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `HoverCard.Trigger` | — | — |  |
+| `Popover` | `.Close` `.Content` `.Trigger` | `defaultOpen?`: boolean · `onOpenChange?`: handler · `open?`: boolean · `placement?`: "top" \| "right" \| "bottom" \| "left" \| "top-start" \| "top-end" \| "right-start" \| "right-end" \| "bottom-start" \| "bottom-end" \| "left-start" \| "left-end" |  |
+| `Popover.Close` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Popover.Content` | — | `arrow?`: boolean · `initialFocus?`: number |  |
+| `Popover.Trigger` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Tooltip` | — | `content`: node · `arrow?`: boolean · `defaultOpen?`: boolean · `delay?`: number · `disabled?`: boolean · `onOpenChange?`: handler · `open?`: boolean · `placement?`: "top" \| "right" \| "bottom" \| "left" \| "top-start" \| "top-end" \| "right-start" \| "right-end" \| "bottom-start" \| "bottom-end" \| "left-start" \| "left-end" | Exactly one child, and a focusable one (a Button or IconButton). |
+
+### Media
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `Image` | — | `alt`: string · `height`: number · `src`: string \| null · `width`: number · `fit?`: "cover" \| "contain" · `onError?`: handler · `onLoad?`: handler · `placeholder?`: string · `placeholderColor?`: string · `priority?`: boolean · `radius?`: "none" \| "sm" \| "md" \| "lg" \| "xl" · `ratio?`: "intrinsic" \| "fill" \| "wide" \| "classic" \| "square" \| "portrait" · `sizes?`: string · `srcSet?`: string | `width` and `height` are the file's intrinsic size and are required; every URL passes the host's image policy. |
+| `Lightbox` | `.Trigger` | `items`: LightboxItem[] · `label`: string · `defaultIndex?`: number · `defaultOpen?`: boolean · `index?`: number · `labels?`: LabelsProp<LightboxLabels> · `onIndexChange?`: handler · `onOpenChange?`: handler · `open?`: boolean |  |
+| `Lightbox.Trigger` | — | `index`: number |  |
+| `MasonryGrid` | — | `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `maxColumns?`: number · `minColumn?`: "sm" \| "md" \| "lg" |  |
+
+### Marketing
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `CallToAction` | — | `title`: node · `actions?`: node · `body?`: node · `headingLevel?`: 1 \| 2 \| 3 \| 4 \| 5 \| 6 · `layout?`: "stacked" \| "split" · `variant?`: "plain" \| "band" |  |
+| `Carousel` | `.Slide` | `label`: string · `autoplay?`: boolean \| number · `dots?`: boolean · `labels?`: LabelsProp<CarouselLabels> · `perView?`: 1 \| 2 \| 3 \| 4 | Its children must be `Carousel.Slide` nodes (a `$each` of them is fine), with nothing between. |
+| `Carousel.Slide` | — | — |  |
+| `EmailCapture` | — | `onSubmit`: handler · `consent?`: node · `consentRequired?`: boolean · `defaultValue?`: string · `description?`: node · `disabled?`: boolean · `hideLabel?`: boolean · `honeypot?`: boolean \| string · `labels?`: LabelsProp<EmailCaptureLabels> |  |
+| `FeatureGrid` | `.Item` | `columns?`: GridColumns \| GridColumnMap · `gap?`: "r1" \| "r2" \| "r3" \| "r4" \| "r5" \| "r6" · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `minColumn?`: "sm" \| "md" \| "lg" · `variant?`: "plain" \| "card" |  |
+| `FeatureGrid.Item` | — | `title`: node · `href?`: string · `icon?`: icon name |  |
+| `FeatureRows` | `.Row` | `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `mediaSide?`: "alternate" \| "start" \| "end" · `stackedMedia?`: "first" \| "last" |  |
+| `FeatureRows.Row` | — | `title`: node · `actions?`: node · `eyebrow?`: node · `media?`: node · `mediaSide?`: "start" \| "end" |  |
+| `Hero` | — | `title`: node · `actions?`: node · `backdrop?`: node · `eyebrow?`: node · `headingLevel?`: 1 \| 2 \| 3 \| 4 \| 5 \| 6 · `layout?`: "stacked" \| "split" · `lead?`: node · `media?`: node · `proof?`: node · `variant?`: "plain" \| "band" |  |
+| `HowItWorks` | `.Step` | `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `label?`: string · `orientation?`: "auto" \| "horizontal" \| "vertical" |  |
+| `HowItWorks.Step` | — | `title`: node · `media?`: node |  |
+| `LogoCloud` | — | `colorOnHover?`: boolean · `labels?`: LabelsProp<LogoCloudLabels> · `marquee?`: boolean \| number · `title?`: node | Each logo is an `Image` node with a meaningful `alt`. |
+| `MediaCard` | `.Skeleton` | `href`: string · `title`: node · `actions?`: node · `badge?`: node · `description?`: node · `image?`: MediaCardImage · `meta?`: node · `ratio?`: "wide" \| "classic" \| "square" \| "portrait" · `titleAs?`: "h2" \| "h3" \| "h4" \| "h5" \| "h6" |  |
+| `MediaCard.Skeleton` | — | `label?`: string · `ratio?`: "wide" \| "classic" \| "square" \| "portrait" |  |
+| `Pricing` | — | `currency`: ISO 4217 code · `plans`: PricingPlan[] · `billing?`: "monthly" \| "annual" · `currencyDisplay?`: "symbol" \| "narrowSymbol" \| "code" · `defaultBilling?`: "monthly" \| "annual" · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `labels?`: LabelsProp<PricingLabels> · `loading?`: boolean · `onBillingChange?`: handler | `currency` is an ISO 4217 code (`"EUR"`); amounts are numbers. |
+| `PricingTable` | — | `groups`: PricingTableGroup[] · `plans`: Pick<PricingPlan, "id" \| "name" \| "highlighted" \| "badge">[] · `labels?`: LabelsProp<PricingLabels> |  |
+| `SectionHeading` | — | `title`: node · `align?`: "start" \| "center" · `eyebrow?`: node · `headingLevel?`: 2 \| 3 \| 4 \| 5 \| 6 · `lead?`: node · `titleId?`: string |  |
+| `Testimonial` | — | `name`: string · `quote`: node · `avatar?`: string \| false · `company?`: string · `labels?`: LabelsProp<TestimonialLabels> · `logo?`: node · `rating?`: number · `ratingMax?`: number · `role?`: string · `source?`: node · `sourceUrl?`: string · `variant?`: "card" \| "pull" \| "compact" |  |
+
+### Motion
+
+| Component | Parts | Props | Notes |
+| --- | --- | --- | --- |
+| `CountUp` | — | `value`: number \| null \| undefined · `format?`: FormatSpec · `formatOptions?`: Omit<FormatNumberOptions, "locale"> · `from?`: number · `threshold?`: number |  |
+| `ScrollReveal` | — | `animation?`: "fade-up" \| "fade-in" \| "scale-in" · `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `once?`: boolean · `rootMargin?`: string · `threshold?`: number |  |
+| `Stagger` | — | `animation?`: "fade-up" \| "fade-in" \| "scale-in" · `as?`: "div" \| "section" \| "article" \| "aside" \| "header" \| "footer" \| "nav" \| "ul" \| "ol" \| "li" \| "figure" · `trigger?`: "scroll" \| "mount" |  |
+
+### `classNames` keys
+
+| Component | Keys |
+| --- | --- |
+| `Accordion.Content` | `body` |
+| `Accordion.Trigger` | `chevron` `heading` |
+| `ActivityFeed` | `day` `description` `footer` `item` `list` `mark` `time` `title` |
+| `Alert` | `actions` `body` `icon` `title` |
+| `Avatar` | `image` `initials` |
+| `AvatarGroup` | `avatar` `item` `overflow` |
+| `Badge` | `icon` |
+| `Banner` | `actions` `body` `dismiss` `icon` `title` |
+| `BarChart` | `legend` `notes` `plot` `table` `tooltip` |
+| `Breadcrumbs` | `expand` `item` `list` `separator` |
+| `Button` | `icon` `label` `spinner` |
+| `Calendar` | `caption` `cell` `day` `grid` `month` `months` `weekday` |
+| `CallToAction` | `actions` `body` `container` `text` `title` |
+| `Carousel` | `controls` `dots` `next` `prev` `status` `toggle` `track` |
+| `Checkbox` | `box` `input` `label` |
+| `Chip` | `label` `remove` |
+| `CodeBlock` | `actions` `code` `header` `language` `line` `pre` `title` |
+| `Collapsible.Content` | `body` |
+| `Collapsible.Trigger` | `icon` `label` `spinner` |
+| `ColorPicker` | `alpha` `area` `contrast` `hue` `input` `note` `panel` `swatch` `swatches` `trigger` `value` |
+| `Combobox` | `frame` `input` `listbox` `option` |
+| `CopyButton` | `icon` `status` |
+| `CurrencyInput` | `end` `input` `start` |
+| `DataTable` | `bulkBar` `cell` `detail` `empty` `filterCell` `headerCell` `pagination` `row` `table` |
+| `DatePicker` | `calendar` `error` `frame` `hint` `input` `panel` `trigger` |
+| `DateRangePicker` | `calendar` `panel` `preset` `presets` `trigger` |
+| `DescriptionList.Item` | `details` `term` |
+| `Dialog.Close` | `icon` `label` `spinner` |
+| `Dialog.Content` | `close` |
+| `Dialog.Trigger` | `icon` `label` `spinner` |
+| `Divider` | `label` `line` |
+| `Drawer.Close` | `icon` `label` `spinner` |
+| `Drawer.Content` | `close` |
+| `Drawer.Trigger` | `icon` `label` `spinner` |
+| `DropdownMenu.Item` | `icon` `shortcut` |
+| `DropdownMenu.Trigger` | `icon` `label` `spinner` |
+| `EmailCapture` | `consent` `form` `input` `row` `submit` `success` |
+| `EmptyState` | `actions` `description` `icon` `title` |
+| `ErrorFallback` | `details` `icon` `message` `retry` `title` |
+| `FeatureGrid` | `container` |
+| `FeatureGrid.Item` | `body` `icon` `link` `title` |
+| `FeatureRows.Row` | `actions` `body` `eyebrow` `media` `text` `title` |
+| `Field` | `layout` |
+| `FilterBar` | `chip` `clear` `controls` `drawer` `field` `results` `summary` `trigger` |
+| `FormActions` | `row` |
+| `FormActions.Submit` | `icon` `label` `spinner` |
+| `Grid` | `container` |
+| `Heatmap` | `legend` `notes` `plot` `table` `tooltip` |
+| `Hero` | `actions` `backdrop` `container` `eyebrow` `lead` `media` `proof` `text` `title` |
+| `HowItWorks` | `list` |
+| `HowItWorks.Step` | `body` `connector` `description` `marker` `media` `title` |
+| `Image` | `fallback` `image` `placeholder` |
+| `Input` | `end` `input` `start` |
+| `Lightbox` | `caption` `close` `counter` `figure` `header` `image` `next` `prev` `stage` `title` |
+| `LineChart` | `legend` `notes` `plot` `table` `tooltip` |
+| `Link` | `icon` |
+| `LogoCloud` | `list` `logo` `title` `toggle` `viewport` |
+| `MaskedInput` | `end` `input` `start` |
+| `MasonryGrid` | `item` |
+| `MediaCard` | `actions` `body` `description` `footer` `image` `link` `media` `meta` `title` |
+| `Meter` | `fill` `label` `track` `value` |
+| `MultiSelect` | `chip` `frame` `input` `listbox` `option` |
+| `NavList.Item` | `badge` `icon` `item` `label` |
+| `NumberInput` | `end` `input` `start` |
+| `OTPInput` | `box` `input` `separator` |
+| `Pagination` | `list` `next` `page` `previous` `row` `status` |
+| `PasswordInput` | `capsLock` `frame` `hints` `input` `meter` `toggle` |
+| `Popover.Close` | `icon` `label` `spinner` |
+| `Popover.Content` | `arrow` |
+| `Popover.Trigger` | `icon` `label` `spinner` |
+| `Pricing` | `action` `features` `plan` `plans` `price` `saving` `toggle` |
+| `PricingTable` | `table` |
+| `ProgressBar` | `fill` `label` `track` `value` |
+| `ProgressRing` | `center` `indicator` `track` |
+| `Radio` | `box` `input` `label` |
+| `RangeCalendar` | `caption` `cell` `day` `grid` `month` `months` `weekday` |
+| `RangeSlider` | `bubble` `control` `fill` `marks` `thumb` `track` |
+| `Rating` | `icon` `item` |
+| `SearchInput` | `end` `input` `start` |
+| `SectionHeading` | `eyebrow` `lead` `title` |
+| `Select` | `icon` `select` |
+| `Slider` | `bubble` `control` `fill` `marks` `thumb` `track` |
+| `StatCard` | `chart` `delta` `footer` `label` `unit` `value` |
+| `StatusLabel` | `icon` `label` |
+| `Stepper` | `compact` `list` |
+| `Stepper.Step` | `connector` `description` `label` `marker` `meta` `target` |
+| `Switch` | `label` `thumb` `track` |
+| `Table` | `table` |
+| `Table.HeaderCell` | `button` `icon` |
+| `TagInput` | `chip` `frame` `input` `listbox` `message` `option` |
+| `Testimonial` | `affiliation` `avatar` `caption` `header` `name` `quote` `source` |
+| `TimeField` | `error` `frame` `literal` `segment` |
+| `Timeline` | `day` `description` `footer` `item` `list` `mark` `time` `title` |
+| `TimePicker` | `error` `frame` `list` `literal` `option` `panel` `segment` `trigger` |
+| `Toolbar` | `menu` `more` |
+| `Tooltip` | `arrow` |
+| `TreeView` | `actions` `check` `icon` `item` `label` `toggle` |
+| `VirtualizedTable` | `bulkBar` `cell` `detail` `empty` `filterCell` `headerCell` `pagination` `row` `table` |
+| `Wizard` | `actions` `heading` `panel` `stepper` |
 <!-- /GENERATED:components -->
 
 ## Not addressable
@@ -309,9 +760,37 @@ The renderer provides three components the library leaves to the page. They are 
 These library components are not available to documents, each for the reason given.
 
 <!-- GENERATED:not-addressable -->
+| Component | Why not, and what to use instead |
+| --- | --- |
+| `AppShell` | The app frame is the host's; a view renders inside its main region. |
+| `AvatarUpload` | Needs a host upload handler; show a picture with Avatar. |
+| `CommandPalette` | An app-wide launcher bound to a global shortcut; use a DropdownMenu for a view's actions. |
+| `ContextMenu` | A shortcut that is never the only door; use DropdownMenu. |
+| `DensitySwitcher` | Page density is the host's; a document sets `density` or `data-density` on its own subtree. |
+| `DocumentTitleProvider` | The page title is host chrome. |
+| `ErrorBoundary` | The renderer contains every node's errors itself; use ErrorFallback to show a failure. |
+| `FileUpload` | Its value is File objects or a host upload handler. |
+| `Footer` | The site footer is the host's. |
+| `InputSwitcher` | The input mode is the host's. |
+| `Kanban` | Moving work items is an editing surface over host records; use DataTable or a list of Cards. |
+| `LocaleProvider` | Locale and translations are the host's. |
+| `NavigationMenu` | Site navigation is the host's; use NavList or Tabs inside a view. |
+| `Parallax` | Decoration that only works when its caller positions it; a Hero owns its own backdrop. |
+| `PreferencesMenu` | Theme, density and input preferences are the host's. |
+| `ReadingProgress` | Page-level reading chrome that needs the host's scroll container. |
+| `RequireAuth` | Auth is the host's; a gate whose status a document supplies protects nothing. |
+| `RouterProvider` | The host's router already drives every library link a document renders. |
+| `SiteHeader` | The site's top bar is the host's. |
+| `Splitter` | Resizable panes are host layout; lay a view out with Grid or Stack. |
+| `Spotlight` | A pointer-following wash with no information; it is meant to wrap a component type. |
+| `ThemeScript` | An inline script for the host's document head. |
+| `ThemeSwitcher` | Theme is the host's choice, never a document's. |
+| `ToastProvider` | The host mounts the one toast stack; documents raise toasts with `showToast`. |
+| `TreeView.Item` | TreeView reads its items by element type; give TreeView its `items` data instead. |
 <!-- /GENERATED:not-addressable -->
 
 ## Icons
 
 <!-- GENERATED:icons -->
+`activity` `archive` `arrow-down` `arrow-down-right` `arrow-left` `arrow-right` `arrow-up` `arrow-up-down` `arrow-up-right` `at-sign` `award` `badge-check` `ban` `battery` `bell` `bell-off` `book-open` `bookmark` `briefcase` `bug` `building-2` `calendar` `calendar-check` `calendar-days` `camera` `chart-area` `chart-bar` `chart-column` `chart-line` `chart-pie` `check` `check-check` `chevron-down` `chevron-left` `chevron-right` `chevron-up` `chevrons-up-down` `circle` `circle-alert` `circle-check` `circle-dot` `circle-question-mark` `circle-x` `clipboard` `clock` `cloud` `code` `compass` `copy` `cpu` `credit-card` `database` `dollar-sign` `download` `ellipsis` `ellipsis-vertical` `external-link` `eye` `eye-off` `file` `file-text` `flag` `folder` `folder-open` `funnel` `gauge` `gift` `git-branch` `globe` `hard-drive` `hash` `heart` `history` `hourglass` `house` `image` `inbox` `info` `key` `laptop` `layers` `layout-dashboard` `layout-grid` `lightbulb` `link` `list` `list-filter` `loader` `lock` `lock-open` `log-in` `log-out` `mail` `map` `map-pin` `maximize-2` `megaphone` `menu` `message-square` `mic` `minimize-2` `minus` `monitor` `moon` `navigation` `network` `newspaper` `octagon-alert` `package` `panel-left` `paperclip` `pause` `pencil` `percent` `phone` `play` `plug` `plus` `power` `printer` `receipt` `redo-2` `refresh-cw` `rocket` `rotate-ccw` `save` `search` `send` `server` `settings` `share-2` `shield` `shield-alert` `shield-check` `shopping-cart` `sigma` `signal` `siren` `sliders-horizontal` `smartphone` `sparkles` `square` `star` `sun` `tag` `target` `terminal` `thermometer` `timer` `trash-2` `trending-down` `trending-up` `triangle-alert` `trophy` `truck` `undo-2` `upload` `user` `user-plus` `users` `video` `wallet` `wifi` `wifi-off` `workflow` `wrench` `x` `zap`
 <!-- /GENERATED:icons -->

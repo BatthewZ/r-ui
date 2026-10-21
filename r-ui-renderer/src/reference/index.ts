@@ -1,23 +1,27 @@
 // @batthewz/r-ui-renderer/reference: the model reference (VIEWSPEC.md),
 // rendered from the contracts and the hand-written prose. React-free.
 
-import type { ComponentContracts } from "../spec/types";
+import { type ReferenceOptions, renderDocument } from "./document";
+import proseLines from "./prose.json";
 
-export interface ReferenceOptions {
-  /** The contracts to document; `defaultContracts` when absent. */
-  readonly contracts?: ComponentContracts;
-  /** Only these component names (and their parts). */
-  readonly include?: readonly string[];
-  /** Props listed per component before "+n more". */
-  readonly propLimit?: number;
-}
+export {
+  type ReferenceOptions,
+  type ReferenceRegions,
+  type RegionOptions,
+  renderReferenceRegions,
+} from "./document";
+export { scopeContracts } from "./scope";
 
-/** The whole reference as Markdown. */
+/** VIEWSPEC.md's hand-written half, its regions empty (written by `gen:viewspec`). */
+const PROSE = (proseLines as readonly string[]).join("\n");
+
+/**
+ * The whole reference as Markdown: this package's prose with every region
+ * rendered. With no options it is the shipped VIEWSPEC.md byte for byte.
+ * `include` narrows the component tables (the prose and the not-addressable
+ * table stay whole, and the examples' components a scope drops are named);
+ * `contracts` adds a host's components (`extendContracts(defaultContracts, …)`).
+ */
 export function renderViewSpecReference(options: ReferenceOptions = {}): string {
-  throw new Error("not implemented");
-}
-
-/** `markdown` with every `<!-- GENERATED:name -->` region rendered afresh. */
-export function renderReferenceRegions(markdown: string, options: ReferenceOptions = {}): string {
-  throw new Error("not implemented");
+  return renderDocument(PROSE, options);
 }

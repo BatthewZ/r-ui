@@ -1,0 +1,149 @@
+{
+  "version": 2,
+  "title": "Coverage: layout",
+  "description": "Containers, sections, stacks, inlines, grids, prose and a scroll panel, as a help-centre article page.",
+  "root": {
+    "component": "Stack",
+    "props": { "gap": "r1" },
+    "children": [
+      {
+        "component": "Section",
+        "props": { "as": "header", "variant": "band", "padding": "section-3" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "page", "gutter": true },
+            "children": [
+              {
+                "component": "Inline",
+                "props": { "justify": "between", "align": "baseline", "gap": "r4", "rowGap": "r6", "wrap": true },
+                "children": [
+                  { "component": "Heading", "props": { "level": 1, "size": "h3" }, "children": ["Help centre"] },
+                  {
+                    "component": "Text",
+                    "props": { "as": "span", "size": "body-2", "tone": "secondary" },
+                    "children": ["214 articles · updated daily"]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Container",
+        "props": { "as": "article", "width": "measure", "gutter": true },
+        "children": [
+          {
+            "component": "Prose",
+            "props": { "measure": true },
+            "children": [
+              {
+                "component": "Heading",
+                "props": { "level": 2 },
+                "children": ["Why a delivery shows as late when the carrier says it is on time"]
+              },
+              {
+                "component": "Text",
+                "children": [
+                  "Pulse measures a delivery against the promise you made at checkout. A carrier measures it against its own estimate, which it may have moved since."
+                ]
+              },
+              { "component": "Heading", "props": { "level": 3 }, "children": ["What to check"] },
+              {
+                "component": "Text",
+                "children": ["Open the shipment and compare the promised window with the carrier's current estimate."]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Container",
+        "props": { "width": "page", "gutter": true },
+        "children": [
+          {
+            "component": "Grid",
+            "props": {
+              "as": "section",
+              "columns": { "base": 1, "md": 2, "lg": 3 },
+              "gap": "r4",
+              "rowGap": "r3",
+              "aria-label": "Related articles"
+            },
+            "children": [
+              { "component": "Card", "children": [{ "component": "Card.Body", "children": ["Connecting a carrier that is not listed"] }] },
+              { "component": "Card", "children": [{ "component": "Card.Body", "children": ["Changing the promise shown at checkout"] }] },
+              {
+                "component": "Card",
+                "children": [
+                  { "component": "Card.Body", "children": ["Exporting late deliveries for a carrier dispute, with proof of every scan"] }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Container",
+        "props": { "width": "measure", "gutter": true },
+        "children": [
+          {
+            "component": "Stack",
+            "props": { "gap": "r5", "align": "stretch", "justify": "start" },
+            "children": [
+              { "component": "Heading", "props": { "level": 2, "size": "h5" }, "children": ["Recent changes to this article"] },
+              {
+                "component": "ScrollPanel",
+                "props": { "className": "rounded-md border" },
+                "children": [
+                  {
+                    "component": "ScrollPanel.Body",
+                    "children": [
+                      {
+                        "component": "Stack",
+                        "props": { "gap": "r5", "className": "p-r4" },
+                        "children": [
+                          { "component": "Text", "props": { "as": "span" }, "children": ["21 Oct: added the carrier-estimate comparison."] },
+                          { "component": "Text", "props": { "as": "span" }, "children": ["3 Sep: clarified time zones."] },
+                          { "component": "Text", "props": { "as": "span" }, "children": ["14 Jun: first published."] }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "ScrollPanel.Footer",
+                    "children": [
+                      {
+                        "component": "Inline",
+                        "props": { "justify": "end", "className": "p-r5" },
+                        "children": [{ "component": "Link", "props": { "href": "/help/history" }, "children": ["Full history"] }]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "component": "Section",
+        "props": { "as": "footer", "padding": "section-3" },
+        "children": [
+          {
+            "component": "Container",
+            "props": { "width": "full", "gutter": true },
+            "children": [
+              {
+                "component": "Text",
+                "props": { "size": "body-3", "tone": "muted", "className": "text-center" },
+                "children": ["Still stuck? Write to support@northwind.example."]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

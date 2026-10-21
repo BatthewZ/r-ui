@@ -24,14 +24,14 @@ export default tseslint.config(
   // "Never suppress, only fix": an inline directive cannot silence anything,
   // and the dead directive is itself reported (`--max-warnings 0`).
   { linterOptions: { noInlineConfig: true } },
-  { ignores: ["dist/**", "node_modules/**", "scripts/fixtures/**"] },
+  { ignores: ["dist/**", "playground/dist/**", "node_modules/**", "scripts/fixtures/**"] },
   {
-    files: ["scripts/**/*.mjs", "eslint.config.js"],
+    files: ["scripts/**/*.mjs", "playground/**/*.mjs", "eslint.config.js"],
     languageOptions: { ecmaVersion: "latest", sourceType: "module", globals: NODE },
     rules: SCRIPT_RULES,
   },
   {
-    files: ["src/**/*.{ts,tsx}", "test-utils.ts", "test-setup.ts", "*.config.ts"],
+    files: ["src/**/*.{ts,tsx}", "playground/**/*.{ts,tsx}", "test-utils.ts", "test-setup.ts", "*.config.ts"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {

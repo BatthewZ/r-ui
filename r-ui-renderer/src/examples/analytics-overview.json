@@ -1,0 +1,459 @@
+{
+  "version": 2,
+  "title": "Store analytics",
+  "description": "Traffic, conversion and revenue for the online store, by channel, weekday and country.",
+  "state": { "range": "30d" },
+  "data": {
+    "overview": { "type": "api", "endpoint": "/fixtures/analytics-overview.json", "query": { "range": { "$ref": "state.range" } } }
+  },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          {
+            "component": "Inline",
+            "props": { "justify": "between", "align": "end", "gap": "r4" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r6" },
+                "children": [
+                  { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Store analytics"] },
+                  {
+                    "component": "Text",
+                    "props": { "tone": "secondary", "size": "body-2" },
+                    "children": ["All storefronts, all currencies converted to euros at the daily rate."]
+                  }
+                ]
+              },
+              {
+                "component": "SegmentedControl",
+                "props": {
+                  "aria-label": "Period",
+                  "defaultValue": "30d",
+                  "onValueChange": { "action": "setState", "payload": { "path": "state.range", "value": { "$ref": "event.value" } } }
+                },
+                "children": [
+                  { "component": "SegmentedControl.Item", "props": { "value": "7d" }, "children": ["7 days"] },
+                  { "component": "SegmentedControl.Item", "props": { "value": "30d" }, "children": ["30 days"] },
+                  { "component": "SegmentedControl.Item", "props": { "value": "qtd" }, "children": ["Quarter to date"] }
+                ]
+              }
+            ]
+          },
+          {
+            "$cond": { "ref": "status.overview", "eq": "error" },
+            "then": {
+              "component": "Alert",
+              "props": {
+                "tone": "error",
+                "title": "Analytics are unavailable",
+                "actions": {
+                  "$node": {
+                    "component": "Button",
+                    "props": {
+                      "variant": "secondary",
+                      "onClick": { "action": "setState", "payload": { "path": "state.range", "value": "30d" } }
+                    },
+                    "children": ["Back to 30 days"]
+                  }
+                }
+              },
+              "children": ["The reporting service did not answer. Try a different period, or come back in a few minutes."]
+            },
+            "else": {
+              "$cond": "data.overview",
+              "then": {
+                "component": "Stack",
+                "props": { "gap": "r2" },
+                "children": [
+                  {
+                    "component": "Grid",
+                    "props": { "minColumn": "sm", "gap": "r4" },
+                    "children": [
+                      {
+                        "component": "StatCard",
+                        "props": {
+                          "label": "Visitors",
+                          "value": { "$format": { "value": { "$ref": "data.overview.visitors" }, "style": "compact" } },
+                          "delta": { "$ref": "data.overview.visitorsChange" },
+                          "formatDelta": { "style": "percent", "maximumFractionDigits": 1, "signDisplay": "exceptZero" },
+                          "deltaLabel": "vs previous period",
+                          "sentiment": "good",
+                          "sparkline": {
+                            "$node": {
+                              "component": "Sparkline",
+                              "props": { "label": "Visitors, last 14 days, thousands", "values": { "$ref": "data.overview.visitorsTrend" } }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "component": "StatCard",
+                        "props": {
+                          "label": "Conversion rate",
+                          "value": {
+                            "$format": {
+                              "value": { "$ref": "data.overview.conversion" },
+                              "style": "percent",
+                              "minimumFractionDigits": 2,
+                              "maximumFractionDigits": 2
+                            }
+                          },
+                          "delta": { "$ref": "data.overview.conversionChange" },
+                          "formatDelta": { "style": "percent", "maximumFractionDigits": 2, "signDisplay": "exceptZero" },
+                          "deltaLabel": "vs previous period",
+                          "sentiment": "bad",
+                          "sparkline": {
+                            "$node": {
+                              "component": "Sparkline",
+                              "props": {
+                                "label": "Conversion rate, last 14 days, percent",
+                                "values": { "$ref": "data.overview.conversionTrend" },
+                                "series": 2,
+                                "format": { "style": "unit", "unit": "percent" }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "component": "StatCard",
+                        "props": {
+                          "label": "Revenue",
+                          "value": {
+                            "$format": {
+                              "value": { "$ref": "data.overview.revenue" },
+                              "style": "currency",
+                              "currency": "EUR",
+                              "notation": "compact",
+                              "maximumFractionDigits": 2
+                            }
+                          },
+                          "delta": { "$ref": "data.overview.revenueChange" },
+                          "formatDelta": { "style": "percent", "maximumFractionDigits": 1, "signDisplay": "exceptZero" },
+                          "deltaLabel": "vs previous period",
+                          "sentiment": "good"
+                        }
+                      },
+                      {
+                        "component": "StatCard",
+                        "props": {
+                          "label": "Average order",
+                          "value": {
+                            "$format": { "value": { "$ref": "data.overview.orderValue" }, "style": "currency", "currency": "EUR" }
+                          },
+                          "delta": { "$ref": "data.overview.orderValueChange" },
+                          "formatDelta": { "style": "currency", "currency": "EUR", "signDisplay": "exceptZero" },
+                          "deltaLabel": "vs previous period",
+                          "sentiment": "good"
+                        }
+                      },
+                      {
+                        "component": "StatCard",
+                        "props": {
+                          "label": "Refunds",
+                          "value": { "$format": { "value": { "$ref": "data.overview.refunds" }, "style": "currency", "currency": "EUR" } },
+                          "delta": { "$ref": "data.overview.refundsChange" },
+                          "formatDelta": { "style": "percent", "maximumFractionDigits": 0, "signDisplay": "exceptZero" },
+                          "deltaLabel": "more refunded than last period",
+                          "sentiment": "bad"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Card",
+                    "children": [
+                      {
+                        "component": "Card.Header",
+                        "children": [
+                          { "component": "Card.Title", "props": { "as": "h2" }, "children": ["Sessions"] },
+                          {
+                            "component": "Card.Description",
+                            "children": ["This period against the one before. Tracking was down for a day on 9 October."]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Card.Body",
+                        "children": [
+                          {
+                            "component": "LineChart",
+                            "props": {
+                              "label": "Sessions per day",
+                              "summary": "Sessions grew through the period, dipping each weekend, and stayed above the previous period every day.",
+                              "x": { "$ref": "data.overview.days" },
+                              "xType": "time",
+                              "area": true,
+                              "series": [
+                                { "name": "This period", "values": { "$ref": "data.overview.sessions" } },
+                                { "name": "Previous period", "values": { "$ref": "data.overview.sessionsPrevious" } }
+                              ],
+                              "format": "integer",
+                              "formatTick": "compact"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Grid",
+                    "props": { "columns": { "base": 1, "lg": 2 }, "gap": "r4", "className": "items-start" },
+                    "children": [
+                      {
+                        "component": "Card",
+                        "children": [
+                          {
+                            "component": "Card.Header",
+                            "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Sessions by channel"] }]
+                          },
+                          {
+                            "component": "Card.Body",
+                            "children": [
+                              {
+                                "component": "BarChart",
+                                "props": {
+                                  "label": "Sessions by acquisition channel",
+                                  "summary": "Organic search brought the most sessions; affiliate figures are not reported yet.",
+                                  "orientation": "horizontal",
+                                  "x": { "$ref": "data.overview.channels.names" },
+                                  "series": [{ "name": "Sessions", "values": { "$ref": "data.overview.channels.sessions" } }],
+                                  "format": "integer",
+                                  "formatTick": "compact"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Card",
+                        "children": [
+                          {
+                            "component": "Card.Header",
+                            "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Revenue by weekday"] }]
+                          },
+                          {
+                            "component": "Card.Body",
+                            "children": [
+                              {
+                                "component": "BarChart",
+                                "props": {
+                                  "label": "Revenue by weekday and storefront",
+                                  "stacked": true,
+                                  "x": { "$ref": "data.overview.weekdays" },
+                                  "series": [
+                                    { "name": "Web", "values": { "$ref": "data.overview.revenueByWeekday.web" } },
+                                    { "name": "App", "values": { "$ref": "data.overview.revenueByWeekday.app" } }
+                                  ],
+                                  "format": { "style": "currency", "currency": "EUR", "maximumFractionDigits": 0 },
+                                  "formatTick": { "style": "currency", "currency": "EUR", "notation": "compact" }
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Card",
+                    "children": [
+                      {
+                        "component": "Card.Header",
+                        "children": [
+                          { "component": "Card.Title", "props": { "as": "h2" }, "children": ["When people shop"] },
+                          {
+                            "component": "Card.Description",
+                            "children": ["Sessions by weekday and hour, store time. Empty cells had too few sessions to report."]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Card.Body",
+                        "children": [
+                          {
+                            "component": "Heatmap",
+                            "props": {
+                              "label": "Sessions by weekday and hour",
+                              "rows": { "$ref": "data.overview.weekdays" },
+                              "columns": { "$ref": "data.overview.hours" },
+                              "values": { "$ref": "data.overview.heat" },
+                              "valueLabel": "Sessions",
+                              "format": "integer"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "component": "Grid",
+                    "props": { "columns": { "base": 1, "lg": 2 }, "gap": "r4", "className": "items-start" },
+                    "children": [
+                      {
+                        "component": "Card",
+                        "children": [
+                          {
+                            "component": "Card.Header",
+                            "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Top countries"] }]
+                          },
+                          {
+                            "component": "Card.Body",
+                            "children": [
+                              {
+                                "component": "Table",
+                                "props": { "variant": "rules" },
+                                "children": [
+                                  {
+                                    "component": "Table.Caption",
+                                    "props": { "visuallyHidden": true },
+                                    "children": ["Sessions and revenue by country"]
+                                  },
+                                  {
+                                    "component": "Table.Head",
+                                    "children": [
+                                      {
+                                        "component": "Table.Row",
+                                        "children": [
+                                          { "component": "Table.HeaderCell", "children": ["Country"] },
+                                          { "component": "Table.HeaderCell", "props": { "numeric": true }, "children": ["Sessions"] },
+                                          {
+                                            "component": "Table.HeaderCell",
+                                            "props": { "numeric": true, "priority": 2 },
+                                            "children": ["Revenue"]
+                                          },
+                                          {
+                                            "component": "Table.HeaderCell",
+                                            "props": { "numeric": true, "priority": 3 },
+                                            "children": ["Change"]
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "component": "Table.Body",
+                                    "children": [
+                                      {
+                                        "$each": "data.overview.countries",
+                                        "as": "country",
+                                        "key": "code",
+                                        "node": {
+                                          "component": "Table.Row",
+                                          "children": [
+                                            {
+                                              "component": "Table.Cell",
+                                              "props": { "truncate": true },
+                                              "children": [{ "$ref": "country.name" }]
+                                            },
+                                            {
+                                              "component": "Table.Cell",
+                                              "props": { "numeric": true },
+                                              "children": [{ "$format": { "value": { "$ref": "country.sessions" }, "style": "integer" } }]
+                                            },
+                                            {
+                                              "component": "Table.Cell",
+                                              "props": { "numeric": true, "priority": 2 },
+                                              "children": [
+                                                {
+                                                  "$format": {
+                                                    "value": { "$ref": "country.revenue" },
+                                                    "style": "currency",
+                                                    "currency": "EUR",
+                                                    "maximumFractionDigits": 0,
+                                                    "missing": "Not reported"
+                                                  }
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "component": "Table.Cell",
+                                              "props": { "numeric": true, "priority": 3 },
+                                              "children": [
+                                                {
+                                                  "$format": {
+                                                    "value": { "$ref": "country.change" },
+                                                    "style": "percent",
+                                                    "signDisplay": "exceptZero"
+                                                  }
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "component": "Card",
+                        "children": [
+                          {
+                            "component": "Card.Header",
+                            "children": [{ "component": "Card.Title", "props": { "as": "h2" }, "children": ["Targets"] }]
+                          },
+                          {
+                            "component": "Card.Body",
+                            "children": [
+                              {
+                                "component": "Stack",
+                                "props": { "gap": "r3" },
+                                "children": [
+                                  {
+                                    "component": "Meter",
+                                    "props": {
+                                      "label": "Revenue against the quarterly target",
+                                      "value": { "$ref": "data.overview.goal.value" },
+                                      "max": { "$ref": "data.overview.goal.target" },
+                                      "valueText": "€3.92M of €5M",
+                                      "worse": "low",
+                                      "thresholds": [{ "at": 2500000, "tone": "warning" }, { "at": 4000000, "tone": "success" }]
+                                    }
+                                  },
+                                  {
+                                    "component": "ProgressBar",
+                                    "props": {
+                                      "label": "Quarter elapsed",
+                                      "value": 23,
+                                      "max": 92,
+                                      "showValue": true,
+                                      "valueText": "Day 23 of 92"
+                                    }
+                                  },
+                                  {
+                                    "component": "Text",
+                                    "props": { "size": "body-3", "tone": "muted" },
+                                    "children": [
+                                      "Targets are set by finance at the start of each quarter and do not move with the period above."
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "else": { "component": "Skeleton", "props": { "shape": "block", "lines": 8, "label": "Loading analytics" } }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,256 @@
+{
+  "version": 2,
+  "title": "Team directory",
+  "description": "Everyone at Northwind by department, with their role, location and how to reach them.",
+  "data": { "team": { "type": "api", "endpoint": "/fixtures/team.json" } },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          {
+            "component": "Inline",
+            "props": { "justify": "between", "align": "end", "gap": "r4" },
+            "children": [
+              {
+                "component": "Stack",
+                "props": { "gap": "r6" },
+                "children": [
+                  { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Team directory"] },
+                  {
+                    "$cond": "data.team",
+                    "then": {
+                      "component": "Text",
+                      "props": { "tone": "secondary", "size": "body-2" },
+                      "children": [
+                        { "$ref": "data.team.headcount" },
+                        " people, ",
+                        { "$ref": "data.team.openRoles" },
+                        " open roles. Updated ",
+                        {
+                          "$format": {
+                            "value": { "$ref": "data.team.updatedAt" },
+                            "style": "datetime",
+                            "dateStyle": "medium",
+                            "timeStyle": "short"
+                          }
+                        },
+                        "."
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "component": "Button",
+                "props": {
+                  "variant": "primary",
+                  "iconStart": "user-plus",
+                  "onClick": { "action": "navigate", "payload": { "to": "/people/invite" } }
+                },
+                "children": ["Invite someone"]
+              }
+            ]
+          },
+          {
+            "$cond": { "ref": "status.team", "eq": "loading" },
+            "then": { "component": "Skeleton", "props": { "shape": "block", "lines": 6, "label": "Loading the directory" } },
+            "else": {
+              "$cond": { "ref": "status.team", "eq": "error" },
+              "then": {
+                "component": "EmptyState",
+                "props": {
+                  "tone": "error",
+                  "icon": "circle-alert",
+                  "title": "The directory could not be loaded",
+                  "description": "Check your connection and reload the page."
+                }
+              },
+              "else": {
+                "component": "Tabs",
+                "props": { "defaultValue": "engineering", "variant": "underline" },
+                "children": [
+                  {
+                    "component": "Tabs.List",
+                    "props": { "aria-label": "Departments" },
+                    "children": [
+                      {
+                        "$each": "data.team.departments",
+                        "as": "department",
+                        "key": "id",
+                        "node": {
+                          "component": "Tabs.Tab",
+                          "props": { "value": { "$ref": "department.id" } },
+                          "children": [{ "$ref": "department.name" }, " (", { "$ref": "department.people.length" }, ")"]
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$each": "data.team.departments",
+                    "as": "department",
+                    "key": "id",
+                    "node": {
+                      "component": "Tabs.Panel",
+                      "props": { "value": { "$ref": "department.id" }, "className": "pt-r3" },
+                      "children": [
+                        {
+                          "$cond": "department.people",
+                          "then": {
+                            "component": "Grid",
+                            "props": { "minColumn": "md", "gap": "r4", "className": "items-start" },
+                            "children": [
+                              {
+                                "$each": "department.people",
+                                "as": "person",
+                                "key": "id",
+                                "node": {
+                                  "component": "Card",
+                                  "children": [
+                                    {
+                                      "component": "Card.Header",
+                                      "children": [
+                                        {
+                                          "component": "Inline",
+                                          "props": { "gap": "r4", "align": "center", "wrap": false },
+                                          "children": [
+                                            {
+                                              "component": "Avatar",
+                                              "props": {
+                                                "name": { "$ref": "person.name" },
+                                                "src": { "$ref": "person.avatar" },
+                                                "size": "control"
+                                              }
+                                            },
+                                            {
+                                              "component": "Stack",
+                                              "props": { "gap": "r6", "className": "min-w-0" },
+                                              "children": [
+                                                {
+                                                  "component": "Card.Title",
+                                                  "props": { "as": "h3" },
+                                                  "children": [{ "$ref": "person.name" }]
+                                                },
+                                                { "component": "Card.Description", "children": [{ "$ref": "person.role" }] }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "component": "Card.Body",
+                                      "children": [
+                                        {
+                                          "component": "Stack",
+                                          "props": { "gap": "r5" },
+                                          "children": [
+                                            {
+                                              "$cond": { "ref": "person.status", "eq": "leave" },
+                                              "then": { "component": "StatusLabel", "props": { "tone": "stale" }, "children": ["On leave"] },
+                                              "else": {
+                                                "$cond": { "ref": "person.status", "eq": "new" },
+                                                "then": {
+                                                  "component": "StatusLabel",
+                                                  "props": { "tone": "info", "icon": "sparkles" },
+                                                  "children": ["New this month"]
+                                                }
+                                              }
+                                            },
+                                            {
+                                              "component": "Inline",
+                                              "props": { "gap": "r6", "align": "center" },
+                                              "children": [
+                                                { "component": "Icon", "props": { "name": "map-pin", "tone": "muted" } },
+                                                {
+                                                  "component": "Text",
+                                                  "props": { "as": "span", "size": "body-2" },
+                                                  "children": [{ "$ref": "person.location" }]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "component": "Inline",
+                                              "props": { "gap": "r6", "align": "center", "wrap": false },
+                                              "children": [
+                                                { "component": "Icon", "props": { "name": "mail", "tone": "muted" } },
+                                                {
+                                                  "component": "Text",
+                                                  "props": { "as": "span", "size": "body-2", "className": "truncate" },
+                                                  "children": [{ "$ref": "person.email" }]
+                                                },
+                                                {
+                                                  "component": "CopyButton",
+                                                  "props": {
+                                                    "value": { "$ref": "person.email" },
+                                                    "variant": "ghost",
+                                                    "aria-label": "Copy email address"
+                                                  }
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "component": "Text",
+                                              "props": { "size": "body-3", "tone": "muted" },
+                                              "children": [
+                                                "Joined ",
+                                                {
+                                                  "$format": {
+                                                    "value": { "$ref": "person.startedOn" },
+                                                    "style": "date",
+                                                    "dateStyle": "long"
+                                                  }
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "$cond": "person.skills",
+                                              "then": {
+                                                "component": "Inline",
+                                                "props": { "as": "ul", "gap": "r6", "aria-label": "Skills" },
+                                                "children": [
+                                                  {
+                                                    "$each": "person.skills",
+                                                    "as": "skill",
+                                                    "node": {
+                                                      "component": "Chip",
+                                                      "props": { "as": "li" },
+                                                      "children": [{ "$ref": "skill" }]
+                                                    }
+                                                  }
+                                                ]
+                                              }
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+                          },
+                          "else": {
+                            "component": "EmptyState",
+                            "props": {
+                              "icon": "users",
+                              "title": "Nobody here yet",
+                              "description": "Nobody is in this department yet. Its first hires start in January."
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

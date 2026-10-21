@@ -1,0 +1,103 @@
+{
+  "version": 2,
+  "title": "Coverage: dates and times",
+  "description": "Calendars, date and range pickers and time inputs, as a meeting-room booking screen.",
+  "state": { "day": "2026-10-23", "month": "2026-10-01", "holiday": null },
+  "root": {
+    "component": "Container",
+    "props": { "width": "page", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r2" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Book a room"] },
+          {
+            "component": "Inline",
+            "props": { "gap": "r2", "align": "start" },
+            "children": [
+              {
+                "component": "Calendar",
+                "props": {
+                  "aria-label": "Booking day",
+                  "value": { "$ref": "state.day" },
+                  "min": "2026-10-21",
+                  "max": "2027-03-31",
+                  "weekStartsOn": 1,
+                  "onValueChange": { "action": "setState", "payload": { "path": "state.day", "value": { "$ref": "event.value" } } }
+                }
+              },
+              {
+                "component": "RangeCalendar",
+                "props": {
+                  "aria-label": "Team offsite",
+                  "defaultValue": { "start": "2026-11-16", "end": "2026-11-18" },
+                  "defaultMonth": "2026-11-01",
+                  "months": 1,
+                  "weekStartsOn": 1,
+                  "onMonthChange": { "action": "setState", "payload": { "path": "state.month", "value": { "$ref": "event.value" } } }
+                }
+              }
+            ]
+          },
+          {
+            "component": "Grid",
+            "props": { "minColumn": "sm", "gap": "r4" },
+            "children": [
+              {
+                "component": "Field",
+                "children": [
+                  { "component": "Field.Label", "children": ["Public holiday"] },
+                  {
+                    "component": "DatePicker",
+                    "props": {
+                      "defaultValue": "2026-12-25",
+                      "hint": "Rooms close on public holidays.",
+                      "onValueChange": { "action": "setState", "payload": { "path": "state.holiday", "value": { "$ref": "event.value" } } }
+                    }
+                  }
+                ]
+              },
+              {
+                "component": "Field",
+                "children": [
+                  { "component": "Field.Label", "children": ["Report period"] },
+                  {
+                    "component": "DateRangePicker",
+                    "props": { "variant": "field", "placeholder": "All time", "max": "2026-10-21", "now": "2026-10-21T09:00:00Z" }
+                  }
+                ]
+              },
+              {
+                "component": "Field",
+                "children": [
+                  { "component": "Field.Label", "children": ["Starts at"] },
+                  {
+                    "component": "TimeField",
+                    "props": { "defaultValue": "09:30", "min": "07:00", "max": "20:00", "step": 900, "hourCycle": 24 }
+                  }
+                ]
+              },
+              {
+                "component": "Field",
+                "children": [
+                  { "component": "Field.Label", "children": ["Ends at"] },
+                  { "component": "TimePicker", "props": { "defaultValue": "10:30", "min": "07:00", "max": "20:00", "step": 1800 } }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Text",
+            "props": { "size": "body-2", "tone": "secondary" },
+            "children": [
+              "Booking for ",
+              { "$format": { "value": { "$ref": "state.day" }, "style": "date", "dateStyle": "full", "missing": "no day chosen" } },
+              "."
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "version": 2,
+  "title": "Coverage: disclosure",
+  "description": "Accordion and Collapsible, as a help-centre FAQ and an expandable detail.",
+  "root": {
+    "component": "Container",
+    "props": { "width": "measure", "gutter": true, "className": "py-r2" },
+    "children": [
+      {
+        "component": "Stack",
+        "props": { "gap": "r3" },
+        "children": [
+          { "component": "Heading", "props": { "level": 1, "size": "h2" }, "children": ["Billing questions"] },
+          {
+            "component": "Accordion",
+            "props": { "defaultValue": "refunds", "collapsible": true, "headingLevel": 2 },
+            "children": [
+              {
+                "component": "Accordion.Item",
+                "props": { "value": "refunds" },
+                "children": [
+                  { "component": "Accordion.Trigger", "children": ["How long does a refund take?"] },
+                  {
+                    "component": "Accordion.Content",
+                    "children": [
+                      {
+                        "component": "Text",
+                        "children": ["Card refunds reach your bank in 5 to 10 working days. Bank transfers can take up to 14."]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Accordion.Item",
+                "props": { "value": "invoices" },
+                "children": [
+                  {
+                    "component": "Accordion.Trigger",
+                    "children": ["Can I change the company name on an invoice that has already been issued?"]
+                  },
+                  {
+                    "component": "Accordion.Content",
+                    "children": [
+                      {
+                        "component": "Text",
+                        "children": ["Yes, within 30 days of issue. After that we issue a credit note and a new invoice."]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Accordion.Item",
+                "props": { "value": "crypto", "disabled": true },
+                "children": [
+                  { "component": "Accordion.Trigger", "children": ["Do you accept cryptocurrency? (Answer coming soon)"] },
+                  { "component": "Accordion.Content", "children": ["Not yet."] }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Accordion",
+            "props": { "multiple": true, "defaultValue": ["vat"], "headingLevel": 2 },
+            "children": [
+              {
+                "component": "Accordion.Item",
+                "props": { "value": "vat" },
+                "children": [
+                  { "component": "Accordion.Trigger", "children": ["VAT and sales tax"] },
+                  {
+                    "component": "Accordion.Content",
+                    "children": [
+                      {
+                        "component": "Text",
+                        "children": ["Prices exclude VAT. Business customers in the EU with a valid VAT number are reverse-charged."]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "component": "Accordion.Item",
+                "props": { "value": "currencies" },
+                "children": [
+                  { "component": "Accordion.Trigger", "children": ["Currencies"] },
+                  {
+                    "component": "Accordion.Content",
+                    "children": [{ "component": "Text", "children": ["We bill in EUR, GBP, USD, AUD and JPY."] }]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "component": "Collapsible",
+            "props": { "defaultOpen": false },
+            "children": [
+              {
+                "component": "Collapsible.Trigger",
+                "props": { "variant": "ghost", "iconStart": "receipt" },
+                "children": ["Show the 14 line items on invoice INV-2026-10-0042"]
+              },
+              {
+                "component": "Collapsible.Content",
+                "children": [
+                  {
+                    "component": "Text",
+                    "props": { "size": "body-2", "tone": "secondary" },
+                    "children": [
+                      "12 Growth seats at €29.08, 1 data residency add-on at €120.00, and 1 prorated credit of -€41.50 for the seat removed on 3 October."
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
