@@ -31,7 +31,11 @@ export type HeroProps = {
    * it covers the hero (its band fill too) and is clipped to it, painted under
    * the text, `aria-hidden` and `inert`, and takes no pointer. Decoration only:
    * text or a control in it is unreadable and unreachable. Size its root to fill
-   * the layer (`size-full`); give an image `alt=""`. Not printed, and hidden under
+   * the layer (`size-full`); give an image `alt=""`. The hero's text keeps the
+   * theme's ink and nothing measures it against the backdrop, so a picture wants
+   * a scrim of its own over it: an `absolute inset-0` layer in a colour that ink
+   * reads on, such as `bg-linear-to-t from-canvas/90 to-canvas/40`, outside any
+   * `Parallax` so it stays put. Not printed, and hidden under
    * forced colours. The layer clips without being a scroll container, so a view
    * timeline inside still follows the page.
    */
