@@ -209,7 +209,7 @@
   "Container": [
     {"name":"as","description":"The element or component to render."},
     {"name":"gutter","description":"Pad the sides with the fluid page gutter (`--GUTTER`)."},
-    {"name":"width","description":"The cap on the content's inline size."}
+    {"name":"width","description":"The cap on the content's inline size, the gutter outside it."}
   ],
   "ContextMenu.CheckboxItem": [
     {"name":"onSelect","description":"Runs on click, Enter or Space."},
