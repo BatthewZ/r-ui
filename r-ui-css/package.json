@@ -6,6 +6,9 @@
   "type": "module",
   "license": "MIT",
   "author": "BatthewZ",
+  "publishConfig": {
+    "access": "public"
+  },
   "sideEffects": [
     "*.css"
   ],

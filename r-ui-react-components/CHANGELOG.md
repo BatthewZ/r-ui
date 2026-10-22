@@ -3,7 +3,10 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
-## Unreleased
+## 0.1.0
+
+First release. "Added" lists the surface; the other sections record pre-release
+development, so "Breaking" and "Fixed" are relative to earlier, unpublished states.
 
 ### Verification
 
@@ -23,7 +26,7 @@ tokens or the public surface are versioned events and are recorded here.
 - Layout: a `Prose` region's measure counts body characters: r-ui-css's prose region now carries the body prose size, so `max-w-measure` is a count of the text being read, and r-ui-css widens it to 75ch: 75 body characters (about 823px in the default theme at 1280, up from 606px), the same at both densities and in any UI face. Controls inside keep the UI scale. Browser check `layout-prose`.
 - Steps, marketing: a `Stepper` (and `Wizard`) marker's number and a `HowItWorks` step number sit in the middle of their circle; they sat about 2px high, centred by a line box that keeps room for descenders. The number is trimmed to its cap height (`text-box: trim-both cap alphabetic`; unchanged where unsupported).
 - Navigation: an `AppShell` rail (medium widths, or the sidebar collapsed) with more links than the screen is tall scrolls, like the full sidebar, so its last links and its expand toggle stay reachable; collapsed past the fold, the sidebar could not be reopened. The rail's label bubbles are `position: fixed`, placed beside their link on hover, focus and scroll, so the scroll does not clip them.
-- Primitives, navigation, form: at coarse input a text `Button` (so `ToggleGroup` and `Toolbar` text items) and a `Tabs` tab take r-ui-css's `--CONTROL-PAD` sides (`px-control-pad`, 16px at coarse in both densities) and at least `--HIT-MIN` width, so a short label ("OK", "S") is no longer a near-square box nor narrower than the hit floor. `SegmentedControl` segments keep their step-3 sides (the track cannot wrap) and take the `--HIT-MIN` minimum width. Needs the `--CONTROL-PAD` token from r-ui-css's Unreleased section.
+- Primitives, navigation, form: at coarse input a text `Button` (so `ToggleGroup` and `Toolbar` text items) and a `Tabs` tab take r-ui-css's `--CONTROL-PAD` sides (`px-control-pad`, 16px at coarse in both densities) and at least `--HIT-MIN` width, so a short label ("OK", "S") is no longer a near-square box nor narrower than the hit floor. `SegmentedControl` segments keep their step-3 sides (the track cannot wrap) and take the `--HIT-MIN` minimum width. Needs r-ui-css's `--CONTROL-PAD` token.
 - Overlays: a `Dialog` or `Drawer` at compact density and coarse input no longer scrolls sideways by 1px. Its close button's hit area (grown to `--HIT-MIN` around a smaller visual box) overhung the modal's padding box; the close now sits at least that overhang from the corner (`.r-overlays-close`).
 - Steps: the `Wizard`'s step heading, focused on every step change, draws no focus ring (forced colours still show one). A press on Next keeps focus in the text field it left, so the browser carried `:focus-visible` to the heading and drew the ring for mouse users too; the heading is not a control.
 - Steps: a horizontal `Stepper` (and so a horizontal `Wizard`) puts each label, with its status and description, under its marker, centred, in steps that share the row equally; the line runs from marker to marker, a `--R-SIZE-5` gap from each, instead of from the end of the label. The ends are inset by half a step. An unbroken word in a label or description breaks inside its step (in either orientation) instead of spilling out.
@@ -780,7 +783,5 @@ Not built yet, and known to be missing:
 - No fluid spacing step below `section-3` for tight marketing rhythm.
 - `Section variant="band"` assumes edge-to-edge layout; inside a shell that pads its content,
   the page has to cancel that padding itself.
-- On a phone the toast stack sits over a bottom nav (`AppShell.BottomNav`) until it is
-  dismissed or times out.
 - Toasts are not interactive while a modal dialog is open (the dialog makes everything
   outside it inert).

@@ -4,6 +4,9 @@
   "description": "cn() and a tailwind-merge configured for the @batthewz/r-ui-css utility names.",
   "license": "MIT",
   "author": "BatthewZ",
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "sideEffects": false,
   "files": [

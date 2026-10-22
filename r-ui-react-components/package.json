@@ -51,6 +51,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "prepack": "bun run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
@@ -144,5 +145,8 @@
     "tailwindcss-v4"
   ],
   "license": "MIT",
-  "author": "BatthewZ"
+  "author": "BatthewZ",
+  "publishConfig": {
+    "access": "public"
+  }
 }
