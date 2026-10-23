@@ -346,7 +346,7 @@ The flags mirror what the host gives the view: `--origin <url>` is the page's or
 from, `--allow-sensitive` its `allowSensitive: true`, `--no-theme-overrides` its
 `themeOverrides: false`, `--icons <file|list>` its icon names,
 and `--contracts <file>` its own components (see [Custom components](#custom-components)).
-It runs on Node 20 or later, and on bun. Working in this package's repository,
+It runs on Node 22 or later, and on bun. Working in this package's repository,
 `bun run validate --raw '…'` runs it from source.
 
 ## Prompt a model with the reference

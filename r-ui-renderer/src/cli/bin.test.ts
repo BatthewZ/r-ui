@@ -32,7 +32,7 @@ beforeAll(async () => {
       outDir: SCRATCH,
       emptyOutDir: true,
       minify: false,
-      target: "node20",
+      target: "node22",
       lib: { entry: join(PKG, "src", "cli", "r-ui-validate.ts"), formats: ["es"], fileName: () => "r-ui-validate.js" },
       rollupOptions: { external: [/^node:/], output: { banner: "#!/usr/bin/env node" } },
     },

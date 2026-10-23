@@ -79,7 +79,8 @@ not render, and nothing of that package's API is kept for compatibility.
 - The `r-ui-validate` bin: a file, `--raw` or standard input; `--format text|json|model`
   (`json` is the handler's body), `--contracts`, `--icons`, `--origin`, `--allow-origin`,
   `--allow-sensitive`, `--no-theme-overrides`, `--strict`; exit 0 valid, 1 not valid, 2 usage or input error (an
-  empty document included), 3 internal error.
+  empty document included), 3 internal error. Runs on Node 22 or later (no Node 20: that line
+  is end-of-life and unpatched) and on bun.
 - `./zod` (`viewSpecSchema`; zod is an optional peer) and `./schema.json`, built from the
   validator's schema source and agreeing with it on errors.
 

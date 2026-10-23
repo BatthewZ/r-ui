@@ -1,4 +1,4 @@
-// The `r-ui-validate` bin. React-free (verify:react-free); runs under Node 20+
+// The `r-ui-validate` bin. React-free (verify:react-free); runs under Node 22+
 // and bun. Everything but the process wiring is in ./main.
 
 import { readFile } from "node:fs/promises";

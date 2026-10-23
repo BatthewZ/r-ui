@@ -22,7 +22,7 @@
     "r-ui-validate": "./dist/cli/r-ui-validate.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
