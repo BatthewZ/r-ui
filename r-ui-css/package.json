@@ -6,6 +6,15 @@
   "type": "module",
   "license": "MIT",
   "author": "BatthewZ",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BatthewZ/r-ui.git",
+    "directory": "r-ui-css"
+  },
+  "homepage": "https://github.com/BatthewZ/r-ui/tree/main/r-ui-css#readme",
+  "bugs": {
+    "url": "https://github.com/BatthewZ/r-ui/issues"
+  },
   "publishConfig": {
     "access": "public"
   },

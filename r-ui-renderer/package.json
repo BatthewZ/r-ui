@@ -64,6 +64,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "prepack": "bun run build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
@@ -140,5 +141,17 @@
     "streaming"
   ],
   "license": "MIT",
-  "author": "BatthewZ"
+  "author": "BatthewZ",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BatthewZ/r-ui.git",
+    "directory": "r-ui-renderer"
+  },
+  "homepage": "https://github.com/BatthewZ/r-ui/tree/main/r-ui-renderer#readme",
+  "bugs": {
+    "url": "https://github.com/BatthewZ/r-ui/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }

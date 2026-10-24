@@ -5,6 +5,7 @@
   "workspaces": ["r-ui-css", "r-ui-tw-merge", "r-ui-react-components", "r-ui-renderer"],
   "scripts": {
     "check": "bun run --filter '*' check",
-    "test": "bun run --filter '*' test"
+    "test": "bun run --filter '*' test",
+    "release": "node scripts/publish.mjs"
   }
 }

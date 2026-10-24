@@ -13,6 +13,12 @@ dependencies), then typecheck that app with `strict` and `skipLibCheck: false` a
   the peer range with a `workspace:^` dev dependency for development.
 - **`workspace:^` packs as `^x.y.z`; `workspace:*` packs as the exact version.** An exact
   pin between packages that release independently forces a second copy on any mismatch.
+- **Only the workspace's own tool rewrites `workspace:` ranges.** `npm publish` run in a
+  package folder ships `workspace:^` verbatim, and no consumer can install it. Pack with
+  `bun pm pack` (which also runs `prepack`) and hand npm the tarball.
+- **A scoped package publishes restricted unless told otherwise.** Without
+  `publishConfig.access: "public"`, the first `npm publish` of an `@scope/` name is refused
+  on a free account.
 - **Source maps embed the sources unless told not to.** With `src/` already in the
   tarball, `sourcesContent` was a second copy: dropping it (`sourcemapExcludeSources`) took
   the component package from 1.04 MB to 0.87 MB packed and from 4.0 MB to 3.0 MB unpacked,

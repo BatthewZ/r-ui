@@ -19,6 +19,21 @@ bun run check   # every package's gates (r-ui-react-components' includes typeche
 bun run test    # every package's tests
 ```
 
+## Releasing
+
+Each package versions on its own (the bump rule is in [CLAUDE.md](CLAUDE.md)). To release,
+bump the `version` in the package's `package.json`, record it in its `CHANGELOG.md`, commit
+and push, then:
+
+```sh
+npm login             # once per machine, or when the token expires
+bun run release       # publishes every package whose version is not on npm yet
+```
+
+The script skips packages whose version is already published, runs each remaining package's
+`check` and tests, and publishes in dependency order. It tags each release `<folder>@<version>`
+and pushes the tags. `bun run release --dry-run` rehearses all of it without publishing.
+
 ## The showcase
 
 ```sh
