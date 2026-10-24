@@ -78,6 +78,19 @@ pages. Read the group's file before changing its components.
 | [showcase-themes.md](./showcase-themes.md) | Trial themes as the showcase's own consumer files, an exemption paired with a replacement gate, deeper tinted ramps and domain marks, the warning trap on a deeper ramp, old-style default figures in data, faces that load only where painted, clipping chroma not lightness, findings a face or density moves, demos that draw every theme, durations that race demo timers, moving status away from the brand |
 | [t5-preview-and-shards.md](./t5-preview-and-shards.md) | Browser checks on a development build under `vite preview` and in parallel sessions: building every run, React's warnings in a development build, source maps and chunk names for module claims, a limit on every wait, frame windows timed from the event, per-run folders, the dev server's cold compile, timing readouts across runs |
 
+## 2026-10-25 — showcase: first-visit theme, a menu in the bottom nav
+
+- **The first entry of `themes` is the `:root` theme, not the opening one.** Choosing it
+  removes `data-theme`, so listing a named theme first shows `:root` under that name. An app
+  opens in a named theme by shipping `<html data-theme="…">`; a saved choice (the `:root`
+  theme included) still replaces it before paint.
+- **A check that counts the showcase's themes reads them from the page.** One hard-coded
+  four; when the reskins arrived it failed on every run without anyone noticing. Use
+  `showcaseThemes(page)`.
+- **A nav tab that opens a menu renders through `NavItem`'s `as`.** The trigger and its menu
+  then sit inside the tab's `<li>`; a menu beside the item would be a non-`li` child of the
+  list.
+
 ## 2026-10-20 — integration gate F (bottom-nav inset, hero backdrop, view-transition runs, token gaps, rating colour)
 
 - **A colour compared as a string fails on a blend.** Under forced colours the rating fill is

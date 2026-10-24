@@ -7,7 +7,7 @@ import { defineConfig, type Plugin } from "vite";
 // Imported with their extensions: Vite's native config loader (its future
 // default) runs this file in Node, which resolves no extensionless TS imports.
 import { themeScript } from "../src/util/preferences.ts";
-import { PREFERENCES } from "./shell/view.ts";
+import { INITIAL_THEME, PREFERENCES } from "./shell/view.ts";
 
 /**
  * Puts the library's pre-paint `themeScript()` at the top of <head>, as a
@@ -27,11 +27,13 @@ function themeScriptPlugin(): Plugin {
  * Publishes the app's theme list on `<html data-showcase-themes>`, so the
  * browser checks iterate the themes this app ships (and pick "a dark theme" by
  * its `--SCHEME-DARK`) instead of naming them. `view.ts` stays the one list.
+ * Also ships the page in its first-visit theme (`INITIAL_THEME`).
  */
 function themeListPlugin(): Plugin {
   return {
     name: "showcase-theme-list",
-    transformIndexHtml: (html) => html.replace(/<html\b/, `<html data-showcase-themes="${PREFERENCES.themes.join(" ")}"`),
+    transformIndexHtml: (html) =>
+      html.replace(/<html\b/, `<html data-theme="${INITIAL_THEME}" data-showcase-themes="${PREFERENCES.themes.join(" ")}"`),
   };
 }
 

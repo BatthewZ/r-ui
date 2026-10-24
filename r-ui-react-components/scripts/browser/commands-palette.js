@@ -15,8 +15,8 @@
 //      move aria-activedescendant; Enter runs the highlighted command (the hash changes),
 //      closes the palette and focus is back on what had it; Ctrl+K typed in a text field
 //      does nothing;
-//   3. nested page: "theme" + Enter opens the Change theme page (its title shown, the
-//      four themes listed, the field empty); Backspace in the empty field goes back with
+//   3. nested page: "theme" + Enter opens the Change theme page (its title shown, every
+//      theme the showcase publishes listed, the field empty); Backspace in the empty field goes back with
 //      "theme" restored; into it again, End + Enter applies the last theme to <html>;
 //      the run command is then listed first under Recent;
 //   4. the async sections page lists the Overview's sections; "contextmenu" + Enter
@@ -124,9 +124,10 @@ async (page) => {
   await page.keyboard.press("Enter");
   await settle();
   const nested = await state();
+  const themeCount = (await showcaseThemes(page)).length;
   if (onRoot.active !== "Change theme…") fail.push(`"theme" highlighted ${JSON.stringify(onRoot.active)}, expected "Change theme…"`);
-  if (nested.chip !== "Change theme" || nested.value !== "" || nested.options.length !== 4) {
-    fail.push(`the Change theme page shows ${JSON.stringify({ chip: nested.chip, value: nested.value, options: nested.options })}`);
+  if (nested.chip !== "Change theme" || nested.value !== "" || nested.options.length !== themeCount) {
+    fail.push(`the Change theme page shows ${JSON.stringify({ chip: nested.chip, value: nested.value, options: nested.options })}, expected the ${themeCount} themes the showcase publishes`);
   }
   await page.keyboard.press("Backspace");
   await settle();

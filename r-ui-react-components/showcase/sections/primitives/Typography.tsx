@@ -5,7 +5,7 @@ import { TypeSample } from "./parts/type-spec";
 export const meta = {
   title: "Typography",
   group: "primitives",
-  order: 5,
+  order: 90,
   description:
     "Every text size the contract ships, with what it resolves to under the current View. The UI scale (headings and body) follows density; the display and prose scales are fluid with their container, and long-form text sits at the reading measure (--MEASURE).",
 };

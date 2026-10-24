@@ -35,6 +35,14 @@ export const THEMES = [
   { value: "cinder", label: "Cinder" },
 ] as const;
 
+/**
+ * The theme a first visit opens in. The page ships with it as `<html data-theme>`
+ * (vite.config.ts), so with nothing saved it stays; a saved choice, "Default"
+ * included, replaces it before the first paint. "Default" stays first in THEMES
+ * because the first theme is the one that removes `data-theme`.
+ */
+export const INITIAL_THEME: (typeof THEMES)[number]["value"] = "harbour";
+
 /** What the hooks, the switchers and the pre-paint script all receive. */
 export const PREFERENCES = {
   storageKey: STORAGE_KEY,

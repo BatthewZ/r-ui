@@ -1,8 +1,8 @@
-import { FlaskConical, Gauge, LayoutGrid, Megaphone } from "lucide-react";
-import { type ComponentType, lazy, type ReactNode, Suspense, useCallback, useEffect } from "react";
+import { Blocks, FlaskConical, Gauge, LayoutGrid, Megaphone } from "lucide-react";
+import { type ComponentPropsWithRef, type ComponentType, lazy, type ReactNode, Suspense, useCallback, useEffect } from "react";
 
 import { AppShell, RouterProvider } from "../../src/components/navigation";
-import { ToastProvider } from "../../src/components/overlays";
+import { DropdownMenu, ToastProvider } from "../../src/components/overlays";
 import { DocumentTitleProvider, useDocumentTitle } from "../../src/hooks/use-document-title";
 import { sectionIndex } from "../registry";
 import { CommandMenu } from "./CommandMenu";
@@ -56,7 +56,7 @@ const FALLBACK = "overview";
 /**
  * The showcase is a consumer app, so its frame is the library's own AppShell:
  * a full sidebar on wide screens, an icon rail on medium ones and a bottom nav
- * with every page on phones. The header keeps a home link (the sidebar's brand
+ * with every page and a Components menu on phones. The header keeps a home link (the sidebar's brand
  * is gone on phones) and the View panel.
  */
 export function App() {
@@ -113,7 +113,11 @@ export function App() {
           </AppShell.Main>
           <ShellNav current={current}>
             <AppShell.BottomNav label="Showcase" data-showcase-bottomnav="">
-              {navItems}
+              {navItems[0]}
+              <AppShell.NavItem as={ComponentsMenuButton} icon={<Blocks aria-hidden />} current={group !== null}>
+                Components
+              </AppShell.NavItem>
+              {navItems.slice(1)}
             </AppShell.BottomNav>
           </ShellNav>
         </AppShell>
@@ -128,7 +132,7 @@ const navItems = ROUTES.map(({ page, label, Icon }) => (
   </AppShell.NavItem>
 ));
 
-/** Each component group's page, in reading order; on phones the Overview's index reaches them. */
+/** Each component group's page, in reading order; on phones the bottom nav's Components menu lists them. */
 const groupItems = sectionIndex.map(({ group }) => {
   const Icon = groupIcon(group);
   return (
@@ -137,6 +141,33 @@ const groupItems = sectionIndex.map(({ group }) => {
     </AppShell.NavItem>
   );
 });
+
+/**
+ * The bottom nav's Components tab: a menu button listing each group's page, as
+ * the sidebar does on wider screens. The tab renders it as its own element, so
+ * the menu stays inside the tab's list item.
+ */
+function ComponentsMenuButton({ children, ...props }: ComponentPropsWithRef<"button">) {
+  return (
+    <DropdownMenu placement="top-end">
+      <DropdownMenu.Trigger asChild>
+        <button type="button" {...props}>
+          {children}
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Content>
+        {sectionIndex.map(({ group }) => {
+          const Icon = groupIcon(group);
+          return (
+            <DropdownMenu.Item key={group} icon={<Icon />} onSelect={() => (window.location.hash = href("overview", group))}>
+              {groupTitle(group)}
+            </DropdownMenu.Item>
+          );
+        })}
+      </DropdownMenu.Content>
+    </DropdownMenu>
+  );
+}
 
 /**
  * The router configuration for the shell's own navigation, `current` being the
