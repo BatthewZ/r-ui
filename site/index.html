@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>r-ui</title>
+    <link rel="icon" href="data:," />
+    <meta name="description" content="A design-system family for Tailwind v4 and React 19: tokens and themes, components, and a renderer for UI written as JSON." />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --canvas: #f7f7f5;
+        --surface: #ffffff;
+        --border: #e2e2dc;
+        --text: #1b1b18;
+        --muted: #5d5d55;
+        --accent: #3a4fd0;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --canvas: #141413;
+          --surface: #1d1d1b;
+          --border: #34342f;
+          --text: #ecece6;
+          --muted: #a3a39a;
+          --accent: #9aa8ff;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--canvas);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      main {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: 4rem 1rem;
+      }
+      h1 {
+        font-size: 2.5rem;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.02em;
+      }
+      .lede {
+        color: var(--muted);
+        font-size: 1.125rem;
+        margin: 0 0 2.5rem;
+        max-width: 38rem;
+      }
+      .apps {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+        gap: 1rem;
+        margin-bottom: 3rem;
+      }
+      .app {
+        display: block;
+        padding: 1.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 0.75rem;
+        color: inherit;
+        text-decoration: none;
+      }
+      .app:hover,
+      .app:focus-visible {
+        border-color: var(--accent);
+      }
+      .app h2 {
+        margin: 0 0 0.25rem;
+        font-size: 1.25rem;
+        color: var(--accent);
+      }
+      .app p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .app .version {
+        display: block;
+        margin-top: 1rem;
+        font-family: ui-monospace, monospace;
+        font-size: 0.875rem;
+      }
+      h3 {
+        font-size: 1rem;
+        margin: 0 0 0.75rem;
+      }
+      ul {
+        margin: 0;
+        padding-left: 1.25rem;
+      }
+      li {
+        margin-bottom: 0.5rem;
+        color: var(--muted);
+      }
+      a {
+        color: var(--accent);
+      }
+      code {
+        font-family: ui-monospace, monospace;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>r-ui</h1>
+      <p class="lede">
+        A design-system family for Tailwind v4 and React 19: a token and theme contract, the
+        components built on it, and a renderer that turns JSON written by a model, a CMS or a
+        backend into those components while it streams.
+      </p>
+
+      <div class="apps">
+        <a class="app" href="showcase/">
+          <h2>Component showcase</h2>
+          <p>Every component in every state, plus a dashboard, a marketing page and stress cases. Switch theme, density and input from the View panel.</p>
+          <span class="version">@batthewz/r-ui-react-components {{showcase-version}}</span>
+        </a>
+        <a class="app" href="playground/">
+          <h2>ViewSpec playground</h2>
+          <p>Write a ViewSpec document and see it render, replay it as a stream, and read the validator's issues as you type.</p>
+          <span class="version">@batthewz/r-ui-renderer {{playground-version}}</span>
+        </a>
+      </div>
+
+      <h3>Packages</h3>
+      <ul>
+        <li><a href="https://www.npmjs.com/package/@batthewz/r-ui-css"><code>@batthewz/r-ui-css</code></a>: the tokens, the four sizing axes and example themes, as Tailwind v4 CSS. No JavaScript.</li>
+        <li><a href="https://www.npmjs.com/package/@batthewz/r-ui-tw-merge"><code>@batthewz/r-ui-tw-merge</code></a>: <code>cn()</code>, a tailwind-merge that knows the r-ui utility names.</li>
+        <li><a href="https://www.npmjs.com/package/@batthewz/r-ui-react-components"><code>@batthewz/r-ui-react-components</code></a>: the React 19 components.</li>
+        <li><a href="https://www.npmjs.com/package/@batthewz/r-ui-renderer"><code>@batthewz/r-ui-renderer</code></a>: renders and validates ViewSpec documents.</li>
+      </ul>
+      <p><a href="https://github.com/BatthewZ/r-ui">Source on GitHub</a></p>
+    </main>
+  </body>
+</html>

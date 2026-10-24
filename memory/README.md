@@ -7,6 +7,8 @@ Lessons that span packages. Package-specific lessons live in each package's own
   batches of agents owning disjoint files, then one sequential gate that
   integrates, tests and looks; the structure that keeps parallel work safe in a
   single worktree; sharing it with other live sessions; pitfalls seen.
+- [pages.md](pages.md): the GitHub Pages site. Deploying from release tags, GitHub's
+  three-tag push limit, absolute paths under a project site's base path, tag deploy policy.
 - [packaging.md](packaging.md): publishing the packages. Verifying a packaging
   change through tarballs in a separate app, `files`, peers vs dependencies,
   `workspace:` ranges and who rewrites them, public access for a scope, source maps,

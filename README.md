@@ -34,7 +34,14 @@ The script skips packages whose version is already published, runs each remainin
 `check` and tests, and publishes in dependency order. It tags each release `<folder>@<version>`
 and pushes the tags. `bun run release --dry-run` rehearses all of it without publishing.
 
+A component library or renderer tag deploys the site at <https://batthewz.github.io/r-ui/>
+(`.github/workflows/pages.yml`): the showcase and the playground, each built by
+`scripts/build-pages.mjs` from its package's latest release tag, so the site matches npm,
+not `main`. `node scripts/build-pages.mjs /r-ui/ <dir>` builds it locally (it needs those tags).
+
 ## The showcase
+
+Live at <https://batthewz.github.io/r-ui/showcase/> (the latest release). Locally:
 
 ```sh
 cd r-ui-react-components
@@ -55,6 +62,8 @@ package's examples, nightfall, harbour and atelier, plus the showcase's own resk
   10,000 virtualized rows, extreme and translated content, right-to-left.
 
 ## The renderer's playground
+
+Live at <https://batthewz.github.io/r-ui/playground/> (the latest release). Locally:
 
 ```sh
 cd r-ui-renderer

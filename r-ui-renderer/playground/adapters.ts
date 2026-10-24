@@ -4,10 +4,10 @@ import { useMemo } from "react";
 import type { HostPolicy, RendererAdapters } from "../src";
 import type { RequestTracker } from "./settle";
 
-/** Endpoints under this path read `playground/fixtures/`, which the dev and preview servers serve here. */
-export const FIXTURE_PATH = "/fixtures/";
+/** Endpoints under this path read `playground/fixtures/`, which the dev and preview servers and the build serve here, under the app's base path. */
+export const FIXTURE_PATH = `${import.meta.env.BASE_URL}fixtures/`;
 /** The one place documents may load images from. */
-export const FIXTURE_IMAGE_PATH = "/fixtures/img/";
+export const FIXTURE_IMAGE_PATH = `${FIXTURE_PATH}img/`;
 
 type Fetch = NonNullable<RendererAdapters["fetch"]>;
 

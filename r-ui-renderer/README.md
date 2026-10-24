@@ -24,6 +24,10 @@ providers are [out, with reasons](./VIEWSPEC.md#not-addressable)), and documents
 theme by name. The format is version 2; version-1 documents of the earlier `response-ui-renderer` do
 not render.
 
+**[Try it in the playground](https://batthewz.github.io/r-ui/playground/)**: edit a document
+and watch it render, replay it as a stream, and read the validator's issues. It is built from
+the latest release.
+
 > Status: pre-release (0.1.0). See [CHANGELOG.md](./CHANGELOG.md).
 
 ## Install

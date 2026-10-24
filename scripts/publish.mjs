@@ -3,8 +3,9 @@
 // and skips the rest. Each one passes its `check` and `test`, is packed by bun (which runs
 // `prepack` and rewrites `workspace:` ranges; `npm publish` from the folder would ship them
 // verbatim), and the tarball is published by npm, so npm's login and 2FA prompts apply.
-// Each publish is tagged `<folder>@<version>` and the tags are pushed at the end. A failed
-// run can be re-run: what it published is skipped.
+// Each publish is tagged `<folder>@<version>` and the tags are pushed at the end (a
+// component library or renderer tag deploys the Pages site). A failed run can be re-run:
+// what it published is skipped.
 // Usage: node scripts/publish.mjs [--dry-run] [--skip-checks]
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -116,10 +117,10 @@ function publish(pending, dryRun) {
     }
   } finally {
     rmSync(packDir, { recursive: true, force: true });
-    if (tags.length > 0) {
-      const push = spawnSync("git", ["push", "origin", ...tags], { cwd: ROOT, stdio: "inherit" });
-      if (push.status !== 0) console.error(`\npublish: pushing the tags failed. Run: git push origin ${tags.join(" ")}`);
-    }
+    // One push per tag: GitHub raises no push event for a push of more than three tags,
+    // and the Pages workflow deploys on these tags.
+    const unpushed = tags.filter((tag) => spawnSync("git", ["push", "origin", tag], { cwd: ROOT, stdio: "inherit" }).status !== 0);
+    if (unpushed.length > 0) console.error(`\npublish: pushing tags failed. Run: git push origin ${unpushed.join(" ")}`);
   }
 }
 
