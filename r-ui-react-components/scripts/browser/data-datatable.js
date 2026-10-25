@@ -47,7 +47,10 @@
 //      and five pages; Next page shows "11–20 of 48" and other rows;
 //  10. at coarse input a column's resize handle is half the hit floor wide (22px);
 //  11. at 375 and coarse input, the pager and the bulk bar stay inside their frame and the
-//      page does not scroll sideways.
+//      page does not scroll sideways;
+//  12. at 375, every table head scrolled halfway under the showcase's sticky header loses
+//      the hit test to the header across its width: a pinned head's layer (the sticky
+//      layer, over its pinned columns) ranks inside its table, never over page chrome.
 async (page) => {
   const problems = [];
   const summary = {};
@@ -252,19 +255,22 @@ async (page) => {
       summary.pinned = `${ltr.scrolled}px LTR, ${rtl.scrolled}px RTL`;
 
       // 4b. Scrolled both ways under a sticky head: the pinned head cell stays on top.
-      await demo("dt-all").scrollIntoViewIfNeeded();
+      // Centred, clear of the page's sticky header: that header rightly covers the table
+      // (12.), so a head scrolled under it loses the hit test to it, not to a cell.
       const corner = await demo("dt-all").evaluate((frame) => {
+        frame.scrollIntoView({ block: "center" });
         frame.scrollTop = frame.scrollHeight;
         frame.scrollLeft = 200;
         const th = frame.querySelector('thead tr:first-child > [data-column-key="name"]');
         const r = th.getBoundingClientRect();
         const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
         const ok = Boolean(hit && th.contains(hit));
+        const bar = document.querySelector(".r-navigation-shell-header").getBoundingClientRect();
         frame.scrollTop = 0;
         frame.scrollLeft = 0;
-        return ok;
+        return { ok, hit: hit ? `${hit.tagName.toLowerCase()}${hit.closest(".r-navigation-shell-header") ? " in the page header" : ""}` : null, thTop: Math.round(r.top), barBottom: Math.round(bar.bottom) };
       });
-      if (!corner) problems.push("pinned: scrolled down and sideways, the pinned head cell loses its hit test");
+      if (!corner.ok) problems.push(`pinned: scrolled down and sideways, the pinned head cell loses its hit test ${JSON.stringify(corner)}`);
 
       // 5. Forced colours keep the scrolled edge's rule.
       await page.emulateMedia({ forcedColors: "active" });
@@ -486,6 +492,34 @@ async (page) => {
     });
     if (narrow.footers < 4) problems.push(`harness: at 375 only ${narrow.footers} footers found`);
     for (const s of narrow.out) problems.push(`375/coarse: ${s}`);
+
+    // 12. Narrow: a table head scrolled under the page's sticky header stays under it.
+    const under = await page.evaluate(async () => {
+      const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+      const bar = document.querySelector(".r-navigation-shell-header");
+      const out = [];
+      let tested = 0;
+      let pinned = 0;
+      for (const head of document.querySelectorAll('[data-testid^="dt-"] thead')) {
+        const mid = (bar.getBoundingClientRect().top + bar.getBoundingClientRect().bottom) / 2;
+        window.scrollTo(0, head.getBoundingClientRect().top + window.scrollY - mid + 2);
+        await frame();
+        await frame();
+        const b = bar.getBoundingClientRect();
+        const h = head.getBoundingClientRect();
+        const y = (b.top + b.bottom) / 2;
+        if (!(h.top < y && h.bottom > y)) continue;
+        tested++;
+        if (getComputedStyle(head).zIndex !== "auto" && Number(getComputedStyle(head).zIndex) > 1) pinned++;
+        const xs = [h.left + 4, (h.left + h.right) / 2, h.right - 4].filter((x) => x > b.left && x < b.right);
+        const over = xs.filter((x) => head.contains(document.elementFromPoint(x, y)));
+        if (over.length) out.push(`${head.closest("[data-testid]").dataset.testid}: its head paints over the page header at ${over.length} of ${xs.length} points`);
+      }
+      return { out, tested, pinned };
+    });
+    if (under.pinned === 0) problems.push(`harness: at 375 none of the ${under.tested} heads tested is on a raised layer`);
+    for (const s of under.out) problems.push(`375: ${s}`);
+    summary.headsUnderChrome = under.tested;
 
     for (const e of errors) problems.push(e);
   } finally {

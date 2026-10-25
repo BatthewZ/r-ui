@@ -55,3 +55,8 @@
 
 - Serious and stale had no on-fill text pair, so nothing could put words on those marks as
   fills. The ON half picks whichever ink clears its own mark and may flip between schemes.
+- **A scrollport with layers of its own is a stacking context.** A pinned head on the
+  sticky layer, there only to beat pinned columns, tied with the page's sticky header and
+  won by DOM order, painting over it as the page scrolled. `isolate` on the scroll area
+  keeps every in-table layer ranking inside it; the layer tokens' "in the same scroller"
+  is only true once the scroller says so.

@@ -129,11 +129,12 @@
 }
 
 /* ── Spotlight ─────────────────────────────────────────────────────────────
-   A soft wash of the primary ink centred on the pointer, painted as the box's
+   A soft wash of the theme's accent centred on the pointer, painted as the box's
    own background image: beneath every child without a stacking context or a
-   negative z-index, and over the box's background colour. 4% at the centre,
-   fading out: muted text keeps 4.5:1 on surfaces 0–2 in every shipped theme
-   (8%, the hover wash, would not). Fine hovering pointers only; none on touch,
+   negative z-index, and over the box's background colour. The accent, not ink:
+   ink greys a light card, where the accent tints it. 7% at the centre, fading
+   out: primary, secondary and muted text keep 4.5:1 on surfaces 0–2 in every
+   shipped theme (8% is the most they all allow). Fine hovering pointers only; none on touch,
    a forced coarse input, reduced motion, forced colours or paper.
    The pointer's shares are registered as non-inheriting, so a pointer move
    restyles the card alone, never its subtree. */
@@ -152,7 +153,7 @@
     background-image: radial-gradient(
       circle var(--COLUMN-SM) at calc(var(--r-motion-spotlight-x) * 100%)
         calc(var(--r-motion-spotlight-y) * 100%),
-      color-mix(in oklab, var(--C-TEXT-PRIMARY) 4%, transparent),
+      color-mix(in oklab, var(--C-ACCENT) 7%, transparent),
       transparent
     );
   }

@@ -14,7 +14,8 @@ import { useShowcaseBar } from "../../shell/bars";
  * measures 0): a fixed layer that is its own scroller, with the shell's viewport
  * hook set to that layer's height. The showcase's sidebar sits underneath; the
  * Dashboard's own sidebar links back to the other showcase pages, and on phones
- * the showcase's bottom nav stays in reach below the Dashboard's. On paper the
+ * the showcase's bottom nav stays in reach below the frame (the Dashboard shows
+ * no navigation of its own there). On paper the
  * frame prints in the flow (`data-print="flow"`), or only one window of it would.
  */
 export function DashboardFrame({ children }: { children: ReactNode }) {

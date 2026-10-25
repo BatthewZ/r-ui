@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createRef } from "react";
+import { type ComponentPropsWithRef, createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { RouterProvider } from "../../util/router";
 import { Button } from "./Button";
 
 describe("Button", () => {
@@ -165,5 +166,55 @@ describe("Button", () => {
     );
     expect(ref.current).toBe(screen.getByTestId("b"));
     expect(ref.current).toHaveAttribute("aria-describedby", "hint");
+  });
+
+  describe("with an href", () => {
+    it("is a link named by its label, with the button's look", () => {
+      render(
+        <Button href="/docs" variant="secondary">
+          Read the docs
+        </Button>,
+      );
+      const link = screen.getByRole("link", { name: "Read the docs" });
+      expect(link).toHaveAttribute("href", "/docs");
+      expect(link).not.toHaveAttribute("type");
+      expect(link).toHaveClass("r-primitives-button");
+      expect(screen.queryByRole("button")).toBeNull();
+    });
+
+    it("renders the router's link for an internal href, and an <a> for an external one", () => {
+      function RouterLink(props: ComponentPropsWithRef<"a">) {
+        return <a data-router="" {...props} />;
+      }
+      render(
+        <RouterProvider link={RouterLink}>
+          <Button href="/dashboard">Dashboard</Button>
+          <Button href="https://example.com/">Elsewhere</Button>
+        </RouterProvider>,
+      );
+      expect(screen.getByRole("link", { name: "Dashboard" })).toHaveAttribute("data-router");
+      expect(screen.getByRole("link", { name: "Elsewhere" })).not.toHaveAttribute("data-router");
+    });
+
+    it("drops a refused scheme, so it goes nowhere", () => {
+      render(<Button href="javascript:alert(1)">Run</Button>);
+      expect(screen.getByText("Run").closest("a")).not.toHaveAttribute("href");
+    });
+
+    it("neither navigates nor calls onClick while aria-disabled", async () => {
+      const onClick = vi.fn();
+      const navigated = vi.fn();
+      render(
+        <div onClick={(e) => navigated(e.defaultPrevented)}>
+          <Button href="/later" aria-disabled onClick={onClick}>
+            Later
+          </Button>
+        </div>,
+      );
+      await userEvent.click(screen.getByRole("link", { name: "Later" }));
+      expect(onClick).toHaveBeenCalledTimes(0);
+      expect(navigated).toHaveBeenCalledTimes(1);
+      expect(navigated).toHaveBeenCalledWith(true);
+    });
   });
 });

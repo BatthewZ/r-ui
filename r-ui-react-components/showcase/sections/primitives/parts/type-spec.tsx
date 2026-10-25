@@ -12,6 +12,7 @@ export function TypeSample({
   as: Tag = "p",
   className,
   width = false,
+  side = false,
   children,
 }: {
   /** What the sample is: the utility or element it shows ("text-h1", "prose p"). */
@@ -20,6 +21,8 @@ export function TypeSample({
   className?: string;
   /** Also report the block's width (a measure). */
   width?: boolean;
+  /** The name and numbers in a column beside the sample (a specimen sheet) once the nearest container has room. */
+  side?: boolean;
   children: ReactNode;
 }) {
   const ref = useRef<HTMLElement>(null);
@@ -46,8 +49,8 @@ export function TypeSample({
   }, [width]);
 
   return (
-    <div className="grid min-w-0 gap-r6">
-      <div className="flex flex-wrap items-baseline gap-x-r4 font-mono text-body-3 text-fg-muted">
+    <div className={side ? "grid min-w-0 gap-x-r2 gap-y-r6 @2xl:grid-cols-[var(--COLUMN-SM)_minmax(0,1fr)] @2xl:items-baseline" : "grid min-w-0 gap-r6"}>
+      <div className={side ? "grid gap-r6 font-mono text-body-3 text-fg-muted" : "flex flex-wrap items-baseline gap-x-r4 font-mono text-body-3 text-fg-muted"}>
         <span className="text-fg-secondary">{name}</span>
         <span>{spec}</span>
       </div>

@@ -130,9 +130,8 @@ export function Tooltip({
   const child = children as ReactElement<Record<string, unknown>>;
   const childDescribedBy = child.props["aria-describedby"] as string | undefined;
 
-  const trigger = cloneElement(
-    child,
-    mergeProps(
+  const trigger = cloneElement(child, {
+    ...mergeProps(
       child.props,
       getReferenceProps({
         ref: refs.setReference,
@@ -142,8 +141,10 @@ export function Tooltip({
         // Only while shown: a hidden tooltip's Escape belongs to whatever encloses it.
         onKeyDown: shown ? onEscape(() => setOpen(false)) : undefined,
       }) as Record<string, unknown>
-    )
-  );
+    ),
+    // The bubble stands in for a native `title` (an IconButton's label), or two tips would show.
+    ...(disabled ? {} : { title: undefined }),
+  });
 
   return (
     <>

@@ -1,4 +1,4 @@
-import { Activity, FlaskConical, LayoutGrid, Megaphone, Rocket, ScrollText, Server, Settings, Target, TriangleAlert, Waypoints } from "lucide-react";
+import { FlaskConical, LayoutGrid, Megaphone, Rocket, ScrollText, Server, Settings, Target, TriangleAlert, Waypoints } from "lucide-react";
 import { type MouseEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import { Banner } from "../../src/components/feedback";
@@ -49,7 +49,6 @@ const NAV: NavEntry[] = [
   { id: "traces", label: "Traces", icon: <Waypoints aria-hidden /> },
 ];
 const SETTINGS: NavEntry = { id: "settings", label: "Settings", icon: <Settings aria-hidden /> };
-const BOTTOM: NavEntry[] = [...NAV.slice(0, 4), SETTINGS];
 
 const SHOWCASE = [
   { page: "overview", label: "Components", icon: <LayoutGrid aria-hidden /> },
@@ -99,7 +98,8 @@ function useViewInHash(anchor: string | null) {
 
 /**
  * The mockup's operations dashboard, rebuilt from library components only:
- * an AppShell (full sidebar / rail / bottom nav by viewport) whose header
+ * an AppShell (full sidebar or rail by viewport, and no navigation of its own
+ * on phones, where the showcase's bottom nav is the only one) whose header
  * holds a Toolbar (environment, actions); a maintenance Banner; a FilterBar
  * whose time range, regions, status, latency and search regenerate seeded data
  * and live in the URL; KPI tiles; traffic as a line chart and stacked error
@@ -207,11 +207,10 @@ export function Dashboard({ anchor }: PageProps) {
 
   return (
     <DashboardFrame>
-      <AppShell labels={{ skipLink: "Skip to dashboard" }}>
-        <AppShell.Sidebar label="Kestrel Cloud">
-          <AppShell.Brand href="#dash-top" onClick={go(NAV[0]!)} mark={<Activity aria-hidden />}>
-            Kestrel Cloud
-          </AppShell.Brand>
+      {/* Phones: no sidebar at all. Its links only scroll this one page, and the showcase's bottom nav is the navigation there. */}
+      <AppShell labels={{ skipLink: "Skip to dashboard" }} className="max-md:[&>.r-navigation-shell-sidebar]:hidden">
+        {/* No brand of its own: the showcase's sits right above it, and two read as two apps. */}
+        <AppShell.Sidebar label="Dashboard">
           <AppShell.SidebarSection title="Monitor">{NAV.slice(0, 5).map(navItem)}</AppShell.SidebarSection>
           <AppShell.SidebarSection title="Explore">{NAV.slice(5).map(navItem)}</AppShell.SidebarSection>
           <AppShell.SidebarSection title="r-ui showcase">
@@ -307,8 +306,6 @@ export function Dashboard({ anchor }: PageProps) {
             </Grid>
           </Stack>
         </AppShell.Main>
-
-        <AppShell.BottomNav label="Kestrel Cloud">{BOTTOM.map(navItem)}</AppShell.BottomNav>
       </AppShell>
     </DashboardFrame>
   );

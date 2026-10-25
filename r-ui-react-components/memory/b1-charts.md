@@ -57,3 +57,8 @@ How `LineChart`, `BarChart` and `Heatmap` were built, and what to keep when chan
 - **A browser check that counts elements can pass on a broken chart.** The Dashboard check
   first counted heat cells and stayed green when a day of data was cut (missing cells are
   still cells); it now counts painted ones. Count what a reader sees, then break it.
+- **A measuring hook watches an element, not a ref object.** The plot unmounts while its
+  table shows, and that state lives in a child, so the chart that owns the hook never
+  re-renders: an effect keyed on stable ref objects kept observing the removed plot
+  (0 × 0) and drew nothing on the way back. Callback refs that set state make every new
+  element a new subscription.

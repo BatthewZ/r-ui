@@ -51,12 +51,12 @@ export function isAriaDisabled(value: AriaAttributes["aria-disabled"]): boolean 
 /**
  * `onClick`, unless the button is inert. Enter/Space still fire `click` on an
  * aria-disabled button; preventDefault also stops a busy submit button from
- * submitting its form again.
+ * submitting its form again, and an inert link from navigating.
  */
-export function guardClick(
+export function guardClick<E extends Element>(
   inert: boolean,
-  onClick: MouseEventHandler<HTMLButtonElement> | undefined,
-): MouseEventHandler<HTMLButtonElement> {
+  onClick: MouseEventHandler<E> | undefined,
+): MouseEventHandler<E> {
   return (event) => {
     if (inert) {
       event.preventDefault();

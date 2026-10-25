@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+### Fixed
+
+- **The checks run when the package is installed as a symlink.** `check-contrast.mjs` and `check-theme-rules.mjs` decided whether they were the script being run by comparing paths as typed, so under a package manager that installs packages as symlinks (bun's isolated linker, pnpm) they exited 0 without checking anything. They now compare real paths, and a test runs both through a symlinked install.
+
 ## 0.1.0
 
 First release.

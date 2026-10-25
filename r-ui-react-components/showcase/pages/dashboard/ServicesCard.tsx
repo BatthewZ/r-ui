@@ -1,5 +1,5 @@
 import { BellOff, BookOpen, Copy, FileDown, MoreHorizontal, RotateCcw, SearchX } from "lucide-react";
-import { type MouseEvent, useState } from "react";
+import { type MouseEvent, type RefObject, useLayoutEffect, useRef, useState } from "react";
 
 import { type DataTableColumn, DataTable, DescriptionList, EmptyState, Meter, type RowKey } from "../../../src/components/data";
 import { ProgressBar } from "../../../src/components/feedback";
@@ -244,9 +244,36 @@ export interface ServicesCardProps extends Placement {
 }
 
 /**
+ * Whether the card is at least two `--COLUMN-SM` wide. Narrower (a phone beside
+ * the shell's rail), the pinned name, checkbox and expander would cover most of
+ * the table and the columns scrolled under them, row actions included.
+ */
+function usePinRoom(card: RefObject<HTMLElement | null>): boolean {
+  const [room, setRoom] = useState(true);
+  useLayoutEffect(() => {
+    const element = card.current;
+    if (!element) return;
+    const probe = document.createElement("div");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.cssText = "position:absolute;visibility:hidden;block-size:0;inline-size:calc(2 * var(--COLUMN-SM))";
+    element.append(probe);
+    const measure = () => setRoom(element.getBoundingClientRect().width >= probe.getBoundingClientRect().width);
+    measure();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(element);
+    return () => {
+      observer?.disconnect();
+      probe.remove();
+    };
+  }, [card]);
+  return room;
+}
+
+/**
  * Every service, worst first, ten to a page. Columns drop by the TABLE's
  * width (priority) and the columns menu chooses among them; headers resize; the
- * service name stays pinned while the table scrolls sideways. A row opens to
+ * service name stays pinned while the table scrolls sideways, when the card has
+ * room for it (`usePinRoom`). A row opens to
  * its deploy, incident and error budget; selected rows take bulk actions. The
  * filters live in the page's FilterBar; filtering to nothing shows a designed
  * empty state with the way out. An export in progress shows its progress here.
@@ -265,13 +292,15 @@ export function ServicesCard({
 }: ServicesCardProps) {
   const { toast } = useToast();
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const card = useRef<HTMLDivElement>(null);
+  const pin = usePinRoom(card);
   const counts = COUNT_ORDER.map((status) => ({ status, n: all.filter((s) => s.status === status).length })).filter((c) => c.n > 0);
   const needle = search.trim();
   const bulk = (title: string, keys: ReadonlySet<RowKey>, tone?: "warning") => () =>
     toast({ title, description: [...keys].join(", "), tone });
 
   return (
-    <Card id={id} className={className} data-dashboard-services="">
+    <Card ref={card} id={id} className={className} data-dashboard-services="">
       <Card.Header>
         <Card.Title as="h2">Services</Card.Title>
         <Card.Description>
@@ -326,7 +355,7 @@ export function ServicesCard({
               columnsMenu
               defaultVisibleColumns={DEFAULT_COLUMNS}
               resizableColumns
-              stickyColumns={1}
+              stickyColumns={pin ? 1 : 0}
               selectable
               bulkActions={(keys) => (
                 <>

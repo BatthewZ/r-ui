@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 
 import { useLabels, useLocale } from "../../util/locale";
 import { cn } from "../../util/style";
@@ -90,9 +90,7 @@ export function BarChart({
     const m = modelCartesian({ x, series, timeZone, locale });
     return m.xType === "number" ? modelCartesian({ x, series, timeZone, locale, xType: "category" }) : m;
   }, [x, series, timeZone, locale]);
-  const plotRef = useRef<HTMLDivElement>(null);
-  const probeRef = useRef<HTMLSpanElement>(null);
-  const box = useChartBox(plotRef, probeRef);
+  const { box, plot, plotRef, probeRef } = useChartBox();
   const plan = useMemo(
     () => planBars(model, box, { orientation, stacked, min, max, formatters, barThick: box.barThick, radius: box.radius }),
     [model, box, orientation, stacked, min, max, formatters],
@@ -102,7 +100,7 @@ export function BarChart({
     order: plan?.order ?? [],
     rowPos: plan?.rowPos ?? [],
     axis: horizontal ? "y" : "x",
-    root: plotRef,
+    root: plot,
   });
   const row = active === null ? undefined : model.rows[active];
   const band = active === null ? undefined : plan?.bands.find((b) => b.row === active);

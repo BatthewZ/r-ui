@@ -120,6 +120,21 @@ function scriptLiteral(value: unknown): string {
 }
 
 /**
+ * The reader and applier as source text, for the pre-paint script. The library
+ * build replaces this with the text it compiled (vite.config.ts), so the script is
+ * the same in every app whatever bundler or minifier it uses, and a
+ * Content-Security-Policy hash of it holds. From source (tests, a dev server) it
+ * is read at run time.
+ */
+declare const __R_UI_PREFERENCES_SOURCE__: { read: string; apply: string } | undefined;
+
+function preferencesSource(): { read: string; apply: string } {
+  return typeof __R_UI_PREFERENCES_SOURCE__ === "undefined"
+    ? { read: readStoredPreferences.toString(), apply: applyPreferences.toString() }
+    : __R_UI_PREFERENCES_SOURCE__;
+}
+
+/**
  * The body of a blocking inline `<script>` for the document `<head>`: it applies
  * the saved theme, density and input to `<html>` before the first paint, so a
  * reload never flashes the default. Pass the same `storageKey` and `themes` the
@@ -128,14 +143,17 @@ function scriptLiteral(value: unknown): string {
  *
  *     <script>{themeScript({ themes: ["default", "aurora"] })}</script>
  *
- * React renders `<ThemeScript>` to the same thing.
+ * React renders `<ThemeScript>` to the same thing. For a given config the text
+ * is the same in every app, so a CSP may allow it by hash (or pass `nonce` to
+ * `<ThemeScript>`).
  */
 export function themeScript({ storageKey = PREFERENCES_STORAGE_KEY, themes }: ThemeConfig = {}): string {
   const args = [scriptLiteral(storageKey), scriptLiteral(themes ?? null), scriptLiteral(themes?.[0] ?? DEFAULT_THEME)];
+  const source = preferencesSource();
   return (
     "(function(){try{" +
-    `var read=${readStoredPreferences.toString()};` +
-    `var apply=${applyPreferences.toString()};` +
+    `var read=${source.read};` +
+    `var apply=${source.apply};` +
     `apply(read(${args[0]},${args[1]}),${args[2]},document.documentElement);` +
     "}catch(e){}})();"
   );

@@ -29,14 +29,14 @@ pages. Read the group's file before changing its components.
 |---|---|
 | [primitives-lessons.md](./primitives-lessons.md) | Looping animations under reduced motion, fills without an on-ink, hover by ink-at-alpha, the hit-area inset maths, boxed vs chrome-less controls, accessible names with new-tab hints, card headers that wrap by content (not a grid), control sides that follow the hit floor |
 | [form-lessons.md](./form-lessons.md) | Read-only native checks, hit areas behind the control and stacked rows, scoping "is this interactive?", component rules vs utilities, labelling groups, native select quirks, horizontal-field alignment, state overrides against a root utility, same-named radio groups with and without a form |
-| [overlays-lessons.md](./overlays-lessons.md) | In place + top layer and density, Escape ownership, Tab out of menus, the popover API in jsdom, CSS scroll lock, shared statics, clipped focus rings, hiding anchored panels, toasts under a modal, a hit area that scrolls its modal sideways, a bleed for a springy arrival at an edge |
-| [data-lessons.md](./data-lessons.md) | Auto vs fixed table layout, dropped columns, virtualizing on `--ROW-H` and re-measuring through a probe, clamping the window, unbroken words in every text slot, wrapping cells, on-ink for domain fills |
-| [navigation-lessons.md](./navigation-lessons.md) | The AppShell as the one viewport reader, rail as the base mode, clipped rail labels, sticky bottom nav, badge spacing in names, focus after disabling, global class names, a rail that scrolls with fixed label bubbles, publishing a measured inset for fixed content, dropping an unsafe `href` without clobbering an `as` component's own |
+| [overlays-lessons.md](./overlays-lessons.md) | In place + top layer and density, Escape ownership, Tab out of menus, the popover API in jsdom, CSS scroll lock, shared statics, clipped focus rings, hiding anchored panels, toasts under a modal, a hit area that scrolls its modal sideways, a bleed for a springy arrival at an edge, collapsing a leaving item's space to zero |
+| [data-lessons.md](./data-lessons.md) | Auto vs fixed table layout, dropped columns, virtualizing on `--ROW-H` and re-measuring through a probe, clamping the window, unbroken words in every text slot, wrapping cells, on-ink for domain fills, a scrollport with layers of its own as a stacking context |
+| [navigation-lessons.md](./navigation-lessons.md) | The AppShell as the one viewport reader, rail as the base mode, clipped rail labels, sticky bottom nav, badge spacing in names, focus after disabling, global class names, a rail that scrolls with fixed label bubbles, publishing a measured inset for fixed content, dropping an unsafe `href` without clobbering an `as` component's own, state selectors that bind to the nearest of nested roots |
 | [layout-lessons.md](./layout-lessons.md) | Page width and column floors as contract tokens, Grid's container wrapper, content caps, UI inside prose, a `ch` measure set where the body size is, auto margins shrinking a flex or grid item, a full-width box border-box |
 | [pages-lessons.md](./pages-lessons.md) | The showcase pages as consumers: an AppShell given the window, one `<main>`, edge-to-edge bands inside a padded shell, the known-bug box and its regression loop, workarounds that name a missing API, paging the Overview by group, a Suspense fallback that scrolls by accident |
 | [a2-preferences-router.md](./a2-preferences-router.md) | Preferences, the router config and the showcase shell: one serialised implementation for the pre-paint script and the hooks, client-created scripts never run, `<html>` as the store, memoising array options, scoping `isCurrent`, checks that find the wrong AppShell, shrinkable grid tracks |
 | [a3-motion-lessons.md](./a3-motion-lessons.md) | Motion, disclosure and overlay exits: exits in CSS with script only waiting, `@starting-style` vs promoted panels, floating-ui's `open` through an exit, focus return, fade-only panels, counting frames in checks, `0fr`→`1fr` height, reveals that never hide what is on screen, staggering by cloning, view-transition choreographies kept until `finished`, plus-lighter and staged fades, non-inheriting pointer properties |
-| [b1-charts.md](./b1-charts.md) | Charts: pure planning vs drawing, drawing at the real size through probes, measured label thinning, calendar-aligned time ticks, hostile input, colour pinned to the entity, the table as the accessible rendering, the readout cursor as one hook, forced colours for data |
+| [b1-charts.md](./b1-charts.md) | Charts: pure planning vs drawing, drawing at the real size through probes, measured label thinning, calendar-aligned time ticks, hostile input, colour pinned to the entity, the table as the accessible rendering, the readout cursor as one hook, forced colours for data, measuring an element that remounts |
 | [b2-content-lessons.md](./b2-content-lessons.md) | CodeBlock, CopyButton, Markdown: what a dynamic import keeps in its chunk, flat highlighter runs, code colour under forced colours, UI islands in prose, nesting caps as width caps, re-announcing a repeated status, the copy fallback inside a modal, fuzzing a refactored parser against the old one, pinning both sides of a cap |
 | [b3-selection-lessons.md](./b3-selection-lessons.md) | Combobox, MultiSelect, TagInput: memoised merged refs, container variants need literal sizes, diacritic-folded highlighting, virtualising an `aria-activedescendant` list, focus that never leaves the input, the APG Escape order, `required` without a visible value, chip-row pitch |
 | [b4-dates.md](./b4-dates.md) | Calendar dates vs instants, months by used grid tracks (not a breakpoint), `auto` tracks and auto-fill min-content, shrink-to-fit popups vs size containment, keying paged views by position, a control's own error beside the Field's |
@@ -90,6 +90,16 @@ pages. Read the group's file before changing its components.
 - **A nav tab that opens a menu renders through `NavItem`'s `as`.** The trigger and its menu
   then sit inside the tab's `<li>`; a menu beside the item would be a non-`li` child of the
   list.
+- **`Function#toString` returns whatever the app's bundler made of the function.** The
+  pre-paint script serialised two functions at run time, so its text, and any CSP hash of it,
+  changed with the consumer's toolchain (three hashes from node, a bundler and a minifier).
+  The library build freezes that text as string literals through `define`; source and tests
+  still serialise the live functions, which stay the one implementation.
+- **A shell with no `BottomNav` keeps its rail on phones, and the rail takes width.** The
+  Dashboard dropped its own bottom nav (the showcase's is the one on phones); beside the rail
+  its fixed two-column KPI row squeezed a delta to one character per line. A shell that needs
+  no navigation on phones hides its sidebar from its own root below `md`, and a fixed column
+  count still wants a one-column base below `@sm`.
 
 ## 2026-10-20 — integration gate F (bottom-nav inset, hero backdrop, view-transition runs, token gaps, rating colour)
 

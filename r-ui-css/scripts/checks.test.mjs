@@ -426,3 +426,30 @@ describe("compile check", () => {
     assert.equal(r.code, 1, r.out);
   });
 });
+
+// Bun's isolated linker (and pnpm) install a package as a symlink. A check run through that
+// path must still run, not exit 0 having checked nothing.
+describe("run through a symlinked install", () => {
+  const app = mkdtempSync(join(tmpdir(), "r-ui-css-symlinked-"));
+  tmpDirs.push(app);
+  mkdirSync(join(app, "node_modules", "@batthewz"), { recursive: true });
+  symlinkSync(PKG, join(app, "node_modules", "@batthewz", "r-ui-css"), "dir");
+  // Unreadable text and no color-scheme: both checks must reject it.
+  writeFileSync(join(app, "aurora.css"), ':root[data-theme="aurora"] {\n  --SCHEME-DARK: 0;\n  --C-TEXT-PRIMARY: oklch(0.99 0 0);\n}\n');
+  const viaLink = (script) => {
+    const r = spawnSync(process.execPath, [join("node_modules", "@batthewz", "r-ui-css", "scripts", script), "aurora.css"], { cwd: app, encoding: "utf8" });
+    return { code: r.status, out: `${r.stdout}${r.stderr}` };
+  };
+
+  test("the contrast check runs and fails a bad theme", () => {
+    const { code, out } = viaLink("check-contrast.mjs");
+    assert.equal(code, 1, out);
+    assert.match(out, /aurora/);
+  });
+
+  test("the theme-rules check runs and fails a bad theme", () => {
+    const { code, out } = viaLink("check-theme-rules.mjs");
+    assert.equal(code, 1, out);
+    assert.match(out, /aurora/);
+  });
+});

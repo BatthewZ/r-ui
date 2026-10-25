@@ -2,7 +2,9 @@
 // Builds the GitHub Pages site: the component showcase and the renderer playground, each
 // from its package's latest release tag (so the site shows what npm serves, not `main`),
 // under `<base>showcase/` and `<base>playground/`, plus the landing page at `<base>`.
-// Usage: node scripts/build-pages.mjs <base> <out-dir>   e.g. /r-ui/ _site
+// `--ref <ref>` builds both from that commit instead, for changes to the apps alone
+// (a showcase page, not a component); the landing page names the ref.
+// Usage: node scripts/build-pages.mjs <base> <out-dir> [--ref <ref>]   e.g. /r-ui/ _site
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -35,13 +37,23 @@ function latestRelease(dir) {
   return { tag, version: tag.slice(dir.length + 1), commit: git("rev-list", "-n", "1", tag) };
 }
 
-function main([base, outArg]) {
-  if (!base?.startsWith("/") || !base.endsWith("/") || !outArg) throw new Error("usage: node scripts/build-pages.mjs <base> <out-dir>   (base like /r-ui/)");
+/** `dir` as it is at `ref`, labelled with the package's version there and the commit. */
+function atRef(dir, ref) {
+  const commit = git("rev-parse", `${ref}^{commit}`);
+  const { version } = JSON.parse(git("show", `${commit}:${dir}/package.json`));
+  return { tag: ref, version: `${version} · ${ref.replace(/^origin\//, "")} ${commit.slice(0, 7)}`, commit };
+}
+
+function main(argv) {
+  const [base, outArg, flag, ref, ...extra] = argv;
+  const usage = "usage: node scripts/build-pages.mjs <base> <out-dir> [--ref <ref>]   (base like /r-ui/)";
+  if (!base?.startsWith("/") || !base.endsWith("/") || !outArg || extra.length > 0) throw new Error(usage);
+  if (flag !== undefined && (flag !== "--ref" || !ref)) throw new Error(usage);
   const out = resolve(outArg);
   rmSync(out, { recursive: true, force: true });
   mkdirSync(out, { recursive: true });
 
-  const releases = APPS.map((app) => ({ ...app, ...latestRelease(app.dir) }));
+  const releases = APPS.map((app) => ({ ...app, ...(ref ? atRef(app.dir, ref) : latestRelease(app.dir)) }));
   // Apps whose releases share a commit share one checkout and one install.
   for (const commit of new Set(releases.map((r) => r.commit))) {
     const tree = mkdtempSync(join(tmpdir(), "r-ui-pages-"));

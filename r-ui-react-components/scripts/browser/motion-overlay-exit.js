@@ -37,6 +37,11 @@
 //      elsewhere (WCAG 1.4.13), and focus stays in the field; two sticky toasts:
 //      Dismiss on the first hands focus to a remaining toast's Dismiss, and
 //      Dismiss on the last returns focus to the trigger it came from.
+//   6. a toast leaves in two phases: it slides out while its slot keeps its
+//      height, then the slot collapses, so the toasts above glide down (some
+//      frame between their start and end) and do not move again when it
+//      unmounts. Under reduced motion they move in one step and it is gone
+//      within 100ms.
 async (page) => {
   const fail = [];
 
@@ -258,8 +263,57 @@ async (page) => {
   if (!backOnTrigger) fail.push(`toast: dismissing the last left focus on ${await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 80))}, expected the trigger`);
   const focus = { reportFocus, alertFocus, field, tipAfter, afterFirst, backOnTrigger };
 
-  const result = { pop, dlg, popReduced, dlgReduced, focus };
+  const toastExit = async ({ reduced = false } = {}) => {
+    await openSection(page, "overlays-toast", { reduced });
+    const trigger = page.locator("#overlays-toast").getByRole("button", { name: "Serious (stays)" });
+    await trigger.scrollIntoViewIfNeeded();
+    for (let i = 0; i < 3; i++) await trigger.click();
+    await page.locator("[data-toast-dismiss]").nth(2).waitFor();
+    await page.waitForTimeout(400);
+    return page.evaluate(async () => {
+      const frame = () => new Promise((r) => requestAnimationFrame(() => r()));
+      const slots = [...document.querySelectorAll("li[data-toast-id]")];
+      const [oldest, leaving] = [slots[0], slots.at(-1)];
+      const full = leaving.getBoundingClientRect().height;
+      const from = oldest.getBoundingClientRect().top;
+      leaving.querySelector("[data-toast-dismiss]").click();
+      const t0 = performance.now();
+      const frames = [];
+      while (leaving.isConnected && performance.now() - t0 < 1000) {
+        await frame();
+        frames.push({
+          shifted: getComputedStyle(leaving.querySelector(".r-overlays-toast")).translate !== "none",
+          height: leaving.getBoundingClientRect().height,
+          top: oldest.getBoundingClientRect().top,
+        });
+      }
+      const goneAfter = leaving.isConnected ? null : Math.round(performance.now() - t0);
+      await frame();
+      const to = oldest.getBoundingClientRect().top;
+      const r = (n) => Math.round(n);
+      return {
+        full: r(full),
+        goneAfter,
+        slidBeforeCollapse: frames.some((f) => f.shifted && f.height >= full - 0.5),
+        between: frames.filter((f) => f.top > from + 1 && f.top < to - 1).map((f) => r(f.top)),
+        lastTop: frames.length ? r(frames.at(-1).top) : null,
+        from: r(from),
+        to: r(to),
+      };
+    });
+  };
+  const toastOut = await toastExit();
+  if (toastOut.full === 0) fail.push("harness: the leaving toast's slot had no height to collapse");
+  if (!toastOut.slidBeforeCollapse) fail.push("toast: never slid out while its slot was still full height (the collapse started first, or nothing slid)");
+  if (!toastOut.between.length) fail.push(`toast: the toasts above jumped from ${toastOut.from} to ${toastOut.to}, never gliding through a frame between`);
+  if (toastOut.goneAfter === null) fail.push("toast: the dismissed toast was still mounted after 1s");
+  if (toastOut.lastTop !== null && Math.abs(toastOut.lastTop - toastOut.to) > 1) fail.push(`toast: the toasts above jumped ${toastOut.to - toastOut.lastTop}px when the collapsed toast unmounted`);
+  const toastReduced = await toastExit({ reduced: true });
+  if (toastReduced.between.length) fail.push(`reduced motion: the toasts above glided (${toastReduced.between.join(", ")})`);
+  if (toastReduced.goneAfter === null || toastReduced.goneAfter > 100) fail.push(`reduced motion: toast unmounted after ${toastReduced.goneAfter}ms, expected within 100ms`);
+
+  const result = { pop, dlg, popReduced, dlgReduced, focus, toastOut, toastReduced };
   if (fail.length) throw new Error(`motion-overlay-exit FAILED:\n  ${fail.join("\n  ")}\n${JSON.stringify(result)}`);
   const fmt = (list) => list.map((o) => o.toFixed(2)).join(" ");
-  return `motion-overlay-exit OK popover fades ${fmt(pop.fading)}, gone in ${pop.goneAfter}ms; dialog + scrim fade ${fmt(dlg.fading)}, gone in ${dlg.goneAfter}ms; reduced motion: no fade, gone in ${popReduced.goneAfter}/${dlgReduced.goneAfter}ms; dialogs open on their autoFocus control, Escape closes a hover tooltip from a field, toast Dismiss hands focus on and home`;
+  return `motion-overlay-exit OK popover fades ${fmt(pop.fading)}, gone in ${pop.goneAfter}ms; dialog + scrim fade ${fmt(dlg.fading)}, gone in ${dlg.goneAfter}ms; reduced motion: no fade, gone in ${popReduced.goneAfter}/${dlgReduced.goneAfter}ms; dialogs open on their autoFocus control, Escape closes a hover tooltip from a field, toast Dismiss hands focus on and home; a dismissed toast slides out, then its slot collapses (${toastOut.between.length} gliding frames, gone in ${toastOut.goneAfter}ms; reduced: ${toastReduced.goneAfter}ms)`;
 }

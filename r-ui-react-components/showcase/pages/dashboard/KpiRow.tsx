@@ -23,7 +23,7 @@ export function KpiRow({ data, view }: { data: DashboardData; view: DashboardVie
   );
 
   return (
-    <Grid as="section" aria-label="Key metrics" columns={{ base: 2, "@2xl": 3, "@5xl": 6 }} data-dashboard-kpis="">
+    <Grid as="section" aria-label="Key metrics" columns={{ base: 1, "@sm": 2, "@2xl": 3, "@5xl": 6 }} data-dashboard-kpis="">
       <StatCard
         label="Requests"
         value={formatCompact(kpis.requests.value)}

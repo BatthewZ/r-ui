@@ -127,7 +127,9 @@ function TableRoot({
         className={cn(
           // `relative`: the root is a scrollport, so absolutely positioned
           // descendants (sr-only text) must resolve inside it, not down the page.
-          "@container/table relative min-w-0 overflow-auto",
+          // `isolate`: its layers (a pinned head over pinned columns) rank within
+          // it, never against the page's sticky chrome it scrolls under.
+          "@container/table relative isolate min-w-0 overflow-auto",
           variant === "boxed" && "rounded-lg border border-border bg-surface-0",
           className,
         )}

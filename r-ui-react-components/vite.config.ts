@@ -6,6 +6,9 @@ import { glob } from "glob";
 import { defineConfig, type Plugin } from "vite";
 import dts from "vite-plugin-dts";
 
+// Imported with its extension: Vite's config loader runs this file in Node.
+import { applyPreferences, readStoredPreferences } from "./src/util/preferences.ts";
+
 // Copy plain CSS files from src/ to dist/ at the same relative path. Lib mode
 // only emits JS for the glob'd entries; the aggregator (styles.css), the domain
 // tokens and every group's styles.css have to ship too, at the same relative
@@ -46,6 +49,14 @@ const entries = Object.fromEntries(
 );
 
 export default defineConfig({
+  // themeScript's functions frozen as text: an app's bundler never rewrites a string, so the
+  // pre-paint script (and a CSP hash of it) is the same in every app. See preferencesSource.
+  define: {
+    __R_UI_PREFERENCES_SOURCE__: JSON.stringify({
+      read: readStoredPreferences.toString(),
+      apply: applyPreferences.toString(),
+    }),
+  },
   plugins: [
     react(),
     dts({

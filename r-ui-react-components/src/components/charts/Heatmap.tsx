@@ -1,5 +1,5 @@
 "use client";
-import { type CSSProperties, type RefObject, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type RefObject, useMemo, useState } from "react";
 
 import { useLabels, useLocale } from "../../util/locale";
 import { cn } from "../../util/style";
@@ -115,16 +115,14 @@ export function Heatmap({
   const locale = useLocale(localeProp);
   const formatters = useMemo(() => makeFormatters({ unit, format, locale }), [unit, format, locale]);
   const model = useMemo(() => modelHeatmap({ rows, columns, values }), [rows, columns, values]);
-  const plotRef = useRef<HTMLDivElement>(null);
-  const probeRef = useRef<HTMLSpanElement>(null);
-  const box = useChartBox(plotRef, probeRef);
+  const { box, plot, plotRef, probeRef } = useChartBox();
   const axis = useMemo(() => planHeatAxis(model, box.width, box.fontSize, box.measure), [model, box]);
   const legend = useMemo(() => heatLegend(model, formatters), [model, formatters]);
   const name = tidyLabel(valueLabel ?? "") || words.value;
 
   const nRows = model.rows.length;
   const nCols = model.columns.length;
-  const { active, source, handlers } = useGridCursor(nRows, nCols, plotRef);
+  const { active, source, handlers } = useGridCursor(nRows, nCols, plot);
   const at = parseCellKey(active);
   const cell = at ? model.cells[at.r]?.[at.c] : undefined;
   const title = cell ? `${model.rows[cell.row] ?? ""} · ${model.columns[cell.column] ?? ""}` : "";

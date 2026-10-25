@@ -58,3 +58,11 @@
   draws a whole scrollbar. Place a small target at least its overhang,
   `(--HIT-MIN - its size) / 2`, from a scroller's edge; do not clip the scroller, which
   would hide real overflow too.
+- **A space collapses to zero only through a wrapper with no box of its own.** Closing a
+  leaving item's slot from `grid-template-rows: 1fr` to `0fr` needs a `min-block-size: 0`
+  grid item; any padding, border or margin on that item counts toward the row's minimum, so
+  the row stops at the box and the rest jumps away at unmount. Spacing between items goes
+  in the collapsing area too (a margin on the card inside the wrapper), never the list's
+  `gap`, which stays until the item is gone. Sequence a two-phase exit by an
+  `animation-delay` made of the first phase's duration token, so reduced motion collapses
+  both, and let the outer element's animation be the one `afterExit` waits on.

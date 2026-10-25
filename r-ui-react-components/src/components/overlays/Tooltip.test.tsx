@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { IconButton } from "../primitives";
 import { stubPopover } from "./overlay-stubs.test.helpers";
 import { Tooltip } from "./Tooltip";
 
@@ -180,6 +181,21 @@ describe("Tooltip", () => {
     await user.tab();
     expect(screen.getByRole("button", { name: "Go" })).toHaveFocus();
     expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("replaces the trigger's native title, so one tip shows, and leaves it when disabled", () => {
+    render(
+      <>
+        <Tooltip content="Copy the share link">
+          <IconButton label="Copy link" icon={<svg />} />
+        </Tooltip>
+        <Tooltip content="Never shown" disabled>
+          <IconButton label="Rename" icon={<svg />} />
+        </Tooltip>
+      </>
+    );
+    expect(screen.getByRole("button", { name: "Copy link" })).not.toHaveAttribute("title");
+    expect(screen.getByRole("button", { name: "Rename" })).toHaveAttribute("title", "Rename");
   });
 
   it("renders in place next to its trigger and asks for the top layer", async () => {

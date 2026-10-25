@@ -344,7 +344,9 @@
     display: contents;
   }
 
-  .r-navigation-shell:not([data-collapsed]) {
+  /* The shell's OWN sidebar (a child): a shell shown inside another's main is
+     collapsed or not by its own state, never by the outer shell's. */
+  .r-navigation-shell:not([data-collapsed]) > .r-navigation-shell-sidebar {
     & .r-navigation-shell-sidebar-inner {
       /* One auto-fit column: the width a card or field column gets. */
       inline-size: var(--COLUMN-MD);
@@ -353,14 +355,14 @@
     & .r-navigation-shell-brand {
       padding-inline: var(--R-SIZE-6);
     }
-    & .r-navigation-shell-sidebar .r-navigation-shell-section-title {
+    & .r-navigation-shell-section-title {
       display: block;
     }
-    & .r-navigation-shell-sidebar .r-navigation-shell-section + .r-navigation-shell-section:not([data-position="end"]) {
+    & .r-navigation-shell-section + .r-navigation-shell-section:not([data-position="end"]) {
       padding-block-start: 0;
       border-block-start: 0;
     }
-    & .r-navigation-shell-sidebar .r-navigation-shell-brand-name {
+    & .r-navigation-shell-brand-name {
       position: static;
       inline-size: auto;
       block-size: auto;
@@ -368,12 +370,12 @@
       clip-path: none;
       white-space: normal;
     }
-    & .r-navigation-shell-sidebar .r-navigation-link {
+    & .r-navigation-link {
       justify-content: flex-start;
       inline-size: auto;
       padding: var(--R-SIZE-6) var(--R-SIZE-4);
     }
-    & .r-navigation-shell-sidebar .r-navigation-link-label {
+    & .r-navigation-link-label {
       position: static;
       translate: none;
       margin: 0;
@@ -386,7 +388,7 @@
       clip-path: none;
       opacity: 1;
     }
-    & .r-navigation-shell-sidebar .r-navigation-link-badge {
+    & .r-navigation-link-badge {
       position: static;
       padding-inline: var(--R-SIZE-5);
       background: var(--C-SURFACE-3);

@@ -1,6 +1,6 @@
 {
   "name": "@batthewz/r-ui-css",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A token contract, a theme contract and four sizing axes (theme, density, input, container) as Tailwind v4 CSS. Usable on its own.",
   "private": false,
   "type": "module",

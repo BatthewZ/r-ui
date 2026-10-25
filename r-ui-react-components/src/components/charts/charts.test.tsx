@@ -1,6 +1,6 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { BarChart } from "./BarChart";
 import type { ChartSeries } from "./chart-model";
@@ -101,6 +101,44 @@ describe("LineChart", () => {
     expect(container.querySelector("[data-chart-plot]")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Show chart" }));
     expect(container.querySelector("[data-chart-plot]")).not.toBeNull();
+  });
+
+  it("draws at its measured size again when the chart comes back after its table", async () => {
+    // A browser in miniature: the plot is 500px wide while it is in the document and 0
+    // once removed, and a ResizeObserver reports every observed element on demand.
+    let observed: { target: Element; callback: () => void }[] = [];
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(private readonly callback: () => void) {}
+        observe(target: Element) {
+          observed.push({ target, callback: this.callback });
+        }
+        unobserve() {}
+        disconnect() {
+          observed = observed.filter((o) => o.callback !== this.callback);
+        }
+      },
+    );
+    const rect = vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(function (this: HTMLElement) {
+      const width = this.isConnected && this.hasAttribute("data-chart-plot") ? 500 : 0;
+      return { width, height: width ? 216 : 0, top: 0, left: 0, right: width, bottom: width ? 216 : 0, x: 0, y: 0, toJSON: () => ({}) };
+    });
+    try {
+      const user = userEvent.setup();
+      const { container } = render(<LineChart label="Requests" x={days} series={regions} />);
+      const drawnWidth = () => container.querySelector("svg.r-charts-svg")?.getAttribute("width");
+      expect(drawnWidth()).toBe("500");
+      await user.click(screen.getByRole("button", { name: "Show as table" }));
+      // The browser reports the removed plot at 0 × 0.
+      act(() => observed.forEach((o) => o.callback()));
+      await user.click(screen.getByRole("button", { name: "Show chart" }));
+      expect(drawnWidth()).toBe("500");
+      expect(observed.some((o) => o.target === container.querySelector("[data-chart-plot]"))).toBe(true);
+    } finally {
+      rect.mockRestore();
+      vi.unstubAllGlobals();
+    }
   });
 
   it("shows the table when nothing can be drawn, and says so", () => {

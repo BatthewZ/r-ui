@@ -250,9 +250,56 @@
 }
 .r-overlays-toast-region[data-position$="start"] {
   inset-inline-start: var(--R-SIZE-2);
+  --r-overlays-toast-side: calc(var(--MOTION-INLINE-SIGN, 1) * -1);
 }
 .r-overlays-toast-region[data-position$="end"] {
   inset-inline-end: var(--R-SIZE-2);
+  --r-overlays-toast-side: var(--MOTION-INLINE-SIGN, 1);
+}
+
+/* A toast slides in from the screen edge its stack is pinned to (its own width
+   plus the stack's inset, so it starts just off screen) and back out when it
+   leaves. `--r-overlays-toast-side` is +1 toward the physical right, so an end
+   stack slides from the right, and from the left under dir="rtl". Reduced motion
+   collapses the durations, so the toast simply appears. */
+@keyframes r-overlays-toast-in {
+  from {
+    opacity: 0;
+    translate: calc((100% + var(--R-SIZE-2)) * var(--r-overlays-toast-side, 1)) 0;
+  }
+}
+@keyframes r-overlays-toast-out {
+  to {
+    opacity: 0;
+    translate: calc((100% + var(--R-SIZE-2)) * var(--r-overlays-toast-side, 1)) 0;
+  }
+}
+.r-overlays-toast {
+  animation: r-overlays-toast-in var(--DURATION-NORMAL) var(--EASE-ENTER);
+}
+.r-overlays-toast-slot[data-leaving] .r-overlays-toast {
+  animation: r-overlays-toast-out var(--DURATION-FAST) var(--EASE-EXIT) forwards;
+}
+
+/* Toasts are spaced by a margin inside their slot, not by the list's gap, so a
+   leaving toast's space collapses with it. Once it has slid out, its slot's one
+   row closes from 1fr to 0fr and the toasts beside it glide into the gap; the
+   slot's animation ends the exit. Its delay is a duration token too, so reduced
+   motion skips both phases. */
+.r-overlays-toast-slot {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.r-overlays-toast-slot + .r-overlays-toast-slot .r-overlays-toast {
+  margin-block-start: var(--R-SIZE-4);
+}
+@keyframes r-overlays-toast-collapse {
+  to {
+    grid-template-rows: 0fr;
+  }
+}
+.r-overlays-toast-slot[data-leaving] {
+  animation: r-overlays-toast-collapse var(--DURATION-SLOW) var(--EASE-STANDARD) var(--DURATION-FAST) forwards;
 }
 
 /* ContextMenu region: a finger held still opens the menu, so the platform's own

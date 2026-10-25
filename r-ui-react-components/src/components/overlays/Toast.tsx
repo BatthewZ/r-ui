@@ -267,10 +267,10 @@ export function ToastProvider({
       >
         {/* Errors interrupt; the rest wait their turn. Both lists stay mounted:
             a region created with its message already inside is not announced. */}
-        <ol aria-live="assertive" className="flex flex-col gap-r4">
+        <ol aria-live="assertive" className="flex flex-col">
           {assertive}
         </ol>
-        <ol aria-live="polite" className={cn("flex flex-col gap-r4", assertive.length > 0 && polite.length > 0 && "mt-r4")}>
+        <ol aria-live="polite" className={cn("flex flex-col", assertive.length > 0 && polite.length > 0 && "mt-r4")}>
           {polite}
         </ol>
       </section>
@@ -306,7 +306,7 @@ function ToastItem({ entry, paused, dismissLabel, toneLabel, classNames, onDismi
     };
   }, [entry, paused, onDismiss]);
 
-  // Leaving: play the exit, then unmount (at once when nothing animates).
+  // Leaving: play the exit (the slot's collapse ends it), then unmount (at once when nothing animates).
   useEffect(() => {
     const el = ref.current;
     if (!leaving || !el) return;
@@ -323,46 +323,52 @@ function ToastItem({ entry, paused, dismissLabel, toneLabel, classNames, onDismi
       data-leaving={leaving || undefined}
       // Leaving: on screen for its exit, but no longer interactive.
       inert={leaving}
-      className={cn(
-        "pointer-events-auto flex items-start gap-r4 rounded-md border border-border bg-surface-0 p-r3 text-body-1 text-fg-primary shadow-md",
-        leaving ? "animate-fade-out" : "animate-fade-up",
-        classNames?.toast
-      )}
+      className="r-overlays-toast-slot"
     >
-      {icon && (
-        <span aria-hidden className="flex h-[1lh] shrink-0 items-center [&>svg]:size-icon">
-          {icon}
-        </span>
-      )}
-      <div className="flex min-w-0 flex-1 flex-col gap-r6">
-        <p className={cn("font-medium", classNames?.title)}>
-          {toneLabel && <span className="sr-only">{toneLabel}: </span>}
-          {title}
-        </p>
-        {description && <p className={cn("text-fg-secondary", classNames?.description)}>{description}</p>}
-        {action && (
-          <div className="pt-r5">
-            <Button
-              variant="secondary"
-              className={classNames?.action}
-              onClick={() => {
-                action.onClick();
-                onDismiss(id);
-              }}
-            >
-              {action.label}
-            </Button>
+      {/* The slot's row collapses once the toast has slid out, so its neighbours glide into the gap. */}
+      <div className="min-h-0">
+        <div
+          className={cn(
+            "r-overlays-toast pointer-events-auto flex items-start gap-r4 rounded-md border border-border bg-surface-0 p-r3 text-body-1 text-fg-primary shadow-md",
+            classNames?.toast
+          )}
+        >
+          {icon && (
+            <span aria-hidden className="flex h-[1lh] shrink-0 items-center [&>svg]:size-icon">
+              {icon}
+            </span>
+          )}
+          <div className="flex min-w-0 flex-1 flex-col gap-r6">
+            <p className={cn("font-medium", classNames?.title)}>
+              {toneLabel && <span className="sr-only">{toneLabel}: </span>}
+              {title}
+            </p>
+            {description && <p className={cn("text-fg-secondary", classNames?.description)}>{description}</p>}
+            {action && (
+              <div className="pt-r5">
+                <Button
+                  variant="secondary"
+                  className={classNames?.action}
+                  onClick={() => {
+                    action.onClick();
+                    onDismiss(id);
+                  }}
+                >
+                  {action.label}
+                </Button>
+              </div>
+            )}
           </div>
-        )}
+          <IconButton
+            data-toast-dismiss=""
+            label={dismissLabel}
+            icon={<X />}
+            variant="ghost"
+            className="-me-r5 -mt-r5 shrink-0"
+            onClick={() => onDismiss(id)}
+          />
+        </div>
       </div>
-      <IconButton
-        data-toast-dismiss=""
-        label={dismissLabel}
-        icon={<X />}
-        variant="ghost"
-        className="-me-r5 -mt-r5 shrink-0"
-        onClick={() => onDismiss(id)}
-      />
     </li>
   );
 }

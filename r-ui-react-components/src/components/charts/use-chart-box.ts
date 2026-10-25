@@ -1,5 +1,5 @@
 "use client";
-import { type RefObject, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type RefCallback, type RefObject, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { estimateMeasure, type Measure } from "./chart-scale";
 
@@ -60,26 +60,45 @@ const px = (value: string): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+export interface ChartBoxRefs {
+  box: ChartBox;
+  /** The plot element, for whatever else reads it (a cursor's hit tests). */
+  plot: RefObject<HTMLDivElement | null>;
+  /** Attach to the plot box. */
+  plotRef: RefCallback<HTMLDivElement>;
+  /** Attach to the probe inside it. */
+  probeRef: RefCallback<HTMLSpanElement>;
+}
+
 /**
- * Measures `ref` (the plot box, sized by the caller's classes: `h-chart`, `w-full`)
- * and the `probe` inside it (sized `h-bar`, `rounded-sm`), and re-measures on any
- * resize of either, so a density switch, a container change, a theme's own
- * `--CHART-H` or a late web font all redraw. The probe is how a domain token is
- * read in px whatever unit it was declared in.
+ * Measures the plot box (sized by the caller's classes: `h-chart`, `w-full`) and
+ * the probe inside it (sized `h-bar`, `rounded-sm`), and re-measures on any resize
+ * of either, so a density switch, a container change, a theme's own `--CHART-H` or
+ * a late web font all redraw. The probe is how a domain token is read in px
+ * whatever unit it was declared in.
+ *
+ * The refs are callbacks, so a plot that unmounts and comes back (the chart shown
+ * again after its table) is a new element that is observed in its turn.
  *
  * Without ResizeObserver (the server, jsdom) the box is `FALLBACK`.
  */
-export function useChartBox(ref: RefObject<HTMLElement | null>, probe: RefObject<HTMLElement | null>): ChartBox {
+export function useChartBox(): ChartBoxRefs {
   const [box, setBox] = useState<Omit<ChartBox, "measure"> & { font: Font | null }>({ ...FALLBACK, measured: false, font: null });
   const last = useRef("");
+  const plot = useRef<HTMLDivElement | null>(null);
+  const [el, setEl] = useState<HTMLDivElement | null>(null);
+  const [probeEl, setProbeEl] = useState<HTMLSpanElement | null>(null);
+  const plotRef = useCallback((node: HTMLDivElement | null) => {
+    plot.current = node;
+    setEl(node);
+  }, []);
 
   useLayoutEffect(() => {
-    const el = ref.current;
     if (!el || typeof ResizeObserver === "undefined") return;
+    last.current = "";
     const read = () => {
       const rect = el.getBoundingClientRect();
       const style = getComputedStyle(el);
-      const probeEl = probe.current;
       const probeRect = probeEl?.getBoundingClientRect();
       const next = {
         width: rect.width,
@@ -98,7 +117,7 @@ export function useChartBox(ref: RefObject<HTMLElement | null>, probe: RefObject
     read();
     const observer = new ResizeObserver(read);
     observer.observe(el);
-    if (probe.current) observer.observe(probe.current);
+    if (probeEl) observer.observe(probeEl);
     // A web font that lands late changes every label's width and nothing's size.
     const fonts = typeof document !== "undefined" ? document.fonts : undefined;
     const onFonts = () => {
@@ -111,9 +130,9 @@ export function useChartBox(ref: RefObject<HTMLElement | null>, probe: RefObject
       observer.disconnect();
       fonts?.removeEventListener?.("loadingdone", onFonts);
     };
-  }, [ref, probe]);
+  }, [el, probeEl]);
 
   const { font, ...rest } = box;
   const measure = useMemo(() => (font ? canvasMeasure(font) : null) ?? estimateMeasure(rest.fontSize), [font, rest.fontSize]);
-  return { ...rest, measure };
+  return { box: { ...rest, measure }, plot, plotRef, probeRef: setProbeEl };
 }

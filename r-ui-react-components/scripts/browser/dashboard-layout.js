@@ -16,10 +16,11 @@
 //      rotates in, a live switch for the rest): no console or page error, no horizontal scroll in the document
 //      or in the dashboard's own scroll frame; at 375 the SHOWCASE's bottom nav stays
 //      reachable below the frame (the frame takes no press at any link's centre);
-//   3. at 1440 the AppShell sidebar is the FULL sidebar (brand name shown, wider
+//   3. at 1440 the AppShell sidebar is the FULL sidebar (link labels in the flow, wider
 //      than a rail) and the six KPI tiles sit in one row;
-//   4. at 900 the sidebar is the icon RAIL (brand name visually hidden, rail-wide)
-//      and there is no bottom nav; the full sidebar's column is exactly --COLUMN-MD wide; at 375 the BOTTOM NAV shows and the sidebar does not;
+//   4. at 900 the sidebar is the icon RAIL (link labels are hover bubbles, rail-wide)
+//      and there is no bottom nav; the full sidebar's column is exactly --COLUMN-MD wide; at 375 the
+//      dashboard shows no navigation of its own, no sidebar, rail or bottom nav (the showcase's is the only one);
 //      at 1440 the frame covers the showcase's own sidebar;
 //   5. at comfortable + fine: every services row is exactly its --ROW-H with its row
 //      actions button inside it, every row
@@ -78,7 +79,8 @@ async (page) => {
       // Scoped to the dashboard's own shell: the showcase around it is an AppShell too.
       const frame = document.querySelector("[data-dashboard-frame]");
       const sidebar = frame?.querySelector(".r-navigation-shell-sidebar");
-      const brandName = frame?.querySelector(".r-navigation-shell-sidebar .r-navigation-shell-brand-name");
+      // The dashboard has no brand (the showcase's sits above it), so a link's label tells the forms apart.
+      const linkLabel = frame?.querySelector(".r-navigation-shell-sidebar .r-navigation-link-label");
       const css = getComputedStyle(document.documentElement);
       const kpiTops = [...document.querySelectorAll("[data-dashboard-kpis] > *")].map((k) => Math.round(box(k).top));
       /** `var(--NAME)` as px, resolved inside `el` (density follows where it is read). */
@@ -139,7 +141,7 @@ async (page) => {
         innerW: sidebar?.querySelector(".r-navigation-shell-sidebar-inner") ? box(sidebar.querySelector(".r-navigation-shell-sidebar-inner")).width : 0,
         columnMd: sidebar ? tokenPx(sidebar, "--COLUMN-MD") : 0,
         sparks,
-        brandW: brandName ? box(brandName).width : 0,
+        labelsInline: linkLabel ? getComputedStyle(linkLabel).position === "static" : null,
         bottom: shown(frame?.querySelector(".r-navigation-shell-bottomnav")),
         control: Number.parseFloat(css.getPropertyValue("--CONTROL-H")),
         kpis: kpiTops.length,
@@ -150,7 +152,7 @@ async (page) => {
         hostNav: (() => {
           const nav = document.querySelector("[data-showcase-bottomnav]");
           if (!shown(nav) || !frame) return null;
-          const links = [...nav.querySelectorAll("a")];
+          const links = [...nav.querySelectorAll("a, button")];
           // Covered by the frame, specifically: a toast raised earlier may sit over the nav.
           const hit = links.filter((a) => {
             const r = box(a);
@@ -501,7 +503,7 @@ async (page) => {
     // 3 + 4: the shell's three forms, by viewport.
     const wide = await shell();
     if (!wide.sidebar || wide.bottom) problems.push("1440: expected the sidebar and no bottom nav");
-    if (!(wide.brandW > 1)) problems.push("1440: the brand name is hidden, so the sidebar is not the full one");
+    if (wide.labelsInline !== true) problems.push(`1440: the link labels are not in the flow (${wide.labelsInline}), so the sidebar is not the full one`);
     if (!(wide.sidebarW > wide.control * 3)) problems.push(`1440: sidebar ${wide.sidebarW}px wide, too narrow for the full form`);
     if (!(wide.columnMd > 0) || Math.abs(wide.innerW - wide.columnMd) > 0.5) problems.push(`1440: the sidebar's column is ${wide.innerW}px wide, --COLUMN-MD is ${wide.columnMd}px`);
     if (wide.kpis !== 6 || wide.kpiRows !== 1) problems.push(`1440: ${wide.kpis} KPI tiles over ${wide.kpiRows} row(s), expected 6 in 1`);
@@ -516,13 +518,13 @@ async (page) => {
     await page.waitForTimeout(250);
     const mid = await shell();
     if (!mid.sidebar || mid.bottom) problems.push("900: expected the rail and no bottom nav");
-    if (mid.brandW > 1) problems.push("900: the brand name shows, so the sidebar is not a rail");
+    if (mid.labelsInline !== false) problems.push(`900: the link labels are in the flow (${mid.labelsInline}), so the sidebar is not a rail`);
     if (!(mid.sidebarW < mid.control * 3)) problems.push(`900: sidebar ${mid.sidebarW}px wide, too wide for a rail`);
 
     await page.setViewportSize({ width: 375, height: 900 });
     await page.waitForTimeout(250);
     const narrow = await shell();
-    if (narrow.sidebar || !narrow.bottom) problems.push("375: expected the bottom nav and no sidebar");
+    if (narrow.sidebar || narrow.bottom) problems.push("375: expected no navigation of the dashboard's own (no sidebar, rail or bottom nav)");
     if (narrow.toolbar.overflowed < 4 || !narrow.toolbar.more || !narrow.toolbar.moreInHeader) {
       problems.push(`375: the header toolbar ${JSON.stringify(narrow.toolbar)}, expected the four actions in a "More" inside the header`);
     }
@@ -537,7 +539,7 @@ async (page) => {
     if (!narrow.filtersFolded) problems.push("375: the FilterBar is not folded into its Filters button");
     const reach = (label, m) => {
       if (!m.hostNav) return problems.push(`${label}: the showcase's bottom nav is not shown`);
-      if (m.hostNav.links < 4 || m.hostNav.hit !== m.hostNav.links) {
+      if (m.hostNav.links < 5 || m.hostNav.hit !== m.hostNav.links) {
         problems.push(`${label}: ${m.hostNav.hit} of ${m.hostNav.links} showcase nav links are clear of the dashboard frame`);
       }
       if (m.hostNav.gap < -0.5) problems.push(`${label}: the dashboard frame overlaps the showcase nav by ${-m.hostNav.gap}px`);
@@ -594,5 +596,5 @@ async (page) => {
   }
 
   if (problems.length) throw new Error(`dashboard-layout FAILED (${problems.length}):\n  ${problems.join("\n  ")}`);
-  return `dashboard-layout OK (rows: page ${summary.page}px, compact card ${summary.card}px; incidents timeline: ${summary.incidents} events; shell full/rail/bottom nav at 1440/900/375; showcase nav reachable at 375; charts: ${summary.charts}; sparklines ${summary.sparks} at comfortable/compact; sidebar --COLUMN-MD; FilterBar ↔ table, charts and URL; toolbar overflow and coarse spacing; table features, rollout progress, banner, HoverCard; ${combos} combinations clean (${summary.fresh} loaded fresh), no boundary tripped)`;
+  return `dashboard-layout OK (rows: page ${summary.page}px, compact card ${summary.card}px; incidents timeline: ${summary.incidents} events; shell full/rail/none at 1440/900/375; showcase nav reachable at 375; charts: ${summary.charts}; sparklines ${summary.sparks} at comfortable/compact; sidebar --COLUMN-MD; FilterBar ↔ table, charts and URL; toolbar overflow and coarse spacing; table features, rollout progress, banner, HoverCard; ${combos} combinations clean (${summary.fresh} loaded fresh), no boundary tripped)`;
 }

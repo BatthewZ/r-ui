@@ -3,6 +3,27 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
+## Unreleased
+
+### Added
+
+- `Button` takes an `href`: it renders a link with the button's look (the `RouterProvider`'s link for an internal `href`, else `<a>`, or `linkAs`), passed through `safeUrl`. `aria-disabled` and `loading` stop it navigating. `ButtonLinkProps` types it; `ButtonProps` stays the button's.
+
+### Changed
+
+- Peer dependency `@batthewz/r-ui-css` is `^0.1.1`, whose theme checks also run when installed as a symlink.
+- `themeScript` (and `<ThemeScript>`): the script text is fixed when the library is built, so for a given config it is the same in every app, whatever bundler or minifier compiles it, and a Content-Security-Policy hash of it holds. It used to serialise the reader and applier at run time, so its text (and hash) followed the app's toolchain.
+- `Spotlight`: the wash is the theme's accent at 7% (was the primary ink at 4%), so a light card is tinted rather than greyed; text on surfaces 0–2 keeps 4.5:1 in every shipped theme.
+- `Toast`: a toast slides in from the screen edge its stack is pinned to (the inline end for `*-end`, so the right, or the left under `dir="rtl"`; the inline start for `*-start`) and slides back out when it leaves, instead of fading up. Under reduced motion it still appears at once.
+- `Toast`: once a leaving toast has slid out, its space closes over `--DURATION-SLOW`, so the toasts beside it glide into place instead of jumping; it unmounts after. Each toast's `<li>` is now that collapsing slot, and `classNames.toast` styles the card inside it. Toasts are spaced by a margin on the card rather than the list's gap. Under reduced motion it still leaves at once.
+
+### Fixed
+
+- `Tooltip` clears its trigger's native `title` while enabled, so a wrapped `IconButton` no longer shows the browser's tip of its label beside the tooltip.
+- `AppShell` inside another `AppShell`'s main follows its own `collapsed` state. The wide sidebar's rules matched any uncollapsed ancestor shell, so an outer shell held an inner one's sidebar open and its toggle did nothing.
+- `LineChart`, `BarChart` and `Heatmap` draw at their size again after "Show chart". The plot is a new element when it comes back from the table, and the chart went on watching the removed one (0 × 0), so it drew nothing.
+- `Table` (and `DataTable`) isolates its scroll area as a stacking context, so a pinned head on the sticky layer no longer paints over a page's sticky header as the page scrolls it under.
+
 ## 0.1.0
 
 First release. "Added" lists the surface; the other sections record pre-release

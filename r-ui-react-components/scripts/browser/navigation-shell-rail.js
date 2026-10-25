@@ -1,4 +1,5 @@
 // @covers   navigation/AppShell
+// @sections navigation-appshell
 // @tier     page
 // @cost     12
 //
@@ -17,7 +18,11 @@
 //      inline end (±1px), inside the viewport; the same under dir="rtl" (past its
 //      left edge);
 //   3. at 900 × 700 (the rail, no toggle): the rail scrolls to its last link, which
-//      ends inside the viewport.
+//      ends inside the viewport;
+//   4. a shell inside another's main (the AppShell demo inside the showcase's shell),
+//      at 1280: its own toggle collapses its sidebar to a rail and expands it back,
+//      while the showcase's sidebar stays full. The wide rules once keyed on any
+//      uncollapsed ancestor shell, so the outer one held the demo open.
 async (page) => {
   const fail = [];
   const { errors, stop: stopErrors } = collectErrors(page);
@@ -125,11 +130,41 @@ async (page) => {
     if (midEnd.lastBottom > midEnd.viewport) fail.push(`900: scrolled to its end, the last link ends at ${midEnd.lastBottom}px, past ${midEnd.viewport}`);
     checkBubble(await bubble(false), "900");
 
+    // 4. A nested shell follows its own state, not the outer shell's.
+    await openSection(page, "navigation-appshell", { view, width: 1280, height: 900 });
+    const nested = () =>
+      page.evaluate(() => {
+        const width = (shell) =>
+          shell?.querySelector(":scope > .r-navigation-shell-sidebar .r-navigation-shell-sidebar-inner")?.getBoundingClientRect().width ?? null;
+        const demo = document.querySelector("#navigation-appshell .r-navigation-shell");
+        const outer = demo?.parentElement?.closest(".r-navigation-shell");
+        const probe = document.createElement("div");
+        probe.style.inlineSize = "var(--COLUMN-MD)";
+        document.body.append(probe);
+        const column = probe.getBoundingClientRect().width;
+        probe.remove();
+        return { nested: outer !== null && outer !== undefined, collapsed: demo?.hasAttribute("data-collapsed") ?? null, demo: width(demo), outer: width(outer), column };
+      });
+    const demoToggle = (name) => page.locator("#navigation-appshell .r-navigation-shell").first().locator(`:scope > .r-navigation-shell-sidebar button[aria-label="${name}"]`);
+    const open = await nested();
+    if (!open.nested) fail.push("nested: harness: the AppShell demo is not inside the showcase's shell");
+    if (Math.abs(open.demo - open.column) > 0.5) fail.push(`nested: the demo's full sidebar is ${open.demo}px, --COLUMN-MD is ${open.column}px`);
+    await demoToggle("Collapse sidebar").click();
+    await settle(page);
+    const shut = await nested();
+    if (!shut.collapsed) fail.push("nested: harness: the demo's toggle did not collapse its shell");
+    if (!(shut.demo < open.demo / 2)) fail.push(`nested: collapsed, the demo's sidebar is still ${shut.demo}px (was ${open.demo}px): the outer shell holds it open`);
+    if (Math.abs(shut.outer - shut.column) > 0.5) fail.push(`nested: collapsing the demo moved the showcase's sidebar to ${shut.outer}px`);
+    await demoToggle("Expand sidebar").click();
+    await settle(page);
+    const reopened = await nested();
+    if (Math.abs(reopened.demo - open.demo) > 0.5) fail.push(`nested: expanded again, the demo's sidebar is ${reopened.demo}px, was ${open.demo}px`);
+
     if (errors.length) fail.push(...errors.slice(0, 5));
   } finally {
     stopErrors();
   }
 
   if (fail.length) throw new Error(`navigation-shell-rail:\n  ${fail.join("\n  ")}`);
-  return "navigation-shell-rail OK: a rail taller than the screen scrolls (never sideways) to its last link and its expand toggle; the bubbles sit beside their links after the scroll, in LTR and RTL";
+  return "navigation-shell-rail OK: a rail taller than the screen scrolls (never sideways) to its last link and its expand toggle; the bubbles sit beside their links after the scroll, in LTR and RTL; a shell inside another's main collapses by its own toggle";
 }

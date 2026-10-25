@@ -53,3 +53,9 @@
   passed one.** Spreading `href: undefined` unconditionally overrides an `as` component's
   own href (a router link that builds it from `to`), so every routed item lost its link.
   The check lives once, in the link row every nav item renders, not in each wrapper.
+
+- **A state selector on a root that can nest must bind to the nearest root.**
+  `.r-navigation-shell:not([data-collapsed]) .x` also matched an AppShell shown inside
+  another's main, so the uncollapsed outer shell held the inner one open and its toggle
+  did nothing. Key state rules on the root's own part with a child combinator
+  (`root:not([state]) > .part`); a descendant selector reads every ancestor's state.

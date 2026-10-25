@@ -37,7 +37,9 @@ and pushes the tags. `bun run release --dry-run` rehearses all of it without pub
 A component library or renderer tag deploys the site at <https://batthewz.github.io/r-ui/>
 (`.github/workflows/pages.yml`): the showcase and the playground, each built by
 `scripts/build-pages.mjs` from its package's latest release tag, so the site matches npm,
-not `main`. `node scripts/build-pages.mjs /r-ui/ <dir>` builds it locally (it needs those tags).
+not `main`. For a change to the apps alone (a showcase page, not a component), run the
+"Pages" workflow by hand from the repo's Actions tab and pick `main` as its source.
+`node scripts/build-pages.mjs /r-ui/ <dir> [--ref <ref>]` builds it locally.
 
 ## The showcase
 

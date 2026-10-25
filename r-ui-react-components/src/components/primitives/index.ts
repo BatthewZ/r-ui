@@ -4,7 +4,7 @@
 export { Alert, type AlertLabels, type AlertProps, DEFAULT_ALERT_LABELS } from "./Alert";
 export { Avatar, type AvatarProps } from "./Avatar";
 export { Badge, type BadgeProps, type BadgeVariant } from "./Badge";
-export { Button, type ButtonProps } from "./Button";
+export { Button, type ButtonLinkProps, type ButtonProps } from "./Button";
 export { Card, type CardProps, type CardTitleProps } from "./Card";
 export { Chip, type ChipLabels, type ChipProps, DEFAULT_CHIP_LABELS } from "./Chip";
 export { Divider, type DividerProps } from "./Divider";

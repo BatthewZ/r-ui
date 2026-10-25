@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 
 import { useLabels, useLocale } from "../../util/locale";
 import { cn } from "../../util/style";
@@ -96,9 +96,7 @@ export function LineChart({
     () => modelCartesian({ x, series, xType, timeZone, locale, formatX }),
     [x, series, xType, timeZone, locale, formatX],
   );
-  const plotRef = useRef<HTMLDivElement>(null);
-  const probeRef = useRef<HTMLSpanElement>(null);
-  const box = useChartBox(plotRef, probeRef);
+  const { box, plot, plotRef, probeRef } = useChartBox();
   const plan = useMemo(
     () => planLine(model, box, { area, min, max, formatters }),
     [model, box, area, min, max, formatters],
@@ -106,7 +104,7 @@ export function LineChart({
 
   const order = plan?.order ?? [];
   const rowX = plan?.rowX ?? [];
-  const { active, source, handlers } = useAxisCursor({ order, rowPos: rowX, axis: "x", root: plotRef });
+  const { active, source, handlers } = useAxisCursor({ order, rowPos: rowX, axis: "x", root: plot });
   const row = active === null ? undefined : model.rows[active];
   const drawn = drawnSeries(model.series);
   const readout = seriesReadout(row, drawn, formatters);

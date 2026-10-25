@@ -1,13 +1,23 @@
 name: Pages
 
 # The site shows released code: scripts/build-pages.mjs builds each app from its
-# package's latest release tag, which scripts/publish.mjs pushes.
+# package's latest release tag, which scripts/publish.mjs pushes. A manual run may
+# build from main instead, for changes to the apps alone (no component changed
+# since the last release).
 on:
   push:
     tags:
       - "r-ui-react-components@*"
       - "r-ui-renderer@*"
   workflow_dispatch:
+    inputs:
+      source:
+        description: Build the apps from
+        type: choice
+        options:
+          - release tags
+          - main
+        default: release tags
 
 permissions:
   contents: read
@@ -31,7 +41,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.4.4
-      - run: node scripts/build-pages.mjs "/${{ github.event.repository.name }}/" _site
+      - run: node scripts/build-pages.mjs "/${{ github.event.repository.name }}/" _site ${{ inputs.source == 'main' && '--ref origin/main' || '' }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

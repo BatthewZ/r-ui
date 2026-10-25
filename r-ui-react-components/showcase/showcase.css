@@ -132,12 +132,16 @@
   /* ── Overview: the index of groups ────────────────────────────────────── */
   .sc-group-index {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--COLUMN-SM)), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--COLUMN-MD)), 1fr));
     gap: var(--R-SIZE-3);
   }
   .sc-group-card {
     display: grid;
-    gap: var(--R-SIZE-6);
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    column-gap: var(--R-SIZE-4);
+    row-gap: var(--R-SIZE-6);
+    block-size: 100%;
     min-block-size: var(--HIT-MIN);
     padding: var(--R-SIZE-3);
     border: var(--BORDER-WIDTH) solid var(--C-BORDER);
@@ -149,16 +153,149 @@
   }
   @media (hover: hover) {
     .sc-group-card:hover {
-      border-color: var(--C-BORDER-STRONG);
+      border-color: color-mix(in oklab, var(--C-ACCENT) 45%, var(--C-BORDER-STRONG));
     }
   }
+  /* The group's glyph in a quiet tile; it takes the accent while the card is hovered or focused. */
+  .sc-group-card-icon {
+    grid-row: 1 / -1;
+    display: grid;
+    place-items: center;
+    align-self: start;
+    inline-size: var(--CONTROL-H);
+    block-size: var(--CONTROL-H);
+    border-radius: var(--RADIUS-MD);
+    background: var(--C-SURFACE-1);
+    color: var(--C-TEXT-SECONDARY);
+    transition:
+      color var(--DURATION-FAST) var(--EASE-STANDARD),
+      background-color var(--DURATION-FAST) var(--EASE-STANDARD);
+
+    & > svg {
+      inline-size: var(--ICON);
+      block-size: var(--ICON);
+    }
+  }
+  .sc-group-card:focus-visible .sc-group-card-icon {
+    color: var(--C-TEXT-ACCENT);
+  }
+  @media (hover: hover) {
+    .sc-group-card:hover .sc-group-card-icon {
+      color: var(--C-TEXT-ACCENT);
+    }
+  }
+  /* The hero's restyle controls, under the card: the theme over its swatches, then the card's density. */
+  .sc-restyle {
+    display: grid;
+    gap: var(--R-SIZE-4);
+    padding-block-start: var(--R-SIZE-4);
+  }
+  .sc-restyle-label {
+    color: var(--C-TEXT-SECONDARY);
+    font-size: var(--BodyText-2);
+    line-height: var(--BodyText-2-line-height);
+  }
+  .sc-theme-picker {
+    display: grid;
+    gap: var(--R-SIZE-6);
+  }
+  .sc-theme-name {
+    margin-inline-start: var(--R-SIZE-5);
+    color: var(--C-TEXT-PRIMARY);
+    font-weight: var(--WEIGHT-SEMIBOLD);
+  }
+  .sc-theme-divider {
+    align-self: stretch;
+    inline-size: var(--BORDER-WIDTH);
+    margin: var(--R-SIZE-5) var(--R-SIZE-5);
+    background: var(--C-BORDER);
+  }
+  .sc-density {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--R-SIZE-4) var(--R-SIZE-3);
+  }
+  /* A theme at a glance: its page surface as a disc, primary and accent split across one inside.
+     The colours are data (another theme's values, read from its stylesheet), so they come in as properties. */
+  .sc-swatch {
+    display: inline-grid;
+    flex-shrink: 0;
+    place-items: center;
+    inline-size: calc(var(--ICON) * 1.5);
+    block-size: calc(var(--ICON) * 1.5);
+    border: var(--BORDER-WIDTH) solid var(--C-BORDER-STRONG);
+    border-radius: var(--RADIUS-FULL);
+    background: var(--sw-surface, var(--C-SURFACE-0));
+
+    &::after {
+      content: "";
+      inline-size: 60%;
+      block-size: 60%;
+      border-radius: var(--RADIUS-FULL);
+      background: linear-gradient(
+        135deg,
+        var(--sw-primary, var(--C-PRIMARY)) 0 50%,
+        var(--sw-accent, var(--C-ACCENT)) 50%
+      );
+    }
+  }
+  /* The chosen theme: a ring in the page's ink, inside the toggle's selection fill. */
+  .sc-swatch-sm {
+    inline-size: var(--ICON);
+    block-size: var(--ICON);
+  }
+  /* The View panel's theme menu: its trigger fills the panel, and each option puts its swatch at the row's end. */
+  .sc-theme-trigger {
+    inline-size: 100%;
+
+    & > span {
+      flex: 1;
+    }
+  }
+  .sc-theme-trigger-label {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: var(--R-SIZE-4);
+  }
+  .sc-theme-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--R-SIZE-3);
+  }
+  .sc-theme-picker [aria-checked="true"] .sc-swatch {
+    outline: calc(var(--BORDER-WIDTH) * 2) solid var(--C-TEXT-PRIMARY);
+    outline-offset: var(--BORDER-WIDTH);
+  }
+  @media (forced-colors: active) {
+    .sc-swatch {
+      forced-color-adjust: none;
+    }
+  }
+  .sc-view-hint {
+    display: flex;
+    align-items: center;
+    gap: var(--R-SIZE-4);
+    padding-block-start: var(--R-SIZE-4);
+    color: var(--C-TEXT-SECONDARY);
+    font-size: var(--BodyText-2);
+    line-height: var(--BodyText-2-line-height);
+  }
+
   .sc-group-card-title {
     font-weight: var(--WEIGHT-SEMIBOLD);
   }
-  .sc-group-card-count {
-    color: var(--C-TEXT-MUTED);
+  .sc-group-card-summary {
+    color: var(--C-TEXT-SECONDARY);
     font-size: var(--BodyText-2);
     line-height: var(--BodyText-2-line-height);
+  }
+  .sc-group-card-count {
+    color: var(--C-TEXT-MUTED);
+    font-size: var(--BodyText-3);
+    line-height: var(--BodyText-3-line-height);
   }
 
   /* ── A group's page ──────────────────────────────────────────────────── */

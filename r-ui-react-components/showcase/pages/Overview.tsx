@@ -1,4 +1,4 @@
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, use, useEffect, useMemo, useRef, useState } from "react";
 
 import { useActiveSection } from "../../src/hooks/use-active-section";
 import { usePrefersReducedMotion } from "../../src/hooks/use-reduced-motion";
@@ -10,7 +10,8 @@ import { href } from "../shell/router";
 import { groupTitle, resolveOverview } from "../shell/sections";
 import { SectionFrame } from "../shell/SectionFrame";
 
-const demos = (n: number) => `${n} ${n === 1 ? "demo" : "demos"}`;
+// The index (hero, highlights, group cards) is its own chunk: a group's page loads none of it.
+const Index = lazy(() => import("./overview/Index").then((m) => ({ default: m.Index })));
 
 /**
  * The component demos, one group to a page: `#/overview` is the index of
@@ -24,49 +25,6 @@ export function Overview({ anchor }: PageProps) {
     <GroupPage group={target.group} section={target.section} />
   ) : (
     <Index unknown={target.kind === "unknown" ? target.anchor : null} />
-  );
-}
-
-function Index({ unknown }: { unknown: string | null }) {
-  return (
-    <div className="sc-page">
-      <header className="sc-page-head">
-        <h1>Overview</h1>
-        <p className="sc-lede">
-          Every component, in every state, a group to a page. Flip theme, density and input from View; resize a demo
-          to see its container queries.
-        </p>
-      </header>
-
-      {unknown !== null && (
-        <div className="sc-invalid" role="alert">
-          <p>
-            No group or section is named <code>{unknown}</code>.
-          </p>
-        </div>
-      )}
-
-      {sectionIndex.length === 0 ? (
-        <div className="sc-empty">
-          <p>No component sections yet.</p>
-          <p>
-            Add <code>showcase/sections/&lt;group&gt;/&lt;Name&gt;.tsx</code> exporting <code>meta</code> and a
-            default component.
-          </p>
-        </div>
-      ) : (
-        <ul className="sc-group-index" aria-label="Component groups">
-          {sectionIndex.map(({ group, ids }) => (
-            <li key={group}>
-              <a className="sc-group-card" href={href("overview", group)}>
-                <span className="sc-group-card-title">{groupTitle(group)}</span>
-                <span className="sc-group-card-count">{demos(ids.length)}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 
