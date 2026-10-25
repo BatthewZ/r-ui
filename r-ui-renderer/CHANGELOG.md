@@ -4,6 +4,15 @@ All notable changes to `@batthewz/r-ui-renderer`. The ViewSpec format, the publi
 the `r-ui-validate` interface are versioned contracts: a change that can break a document, a
 host or a script is recorded here, and before 1.0 it bumps the minor.
 
+## 0.1.1
+
+### Security
+
+- The optional `zod` peer is now `^4.6.6`: earlier 4.x releases can exhaust memory validating
+  an oversized collection (GHSA-mrhx-c7xc-m3w5), and `viewSpecSchema` validates untrusted
+  documents. A host on an older zod 4 takes a compatible patch; no document, API or script
+  changes.
+
 ## 0.1.0
 
 First release. ViewSpec format version 2; version-1 documents of `response-ui-renderer` do
