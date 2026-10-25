@@ -31,7 +31,6 @@ type ButtonOwnProps = {
 };
 
 export type ButtonProps = ButtonOwnProps & {
-  href?: undefined;
   ref?: Ref<HTMLButtonElement>;
 } & ButtonHTMLAttributes<HTMLButtonElement>;
 
@@ -87,8 +86,11 @@ function Content({ loading, iconStart, iconEnd, classNames, children }: ButtonOw
  * paints the selection pair, as IconButton).
  */
 export function Button(props: ButtonProps | ButtonLinkProps) {
-  return props.href === undefined ? <ActionButton {...props} /> : <LinkButton {...props} />;
+  return isLink(props) ? <LinkButton {...props} /> : <ActionButton {...props} />;
 }
+
+const isLink = (props: ButtonProps | ButtonLinkProps): props is ButtonLinkProps =>
+  "href" in props && props.href !== undefined;
 
 function ActionButton({
   variant = "primary",

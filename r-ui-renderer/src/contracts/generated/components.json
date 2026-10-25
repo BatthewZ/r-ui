@@ -1,5 +1,5 @@
 {
-  "library": {"name":"@batthewz/r-ui-react-components","version":"0.1.0"},
+  "library": {"name":"@batthewz/r-ui-react-components","version":"0.1.1"},
   "components": {
     "Accordion": {
       "category": "disclosure",
@@ -333,8 +333,10 @@
     "Button": {
       "category": "primitives",
       "props": [
+        {"name":"href","type":"string","required":false},
         {"name":"iconEnd","type":"ReactNode","required":false},
         {"name":"iconStart","type":"ReactNode","required":false},
+        {"name":"linkAs","type":"ElementType","required":false},
         {"name":"loading","type":"boolean","required":false},
         {"name":"variant","type":"\"primary\" | \"secondary\" | \"ghost\" | \"danger\"","required":false}
       ],

@@ -91,6 +91,7 @@ export const SINK_FINDINGS: { readonly [finding: string]: readonly SinkClassific
   "components/navigation/TreeView.tsx url href={href}": [{ component: "TreeView", prop: "items[].href" }],
   "components/primitives/Avatar.tsx url src={url}": [{ component: "Avatar", prop: "src" }],
   "components/primitives/AvatarGroup.tsx url src={item.src}": [{ component: "AvatarGroup", prop: "items[].src" }],
+  "components/primitives/Button.tsx url href={safe}": [{ component: "Button", prop: "href" }],
   "components/primitives/Link.tsx url href: safeHref": [{ component: "Link", prop: "href" }],
   "components/steps/Stepper.tsx url href: safeHref": [{ component: "Stepper.Step", prop: "href" }],
 

@@ -520,7 +520,7 @@ And the scheme: under `"dark"` `--C-TEXT-PRIMARY` is lighter than `--C-CANVAS`, 
 | `Avatar` | — | `alt?`: string · `name?`: string · `size?`: "control" \| "icon" · `src?`: string \| null |  |
 | `AvatarGroup` | — | `items`: AvatarGroupItem[] · `label`: string · `labels?`: LabelsProp<AvatarGroupLabels> · `max?`: number · `size?`: "icon" \| "control" |  |
 | `Badge` | — | `icon?`: icon name · `tone?`: "neutral" \| "accent" \| "error" \| "success" \| "warning" \| "info" \| "serious" \| "stale" · `variant?`: "subtle" \| "solid" \| "outline" |  |
-| `Button` | — | `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
+| `Button` | — | `href?`: string · `iconEnd?`: icon name · `iconStart?`: icon name · `loading?`: boolean · `variant?`: "primary" \| "secondary" \| "ghost" \| "danger" |  |
 | `Card` | `.Actions` `.Body` `.Description` `.Footer` `.Header` `.Title` | — |  |
 | `Card.Actions` | — | — |  |
 | `Card.Body` | — | — |  |

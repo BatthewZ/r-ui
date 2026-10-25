@@ -80,7 +80,7 @@
     "paths": ["as","children","current","href"]
   },
   "Button": {
-    "paths": ["formAction","iconEnd","iconStart","loading","variant"]
+    "paths": ["formAction","href","iconEnd","iconStart","linkAs","loading","variant"]
   },
   "Calendar": {
     "paths": ["autoFocus","defaultMonth","defaultValue","disabled","isDateUnavailable","labels","labels.inRange","labels.nextMonth","labels.previousMonth","labels.rangeEnd","labels.rangeStart","labels.selected","labels.today","locale","max","min","month","months","onMonthChange","onValueChange","value","weekStartsOn"],

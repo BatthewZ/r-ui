@@ -7,7 +7,7 @@
     },
     "r-ui-css": {
       "name": "@batthewz/r-ui-css",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "devDependencies": {
         "@tailwindcss/cli": "4.3.3",
         "tailwindcss": "4.3.3",
@@ -21,7 +21,7 @@
     },
     "r-ui-react-components": {
       "name": "@batthewz/r-ui-react-components",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "bin": {
         "r-ui-domain-contrast": "./scripts/verify-domain-contrast.mjs",
       },
@@ -80,7 +80,7 @@
         "vitest": "4.1.12",
       },
       "peerDependencies": {
-        "@batthewz/r-ui-css": "^0.1.0",
+        "@batthewz/r-ui-css": "^0.1.1",
         "@floating-ui/react": "^0.27.0",
         "lucide-react": ">=0.500.0 <2.0.0",
         "react": "^19.0.0",
@@ -123,7 +123,7 @@
         "zod": "4.6.7",
       },
       "peerDependencies": {
-        "@batthewz/r-ui-react-components": "^0.1.0",
+        "@batthewz/r-ui-react-components": "^0.1.1",
         "lucide-react": ">=0.500.0 <2.0.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",

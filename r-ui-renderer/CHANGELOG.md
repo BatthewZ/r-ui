@@ -6,6 +6,12 @@ host or a script is recorded here, and before 1.0 it bumps the minor.
 
 ## 0.1.1
 
+### Added
+
+- `Button` takes `href`: a document may make a button a link with the button's look. The href
+  passes the same scheme allowlist as `Link`'s; a refused one is dropped with `refused-url`.
+  The peer `@batthewz/r-ui-react-components` is `^0.1.1`, the first release with it.
+
 ### Security
 
 - The optional `zod` peer is now `^4.6.6`: earlier 4.x releases can exhaust memory validating

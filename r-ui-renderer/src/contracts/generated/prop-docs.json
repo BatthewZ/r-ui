@@ -121,8 +121,10 @@
     {"name":"current","description":"The page this trail ends on: `aria-current=\"page\"`, not styled as a link."}
   ],
   "Button": [
+    {"name":"href","description":"Makes it a link that looks like the button: the `RouterProvider`'s link for an internal `href`, else an `<a>`."},
     {"name":"iconEnd","description":"Decorative glyph after the label, sized to `--ICON`."},
     {"name":"iconStart","description":"Decorative glyph before the label, sized to `--ICON`."},
+    {"name":"linkAs","description":"Renders the link (default: the router's link for an internal `href`, else `<a>`)."},
     {"name":"loading","description":"Busy: `aria-busy`, a centred spinner over the (still measured, still named) content so the width never jumps, and activation is ignored."}
   ],
   "Calendar": [
