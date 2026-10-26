@@ -42,6 +42,7 @@ export const meta = {
   title: "useForm",
   group: "form",
   order: 150,
+  components: ["Form", "ErrorSummary"],
   description:
     "A settings form on useForm: Fields bind by name (no per-control wiring), a Standard Schema validates on blur and then as you type, the name is checked against the server (cancellable, shown pending), conditions are a field array, and the server can reject a field by path. Submit it empty: focus lands on the first invalid field and the summary links to every error. The second copy is the same form at compact density.",
 };

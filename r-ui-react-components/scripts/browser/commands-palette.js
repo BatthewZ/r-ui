@@ -11,16 +11,18 @@
 // Asserts:
 //   1. harness: the palette is closed;
 //   2. the showcase's global palette: Ctrl+K on the Dashboard opens it as a modal with
-//      focus in its field; typing filters the list to what matches; ArrowDown / ArrowUp
+//      focus in its field; typing filters the list ("go to": the Go to commands first); ArrowDown / ArrowUp
 //      move aria-activedescendant; Enter runs the highlighted command (the hash changes),
 //      closes the palette and focus is back on what had it; Ctrl+K typed in a text field
 //      does nothing;
-//   3. nested page: "theme" + Enter opens the Change theme page (its title shown, every
+//   3. nested page: "change theme" + Enter opens the Change theme page (its title shown, every
 //      theme the showcase publishes listed, the field empty); Backspace in the empty field goes back with
-//      "theme" restored; into it again, End + Enter applies the last theme to <html>;
+//      "change theme" restored; into it again, End + Enter applies the last theme to <html>;
 //      the run command is then listed first under Recent;
 //   4. the async sections page lists the Overview's sections; "contextmenu" + Enter
-//      goes to the ContextMenu section's anchor; Escape closes and returns focus;
+//      goes to the ContextMenu section's anchor; at the root, a component's name + Enter
+//      goes to its section (EventCalendar's own, RangeCalendar's host, Calendar);
+//      Escape closes and returns focus;
 //   5. the section's palette written in a compact card: Escape hands focus back to its
 //      opener (in place, modal, and rows at the card's --ROW-H, fine and coarse, are
 //      sweep-floating's sweep);
@@ -81,8 +83,11 @@ async (page) => {
   await page.keyboard.type("go to");
   await settle();
   const typed = await state();
-  if (typed.options.length === 0 || typed.options.some((o) => !/go to/i.test(o))) {
-    fail.push(`typing "go to" left ${JSON.stringify(typed.options)}, expected only "Go to …" commands`);
+  // The "Go to …" commands first, and little else: the root also lists every component,
+  // and a scattered match (SegmentedControl: g…t…o) may trail them.
+  const goTo = typed.options.filter((o) => /^go to/i.test(o));
+  if (goTo.length < 5 || typed.options.slice(0, goTo.length).some((o) => !/^go to/i.test(o)) || typed.options.length > goTo.length + 3) {
+    fail.push(`typing "go to" left ${JSON.stringify(typed.options)}, expected the "Go to …" commands first and at most three scattered matches after`);
   }
   await page.keyboard.press("ArrowDown");
   const second = (await state()).active;
@@ -118,22 +123,23 @@ async (page) => {
   await view.focus();
   await page.keyboard.press("Control+k");
   await settle();
-  await page.keyboard.type("theme");
+  // "change theme", not "theme": the ThemeSwitcher and ThemeScript components start with it.
+  await page.keyboard.type("change theme");
   await settle();
   const onRoot = await state();
   await page.keyboard.press("Enter");
   await settle();
   const nested = await state();
   const themeCount = (await showcaseThemes(page)).length;
-  if (onRoot.active !== "Change theme…") fail.push(`"theme" highlighted ${JSON.stringify(onRoot.active)}, expected "Change theme…"`);
+  if (onRoot.active !== "Change theme…") fail.push(`"change theme" highlighted ${JSON.stringify(onRoot.active)}, expected "Change theme…"`);
   if (nested.chip !== "Change theme" || nested.value !== "" || nested.options.length !== themeCount) {
     fail.push(`the Change theme page shows ${JSON.stringify({ chip: nested.chip, value: nested.value, options: nested.options })}, expected the ${themeCount} themes the showcase publishes`);
   }
   await page.keyboard.press("Backspace");
   await settle();
   const back = await state();
-  if (back.chip !== null || back.value !== "theme" || back.active !== "Change theme…") {
-    fail.push(`Backspace in the empty field gave ${JSON.stringify({ chip: back.chip, value: back.value, active: back.active })}, expected the root page with "theme" restored`);
+  if (back.chip !== null || back.value !== "change theme" || back.active !== "Change theme…") {
+    fail.push(`Backspace in the empty field gave ${JSON.stringify({ chip: back.chip, value: back.value, active: back.active })}, expected the root page with "change theme" restored`);
   }
   await page.keyboard.press("Enter");
   await settle();
@@ -155,7 +161,8 @@ async (page) => {
   }
 
   // ── 4: async sections page, then Escape ─────────────────────────────────
-  await page.keyboard.type("section");
+  // "go to section", not "section": the Section component starts with it.
+  await page.keyboard.type("go to section");
   await settle();
   await page.keyboard.press("Enter");
   await page.waitForFunction(
@@ -172,6 +179,38 @@ async (page) => {
   const sectionHash = await page.evaluate(() => location.hash);
   if (sections.active !== "ContextMenu") fail.push(`"contextmenu" on the sections page highlighted ${JSON.stringify(sections.active)}`);
   if (sectionHash !== "#/overview/overlays-contextmenu") fail.push(`the section command went to ${sectionHash}`);
+  // ── 4b: components at the root, by name: one with its own section, one shown in another's ──
+  for (const [name, anchor] of [
+    ["EventCalendar", "dates-eventcalendar"],
+    ["RangeCalendar", "dates-calendar"],
+  ]) {
+    await view.focus();
+    await page.keyboard.press("Control+k");
+    await settle();
+    await page.keyboard.type(name);
+    await settle();
+    const found = await state();
+    await page.keyboard.press("Enter");
+    // The group page loads its sections, then scrolls to the anchor: wait for that, bounded.
+    await page
+      .waitForFunction(
+        (want) => {
+          const r = document.getElementById(want)?.getBoundingClientRect();
+          return location.hash === `#/overview/${want}` && !!r && r.top < innerHeight && r.bottom > 0;
+        },
+        anchor,
+        { timeout: 5_000 },
+      )
+      .catch(() => {});
+    const landed = await page.evaluate((id) => {
+      const el = document.getElementById(id);
+      const r = el?.getBoundingClientRect();
+      return { hash: location.hash, inView: !!r && r.top < innerHeight && r.bottom > 0 };
+    }, anchor);
+    if (found.active !== name) fail.push(`"${name}" at the root highlighted ${JSON.stringify(found.active)}`);
+    if (landed.hash !== `#/overview/${anchor}` || !landed.inView) fail.push(`the ${name} command landed at ${JSON.stringify(landed)}, expected #/overview/${anchor} in view`);
+  }
+
   await view.focus();
   await page.keyboard.press("Control+k");
   await settle();

@@ -7,6 +7,7 @@ export const meta = {
   title: "PreferencesMenu and ThemeScript",
   group: "preferences",
   order: 20,
+  components: ["ThemeScript"],
   description:
     "Theme, density and input in one compact menu for a header; choices apply at once and the menu stays open to compare. ThemeScript restores the saved choice before first paint; the showcase's own <head> carries it (reload to see no flash).",
 };

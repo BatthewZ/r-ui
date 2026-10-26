@@ -18,6 +18,7 @@ export const meta = {
   title: "Pricing",
   group: "marketing",
   order: 60,
+  components: ["PricingTable"],
   description:
     "Plan cards whose rows line up across plans (subgrid), prices in the locale's currency format, a monthly / annual toggle that shows the saving and speaks each change once, and a comparison table whose head and feature column stay put while it scrolls inside its own frame. The highlighted plan has a doubled edge and a badge in words, never colour alone; excluded features are a cross, struck and named.",
 };

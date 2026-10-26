@@ -7,6 +7,7 @@ export const meta = {
   title: "Calendar",
   group: "dates",
   order: 10,
+  components: ["RangeCalendar"],
   description:
     "Month grids on the APG keyboard model (arrows, Home/End, PageUp/PageDown, Shift for years), with names, digits and week start from Intl. Cells are --CONTROL-H square; months sit side by side while the calendar's own width holds them.",
 };

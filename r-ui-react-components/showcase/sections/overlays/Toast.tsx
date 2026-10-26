@@ -6,6 +6,7 @@ export const meta = {
   title: "Toast",
   group: "overlays",
   order: 60,
+  components: ["ToastProvider"],
   description:
     "useToast() from the app root's ToastProvider. Neutral cards, status as icon + word; errors and serious toasts announce assertively and stay. Hover or focus the stack to pause the clock; dismissing a toast from its own button hands focus to the next toast, else back where it was.",
 };

@@ -5,6 +5,7 @@ export const meta = {
   title: "Kbd & Divider",
   group: "primitives",
   order: 60,
+  components: ["Divider"],
   description:
     "Kbd sits on the text baseline in any type size. Divider is a hairline with no margin of its own; labelled, its words stay readable.",
 };

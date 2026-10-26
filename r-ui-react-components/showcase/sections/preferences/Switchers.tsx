@@ -10,6 +10,7 @@ export const meta = {
   title: "ThemeSwitcher, DensitySwitcher, InputSwitcher",
   group: "preferences",
   order: 10,
+  components: ["ThemeSwitcher", "DensitySwitcher", "InputSwitcher"],
   description:
     "Live: each one sets its attribute on <html> for the whole page and saves it, so the View panel, these and a reload (ThemeScript) all agree. Themes are the app's own list; the first is the default. Segmented for a handful (all visible), or a native select for any count.",
 };

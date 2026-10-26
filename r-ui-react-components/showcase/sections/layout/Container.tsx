@@ -9,6 +9,7 @@ export const meta = {
   title: "Container and Section",
   group: "layout",
   order: 30,
+  components: ["Section"],
   description:
     "Container fills its parent up to the page or reading width plus the fluid gutter, and centres there, whatever lays out the parent: a block, a Stack, an Inline or a grid cell. Section spaces marketing blocks with the fluid section rhythm; both are density-independent, so compact leaves them alone.",
 };

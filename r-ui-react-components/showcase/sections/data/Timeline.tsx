@@ -8,6 +8,7 @@ export const meta = {
   title: "Timeline",
   group: "data",
   order: 75,
+  components: ["ActivityFeed"],
   description:
     "Events in time: an ordered list per local day under sticky day headers, a connector and a mark per event (tone = glyph + word + disc, never colour alone), relative or absolute `<time datetime>` with the full reading on hover and keyboard focus. Clamped descriptions, paging, empty and loading states; ActivityFeed is its actor-verb-object preset.",
 };

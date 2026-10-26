@@ -5,6 +5,7 @@ export const meta = {
   title: "RadioGroup",
   group: "form",
   order: 70,
+  components: ["Radio"],
   description:
     "Native radios sharing a name: Tab enters at the checked radio, arrows move and select. Invalid sits on the group (ARIA allows it there, not on a radio).",
 };

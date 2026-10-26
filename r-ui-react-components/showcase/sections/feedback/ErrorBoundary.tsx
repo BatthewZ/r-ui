@@ -9,6 +9,7 @@ export const meta = {
   title: "ErrorBoundary",
   group: "feedback",
   order: 40,
+  components: ["ErrorFallback"],
   description:
     "One boundary per widget: a widget that throws becomes an ErrorFallback while its siblings keep working. Try again re-renders it (a retry that fails again keeps focus on Try again); resetKeys clear it when the input changes; details shows the error text.",
 };

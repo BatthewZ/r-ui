@@ -7,6 +7,7 @@ export const meta = {
   title: "FormActions",
   group: "form",
   order: 160,
+  components: ["ScrollPanel"],
   description:
     "The submit / cancel row. Actions sit at the end with the primary last; in a narrow CONTAINER they stack full-width with the primary on top. Submit is busy while its Form submits. In a bounded box the row goes in a ScrollPanel's footer, below the scroller; sticky is for a long form in the page's own scroll.",
 };

@@ -8,7 +8,8 @@ import type { ComponentType } from "react";
  *   export default function ButtonSection() { … }
  *
  * `group` is the component group (the folder name, by convention); `order`
- * sorts within the group (ties break on title). A later agent adds a file and
+ * sorts within the group (ties break on title); `components` names the other
+ * library components the section demos, for the command palette. A later agent adds a file and
  * nothing else: the Overview's index, the group's page and the sidebar pick it up.
  */
 export interface SectionMeta {
@@ -24,6 +25,13 @@ export interface SectionMeta {
    * it. Default `scroller` (a wide demo scrolls inside its frame).
    */
   frame?: "scroller" | "open";
+  /**
+   * The other library components this section demos, beyond the one its file is
+   * named after (`Calendar.tsx` also shows `RangeCalendar`). The command palette
+   * sends a search for one of them here; a component with no section of its own
+   * must be listed by exactly one section (a test holds this).
+   */
+  components?: readonly string[];
 }
 
 export interface Section {
@@ -90,6 +98,9 @@ function validate(path: string, mod: unknown): Section | InvalidSection {
   if (typeof meta.group !== "string" || !meta.group) return { path, reason: "`meta.group` must be a string" };
   if (typeof meta.order !== "number" || !Number.isFinite(meta.order)) {
     return { path, reason: "`meta.order` must be a number" };
+  }
+  if (meta.components !== undefined && !(Array.isArray(meta.components) && meta.components.every((c) => typeof c === "string" && c))) {
+    return { path, reason: "`meta.components` must be a list of component names" };
   }
   if (typeof m.default !== "function") return { path, reason: "no default-exported component" };
   const id = sectionIdOf(path);

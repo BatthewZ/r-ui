@@ -1,3 +1,4 @@
+import { indexComponents } from "./shell/components";
 import { categorise, indexSections, loadModules } from "./shell/sections";
 
 // Every demo section, each its own lazy chunk: a group's page fetches only its
@@ -10,6 +11,15 @@ const some = new Map<string, ReturnType<typeof loadModules>>();
 
 /** Every group and its section ids, read from the file paths: nothing is loaded. */
 export const sectionIndex = indexSections(Object.keys(modules));
+
+/**
+ * The component groups' barrels as source text (a few kilobytes, no component
+ * code): what the command palette reads the component names from.
+ */
+const barrels = import.meta.glob<string>("../src/components/*/index.ts", { query: "?raw", import: "default", eager: true });
+
+/** Every component the library's groups export, with its own section where it has one. */
+export const componentIndex = indexComponents(barrels, indexSections(Object.keys(modules)));
 
 /** The same groups under their categories, as the sidebar, the Components menu and the Overview show them. */
 export const categoryIndex = categorise(sectionIndex);

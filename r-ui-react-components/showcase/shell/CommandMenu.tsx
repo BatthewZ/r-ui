@@ -5,8 +5,11 @@ import { CommandPalette, type CommandPaletteCommand, useCommandPaletteShortcut }
 import { Button, Kbd } from "../../src/components/primitives";
 import { useDensity, useInputMode, useTheme } from "../../src/hooks/use-preferences";
 import { DENSITIES, INPUT_MODES } from "../../src/util/preferences";
-import { loadSections } from "../registry";
+import { componentIndex, loadGroupSections, loadSections } from "../registry";
+import { componentAnchor } from "./components";
+import { groupIcon } from "./group-icons";
 import { href } from "./router";
+import { groupTitle } from "./sections";
 import { PREFERENCES, THEMES } from "./view";
 
 const RECENT_KEY = "r-ui-showcase:recent-commands";
@@ -48,13 +51,34 @@ async function sectionCommands(): Promise<CommandPaletteCommand[]> {
   );
 }
 
+/**
+ * One command per library component, at the top level so typing its name finds
+ * it: its own section, or the section that demos it (resolved when picked).
+ */
+const componentCommands: CommandPaletteCommand[] = componentIndex.map((entry) => {
+  const Icon = groupIcon(entry.group);
+  return {
+    id: `component-${entry.name}`,
+    label: entry.name,
+    group: "Components",
+    icon: <Icon />,
+    keywords: [groupTitle(entry.group), "component"],
+    onSelect: () => {
+      void componentAnchor(entry, { group: loadGroupSections, all: loadSections }).then((anchor) => {
+        window.location.hash = href("overview", anchor);
+      });
+    },
+  };
+});
+
 /** The current choice carries a check, so a sub-page also reads as "what is set now". */
 const current = (on: boolean) => (on ? <Check /> : <span className="size-icon" />);
 
 /**
  * The showcase's global palette, as a consumer app would wire it: Ctrl/Cmd+K
- * (or the header button) opens it; it goes to pages and Overview sections and
- * switches theme, density and input on nested pages. The sections page loads
+ * (or the header button) opens it; it goes to pages, to any component by name
+ * and to Overview sections, and switches theme, density and input on nested
+ * pages. The sections page loads
  * the Overview's section list the first time it opens. Recent commands persist
  * in localStorage.
  */
@@ -132,6 +156,7 @@ export function CommandMenu({ pages }: { pages: { page: string; label: string; I
           })),
         },
       },
+      ...componentCommands,
     ],
     [pages, theme, setTheme, density, setDensity, input, setInput],
   );

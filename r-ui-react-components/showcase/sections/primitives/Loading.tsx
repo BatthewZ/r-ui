@@ -5,6 +5,7 @@ export const meta = {
   title: "Spinner & Skeleton",
   group: "primitives",
   order: 50,
+  components: ["Spinner", "Skeleton"],
   description:
     "Decoration by default; give one per region a label to make it the status. The skeleton pulse stops under reduced motion; the spinner keeps turning (it says 'still working').",
 };

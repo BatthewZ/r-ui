@@ -5,6 +5,7 @@ export const meta = {
   title: "Stack and Inline",
   group: "layout",
   order: 10,
+  components: ["Inline"],
   description:
     "Stack is a column, Inline a wrapping row. Gaps take scale names only (r1 largest … r6 smallest), so they follow density: flip compact and every gap tightens.",
 };

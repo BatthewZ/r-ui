@@ -7,6 +7,7 @@ export const meta = {
   title: "Badge & StatusLabel",
   group: "primitives",
   order: 20,
+  components: ["StatusLabel"],
   description:
     "Badge: every tone × subtle / solid / outline, each a contract pair. StatusLabel: mark-coloured glyph + words, never colour alone.",
 };
