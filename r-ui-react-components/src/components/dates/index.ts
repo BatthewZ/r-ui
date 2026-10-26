@@ -1,9 +1,12 @@
 // Calendar dates and times of day: Calendar, RangeCalendar, DatePicker,
-// DateRangePicker, TimeField, TimePicker. Owned by the "dates" group: one export
-// line per component. Dates are calendar dates (local midnight), not instants
+// DateRangePicker, TimeField, TimePicker; and events on a calendar, EventCalendar.
+// Owned by the "dates" group: one export line per component. Dates are calendar dates (local midnight), not instants
 // (date-core.ts); a time of day is wall-clock `HH:mm` (time-core.ts).
 export { Calendar, type CalendarProps } from "./Calendar";
 export { type CalendarLabels, type CalendarSlot, DEFAULT_CALENDAR_LABELS } from "./calendar-base";
+export { EventCalendar, type EventCalendarProps } from "./EventCalendar";
+export { type CalendarEvent, type EventCalendarView, type EventTime } from "./event-core";
+export { DEFAULT_EVENT_CALENDAR_LABELS, type EventCalendarLabels, type EventCalendarSlot } from "./event-parts";
 export { type DateRange, parseDate, parseISODate, toISODate, type Weekday } from "./date-core";
 export { DatePicker, type DatePickerLabels, type DatePickerProps, DEFAULT_DATE_PICKER_LABELS } from "./DatePicker";
 export {

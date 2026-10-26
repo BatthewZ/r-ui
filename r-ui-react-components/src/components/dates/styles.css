@@ -214,3 +214,410 @@
     background-image: linear-gradient(Highlight, Highlight);
   }
 }
+
+/* ── EventCalendar ──────────────────────────────────────────────────────────
+   Events on a calendar (EventCalendar.tsx and its views). Each view's rules sit
+   in its own block below, owned by that view's file. */
+
+/* The calendar is a size container: every view adapts to the calendar's own
+   width (`@measure:` and friends), never the viewport. Like any size container
+   it has no width of its own: give it a track (a grid cell, a block). */
+.r-dates-event-calendar {
+  container-type: inline-size;
+}
+
+/* The toolbar: Today and paging at the start, the period's title taking the
+   room left, the view switch at the end; it wraps by its own width. */
+.r-dates-event-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--R-SIZE-4);
+}
+
+/* ── EventCalendar: shared event look (event-parts.tsx) ── */
+
+/* An event: a link, a button or text. Its text never widens its box, and it
+   reads from the inline start whatever element it is. */
+.r-dates-event {
+  min-inline-size: 0;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+.r-dates-event:is(a, button) {
+  cursor: pointer;
+}
+
+/* The entity's mark: round-ended, in one of two shapes. Its transparent edge
+   is what forced colours draw where the fill is repainted (an event with no
+   slot), so the mark survives there. */
+.r-dates-event-mark {
+  border: var(--BORDER-WIDTH) solid transparent;
+  border-radius: var(--RADIUS-FULL);
+}
+/* Down the inline start of a bar, block or agenda row, its full height. */
+.r-dates-event-stripe {
+  align-self: stretch;
+  inline-size: var(--R-SIZE-6);
+}
+/* A dot, beside a single-day chip, in a narrow cell, in the day panel. */
+.r-dates-event-dot {
+  inline-size: var(--R-SIZE-4);
+  block-size: var(--R-SIZE-4);
+}
+
+/* ── EventCalendar: month view (EventMonthView.tsx) ── */
+
+/* The month's measures. A lane holds one body-3 line padded by --R-SIZE-6 and is
+   at least --HIT-MIN tall (a chip is a pointer target, lanes stack a floor
+   apart); the day number's badge is one such line. They use `1lh`, which
+   resolves where a measure is READ, so every part that reads one is body-3 (the
+   grid sets it). `--r-dates-lanes` is the view's maxEventsPerDay. */
+.r-dates-month-view {
+  --r-dates-month-badge: calc(1lh + 2 * var(--R-SIZE-6));
+  --r-dates-month-lane: max(calc(1lh + 2 * var(--R-SIZE-6)), var(--HIT-MIN));
+  /* From a cell's top to its first lane: padding, the badge, a gap. */
+  --r-dates-month-head: calc(var(--R-SIZE-6) * 2 + var(--r-dates-month-badge));
+  /* A cell in the chips look: the head, every lane, the bottom padding. */
+  --r-dates-month-chips: calc(
+    var(--r-dates-month-head) + var(--r-dates-lanes, 3) * var(--r-dates-month-lane) + var(--R-SIZE-6)
+  );
+  min-inline-size: 0;
+}
+
+/* Hairline lines, no fills: the header row and every week, each week as tall as
+   the tallest (`1fr` rows). */
+.r-dates-month-grid {
+  display: grid;
+  grid-template-rows: auto;
+  grid-auto-rows: 1fr;
+  border: var(--BORDER-WIDTH) solid var(--C-BORDER);
+  border-radius: var(--RADIUS-MD);
+  overflow: clip;
+}
+
+.r-dates-month-head,
+.r-dates-month-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.r-dates-month-head > * {
+  padding: var(--R-SIZE-5) var(--R-SIZE-4);
+  text-align: start;
+}
+
+/* A week is the chips' containing block (its cells are not positioned): a chip
+   sits in its first day's cell in the DOM, but is placed and sized by the
+   week, so it can span the days after it. The week carries the line above it,
+   so its padding box starts where its cells do. */
+.r-dates-month-week {
+  position: relative;
+  border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+
+/* A day: its number at the top start, then dots (narrow) or the lanes the
+   chips sit in (`@measure:` raises its minimum to hold them). The whole cell
+   is a target, at least --HIT-MIN tall. */
+.r-dates-month-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--R-SIZE-6);
+  min-inline-size: 0;
+  min-block-size: max(var(--HIT-MIN), calc(var(--r-dates-month-head) + 1lh + var(--R-SIZE-6)));
+  padding: var(--R-SIZE-6);
+  cursor: pointer;
+}
+.r-dates-month-cell + .r-dates-month-cell {
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+/* The quiet wash, except while the pointer is on an event of its own. */
+.r-dates-month-cell:hover:not(:has(.r-dates-event:is(a, button):hover)) {
+  background-color: color-mix(in oklab, var(--C-TEXT-PRIMARY) 8%, transparent);
+}
+
+.r-dates-month-number {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: var(--r-dates-month-badge);
+  block-size: var(--r-dates-month-badge);
+  padding-inline: var(--R-SIZE-6);
+  border-radius: var(--RADIUS-FULL);
+  font-variant-numeric: var(--NUMERALS-DATA);
+  white-space: nowrap;
+}
+
+/* Narrow: up to three entity dots and a count, wrapping inside the cell. */
+.r-dates-month-dots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--R-SIZE-6);
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  padding-inline: var(--R-SIZE-6);
+}
+
+/* A chip ("+n more" too) in its lane: across `--r-dates-span` columns from
+   `--r-dates-col`, a whole lane tall (the target), logical insets so it runs
+   from the right in RTL. Shown by `@measure:` utilities only. */
+.r-dates-month-chip {
+  position: absolute;
+  inset-inline-start: calc(100% / 7 * var(--r-dates-col));
+  inset-block-start: calc(var(--r-dates-month-head) + var(--r-dates-lane) * var(--r-dates-month-lane));
+  inline-size: calc(100% / 7 * var(--r-dates-span));
+  block-size: var(--r-dates-month-lane);
+  padding: calc(var(--R-SIZE-6) / 2) var(--R-SIZE-6);
+  text-align: start;
+}
+/* Going on past the row's edge: flush with it, squared there. */
+.r-dates-month-chip[data-continues-before] {
+  padding-inline-start: 0;
+}
+.r-dates-month-chip[data-continues-after] {
+  padding-inline-end: 0;
+}
+.r-dates-month-chip[data-continues-before] .r-dates-month-chip-face {
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+.r-dates-month-chip[data-continues-after] .r-dates-month-chip-face {
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* What the chip shows: one truncated line, the lane less the gap between
+   lanes. Its edge (the colour is a utility) is what forced colours keep. */
+.r-dates-month-chip-face {
+  display: flex;
+  align-items: center;
+  gap: var(--R-SIZE-5);
+  block-size: 100%;
+  min-inline-size: 0;
+  padding-inline: var(--R-SIZE-5);
+  border-radius: var(--RADIUS-SM);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* The day panel: a column wide, capped by the surface at the viewport. */
+.r-dates-month-panel {
+  inline-size: var(--COLUMN-LG);
+}
+/* The dot centres on the title's first line. */
+.r-dates-month-panel-event .r-dates-event-dot {
+  margin-block-start: calc((1lh - var(--R-SIZE-4)) / 2);
+}
+
+/* ── EventCalendar: time grid (EventTimeGrid.tsx) ── */
+
+/* Its own scroller, both axes, ten hours tall. The sticky header and gutter
+   cover the scrollport's start edges; the component publishes their sizes
+   (`--r-dates-head`, `--r-dates-gutter`, px as numbers) as scroll padding, so
+   a block scrolled into view lands clear of both. */
+.r-dates-timegrid {
+  max-block-size: calc(var(--ROW-H) * 20);
+  overflow: auto;
+  scroll-padding-block-start: calc(var(--r-dates-head, 0) * 1px);
+  scroll-padding-inline-start: calc(var(--r-dates-gutter, 0) * 1px);
+}
+
+/* The gutter, then one track per day. A day's minimum comes from its body
+   column (below); the grid is never narrower than those minimums, so a narrow
+   calendar scrolls sideways in the region instead of crushing its days, and
+   the box spans the scrolled width (the sticky gutter's containing block). */
+.r-dates-timegrid-grid {
+  display: grid;
+  grid-template-columns: auto repeat(var(--r-dates-days, 7), minmax(auto, 1fr));
+  inline-size: min-content;
+  min-inline-size: 100%;
+}
+.r-dates-timegrid-head,
+.r-dates-timegrid-dayrow,
+.r-dates-timegrid-allday,
+.r-dates-timegrid-body {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+
+/* The header and the all-day row stick to the top (an opaque band, over the
+   body and its sticky gutter). */
+.r-dates-timegrid-head {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--LAYER-RAISED);
+}
+
+/* The gutter's part of the header and the all-day row: opaque, stuck to the
+   inline start over the days scrolled under it. */
+.r-dates-timegrid-corner {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: var(--LAYER-RAISED);
+  grid-column: 1;
+  grid-row: 1 / -1;
+}
+
+.r-dates-timegrid-dayhead {
+  grid-row: 1;
+  padding-inline: var(--R-SIZE-6);
+}
+.r-dates-timegrid-dayhead + .r-dates-timegrid-dayhead {
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+
+/* The day number: a disc one line and a padding tall, the accent on today. */
+.r-dates-timegrid-date {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: calc(1lh + var(--R-SIZE-5));
+  block-size: calc(1lh + var(--R-SIZE-5));
+  padding-inline: var(--R-SIZE-6);
+  font-variant-numeric: var(--NUMERALS-DATA);
+  white-space: nowrap;
+}
+
+/* All-day lanes: one body-3 line padded by --R-SIZE-6, at least --HIT-MIN (a
+   bar is a target; lanes stack a floor apart). `1lh` is read here, where the
+   row's body-3 applies. */
+.r-dates-timegrid-allday {
+  grid-template-rows: repeat(var(--r-dates-lanes, 1), max(calc(1lh + var(--R-SIZE-6) * 2), var(--HIT-MIN)));
+  row-gap: var(--R-SIZE-6);
+  padding-block: var(--R-SIZE-6);
+}
+.r-dates-timegrid-allday-cell {
+  grid-row: 1 / -1;
+  margin-block: calc(var(--R-SIZE-6) * -1);
+}
+.r-dates-timegrid-allday-cell + .r-dates-timegrid-allday-cell {
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+
+.r-dates-timegrid-bar {
+  margin-inline: var(--R-SIZE-6);
+  border-radius: var(--RADIUS-SM);
+  white-space: nowrap;
+}
+/* Going on past the view's edge: flush with it, squared there. */
+.r-dates-timegrid-bar[data-continues-before] {
+  margin-inline-start: 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+.r-dates-timegrid-bar[data-continues-after] {
+  margin-inline-end: 0;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.r-dates-timegrid-more {
+  margin-inline: var(--R-SIZE-6);
+}
+
+/* An hour is two --ROW-H, so density and input scale the day. */
+.r-dates-timegrid-body {
+  grid-template-rows: repeat(24, calc(var(--ROW-H) * 2));
+  isolation: isolate;
+}
+
+/* An hour's line across the days, its half hour dashed. */
+.r-dates-timegrid-line {
+  position: relative;
+  grid-column: 2 / -1;
+  border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+.r-dates-timegrid-line::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  border-block-start: var(--BORDER-WIDTH) dashed var(--C-BORDER);
+  opacity: 0.6;
+}
+
+/* A day: the blocks' containing block. Its minimum keeps every block of its
+   widest overlap at least --HIT-MIN wide (and the day two controls wide): each
+   block's track and gap, the day's end gap, and the line before the day, which
+   its border box holds but its blocks' padding box does not. */
+.r-dates-timegrid-day {
+  position: relative;
+  grid-row: 1 / -1;
+  min-inline-size: max(
+    calc(var(--CONTROL-H) * 2),
+    calc((var(--HIT-MIN) + var(--R-SIZE-6)) * var(--r-dates-overlap, 1) + var(--R-SIZE-5) + var(--BORDER-WIDTH))
+  );
+}
+.r-dates-timegrid-day + .r-dates-timegrid-day {
+  border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
+}
+
+.r-dates-timegrid-hour {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: var(--LAYER-RAISED);
+  grid-column: 1;
+  white-space: nowrap;
+}
+
+/* A block: placed from its minutes (an hour is two --ROW-H), in `--r-dates-column`
+   of `--r-dates-columns` equal tracks across the day less a gap at its end,
+   widened over `--r-dates-span` tracks, a gap short of the next. */
+.r-dates-timegrid-block {
+  --r-dates-track: calc((100% - var(--R-SIZE-5)) / var(--r-dates-columns, 1));
+  position: absolute;
+  inset-block-start: calc(var(--r-dates-start) * var(--ROW-H) / 30);
+  block-size: calc((var(--r-dates-end) - var(--r-dates-start)) * var(--ROW-H) / 30);
+  inset-inline-start: calc(var(--r-dates-track) * var(--r-dates-column, 0));
+  inline-size: calc(var(--r-dates-track) * var(--r-dates-span, 1) - var(--R-SIZE-6));
+  border-radius: var(--RADIUS-SM);
+}
+.r-dates-timegrid-block[data-continues-before] {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.r-dates-timegrid-block[data-continues-after] {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* Now: a line across today from its inline start, a disc at the start. Both
+   are borders, so forced colours draw them. */
+.r-dates-timegrid-now {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(var(--r-dates-now) * var(--ROW-H) / 30 - var(--BORDER-WIDTH));
+  border-block-start: calc(var(--BORDER-WIDTH) * 2) solid var(--C-ACCENT);
+  pointer-events: none;
+}
+.r-dates-timegrid-now::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: calc((var(--R-SIZE-5) + var(--BORDER-WIDTH)) * -1);
+  border: var(--R-SIZE-5) solid var(--C-ACCENT);
+  border-radius: var(--RADIUS-FULL);
+}
+
+@media (forced-colors: active) {
+  .r-dates-timegrid-now,
+  .r-dates-timegrid-now::before {
+    border-color: Highlight;
+  }
+}
+
+/* Paper: the whole day in flow, nothing stuck. */
+@media print {
+  .r-dates-timegrid {
+    max-block-size: none;
+    overflow: visible;
+  }
+  .r-dates-timegrid-head,
+  .r-dates-timegrid-corner,
+  .r-dates-timegrid-hour {
+    position: static;
+  }
+}
+
+/* ── EventCalendar: agenda (EventAgenda.tsx) ── */
+

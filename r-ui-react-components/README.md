@@ -31,7 +31,7 @@ built from the latest release, with theme, density and input switchable from its
 | disclosure | `Collapsible`, `Accordion` |
 | charts | `LineChart`, `BarChart`, `Heatmap` (hand-rolled SVG, a table behind every chart) |
 | content | `CopyButton`, `CodeBlock`, `Markdown` |
-| dates | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker` (dates, or dates and times with `withTime`), `TimeField`, `TimePicker` |
+| dates | `Calendar`, `RangeCalendar`, `DatePicker`, `DateRangePicker` (dates, or dates and times with `withTime`), `TimeField`, `TimePicker`, `EventCalendar` (events by month, week, day or agenda) |
 | steps | `Stepper`, `Wizard` |
 | marketing | `Hero`, `MediaCard`, `Carousel`, `SiteHeader` + `NavigationMenu` (mega panels, a drawer when narrow), `Footer`, `LogoCloud` (optional marquee), `Pricing` + `PricingTable`, `Testimonial`, `FeatureGrid`, `FeatureRows`, `HowItWorks`, `CallToAction`, `EmailCapture`, `SectionHeading` |
 | media | `Image` (a box sized before it loads, blur-up), `Lightbox`, `MasonryGrid` |

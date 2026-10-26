@@ -3,6 +3,16 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
+## Unreleased
+
+### Added
+
+- `EventCalendar` (dates): caller events on a calendar, in a month view, a week or day time grid, and an agenda, with a toolbar for Today, previous and next, the period's title and a view switch. `view` and `date` are controllable, so a URL can hold them. It is read-only: an event with an `href` is a link (through the `RouterProvider`); with `onEventClick` the rest are buttons, else text. An event's time is an instant, or a `YYYY-MM-DD` calendar date for an all-day event (whose `end` is its last day, inclusive). Every event is named in full: title, time, category, status and location. Its entity's colour (`slot`, a series slot) is a mark beside it, never a fill under text. The month view packs multi-day events into lanes and gives a crowded day's last lane to "+n more". A press or Enter on a day opens a panel listing all its events. When the calendar is narrower than `--MEASURE`, days show dots instead of event chips. The time grid draws an hour as two `--ROW-H`, sets overlapping events side by side, holds all-day and day-long events in their own row, and draws a now line. `CalendarEvent`, `EventCalendarView`, `EventTime`, `EventCalendarLabels` (+ `DEFAULT_EVENT_CALENDAR_LABELS`) and `EventCalendarSlot` are exported with it.
+
+### Fixed
+
+- `Calendar`, `RangeCalendar` and the date pickers: the weekday headers stay on the right days when the runtime's time zone changes after the library loads. Their reference date was built when the module loaded, and a zone west of that one read it as the day before.
+
 ## 0.1.2
 
 ### Fixed

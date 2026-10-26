@@ -166,8 +166,6 @@ export function weekStartFor(locale: string): Weekday {
   return 1;
 }
 
-/** 4 Jan 2026 is a Sunday: day `i` of that week is weekday `i`. */
-const SUNDAY = new Date(2026, 0, 4);
 
 export interface WeekdayName {
   /** The column header: short where the locale's short names are short, else narrow. */
@@ -177,7 +175,10 @@ export interface WeekdayName {
 
 /** The seven weekday names from `weekStart`. */
 export function weekdayNames(locale: string, weekStart: Weekday): WeekdayName[] {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(SUNDAY, (weekStart + i) % 7));
+  // 4 Jan 2026 is a Sunday: day `i` of that week is weekday `i`. Built per call:
+  // a Date made at load is an instant, which a later time zone can read as Saturday.
+  const sunday = new Date(2026, 0, 4);
+  const days = Array.from({ length: 7 }, (_, i) => addDays(sunday, (weekStart + i) % 7));
   const short = days.map((d) => dateFormatter(locale, { weekday: "short" }).format(d));
   // A header column is one day cell wide; "الأحد" is not, "S" always is.
   const useShort = short.every((s) => [...s].length <= 3);
