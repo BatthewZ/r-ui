@@ -1,10 +1,19 @@
 import { Blocks, FlaskConical, Gauge, LayoutGrid, Megaphone } from "lucide-react";
-import { type ComponentPropsWithRef, type ComponentType, lazy, type ReactNode, Suspense, useCallback, useEffect } from "react";
+import {
+  type ComponentPropsWithRef,
+  type ComponentType,
+  Fragment,
+  lazy,
+  type ReactNode,
+  Suspense,
+  useCallback,
+  useEffect,
+} from "react";
 
 import { AppShell, RouterProvider } from "../../src/components/navigation";
 import { DropdownMenu, ToastProvider } from "../../src/components/overlays";
 import { DocumentTitleProvider, useDocumentTitle } from "../../src/hooks/use-document-title";
-import { sectionIndex } from "../registry";
+import { categoryIndex, sectionIndex } from "../registry";
 import { CommandMenu } from "./CommandMenu";
 import { groupIcon } from "./group-icons";
 import { href, useHashRoute } from "./router";
@@ -87,7 +96,11 @@ export function App() {
                 r-ui <span className="font-normal text-fg-muted">showcase</span>
               </AppShell.Brand>
               <AppShell.SidebarSection title="Pages">{navItems}</AppShell.SidebarSection>
-              <AppShell.SidebarSection title="Components">{groupItems}</AppShell.SidebarSection>
+              {categoryIndex.map(({ title, groups }) => (
+                <AppShell.SidebarSection key={title} title={title}>
+                  {groups.map(({ group }) => groupItem(group))}
+                </AppShell.SidebarSection>
+              ))}
               <AppShell.SidebarSection position="end">
                 <AppShell.SidebarToggle />
               </AppShell.SidebarSection>
@@ -132,15 +145,15 @@ const navItems = ROUTES.map(({ page, label, Icon }) => (
   </AppShell.NavItem>
 ));
 
-/** Each component group's page, in reading order; on phones the bottom nav's Components menu lists them. */
-const groupItems = sectionIndex.map(({ group }) => {
+/** A component group's page in the sidebar; on phones the bottom nav's Components menu lists them. */
+function groupItem(group: string) {
   const Icon = groupIcon(group);
   return (
     <AppShell.NavItem key={group} href={href("overview", group)} icon={<Icon aria-hidden />}>
       {groupTitle(group)}
     </AppShell.NavItem>
   );
-});
+}
 
 /**
  * The bottom nav's Components tab: a menu button listing each group's page, as
@@ -156,14 +169,24 @@ function ComponentsMenuButton({ children, ...props }: ComponentPropsWithRef<"but
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Content>
-        {sectionIndex.map(({ group }) => {
-          const Icon = groupIcon(group);
-          return (
-            <DropdownMenu.Item key={group} icon={<Icon />} onSelect={() => (window.location.hash = href("overview", group))}>
-              {groupTitle(group)}
-            </DropdownMenu.Item>
-          );
-        })}
+        {categoryIndex.map(({ title, groups }, i) => (
+          <Fragment key={title}>
+            {i > 0 && <DropdownMenu.Separator />}
+            <DropdownMenu.Label>{title}</DropdownMenu.Label>
+            {groups.map(({ group }) => {
+              const Icon = groupIcon(group);
+              return (
+                <DropdownMenu.Item
+                  key={group}
+                  icon={<Icon />}
+                  onSelect={() => (window.location.hash = href("overview", group))}
+                >
+                  {groupTitle(group)}
+                </DropdownMenu.Item>
+              );
+            })}
+          </Fragment>
+        ))}
       </DropdownMenu.Content>
     </DropdownMenu>
   );

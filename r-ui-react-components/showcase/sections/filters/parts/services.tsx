@@ -8,12 +8,13 @@ import {
   StatusLabel,
 } from "../../../../src";
 import { ago, type FleetService, REGIONS_ALL, STATUS_LABEL, STATUS_RANK, type ServiceStatus, TEAMS } from "../../data/fixtures";
+import { DemoLabel } from "../../../shell/DemoLabel";
 
 /** A labelled row inside a filters demo. In a subfolder, which the section registry does not glob. */
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid min-w-0 gap-r5">
-      <div className="text-body-3 font-medium text-fg-muted">{label}</div>
+      <DemoLabel>{label}</DemoLabel>
       {children}
     </div>
   );

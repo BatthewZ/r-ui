@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
+import { DemoLabel } from "../../../shell/DemoLabel";
 
 /** A labelled row inside a dates demo. In a subfolder, which the section registry does not glob. */
 export function Row({ label, children, ...props }: { label: string; children: ReactNode } & Record<`data-${string}`, string>) {
   return (
     <div className="grid min-w-0 gap-r5" {...props}>
-      <div className="text-body-3 font-medium text-fg-muted">{label}</div>
+      <DemoLabel>{label}</DemoLabel>
       {children}
     </div>
   );

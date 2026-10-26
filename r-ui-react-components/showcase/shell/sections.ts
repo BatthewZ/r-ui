@@ -43,32 +43,24 @@ export interface InvalidSection {
   reason: string;
 }
 
-/** Known groups in reading order; any other group follows, alphabetically. */
-export const GROUP_ORDER = [
-  "tokens",
-  "primitives",
-  "feedback",
-  "form",
-  "dates",
-  "disclosure",
-  "overlays",
-  "toolbar",
-  "commands",
-  "data",
-  "filters",
-  "boards",
-  "charts",
-  "content",
-  "navigation",
-  "guards",
-  "steps",
-  "layout",
-  "marketing",
-  "media",
-  "motion",
-  "preferences",
-  "locale",
+/**
+ * The known groups, sorted by what a builder reaches for: everyday building
+ * blocks first, app-wide setup last. Their order here is the reading order
+ * everywhere; a group not listed follows in `OTHER_CATEGORY`, alphabetically.
+ */
+export const CATEGORIES: readonly { title: string; groups: readonly string[] }[] = [
+  { title: "Foundations", groups: ["primitives", "layout", "content"] },
+  { title: "Forms", groups: ["form", "dates", "filters", "steps"] },
+  { title: "Feedback & overlays", groups: ["feedback", "overlays", "disclosure"] },
+  { title: "Navigation & actions", groups: ["navigation", "toolbar", "commands", "guards"] },
+  { title: "Data", groups: ["data", "charts", "boards"] },
+  { title: "Marketing", groups: ["marketing", "media", "motion"] },
+  { title: "Theming & locale", groups: ["preferences", "locale", "tokens"] },
 ];
+
+export const OTHER_CATEGORY = "More";
+
+const GROUP_ORDER = CATEGORIES.flatMap((c) => c.groups);
 
 const slug = (s: string) =>
   s
@@ -141,6 +133,22 @@ export function indexSections(paths: readonly string[]): GroupIndex[] {
     byGroup.set(group, [...(byGroup.get(group) ?? []), id]);
   }
   return [...byGroup.entries()].sort(([a], [b]) => byGroupOrder(a, b)).map(([group, ids]) => ({ group, ids }));
+}
+
+/** A category and its groups present in the index, in reading order. */
+export interface CategoryIndex {
+  title: string;
+  groups: GroupIndex[];
+}
+
+/** The index under its categories; a category with no group present is left out. */
+export function categorise(index: readonly GroupIndex[]): CategoryIndex[] {
+  const known = new Set(GROUP_ORDER);
+  const categories = [
+    ...CATEGORIES.map(({ title, groups }) => ({ title, groups: index.filter((g) => groups.includes(g.group)) })),
+    { title: OTHER_CATEGORY, groups: index.filter((g) => !known.has(g.group)) },
+  ];
+  return categories.filter((c) => c.groups.length > 0);
 }
 
 /** What `#/overview/<anchor>` shows: the index, a group's page (at one of its sections), or nothing known. */

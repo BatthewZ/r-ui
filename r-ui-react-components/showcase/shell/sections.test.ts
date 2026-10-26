@@ -1,6 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { collectSections, indexSections, loadModules, resolveOverview, sectionIdOf } from "./sections";
+import {
+  CATEGORIES,
+  categorise,
+  collectSections,
+  indexSections,
+  loadModules,
+  OTHER_CATEGORY,
+  resolveOverview,
+  sectionIdOf,
+} from "./sections";
 
 const Demo = () => null;
 const mod = (meta: unknown, component: unknown = Demo) => ({ meta, default: component });
@@ -70,6 +79,32 @@ describe("indexSections", () => {
       { group: "form", ids: ["form-input", "form-checkbox"] },
       { group: "zeta", ids: ["zeta-thing"] },
     ]);
+  });
+});
+
+describe("categorise", () => {
+  it("puts each group under its category in reading order, the unknown ones last under one heading", () => {
+    const index = indexSections([
+      "./sections/zeta/Thing.tsx",
+      "./sections/tokens/Domain.tsx",
+      "./sections/form/Input.tsx",
+      "./sections/alpha/Other.tsx",
+      "./sections/primitives/Button.tsx",
+      "./sections/layout/Grid.tsx",
+    ]);
+    const titleOf = (group: string) => CATEGORIES.find((c) => c.groups.includes(group))!.title;
+    expect(categorise(index).map(({ title, groups }) => [title, groups.map((g) => g.group)])).toEqual([
+      [titleOf("primitives"), ["primitives", "layout"]],
+      [titleOf("form"), ["form"]],
+      [titleOf("tokens"), ["tokens"]],
+      [OTHER_CATEGORY, ["alpha", "zeta"]],
+    ]);
+  });
+
+  it("lists every known group exactly once", () => {
+    const groups = CATEGORIES.flatMap((c) => c.groups);
+    expect(groups.length).toBeGreaterThan(0);
+    expect(new Set(groups).size).toBe(groups.length);
   });
 });
 

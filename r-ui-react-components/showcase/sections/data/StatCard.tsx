@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Sparkline, StatCard, StatusLabel } from "../../../src";
 import { formatCompact, formatNumber, formatPercent } from "../../../src/util/format";
 import { series } from "./fixtures";
+import { DemoLabel } from "../../shell/DemoLabel";
 
 export const meta = {
   title: "StatCard",
@@ -95,7 +96,7 @@ export default function StatCardSection() {
 function Demo({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-r4">
-      <p className="text-body-3 font-medium text-fg-muted">{title}</p>
+      <DemoLabel>{title}</DemoLabel>
       {children}
     </div>
   );

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Alert, Button, type KanbanColumn, type KanbanLabels, LocaleProvider } from "../../../src";
 import { type Incident, INCIDENT_COLUMNS, IncidentBoard, INCIDENTS } from "./parts/incidents";
+import { DemoLabel } from "../../shell/DemoLabel";
 
 export const meta = {
   title: "Kanban",
@@ -15,7 +16,7 @@ export const meta = {
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid min-w-0 gap-r5">
-      <div className="text-body-3 font-medium text-fg-muted">{label}</div>
+      <DemoLabel>{label}</DemoLabel>
       {children}
     </div>
   );

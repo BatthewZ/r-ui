@@ -2,6 +2,7 @@ import { CloudOff, Inbox, Plus } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button, EmptyState } from "../../../src";
+import { DemoLabel } from "../../shell/DemoLabel";
 
 export const meta = {
   title: "EmptyState",
@@ -45,7 +46,7 @@ export default function EmptyStateSection() {
 function Demo({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-r4">
-      <p className="text-body-3 font-medium text-fg-muted">{title}</p>
+      <DemoLabel>{title}</DemoLabel>
       {children}
     </div>
   );

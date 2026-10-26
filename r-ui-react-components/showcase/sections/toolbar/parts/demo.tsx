@@ -18,12 +18,13 @@ import { Select } from "../../../../src/components/form";
 import { DropdownMenu } from "../../../../src/components/overlays";
 import { IconButton } from "../../../../src/components/primitives";
 import { ToggleGroup, Toolbar, type ToolbarLabels } from "../../../../src/components/toolbar";
+import { DemoLabel } from "../../../shell/DemoLabel";
 
 /** A labelled row inside a toolbar demo. In a subfolder, which the section registry does not glob. */
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid min-w-0 gap-r5">
-      <div className="text-body-3 font-medium text-fg-muted">{label}</div>
+      <DemoLabel>{label}</DemoLabel>
       {children}
     </div>
   );

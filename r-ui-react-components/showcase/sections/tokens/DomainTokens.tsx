@@ -2,6 +2,7 @@ import { CircleAlert, Clock, TrendingDown, TrendingUp } from "lucide-react";
 
 import { Rating } from "../../../src/components/form";
 import { formatCompact, formatDelta, formatPercent } from "../../../src/util/format";
+import { DemoLabel } from "../../shell/DemoLabel";
 
 export const meta = {
   title: "Domain tokens",
@@ -109,7 +110,7 @@ export default function DomainTokens() {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-r5">
-      <div className="text-body-3 font-medium text-fg-muted">{label}</div>
+      <DemoLabel>{label}</DemoLabel>
       {children}
     </div>
   );

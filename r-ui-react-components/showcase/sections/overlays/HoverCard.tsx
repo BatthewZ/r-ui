@@ -57,7 +57,7 @@ function UserCard({ user }: { user: User }) {
       <p className="text-body-2 text-fg-secondary">
         {user.repos === 0 ? "No public repositories yet" : `${formatCompact(user.repos)} repositories · ${formatCompact(user.followers)} followers`}
       </p>
-      <div className="flex flex-wrap gap-r5">
+      <div className="flex flex-wrap items-center gap-r3">
         <Button variant="secondary">Follow</Button>
         <Link href={`${userHref(user.handle)}-repos`}>Repositories</Link>
       </div>

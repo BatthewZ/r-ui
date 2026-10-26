@@ -1,5 +1,5 @@
 import { Spotlight } from "../../../src/components/motion";
-import { sectionIndex } from "../../registry";
+import { categoryIndex } from "../../registry";
 import { groupIcon } from "../../shell/group-icons";
 import { href } from "../../shell/router";
 import { groupTitle } from "../../shell/sections";
@@ -23,11 +23,11 @@ export function Index({ unknown }: { unknown: string | null }) {
 
       <OverviewHero />
       <Highlights />
-      <h2 id="sc-group-index-title" className="mt-section-3 text-display-3">
+      <h2 className="mt-section-3 text-display-3">
         Every component, in every state
       </h2>
 
-      {sectionIndex.length === 0 ? (
+      {categoryIndex.length === 0 ? (
         <div className="sc-empty">
           <p>No component sections yet.</p>
           <p>
@@ -36,24 +36,34 @@ export function Index({ unknown }: { unknown: string | null }) {
           </p>
         </div>
       ) : (
-        <ul className="sc-group-index" aria-labelledby="sc-group-index-title">
-          {sectionIndex.map(({ group, ids }) => {
-            const Icon = groupIcon(group);
-            const summary = groupSummary(group);
-            return (
-              <li key={group}>
-                <Spotlight as="a" className="sc-group-card" href={href("overview", group)}>
-                  <span className="sc-group-card-icon" aria-hidden>
-                    <Icon />
-                  </span>
-                  <span className="sc-group-card-title">{groupTitle(group)}</span>
-                  {summary && <span className="sc-group-card-summary">{summary}</span>}
-                  <span className="sc-group-card-count">{demos(ids.length)}</span>
-                </Spotlight>
-              </li>
-            );
-          })}
-        </ul>
+        categoryIndex.map(({ title, groups }, i) => {
+          const headingId = `sc-category-${i}`;
+          return (
+            <section key={title} aria-labelledby={headingId} className="mt-r1">
+              <h3 id={headingId} className="mb-r3 text-h3 text-fg-primary">
+                {title}
+              </h3>
+              <ul className="sc-group-index">
+                {groups.map(({ group, ids }) => {
+                  const Icon = groupIcon(group);
+                  const summary = groupSummary(group);
+                  return (
+                    <li key={group}>
+                      <Spotlight as="a" className="sc-group-card" href={href("overview", group)}>
+                        <span className="sc-group-card-icon" aria-hidden>
+                          <Icon />
+                        </span>
+                        <span className="sc-group-card-title">{groupTitle(group)}</span>
+                        {summary && <span className="sc-group-card-summary">{summary}</span>}
+                        <span className="sc-group-card-count">{demos(ids.length)}</span>
+                      </Spotlight>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })
       )}
     </div>
   );

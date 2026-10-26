@@ -1,4 +1,4 @@
-import { indexSections, loadModules } from "./shell/sections";
+import { categorise, indexSections, loadModules } from "./shell/sections";
 
 // Every demo section, each its own lazy chunk: a group's page fetches only its
 // group's, a solo route only the ones it names, and the hidden all-sections
@@ -10,6 +10,9 @@ const some = new Map<string, ReturnType<typeof loadModules>>();
 
 /** Every group and its section ids, read from the file paths: nothing is loaded. */
 export const sectionIndex = indexSections(Object.keys(modules));
+
+/** The same groups under their categories, as the sidebar, the Components menu and the Overview show them. */
+export const categoryIndex = categorise(sectionIndex);
 
 /** Every section, grouped and sorted; loaded once and shared. */
 export const loadSections = () => (loading ??= loadModules(modules));

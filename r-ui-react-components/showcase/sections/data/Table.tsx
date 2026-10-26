@@ -3,6 +3,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { Meter, type SortDirection, StatusLabel, Table, type TableVariant } from "../../../src";
 import { formatNumber, formatPercent } from "../../../src/util/format";
 import { ago, type Service, SERVICES, STATUS_LABEL, STATUS_RANK } from "./fixtures";
+import { DemoLabel } from "../../shell/DemoLabel";
 
 export const meta = {
   title: "Table",
@@ -168,7 +169,7 @@ export default function TableSection() {
 function Demo({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-r4">
-      <p className="text-body-3 font-medium text-fg-muted">{title}</p>
+      <DemoLabel>{title}</DemoLabel>
       {children}
     </div>
   );

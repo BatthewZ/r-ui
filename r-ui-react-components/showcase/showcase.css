@@ -430,11 +430,34 @@
   .sc-demo[data-sc-frame="open"] {
     overflow-x: visible;
   }
+  /* A variant's label inside a demo: its name in strong type, so it holds its own
+     against demo content set larger (an accordion's headers). */
+  .sc-demo-label {
+    color: var(--C-TEXT-PRIMARY);
+    font-size: var(--BodyText-2);
+    line-height: var(--BodyText-2-line-height);
+    font-weight: var(--WEIGHT-SEMIBOLD);
+  }
+  .sc-demo-label-notes {
+    color: var(--C-TEXT-SECONDARY);
+    font-weight: var(--WEIGHT-NORMAL);
+  }
 
   /* ── Solo route ────────────────────────────────────────────────────────── */
   /* A viewport of page above and below, so a section can start below the fold or scroll away. */
   .sc-solo-runway {
     block-size: 100dvh;
+  }
+}
+
+/* Labelled variants stand further apart than the parts of one variant, so each
+   label reads as the start of the next. On the container's gap, not a margin on
+   the label: a label beside another (side-by-side variants) must stay level with
+   it, and the first must stay at the frame's top. In the utilities layer so it
+   outranks the container's own gap utility. */
+@layer utilities {
+  .sc-demo :has(> * > .sc-demo-label) {
+    row-gap: var(--R-SIZE-1);
   }
 }
 

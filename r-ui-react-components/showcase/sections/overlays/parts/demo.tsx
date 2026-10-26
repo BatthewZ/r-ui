@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
+import { DemoLabel } from "../../../shell/DemoLabel";
 
 /** A labelled row inside an overlays demo. Kept in a subfolder, which the section registry does not glob. */
 export function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-1 gap-r5">
-      <div className="text-body-3 font-medium text-fg-muted">{label}</div>
+      <DemoLabel>{label}</DemoLabel>
       {children}
     </div>
   );

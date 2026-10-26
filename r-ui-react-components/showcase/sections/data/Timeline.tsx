@@ -2,6 +2,7 @@ import { GitCommitHorizontal, Rocket, Undo2 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { ActivityFeed, type ActivityItem, Button, Timeline, type TimelineEvent } from "../../../src";
+import { DemoLabel } from "../../shell/DemoLabel";
 
 export const meta = {
   title: "Timeline",
@@ -201,7 +202,7 @@ function Paged() {
 function Demo({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-r4">
-      <p className="text-body-3 font-medium text-fg-muted">{title}</p>
+      <DemoLabel>{title}</DemoLabel>
       {children}
     </div>
   );

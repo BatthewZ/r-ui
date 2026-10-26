@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { DescriptionList, StatusLabel } from "../../../src";
 import { formatBytes, formatNumber, MISSING } from "../../../src/util/format";
+import { DemoLabel } from "../../shell/DemoLabel";
 
 export const meta = {
   title: "DescriptionList",
@@ -45,7 +46,7 @@ export default function DescriptionListSection() {
 function Demo({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-col gap-r4">
-      <p className="text-body-3 font-medium text-fg-muted">{title}</p>
+      <DemoLabel>{title}</DemoLabel>
       {children}
     </div>
   );
