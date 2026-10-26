@@ -4,6 +4,13 @@ All notable changes to `@batthewz/r-ui-renderer`. The ViewSpec format, the publi
 the `r-ui-validate` interface are versioned contracts: a change that can break a document, a
 host or a script is recorded here, and before 1.0 it bumps the minor.
 
+## Unreleased
+
+### Changed
+
+- The peer `@batthewz/r-ui-react-components` is `^0.1.2`, and the contracts are re-derived
+  from that build. Its surface is unchanged, so documents and hosts are unaffected.
+
 ## 0.1.1
 
 ### Added

@@ -1,5 +1,5 @@
 {
-  "library": {"name":"@batthewz/r-ui-react-components","version":"0.1.1"},
+  "library": {"name":"@batthewz/r-ui-react-components","version":"0.1.2"},
   "components": {
     "Accordion": {
       "category": "disclosure",
