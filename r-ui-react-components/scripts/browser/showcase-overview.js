@@ -10,7 +10,7 @@
 //
 // At 1280 (comfortable, fine), then 375, it asserts:
 //   1. the index (`#/overview`) renders no section and links every group the
-//      sidebar's "Components" section lists, in the same order, each card's count
+//      sidebar's category sections list, in the same order, each card's count
 //      matching that group's page; an unknown anchor says so;
 //   2. a group's page (`#/overview/form`) renders that group's sections and no
 //      other's, no boundary tripped, titled "Form" (h1 and document title), its
@@ -58,8 +58,9 @@ async (page) => {
     });
   const sidebarGroups = () =>
     page.evaluate(() => {
-      const group = [...document.querySelectorAll('[role="group"]')].find((g) => g.textContent.trim().startsWith("Components"));
-      return [...(group?.querySelectorAll("a[href]") ?? [])].map((a) => ({
+      // Every group page the sidebar links, across its category sections, in order.
+      const sections = [...document.querySelectorAll(".r-navigation-shell-section[role='group']")];
+      return sections.flatMap((section) => [...section.querySelectorAll('a[href^="#/overview/"]')]).map((a) => ({
         href: a.getAttribute("href"),
         current: a.getAttribute("aria-current"),
       }));

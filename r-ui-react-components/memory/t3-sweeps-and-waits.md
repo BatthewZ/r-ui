@@ -48,3 +48,13 @@ into clocks and conditions, and their copied geometry claims into two sweeps (Oc
 - **One clipping card per floating component.** A shared card is as tall as all its
   triggers, so a small panel from its first row may never leave it. A card barely taller
   than its one trigger makes "reaches past the clip" a real test for every panel.
+- **A probe beside a target needs the target away from the viewport's edges.**
+  `scrollIntoViewIfNeeded` stops as soon as the target is in view, which can be flush with
+  the bottom edge (and, at 375, under the bottom nav); a point 2px past it is then off screen
+  and `elementFromPoint` returns null, a failure that looks like a missing hit area. Centre
+  the target (`scrollIntoView({ block: "center" })`) before probing around it.
+- **A check that finds its subject by the showcase's markup goes stale with the showcase.**
+  Regrouping the sidebar into categories left a check reading one "Components" section
+  (now none), and a demo label that became a `<p>` left a locator for the `div` before a demo.
+  Find showcase parts by their own class or role, and run the checks that read the shell
+  after changing it.

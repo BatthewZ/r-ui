@@ -193,7 +193,7 @@ async (page) =>
       await page.clock.runFor(700);
       if (!(await isOpen(tableAda))) problems.push("toggle: a pressed-open card closed when the pointer left");
       // Outside: the row's label above the table (plain text, nothing to activate).
-      await table.locator("xpath=preceding-sibling::div[1]").click();
+      await table.locator("xpath=preceding-sibling::*[contains(concat(' ', @class, ' '), ' sc-demo-label ')][1]").click();
       if (!(await waitClosed(tableAda, 800))) problems.push("toggle: a press outside left the card open");
 
       // 7. Narrow.

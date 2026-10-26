@@ -168,7 +168,9 @@ async (page) => {
       await noSpill(anchor);
     }
     const coarseToggle = page.locator('[data-sc="password-signin"]').getByRole("button", { name: "Show password", exact: true });
-    await coarseToggle.scrollIntoViewIfNeeded();
+    // Centred: "if needed" can park it on the viewport's bottom edge (under the bottom nav
+    // at 375), where a probe 2px below lands off screen and hits nothing.
+    await coarseToggle.evaluate((button) => button.scrollIntoView({ block: "center" }));
     const hit = await coarseToggle.evaluate((button) => {
       const r = button.getBoundingClientRect();
       const area = getComputedStyle(button, "::before");
