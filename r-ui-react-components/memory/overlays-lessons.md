@@ -66,3 +66,9 @@
   `gap`, which stays until the item is gone. Sequence a two-phase exit by an
   `animation-delay` made of the first phase's duration token, so reduced motion collapses
   both, and let the outer element's animation be the one `afterExit` waits on.
+- **A control taller than the text line beside it bleeds both ways or neither.** A dismiss
+  button pulled into the padding on one block side only still outgrows a one-line card, and
+  the surplus lands on the other side as uneven padding. Multi-line content hides it, so check
+  the title-only case too. Trimming a card's height moves stacked cards' buttons closer:
+  under touch their hit areas need --HIT-MIN between centres, so the stack's gap is derived
+  from the shortest card's height rather than fixed.

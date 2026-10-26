@@ -239,6 +239,13 @@
   background-color: transparent;
   inline-size: min(100% - 2 * var(--R-SIZE-2), var(--MEASURE) * 0.7);
   pointer-events: none;
+  /* Two one-line toasts put their dismiss buttons a toast's height plus this gap
+     apart; under touch the gap grows until that is --HIT-MIN, so neighbouring
+     hit areas never overlap. */
+  --r-overlays-toast-gap: max(
+    var(--R-SIZE-4),
+    var(--HIT-MIN) - var(--BodyText-1-line-height) - 2 * var(--R-SIZE-3) - 2 * var(--BORDER-WIDTH)
+  );
 }
 .r-overlays-toast-region[data-position^="top"] {
   inset-block-start: var(--R-SIZE-2);
@@ -291,7 +298,7 @@
   grid-template-rows: 1fr;
 }
 .r-overlays-toast-slot + .r-overlays-toast-slot .r-overlays-toast {
-  margin-block-start: var(--R-SIZE-4);
+  margin-block-start: var(--r-overlays-toast-gap);
 }
 @keyframes r-overlays-toast-collapse {
   to {

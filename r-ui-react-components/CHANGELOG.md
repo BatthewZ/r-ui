@@ -3,6 +3,13 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
+## Unreleased
+
+### Fixed
+
+- `Toast`: a toast with a title and nothing else has even padding. Its Dismiss button reached into the top padding only, so on one line it stood taller than the text and added space under the title.
+- `Toast`: under touch input, two stacked one-line toasts keep their Dismiss buttons `--HIT-MIN` apart, so neither's hit area reaches over the other's. The gap between toasts (and between the urgent and polite lists) grows past `--R-SIZE-4` only when the toasts are too short for that.
+
 ## 0.1.1
 
 ### Added

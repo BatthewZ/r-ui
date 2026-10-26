@@ -270,7 +270,7 @@ export function ToastProvider({
         <ol aria-live="assertive" className="flex flex-col">
           {assertive}
         </ol>
-        <ol aria-live="polite" className={cn("flex flex-col", assertive.length > 0 && polite.length > 0 && "mt-r4")}>
+        <ol aria-live="polite" className={cn("flex flex-col", assertive.length > 0 && polite.length > 0 && "mt-(--r-overlays-toast-gap)")}>
           {polite}
         </ol>
       </section>
@@ -364,7 +364,7 @@ function ToastItem({ entry, paused, dismissLabel, toneLabel, classNames, onDismi
             label={dismissLabel}
             icon={<X />}
             variant="ghost"
-            className="-me-r5 -mt-r5 shrink-0"
+            className="-my-r5 -me-r5 shrink-0"
             onClick={() => onDismiss(id)}
           />
         </div>
