@@ -100,15 +100,3 @@ export function columnAt(boxes: readonly { id: string; left: number; right: numb
   return best;
 }
 
-/**
- * How fast to scroll toward an edge the pointer is within `edge` px of: 0
- * outside, rising linearly to `max` at the edge (and past it). Negative toward
- * the start.
- */
-export function edgeSpeed(pointer: number, start: number, end: number, edge: number, max: number): number {
-  const zone = Math.min(edge, (end - start) / 3);
-  if (zone <= 0) return 0;
-  if (pointer < start + zone) return -max * Math.min(1, (start + zone - pointer) / zone);
-  if (pointer > end - zone) return max * Math.min(1, (pointer - (end - zone)) / zone);
-  return 0;
-}

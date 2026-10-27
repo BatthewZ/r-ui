@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cardsByColumn, columnAt, edgeSpeed, indexAt, moveItem, positionOf, slotsIn } from "./kanban-model";
+import { cardsByColumn, columnAt, indexAt, moveItem, positionOf, slotsIn } from "./kanban-model";
 
 const COLUMNS = [
   { id: "todo", title: "To do" },
@@ -82,16 +82,5 @@ describe("geometry", () => {
     expect(columnAt(boxes, 115)).toBe("b");
     expect(columnAt(boxes, 900)).toBe("b");
     expect(columnAt([], 50)).toBeNull();
-  });
-
-  it("edgeSpeed is zero in the middle and rises toward each edge", () => {
-    expect(edgeSpeed(500, 0, 1000, 48, 16)).toBe(0);
-    expect(edgeSpeed(0, 0, 1000, 48, 16)).toBe(-16);
-    expect(edgeSpeed(24, 0, 1000, 48, 16)).toBe(-8);
-    expect(edgeSpeed(1000, 0, 1000, 48, 16)).toBe(16);
-    expect(edgeSpeed(1100, 0, 1000, 48, 16)).toBe(16);
-    // A box too small for two full zones gets a third of itself each side.
-    expect(edgeSpeed(50, 0, 90, 48, 16)).toBe(0);
-    expect(edgeSpeed(5, 0, 90, 48, 16)).toBeLessThan(0);
   });
 });

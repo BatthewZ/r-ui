@@ -5,7 +5,6 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
-  useEffect,
   useId,
   useLayoutEffect,
   useMemo,
@@ -14,6 +13,7 @@ import {
 } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
+import { type PressDrag, usePressDrag } from "../../hooks/use-press-drag";
 import { isRtl } from "../../util/direction";
 import { formatNumber } from "../../util/format";
 import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
@@ -24,7 +24,6 @@ import { Badge, IconButton, Skeleton } from "../primitives";
 import {
   cardsByColumn,
   columnAt,
-  edgeSpeed,
   indexAt,
   type KanbanColumn,
   type KanbanItem,
@@ -36,16 +35,6 @@ import {
 } from "./kanban-model";
 
 export type { KanbanColumn, KanbanItem, KanbanMove, KanbanPosition } from "./kanban-model";
-
-/** How far (CSS px) a mouse or pen press travels before it becomes a drag; less is a click. */
-const DRAG_THRESHOLD = 4;
-/** How long a touch rests before it picks a card up; moving first is a scroll. */
-const LONG_PRESS_MS = 400;
-/** How far (CSS px) a resting touch may drift before it counts as a scroll. */
-const LONG_PRESS_SLOP = 10;
-/** The band (CSS px) along a scroller's edge where a drag scrolls it, and the speed at the edge (px per frame). */
-const EDGE_ZONE = 48;
-const EDGE_SPEED = 16;
 
 export interface KanbanLabels {
   /** Describes every card while dragging is possible: how to pick it up, move, drop and cancel. */
@@ -150,50 +139,25 @@ interface Drag {
   target: KanbanPosition;
 }
 
-interface Press {
+/** What a pointer press is about. */
+interface Grab {
   id: string;
-  pointerId: number;
-  touch: boolean;
   card: HTMLElement;
-  x0: number;
-  y0: number;
-  x: number;
-  y: number;
-  active: boolean;
-  /** Where the press sits inside the card, so the preview stays under the same point. */
+}
+
+/** The pointer drag's card, its grab point inside it (so the preview stays under the same point) and the pointer. */
+interface Held {
+  card: HTMLElement;
   offsetX: number;
   offsetY: number;
-  /** The scroller the page scrolls in (an ancestor, else the document). */
-  page: Element | null;
-  timer: number;
-  frame: number;
-  cleanup: () => void;
+  x: number;
+  y: number;
 }
 
 const NONE: readonly string[] = [];
-const FORM_CONTROL = "input, textarea, select, [contenteditable=''], [contenteditable='true']";
 const NARROW = "@max-xl:snap-start @max-xl:basis-[calc(100cqi*0.85)]";
 
 const samePosition = (a: KanbanPosition, b: KanbanPosition) => a.column === b.column && a.index === b.index;
-
-/** The nearest ancestor that scrolls vertically, else the document's scroller. */
-function verticalScroller(from: Element | null): Element | null {
-  for (let el = from?.parentElement ?? null; el; el = el.parentElement) {
-    const overflow = getComputedStyle(el).overflowY;
-    if ((overflow === "auto" || overflow === "scroll") && el.scrollHeight > el.clientHeight) return el;
-  }
-  return document.scrollingElement;
-}
-
-/** Scrolls `el` by `delta` on one axis; whether it moved. */
-function nudge(el: Element, axis: "x" | "y", delta: number): boolean {
-  if (delta === 0) return false;
-  const step = delta > 0 ? Math.max(1, Math.round(delta)) : Math.min(-1, Math.round(delta));
-  const before = axis === "x" ? el.scrollLeft : el.scrollTop;
-  if (axis === "x") el.scrollLeft += step;
-  else el.scrollTop += step;
-  return (axis === "x" ? el.scrollLeft : el.scrollTop) !== before;
-}
 
 /**
  * A board of columns holding cards, moved by pointer, touch or keyboard.
@@ -243,7 +207,6 @@ export function Kanban<T extends KanbanItem>({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLLIElement>(null);
-  const rootRefs = useMemo(() => mergeRefs(rootRef, ref), [ref]);
 
   const [collapsed, setCollapsed] = useControllableState<readonly string[]>({
     value: collapsedProp,
@@ -260,9 +223,9 @@ export function Kanban<T extends KanbanItem>({
     setDragState(next);
   };
   const [announcement, setAnnouncement] = useState("");
-  const press = useRef<Press | null>(null);
+  const held = useRef<Held | null>(null);
 
-  // Window listeners outlive the render that added them; they read the latest props here.
+  // Drag callbacks run from window listeners and timers, after the render that made them; they read the latest props here.
   const latest = useRef({ value, columns, byColumn, folded, labels, onValueChange, cardLabel });
   latest.current = { value, columns, byColumn, folded, labels, onValueChange, cardLabel };
 
@@ -344,152 +307,52 @@ export function Kanban<T extends KanbanItem>({
     return { column, index: Math.min(indexAt(mids, y), slots - 1) };
   };
 
-  const placePreview = (p: Press) => {
-    const preview = previewRef.current;
-    if (!preview) return;
-    preview.style.setProperty("--r-boards-preview-x", String(p.x - p.offsetX));
-    preview.style.setProperty("--r-boards-preview-y", String(p.y - p.offsetY));
+  const placePreview = (h: Held) => {
+    previewRef.current?.style.setProperty("--r-boards-preview-x", String(h.x - h.offsetX));
+    previewRef.current?.style.setProperty("--r-boards-preview-y", String(h.y - h.offsetY));
   };
 
-  const followPointer = (p: Press) => {
-    placePreview(p);
-    const target = pointTarget(p.x, p.y, p.id);
+  const followPointer = ({ payload, x, y }: PressDrag<Grab>) => {
+    const h = held.current;
+    if (h) {
+      h.x = x;
+      h.y = y;
+      placePreview(h);
+    }
+    const target = pointTarget(x, y, payload.id);
     if (target) retarget(target, false);
   };
 
-  /** One frame of edge scrolling: the board sideways, the target column's list and the page vertically. */
-  const autoScroll = (p: Press) => {
-    let moved = false;
-    const scroller = scrollerRef.current;
-    if (scroller && scroller.scrollWidth > scroller.clientWidth) {
-      const r = scroller.getBoundingClientRect();
-      if (p.y >= r.top && p.y <= r.bottom) moved = nudge(scroller, "x", edgeSpeed(p.x, r.left, r.right, EDGE_ZONE, EDGE_SPEED)) || moved;
-    }
-    const target = dragRef.current?.target.column;
-    const list = [...(scroller?.querySelectorAll<HTMLElement>("[data-kanban-list]") ?? [])].find((el) => el.dataset.kanbanList === target);
-    if (list && list.scrollHeight > list.clientHeight) {
-      const r = list.getBoundingClientRect();
-      if (p.x >= r.left && p.x <= r.right) moved = nudge(list, "y", edgeSpeed(p.y, r.top, r.bottom, EDGE_ZONE, EDGE_SPEED)) || moved;
-    }
-    if (p.page) {
-      const isDocument = p.page === document.scrollingElement;
-      const r = isDocument ? { top: 0, bottom: window.innerHeight } : p.page.getBoundingClientRect();
-      moved = nudge(p.page, "y", edgeSpeed(p.y, r.top, r.bottom, EDGE_ZONE, EDGE_SPEED)) || moved;
-    }
-    if (moved) followPointer(p);
-  };
+  const pointer = usePressDrag<Grab>({
+    enabled: movable,
+    onStart: ({ payload: { id, card }, x0, y0, x, y }) => {
+      // A keyboard drag began while this press waited.
+      if (dragRef.current) return false;
+      const r = card.getBoundingClientRect();
+      held.current = { card, offsetX: x0 - r.left, offsetY: y0 - r.top, x, y };
+      return pickUp(id, "pointer");
+    },
+    onMove: followPointer,
+    onEnd: (_, how) => {
+      held.current = null;
+      finish(how);
+    },
+    // The board sideways and the target column's list; the hook adds the page, found from the scroller.
+    scrollers: () => {
+      const target = dragRef.current?.target.column;
+      const lists = scrollerRef.current?.querySelectorAll<HTMLElement>("[data-kanban-list]") ?? [];
+      return [scrollerRef.current, [...lists].find((el) => el.dataset.kanbanList === target)];
+    },
+  });
+  const rootRefs = useMemo(() => mergeRefs(rootRef, ref, pointer.rootRef), [ref, pointer.rootRef]);
 
-  const activate = (p: Press) => {
-    if (!pickUp(p.id, "pointer")) return endPress(p, null);
-    p.active = true;
-    const r = p.card.getBoundingClientRect();
-    p.offsetX = p.x0 - r.left;
-    p.offsetY = p.y0 - r.top;
-    p.page = verticalScroller(rootRef.current);
-    window.getSelection()?.removeAllRanges();
-    try {
-      p.card.setPointerCapture(p.pointerId);
-    } catch {
-      // The pointer is already gone (released between the timer and now); the next event ends the press.
-    }
-    const loop = () => {
-      autoScroll(p);
-      p.frame = requestAnimationFrame(loop);
-    };
-    p.frame = requestAnimationFrame(loop);
-  };
-
-  function endPress(p: Press, how: "drop" | "cancel" | null) {
-    p.cleanup();
-    if (press.current === p) press.current = null;
-    if (how) finish(how);
-  }
-
-  const onCardPointerDown = (event: ReactPointerEvent<HTMLLIElement>, id: string) => {
-    if (!movable || dragRef.current || press.current) return;
-    if (!event.isPrimary || event.button !== 0) return;
-    if (event.target instanceof Element && event.target.closest(FORM_CONTROL)) return;
-    const p: Press = {
-      id,
-      pointerId: event.pointerId,
-      touch: event.pointerType === "touch",
-      card: event.currentTarget,
-      x0: event.clientX,
-      y0: event.clientY,
-      x: event.clientX,
-      y: event.clientY,
-      active: false,
-      offsetX: 0,
-      offsetY: 0,
-      page: null,
-      timer: 0,
-      frame: 0,
-      cleanup: () => {},
-    };
-    const ours = (e: PointerEvent) => e.pointerId === p.pointerId;
-    const onMove = (e: PointerEvent) => {
-      if (!ours(e)) return;
-      p.x = e.clientX;
-      p.y = e.clientY;
-      if (!p.active) {
-        const distance = Math.hypot(p.x - p.x0, p.y - p.y0);
-        // A touch that moves before the long press is a scroll; a mouse that moves far enough is a drag.
-        if (p.touch) {
-          if (distance > LONG_PRESS_SLOP) endPress(p, null);
-          return;
-        }
-        if (distance < DRAG_THRESHOLD) return;
-        activate(p);
-        if (!p.active) return;
-      }
-      followPointer(p);
-    };
-    const onUp = (e: PointerEvent) => {
-      if (!ours(e)) return;
-      if (!p.active) return endPress(p, null);
-      p.x = e.clientX;
-      p.y = e.clientY;
-      followPointer(p);
-      endPress(p, "drop");
-      // The release's click would follow a link or press a button in the card.
-      const swallow = (click: MouseEvent) => {
-        click.preventDefault();
-        click.stopPropagation();
-      };
-      window.addEventListener("click", swallow, { capture: true, once: true });
-      window.setTimeout(() => window.removeEventListener("click", swallow, { capture: true }), 0);
-    };
-    const onCancel = (e: PointerEvent) => {
-      if (ours(e)) endPress(p, p.active ? "cancel" : null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || !p.active) return;
-      e.preventDefault();
-      e.stopPropagation();
-      endPress(p, "cancel");
-    };
-    // A long press would otherwise open the system's menu or start a text selection.
-    const onTouchDefault = (e: Event) => {
-      if (p.touch) e.preventDefault();
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onCancel);
-    window.addEventListener("keydown", onKey, true);
-    window.addEventListener("contextmenu", onTouchDefault, true);
-    window.addEventListener("selectstart", onTouchDefault, true);
-    p.cleanup = () => {
-      window.clearTimeout(p.timer);
-      cancelAnimationFrame(p.frame);
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onCancel);
-      window.removeEventListener("keydown", onKey, true);
-      window.removeEventListener("contextmenu", onTouchDefault, true);
-      window.removeEventListener("selectstart", onTouchDefault, true);
-    };
-    press.current = p;
-    if (p.touch) p.timer = window.setTimeout(() => activate(p), LONG_PRESS_MS);
+  // Pressed on the scroller, not the card, so the page the hook scrolls is found above the board
+  // (from a card it would be that card's own list, which is not the page).
+  const onScrollerPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const card = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-kanban-card]") : null;
+    const id = card?.dataset.kanbanCard;
+    if (!card || id === undefined || dragRef.current) return;
+    pointer.onPointerDown(event, { id, card });
   };
 
   const onCardKeyDown = (event: ReactKeyboardEvent<HTMLLIElement>, id: string) => {
@@ -497,7 +360,7 @@ export function Kanban<T extends KanbanItem>({
     if (event.target !== event.currentTarget) return;
     const current = dragRef.current;
     if (!current) {
-      if (movable && !press.current && (event.key === " " || event.key === "Enter")) {
+      if (movable && (event.key === " " || event.key === "Enter")) {
         event.preventDefault();
         pickUp(id, "keyboard");
       }
@@ -567,17 +430,17 @@ export function Kanban<T extends KanbanItem>({
   const previewing = drag?.mode === "pointer" ? drag.id : null;
   useLayoutEffect(() => {
     const preview = previewRef.current;
-    const p = press.current;
-    if (!previewing || !preview || !p) return;
-    const copy = p.card.cloneNode(true) as HTMLElement;
+    const h = held.current;
+    if (!previewing || !preview || !h) return;
+    const copy = h.card.cloneNode(true) as HTMLElement;
     for (const el of [copy, ...copy.querySelectorAll("[id]")]) el.removeAttribute("id");
     copy.removeAttribute("data-kanban-card");
     copy.removeAttribute("tabindex");
     copy.removeAttribute("aria-describedby");
     copy.removeAttribute("data-drag-source");
     preview.replaceChildren(copy);
-    preview.style.setProperty("--r-boards-preview-w", String(p.card.getBoundingClientRect().width));
-    placePreview(p);
+    preview.style.setProperty("--r-boards-preview-w", String(h.card.getBoundingClientRect().width));
+    placePreview(h);
     if (typeof preview.showPopover === "function" && !preview.matches(":popover-open")) preview.showPopover();
     // Taken once per drag: later moves only reposition it.
   }, [previewing]);
@@ -619,23 +482,6 @@ export function Kanban<T extends KanbanItem>({
     shown?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }, [drag]);
 
-  // Once a touch has picked a card up, its moves drag the card instead of scrolling. The listener
-  // is on the board for its life: added at the long press, it would come after the browser had
-  // already decided this touch's moves cannot be cancelled.
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-    const onTouchMove = (e: TouchEvent) => {
-      if (press.current?.active && e.cancelable) e.preventDefault();
-    };
-    root.addEventListener("touchmove", onTouchMove, { passive: false });
-    return () => {
-      root.removeEventListener("touchmove", onTouchMove);
-      // An unmount mid-press leaves no window listener behind.
-      press.current?.cleanup();
-    };
-  }, []);
-
   // A keyboard drop re-renders the card in its new place (another list, or moved within one),
   // which takes focus from it: give focus back to the card the keys are moving.
   const refocus = useRef<string | null>(null);
@@ -660,6 +506,7 @@ export function Kanban<T extends KanbanItem>({
     >
       <div
         ref={scrollerRef}
+        onPointerDown={onScrollerPointerDown}
         className={cn("r-boards-kanban-scroller", !drag && "@max-xl:snap-x @max-xl:snap-mandatory", classNames?.scroller)}
       >
         {columns.map((column) => {
@@ -736,7 +583,6 @@ export function Kanban<T extends KanbanItem>({
                           data-drag-source={dragging || undefined}
                           data-print="avoid-break"
                           className={cn("r-boards-kanban-card", classNames?.card)}
-                          onPointerDown={(event) => onCardPointerDown(event, item.id)}
                           onKeyDown={(event) => onCardKeyDown(event, item.id)}
                           onBlur={() => onCardBlur(item.id)}
                           // Native drag of a link or image inside would steal the pointer (pointercancel).

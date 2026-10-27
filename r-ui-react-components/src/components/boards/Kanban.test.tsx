@@ -295,6 +295,48 @@ describe("Kanban: pointer", () => {
     expect(onMove).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the preview's corner at the press's offset from the card's", () => {
+    render(<Board />);
+    layOut();
+    // Alpha's box starts at (10, 50): pressed 90 across and 25 down it.
+    fireEvent.pointerDown(card("Alpha"), { ...mouse, clientX: 100, clientY: 75 });
+    fireEvent.pointerMove(window, { ...mouse, clientX: 300, clientY: 120 });
+    const preview = document.querySelector<HTMLElement>(".r-boards-kanban-preview");
+    expect(preview?.style.getPropertyValue("--r-boards-preview-x")).toBe("210");
+    expect(preview?.style.getPropertyValue("--r-boards-preview-y")).toBe("95");
+    fireEvent.pointerMove(window, { ...mouse, clientX: 320, clientY: 140 });
+    expect(preview?.style.getPropertyValue("--r-boards-preview-x")).toBe("230");
+    expect(preview?.style.getPropertyValue("--r-boards-preview-y")).toBe("115");
+    fireEvent.keyDown(window, { key: "Escape" });
+  });
+
+  it("edge-scrolls the target column's list and retargets as its cards pass under a still pointer", () => {
+    vi.useFakeTimers();
+    const onMove = vi.fn();
+    render(<Board onMove={onMove} />);
+    layOut();
+    // Doing's list scrolls 100px into its cards; its cards move with it.
+    const list = column(/^Doing/).querySelector<HTMLElement>("[data-kanban-list]") as HTMLElement;
+    let top = 100;
+    Object.defineProperties(list, {
+      scrollHeight: { value: 1000 },
+      clientHeight: { value: 600 },
+      scrollTop: { get: () => top, set: (v: number) => (top = Math.max(0, v)) },
+    });
+    list.getBoundingClientRect = () => ({ left: 220, top: 0, right: 420, bottom: 600, width: 200, height: 600, x: 220, y: 0, toJSON: () => ({}) }) as DOMRect;
+    list.querySelectorAll<HTMLElement>("[data-kanban-card]").forEach((li, i) => {
+      li.getBoundingClientRect = () => ({ left: 230, top: 50 + i * 60 - top, right: 410, bottom: 100 + i * 60 - top, width: 180, height: 50, x: 230, y: 50 + i * 60 - top, toJSON: () => ({}) }) as DOMRect;
+    });
+    fireEvent.pointerDown(card("Alpha"), { ...mouse, clientX: 100, clientY: 75 });
+    // Near the list's top edge, below Charlie's midpoint (-25) and above Delta's (35).
+    fireEvent.pointerMove(window, { ...mouse, clientX: 300, clientY: 20 });
+    act(() => vi.advanceTimersByTime(1000));
+    expect(top).toBe(0);
+    fireEvent.pointerUp(window, { ...mouse, clientX: 300, clientY: 20 });
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onMove.mock.calls[0]?.[1]).toEqual({ id: "a", from: { column: "todo", index: 0 }, to: { column: "doing", index: 0 } });
+  });
+
   it("the release's click after a drag is swallowed; a plain click on a link inside still works", async () => {
     const clicked = vi.fn((event: MouseEvent) => event.preventDefault());
     render(<Board />);
