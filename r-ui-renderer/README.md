@@ -28,7 +28,7 @@ not render.
 and watch it render, replay it as a stream, and read the validator's issues. It is built from
 the latest release.
 
-> Status: pre-release (0.1.2). See [CHANGELOG.md](./CHANGELOG.md).
+> Status: pre-release (0.1.3). See [CHANGELOG.md](./CHANGELOG.md).
 
 ## Install
 

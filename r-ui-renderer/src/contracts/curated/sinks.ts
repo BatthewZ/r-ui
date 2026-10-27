@@ -122,4 +122,6 @@ export const DROPPED_PROPS: CuratedTable<"droppedProps"> = {
   ],
   // Token predicates are functions; the defaults cover 9, A and *.
   MaskedInput: ["tokens"],
+  // Something on screen to sit beside: a document cannot point at one; a Popover.Trigger places it.
+  Popover: ["anchor"],
 };

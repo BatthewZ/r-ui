@@ -11,7 +11,7 @@ colours, KPI sizing).
 **[See every component live](https://batthewz.github.io/r-ui/showcase/)** in the showcase,
 built from the latest release, with theme, density and input switchable from its View panel.
 
-> Status: pre-release (0.1.3). Every group below is built, tested, and exercised by the
+> Status: pre-release (0.1.4). Every group below is built, tested, and exercised by the
 > showcase's pages; see [CHANGELOG.md](./CHANGELOG.md) for what each component does and the
 > known gaps.
 

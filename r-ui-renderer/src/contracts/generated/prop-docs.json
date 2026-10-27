@@ -416,8 +416,13 @@
     {"name":"locale","description":"BCP 47 tag for every name, date and time."},
     {"name":"maxEventsPerDay","description":"Month view: the events a day shows before \"+n more\" (that row included)."},
     {"name":"now","description":"The clock: today, and the time grid's now line."},
+    {"name":"onEventChange","description":"An event was moved or resized, with where it would go, in `CalendarEvent`'s own terms."},
     {"name":"onEventClick","description":"An event was pressed."},
+    {"name":"onSelectionChange","description":"A range was picked, or cleared (`null`: Escape, or opening or moving an event, which abandons a pick)."},
+    {"name":"renderSelection","description":"Your own surface for the picked range, whatever it is: a `Popover` at `anchor`, a `Drawer`, a `Dialog`, an inline form."},
     {"name":"scrollToHour","description":"Week and day views: the hour scrolled to the top when the grid mounts."},
+    {"name":"selection","description":"The picked range (controlled), drawn until it is cleared: keep a range on screen while your own form for it is open, then set `null`."},
+    {"name":"slotMinutes","description":"The time grid's slot, and the snap for picking, moving and resizing, in minutes."},
     {"name":"view","description":"The view shown (controlled)."},
     {"name":"views","description":"The views the switch offers, in its order."},
     {"name":"weekStartsOn","description":"First day of the week, 0 = Sunday."}
@@ -755,6 +760,9 @@
     {"name":"start","description":"Leading adornment: an icon, a prefix (\"https://\"), a unit."},
     {"name":"strength","description":"A strength meter under the field while it holds text."},
     {"name":"visible","description":"Shows the password as text."}
+  ],
+  "Popover": [
+    {"name":"anchor","description":"Place the panel beside this instead of beside a `Popover.Trigger`: an element, or a `PopoverAnchor` (a range picked on a calendar, a text selection)."}
   ],
   "Popover.Close": [
     {"name":"asChild","description":"Put the close behaviour on your own single child instead of a `Button`."},

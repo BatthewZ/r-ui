@@ -21,7 +21,7 @@
     },
     "r-ui-react-components": {
       "name": "@batthewz/r-ui-react-components",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "bin": {
         "r-ui-domain-contrast": "./scripts/verify-domain-contrast.mjs",
       },
@@ -90,7 +90,7 @@
     },
     "r-ui-renderer": {
       "name": "@batthewz/r-ui-renderer",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "bin": {
         "r-ui-validate": "./dist/cli/r-ui-validate.js",
       },
@@ -123,7 +123,7 @@
         "zod": "4.6.7",
       },
       "peerDependencies": {
-        "@batthewz/r-ui-react-components": "^0.1.3",
+        "@batthewz/r-ui-react-components": "^0.1.4",
         "lucide-react": ">=0.500.0 <2.0.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",

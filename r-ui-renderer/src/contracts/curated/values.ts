@@ -20,7 +20,8 @@ export const DATE_PROPS: CuratedTable<"dateProps"> = {
   },
   DatePicker: { value: "date", defaultValue: "date", min: "date", max: "date" },
   DateRangePicker: { value: "dateRange", defaultValue: "dateRange", min: "date", max: "date", now: "datetime" },
-  EventCalendar: { date: "date", defaultDate: "date", now: "datetime" },
+  // A picked range keeps its `allDay`; its ends are dates or date-times as written.
+  EventCalendar: { date: "date", defaultDate: "date", now: "datetime", selection: "dateRange", defaultSelection: "dateRange" },
   // A dateRange filter's value is a range of Dates; other kinds' values are not ISO ranges and pass as they are.
   FilterBar: {
     now: "datetime",
@@ -132,8 +133,10 @@ export const EVENT_VALUES: CuratedTable<"eventValue"> = {
   RangeCalendar: { onValueChange: "dateRange", onMonthChange: "date" },
   DatePicker: { onValueChange: "date" },
   DateRangePicker: { onValueChange: "dateRange" },
-  // The pressed event as the document wrote it (its times are text); a Date in one would be an instant.
-  EventCalendar: { onDateChange: "date", onEventClick: "datetime" },
+  // The pressed event as the document wrote it (its times are text); a Date in one would be an
+  // instant. A pick or a change says its ends as instants (a timed range keeps its times; an
+  // all-day one, with `allDay`, is local midnights, which the calendar reads back as those days).
+  EventCalendar: { onDateChange: "date", onEventClick: "datetime", onSelectionChange: "datetime", onEventChange: "datetime" },
   DataTable: { onSelectedKeysChange: "set", onExpandedKeysChange: "set", onVisibleColumnsChange: "set" },
   VirtualizedTable: { onSelectedKeysChange: "set", onVisibleColumnsChange: "set" },
 };

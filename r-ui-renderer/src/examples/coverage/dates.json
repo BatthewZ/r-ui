@@ -2,7 +2,7 @@
   "version": 2,
   "title": "Coverage: dates and times",
   "description": "Calendars, date and range pickers and time inputs, as a meeting-room booking screen.",
-  "state": { "day": "2026-10-23", "month": "2026-10-01", "holiday": null, "calendarView": "week", "booking": null },
+  "state": { "day": "2026-10-23", "month": "2026-10-01", "holiday": null, "calendarView": "week", "booking": null, "pick": null },
   "root": {
     "component": "Container",
     "props": { "width": "page", "gutter": true, "className": "py-r2" },
@@ -58,7 +58,10 @@
               ],
               "onDateChange": { "action": "setState", "payload": { "path": "state.day", "value": { "$ref": "event.value" } } },
               "onViewChange": { "action": "setState", "payload": { "path": "state.calendarView", "value": { "$ref": "event.value" } } },
-              "onEventClick": { "action": "setState", "payload": { "path": "state.booking", "value": { "$ref": "event.value.id" } } }
+              "onEventClick": { "action": "setState", "payload": { "path": "state.booking", "value": { "$ref": "event.value.id" } } },
+              "selection": { "$ref": "state.pick" },
+              "slotMinutes": 15,
+              "onSelectionChange": { "action": "setState", "payload": { "path": "state.pick", "value": { "$ref": "event.value" } } }
             }
           },
           {

@@ -4,6 +4,18 @@ All notable changes to `@batthewz/r-ui-renderer`. The ViewSpec format, the publi
 the `r-ui-validate` interface are versioned contracts: a change that can break a document, a
 host or a script is recorded here, and before 1.0 it bumps the minor.
 
+## 0.1.3
+
+### Added
+
+- `EventCalendar` picking: a document may set `selection` (and `defaultSelection`) as a range of ISO dates or date-times with `allDay`, and `onSelectionChange` reports a pick as `{ start, end, allDay }` of ISO date-times (an all-day pick as local midnights, which `selection` reads back as those days), or `null` when it is cleared. `slotMinutes` sets the time grid's slots.
+- `EventCalendar` editing: `onEventChange` reports an event moved or resized as `{ event, kind, start, end, allDay }`, the times as ISO date-times; an event's `editable: false` keeps it put. The calendar never changes `events`: a document updates its own.
+- `renderSelection` and `Popover`'s `anchor` take code or something on screen and are not a document's: a document answers a pick with `onSelectionChange` (an action, a dialog).
+
+### Changed
+
+- The peer `@batthewz/r-ui-react-components` is `^0.1.4`, the first release with picking and editing, and the contracts are re-derived from that build.
+
 ## 0.1.2
 
 ### Added
