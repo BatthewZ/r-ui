@@ -16,6 +16,7 @@ import { DocumentTitleProvider, useDocumentTitle } from "../../src/hooks/use-doc
 import { categoryIndex, sectionIndex } from "../registry";
 import { CommandMenu } from "./CommandMenu";
 import { groupIcon } from "./group-icons";
+import { Logo } from "./Logo";
 import { href, useHashRoute } from "./router";
 import { groupTitle, resolveOverview } from "./sections";
 import { ViewBridge } from "./ViewBridge";
@@ -92,7 +93,7 @@ export function App() {
         <AppShell>
           <ShellNav current={current}>
             <AppShell.Sidebar label="Showcase">
-              <AppShell.Brand href={href(FALLBACK)} mark={<span className="font-mono">r</span>}>
+              <AppShell.Brand href={href(FALLBACK)} mark={<Logo />}>
                 r-ui <span className="font-normal text-fg-muted">showcase</span>
               </AppShell.Brand>
               <AppShell.SidebarSection title="Pages">{navItems}</AppShell.SidebarSection>
@@ -108,8 +109,8 @@ export function App() {
           </ShellNav>
           <AppShell.Header className="sc-topbar">
             <a className="sc-home md:hidden" href={href(FALLBACK)}>
-              <span className="sc-home-mark" aria-hidden>
-                r
+              <span className="sc-home-mark">
+                <Logo />
               </span>
               r-ui <span className="font-normal text-fg-muted">showcase</span>
             </a>

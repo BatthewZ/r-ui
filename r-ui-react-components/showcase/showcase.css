@@ -48,7 +48,10 @@
     border-radius: var(--RADIUS-MD);
     background: var(--C-PRIMARY);
     color: var(--C-TEXT-ON-PRIMARY);
-    font-family: var(--FONT-MONO);
+  }
+  .sc-home-mark > svg {
+    inline-size: var(--ICON);
+    block-size: var(--ICON);
   }
 
   /* ── View panel: a library Popover holding the library switchers ──────── */
