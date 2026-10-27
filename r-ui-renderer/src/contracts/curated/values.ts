@@ -20,6 +20,7 @@ export const DATE_PROPS: CuratedTable<"dateProps"> = {
   },
   DatePicker: { value: "date", defaultValue: "date", min: "date", max: "date" },
   DateRangePicker: { value: "dateRange", defaultValue: "dateRange", min: "date", max: "date", now: "datetime" },
+  EventCalendar: { date: "date", defaultDate: "date", now: "datetime" },
   // A dateRange filter's value is a range of Dates; other kinds' values are not ISO ranges and pass as they are.
   FilterBar: {
     now: "datetime",
@@ -40,6 +41,8 @@ export const DATE_PROPS: CuratedTable<"dateProps"> = {
  * (a bare date as a local calendar date), so the renderer leaves them alone.
  */
 export const DATES_READ_AS_TEXT: { readonly [name: string]: readonly string[] } = {
+  // An instant, or `YYYY-MM-DD` for an all-day event (its `end` the last day).
+  EventCalendar: ["events[].start", "events[].end"],
   Timeline: ["events[].time"],
   ActivityFeed: ["items[].time"],
 };
@@ -129,6 +132,8 @@ export const EVENT_VALUES: CuratedTable<"eventValue"> = {
   RangeCalendar: { onValueChange: "dateRange", onMonthChange: "date" },
   DatePicker: { onValueChange: "date" },
   DateRangePicker: { onValueChange: "dateRange" },
+  // The pressed event as the document wrote it (its times are text); a Date in one would be an instant.
+  EventCalendar: { onDateChange: "date", onEventClick: "datetime" },
   DataTable: { onSelectedKeysChange: "set", onExpandedKeysChange: "set", onVisibleColumnsChange: "set" },
   VirtualizedTable: { onSelectedKeysChange: "set", onVisibleColumnsChange: "set" },
 };

@@ -41,6 +41,7 @@ export const SINK_FINDINGS: { readonly [finding: string]: readonly SinkClassific
   // Markdown images load only under the host's allowlist, which a document cannot set.
   "components/content/Markdown.tsx url src={node.src}": [{ component: "Markdown", prop: "imageAllowlist" }],
   "components/content/Markdown.tsx url src={src}": [{ component: "Markdown", prop: "imageAllowlist" }],
+  "components/dates/event-parts.tsx url href={href}": [{ component: "EventCalendar", prop: "events[].href" }],
   "components/data/Timeline.tsx url src={actor.avatar}": [{ component: "Timeline", prop: "events[].actor.avatar" }],
   "components/data/Timeline.tsx url src={who.avatar}": [{ component: "ActivityFeed", prop: "items[].actor.avatar" }],
   "components/form/AvatarUpload.tsx url src={ownUrl}": [{ excluded: "AvatarUpload" }],

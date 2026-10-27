@@ -11,6 +11,7 @@ import type { CuratedTable } from "./table";
 
 /** URLs a document's value becomes (scheme allowlist), beyond the universal names. */
 export const URL_PROPS: CuratedTable<"urlProps"> = {
+  EventCalendar: ["events[].href"],
   Testimonial: ["sourceUrl"],
   TreeView: ["items[].href"],
 };

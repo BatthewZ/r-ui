@@ -6,10 +6,19 @@ host or a script is recorded here, and before 1.0 it bumps the minor.
 
 ## Unreleased
 
+### Added
+
+- `EventCalendar`: a document may show events by month, week, day or agenda. `date` and
+  `defaultDate` are ISO dates and `now` an ISO date-time; an event's `start` and `end` stay
+  text, an instant or a `YYYY-MM-DD` all-day date, which the library reads itself. An event's
+  `href` passes the same scheme allowlist as `Link`'s, and a refused one is dropped with
+  `refused-url`. `onDateChange` reports the day as `YYYY-MM-DD`, `onViewChange` the view and
+  `onEventClick` the pressed event. The dates coverage document uses it.
+
 ### Changed
 
-- The peer `@batthewz/r-ui-react-components` is `^0.1.2`, and the contracts are re-derived
-  from that build. Its surface is unchanged, so documents and hosts are unaffected.
+- The peer `@batthewz/r-ui-react-components` is `^0.1.3`, the first release with
+  `EventCalendar`, and the contracts are re-derived from that build.
 
 ## 0.1.1
 

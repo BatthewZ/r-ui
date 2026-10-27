@@ -1,6 +1,6 @@
 {
   "name": "@batthewz/r-ui-react-components",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "description": "React 19 component library for the r-ui design system. Pairs with @batthewz/r-ui-css.",
   "sideEffects": [

@@ -3,7 +3,7 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
-## Unreleased
+## 0.1.3
 
 ### Added
 

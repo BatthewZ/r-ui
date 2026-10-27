@@ -408,6 +408,20 @@
   "ErrorSummary": [
     {"name":"title","description":"This summary's own headline (rich content); wins over `labels.title`."}
   ],
+  "EventCalendar": [
+    {"name":"date","description":"The active day (controlled; a calendar date, local midnight): the views' tab stop, and the day whose month, week or day is shown."},
+    {"name":"defaultDate","description":"Omitted: today."},
+    {"name":"events","description":"The events to show."},
+    {"name":"loading","description":"Events are loading: the body is busy and says so."},
+    {"name":"locale","description":"BCP 47 tag for every name, date and time."},
+    {"name":"maxEventsPerDay","description":"Month view: the events a day shows before \"+n more\" (that row included)."},
+    {"name":"now","description":"The clock: today, and the time grid's now line."},
+    {"name":"onEventClick","description":"An event was pressed."},
+    {"name":"scrollToHour","description":"Week and day views: the hour scrolled to the top when the grid mounts."},
+    {"name":"view","description":"The view shown (controlled)."},
+    {"name":"views","description":"The views the switch offers, in its order."},
+    {"name":"weekStartsOn","description":"First day of the week, 0 = Sunday."}
+  ],
   "FeatureGrid": [
     {"name":"columns","description":"Column counts by the GRID's own width (default one, two from `@xl`, three from `@4xl`)."},
     {"name":"gap","description":"Space between items (default `r1` plain, `r2` card)."},
