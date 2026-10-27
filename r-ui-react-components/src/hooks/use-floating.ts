@@ -198,7 +198,10 @@ export function useFloating(config: UseFloatingConfig = {}): UseFloatingReturn {
 
   const middleware = [
     offsetBy(({ elements }) => referenceGap(elements.reference, elements.floating, offset)),
-    flip(),
+    // The other side first; then, if neither side of the anchor has room (a panel set
+    // beside a narrow pick on a phone), below or above it, so it never sits off screen
+    // where another side fits.
+    flip({ fallbackAxisSideDirection: "end" }),
     shift(({ elements }) => ({ padding: edgeGap(elements.floating) })),
     ...(arrowRef ? [arrow({ element: arrowRef })] : []),
     // Last, so it judges the final position. A fixed top-layer panel follows its

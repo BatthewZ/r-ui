@@ -437,6 +437,7 @@ export function EventMonthView({
                             key={kind}
                             aria-hidden
                             data-draft={kind}
+                            data-selection-piece={kind === "selection" ? "" : undefined}
                             data-continues-before={band.before ? "" : undefined}
                             data-continues-after={band.after ? "" : undefined}
                             style={laneStyle(band.col, band.span, 0)}

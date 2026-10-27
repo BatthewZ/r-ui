@@ -6,6 +6,7 @@ import {
   type RefObject,
   useContext,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
 } from "react";
@@ -52,13 +53,31 @@ function usePopover(part: string) {
   return ctx;
 }
 
+/**
+ * Something on screen a panel can sit beside without being its trigger: a box
+ * measured each time the panel is placed. `contextElement` is an element inside
+ * whatever scrolls it, so the panel follows that scrolling.
+ */
+export interface PopoverAnchor {
+  getBoundingClientRect: () => DOMRect;
+  contextElement?: Element;
+}
+
 export interface PopoverProps extends OpenStateProps {
   /** @default "bottom" */
   placement?: Placement;
+  /**
+   * Place the panel beside this instead of beside a `Popover.Trigger`: an
+   * element, or a `PopoverAnchor` (a range picked on a calendar, a text
+   * selection). Use it with `open`, and name the panel with `aria-label`, as no
+   * trigger names it. Focus still moves in on open and goes back where it was
+   * on close.
+   */
+  anchor?: Element | PopoverAnchor;
   children: ReactNode;
 }
 
-function PopoverRoot({ open: openProp, defaultOpen = false, onOpenChange, placement = "bottom", children }: PopoverProps) {
+function PopoverRoot({ open: openProp, defaultOpen = false, onOpenChange, placement = "bottom", anchor, children }: PopoverProps) {
   const [open, setOpen] = useControllableState({ value: openProp, defaultValue: defaultOpen, onChange: onOpenChange });
   const contentId = useId();
   const [triggerId, registerTrigger] = useRegisteredId();
@@ -67,6 +86,10 @@ function PopoverRoot({ open: openProp, defaultOpen = false, onOpenChange, placem
   const present = useExitPresence(open, panelRef, topLayerExit);
   // Positioned and promoted for as long as it is on screen, exit included.
   const floating = useFloating({ placement, arrowRef, open: present, onOpenChange: setOpen });
+  const { setReference } = floating.refs;
+  useLayoutEffect(() => {
+    if (anchor) setReference(anchor);
+  }, [anchor, setReference]);
 
   // No `useClick`: it toggles from floating-ui's `open`, which stays true through
   // the exit, so a press on the trigger mid-exit would close instead of reopen.

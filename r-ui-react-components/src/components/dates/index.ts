@@ -4,7 +4,7 @@
 // (date-core.ts); a time of day is wall-clock `HH:mm` (time-core.ts).
 export { Calendar, type CalendarProps } from "./Calendar";
 export { type CalendarLabels, type CalendarSlot, DEFAULT_CALENDAR_LABELS } from "./calendar-base";
-export { EventCalendar, type EventCalendarProps } from "./EventCalendar";
+export { EventCalendar, type EventCalendarProps, type EventCalendarSelection } from "./EventCalendar";
 export { type CalendarEvent, type EventCalendarView, type EventTime } from "./event-core";
 export { type CalendarEventChange, type CalendarRange, type SlotMinutes } from "./event-edit";
 export { DEFAULT_EVENT_CALENDAR_LABELS, type EventCalendarLabels, type EventCalendarSlot } from "./event-parts";

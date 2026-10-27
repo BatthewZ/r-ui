@@ -1,11 +1,22 @@
 "use client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type ComponentPropsWithRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  type ComponentPropsWithRef,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
+import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 import { SegmentedControl } from "../form";
+import type { PopoverAnchor } from "../overlays";
 import { Button, IconButton } from "../primitives";
 import { addDays, dateFormatter, isSameDay, monthLabel, resolveLocale, startOfDay, type Weekday, weekStartFor } from "./date-core";
 import { EventAgenda } from "./EventAgenda";
@@ -22,6 +33,19 @@ import { type CalendarEventChange, type CalendarRange, sameRange, type SlotMinut
 import { DEFAULT_EVENT_CALENDAR_LABELS, type EventCalendarLabels, type EventCalendarSlot, type EventViewProps } from "./event-parts";
 import { EventMonthView } from "./EventMonthView";
 import { EventTimeGrid } from "./EventTimeGrid";
+
+/** What `renderSelection` is given while a picked range is on screen. */
+export interface EventCalendarSelection {
+  range: CalendarRange;
+  /**
+   * Where the range is drawn: its last piece (the end of the range), measured
+   * each time it is read, so a panel beside it follows scrolling. Give it to a
+   * `Popover`'s `anchor`, or ignore it for a drawer or a dialog.
+   */
+  anchor: PopoverAnchor;
+  /** Clears the pick (`onSelectionChange(null)`), as Escape does: for a Cancel, or a panel closing. */
+  clear: () => void;
+}
 
 export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "children" | "onChange" | "defaultValue"> {
   /** The events to show. The calendar never changes them: it reports picks and changes. */
@@ -86,6 +110,14 @@ export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "
   onEventChange?: (change: CalendarEventChange) => void;
   /** The time grid's slot, and the snap for picking, moving and resizing, in minutes. @default 30 */
   slotMinutes?: SlotMinutes;
+  /**
+   * Your own surface for the picked range, whatever it is: a `Popover` at
+   * `anchor`, a `Drawer`, a `Dialog`, an inline form. Rendered inside the
+   * calendar (so it takes its density) while the picked range is drawn on
+   * screen, and not while a new one is being picked or when the range is off
+   * the period shown. The calendar renders nothing of its own here.
+   */
+  renderSelection?: (selection: EventCalendarSelection) => ReactNode;
   labels?: LabelsProp<EventCalendarLabels>;
   classNames?: SlotClassNames<EventCalendarSlot>;
 }
@@ -153,9 +185,11 @@ export function EventCalendar({
   onSelectionChange,
   onEventChange,
   slotMinutes = 30,
+  renderSelection,
   labels: labelsProp,
   classNames,
   className,
+  ref,
   ...props
 }: EventCalendarProps) {
   const labels = useLabels("EventCalendar", DEFAULT_EVENT_CALENDAR_LABELS, labelsProp);
@@ -210,6 +244,30 @@ export function EventCalendar({
   const period = periodOf(view, date, weekStart);
   const title = periodTitle(view, date, period, locale);
 
+  // Where the picked range is drawn now: its last piece, or none (not drawn here,
+  // or giving way to a pick under way). Watched in the DOM, as a view redraws it
+  // without the calendar rendering. Only for `renderSelection`.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [pickedPiece, setPickedPiece] = useState<Element | null>(null);
+  const watchPick = Boolean(renderSelection);
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!watchPick || !root) return setPickedPiece(null);
+    const find = () => {
+      const pieces = root.querySelectorAll("[data-selection-piece]");
+      const last = pieces.item(pieces.length - 1);
+      setPickedPiece((was) => (was === last ? was : last));
+    };
+    find();
+    const observer = new MutationObserver(find);
+    observer.observe(root, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-selection-piece"] });
+    return () => observer.disconnect();
+  }, [watchPick]);
+  const anchor = useMemo<PopoverAnchor | null>(
+    () => (pickedPiece ? { getBoundingClientRect: () => pickedPiece.getBoundingClientRect(), contextElement: pickedPiece } : null),
+    [pickedPiece],
+  );
+
   // A pick is a half-made "add": turning to an event (opening it, moving it) abandons it.
   const dropPick = () => {
     if (onSelectionChange && selection) setSelection(null);
@@ -256,6 +314,7 @@ export function EventCalendar({
       role="group"
       aria-label={props["aria-labelledby"] ? undefined : labels.region}
       {...props}
+      ref={mergeRefs(ref, rootRef)}
       // `minmax(0, 1fr)`: an `auto` column would grow to the toolbar's min-content
       // (the view switch) and push every view past a narrow calendar.
       className={cn("r-dates-event-calendar grid min-w-0 grid-cols-[minmax(0,1fr)] gap-r4", className)}
@@ -318,6 +377,7 @@ export function EventCalendar({
           <EventTimeGrid {...shared} scrollToHour={Math.min(23, Math.max(0, Math.floor(scrollToHour)))} />
         )}
       </div>
+      {renderSelection && selection && anchor && renderSelection({ range: selection, anchor, clear: () => setSelection(null) })}
     </div>
   );
 }

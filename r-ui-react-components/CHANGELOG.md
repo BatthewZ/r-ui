@@ -12,6 +12,13 @@ tokens or the public surface are versioned events and are recorded here.
   - `onEventChange`: an event dragged to another time or day, or its end dragged (a timed event's bottom edge, an all-day event's last day), reports where it would go; in the week and day views the keyboard picks an event up with Space, moves it with the arrows and changes its end with Shift and an arrow. An event with `editable: false` stays put.
   - `slotMinutes` (15, 30 or 60) sets the time grid's slots and the snap for picking, moving and resizing.
   - Ranges and changes come as `CalendarRange` / `CalendarEventChange`, in `CalendarEvent`'s own terms (an all-day end is the last day), so they write straight back into `events`.
+  - `renderSelection`: your own surface for the picked range, whatever it is (a popover at the pick, a drawer, a dialog, an inline form). It is given the range, an `anchor` where the range is drawn (its last piece, measured each time it is read, so a panel beside it follows scrolling) and `clear`. It is shown while the range is drawn, and not while a new one is being picked or when the range is off the period shown. The calendar renders nothing of its own there.
+  - A new press replaces the picked range on screen the moment it lands (the old range comes back if the press comes to nothing), and opening or moving an event clears it.
+- `Popover` takes `anchor`: an element, or a `PopoverAnchor` (a box measured on demand, with an optional `contextElement` whose scrolling it follows), to sit beside instead of a `Popover.Trigger`. Name the panel with `aria-label`; focus moves in on open and back where it was on close.
+
+### Changed
+
+- Floating panels (popovers, menus, tooltips, pickers) fall back to below, then above, their anchor when neither side of a side placement has room, so a panel set beside something narrow on a phone stays on screen.
 
 ## 0.1.3
 

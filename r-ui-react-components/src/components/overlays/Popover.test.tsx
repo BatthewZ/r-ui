@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useMemo, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { stubPopover } from "./overlay-stubs.test.helpers";
@@ -216,5 +217,40 @@ describe("Popover", () => {
     } finally {
       popover.restore();
     }
+  });
+});
+
+describe("Popover with an anchor", () => {
+  function Anchored({ measure }: { measure: () => DOMRect }) {
+    const [open, setOpen] = useState(false);
+    // A box on screen that is not the trigger (a picked range, a text selection).
+    const anchor = useMemo(() => ({ getBoundingClientRect: measure }), [measure]);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>
+          Pick
+        </button>
+        <Popover open={open} onOpenChange={setOpen} anchor={anchor}>
+          <Popover.Content aria-label="New booking">
+            <button type="button">Add</button>
+          </Popover.Content>
+        </Popover>
+      </>
+    );
+  }
+
+  it("opens beside it with no trigger, named by its own label, and hands focus back on Escape", async () => {
+    const user = userEvent.setup();
+    const measure = vi.fn(() => new DOMRect(40, 60, 120, 24));
+    render(<Anchored measure={measure} />);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Pick" }));
+    const panel = await screen.findByRole("dialog", { name: "New booking" });
+    // Placing the panel measures the anchor (jsdom lays nothing out; where it lands is a browser check's).
+    await waitFor(() => expect(measure).toHaveBeenCalled());
+    await waitFor(() => expect(within(panel).getByRole("button", { name: "Add" })).toHaveFocus());
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pick" })).toHaveFocus());
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

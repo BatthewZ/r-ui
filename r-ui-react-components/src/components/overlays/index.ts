@@ -4,6 +4,7 @@
 export { Tooltip, type TooltipProps } from "./Tooltip";
 export {
   Popover,
+  type PopoverAnchor,
   type PopoverCloseProps,
   type PopoverContentProps,
   type PopoverProps,

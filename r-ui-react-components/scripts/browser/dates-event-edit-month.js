@@ -62,7 +62,14 @@ async (page) => {
           text: c.textContent.replace(/\s+/g, " ").trim(),
           ...box(c),
         }));
-      return { cells, drafts, chips, dialogs: root.querySelectorAll('[role="dialog"]').length };
+      // The day panel by its own class: the demo's booking panel (at a pick) is a dialog too.
+      return {
+        cells,
+        drafts,
+        chips,
+        dialogs: root.querySelectorAll(".r-dates-month-panel").length,
+        booking: Boolean(root.querySelector('[data-sc="event-calendar-edit-panel"]')),
+      };
     }, EDIT);
   /** Whether `b` covers exactly the cells from `from` to `to` in one week (±1px). */
   const covers = (b, cells, from, to) =>
@@ -134,31 +141,37 @@ async (page) => {
     if (!afterPick.startsWith(want2022)) problems.push(`pick: the state reads "${afterPick}", expected "${want2022}"`);
     if (selected.length !== 1 || !covers(selected[0], b.cells, "2026-10-20", "2026-10-22")) problems.push(`pick: the picked range is drawn as ${selected.length} band(s), ${fmt(selected[0])}`);
     if (b.dialogs !== 0) problems.push("pick: the drag's release opened a day panel");
+    if (!b.booking) problems.push("pick: the app's booking panel did not open at the picked days");
     summary.pick = "20–22";
 
     // ── 3. a press opens the panel; New event; Escape ───────────────────────
     await cell("2026-10-27").click({ position: { x: 8, y: 6 } });
-    await page.waitForFunction((EDIT) => document.querySelector(`${EDIT} [role="dialog"]`)?.matches(":popover-open"), EDIT, { timeout: 2000 });
+    await page.waitForFunction((EDIT) => document.querySelector(`${EDIT} .r-dates-month-panel`)?.matches(":popover-open"), EDIT, { timeout: 2000 });
     const panelName = await page.evaluate((EDIT) => {
-      const d = document.querySelector(`${EDIT} [role="dialog"]`);
+      const d = document.querySelector(`${EDIT} .r-dates-month-panel`);
       return document.getElementById(d.getAttribute("aria-labelledby"))?.textContent;
     }, EDIT);
     if (!/27/.test(panelName ?? "")) problems.push(`panel: a press on 27 October opened "${panelName}"`);
-    await page.locator(`${EDIT} [role="dialog"]`).getByRole("button", { name: "New event" }).click();
-    // Bounded, and not the verdict: the assertions below name what is wrong if it never settles.
+    await page.locator(`${EDIT} .r-dates-month-panel`).getByRole("button", { name: "New event" }).click();
+    // New event picks the 27th: the day panel goes and the app's booking panel opens at the
+    // pick, with focus in it. Bounded, and not the verdict: the assertions below say what is wrong.
+    const inBooking = (EDIT) => Boolean(document.activeElement?.closest(`${EDIT} [data-sc="event-calendar-edit-panel"]`));
     await page
-      .waitForFunction((EDIT) => document.activeElement?.dataset?.day === "2026-10-27" && !document.querySelector(`${EDIT} [role="dialog"]`), EDIT, { timeout: 2000 })
+      .waitForFunction((EDIT) => Boolean(document.activeElement?.closest(`${EDIT} [data-sc="event-calendar-edit-panel"]`)) && !document.querySelector(`${EDIT} .r-dates-month-panel`), EDIT, { timeout: 2000 })
       .catch(() => {});
-    const afterNew = { state: await state(), focus: await page.evaluate(() => document.activeElement?.dataset?.day ?? document.activeElement?.tagName), dialogs: (await boxes()).dialogs };
+    const afterNew = { state: await state(), inBooking: await page.evaluate(inBooking, EDIT), dialogs: (await boxes()).dialogs };
     const want27 = await allDayState(27, 27);
-    if (!afterNew.state.startsWith(want27) || afterNew.focus !== "2026-10-27" || afterNew.dialogs !== 0) {
-      problems.push(`new event: state "${afterNew.state}", focus ${afterNew.focus}, ${afterNew.dialogs} panel(s); expected "${want27}" with focus on the 27th and no panel`);
+    if (!afterNew.state.startsWith(want27) || !afterNew.inBooking || afterNew.dialogs !== 0) {
+      problems.push(`new event: state "${afterNew.state}", focus ${afterNew.inBooking ? "in" : "not in"} the booking panel, ${afterNew.dialogs} day panel(s); expected "${want27}", focus in the booking panel and no day panel`);
     }
+    // Escape closes the app's panel, which clears the pick; focus goes back to the 27th.
     await page.keyboard.press("Escape");
     await settle(page);
     const afterEscape = await state();
     if (!afterEscape.startsWith("selection: none")) problems.push(`escape: the state reads "${afterEscape}", expected no selection`);
     if ((await boxes()).drafts.length !== 0) problems.push("escape: a band is still drawn after Escape");
+    const focusAfter = await page.evaluate(() => document.activeElement?.dataset?.day ?? document.activeElement?.tagName);
+    if (focusAfter !== "2026-10-27") problems.push(`escape: focus is on ${focusAfter}, expected back on the 27th`);
 
     // ── 4. the Interview chip moves to Monday 19 ────────────────────────────
     b = await boxes();

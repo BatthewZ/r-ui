@@ -24,8 +24,8 @@
 //      picks 10:00–12:00; a drag from Wednesday 14:00 forward to Thursday 10:00 draws two
 //      pieces (over midnight) and picks 14:00 – 10:30, and one from Thursday 11:00 back to
 //      Wednesday 15:00 picks 15:00 – 11:30;
-//   5b. with a range picked, a new press shows only its own slot the moment the button goes
-//      down (the old range gone), and its release picks that slot;
+//   5b. with a range picked, a new press (Sunday 10:00) shows only its own slot the moment the
+//      button goes down (the old range gone), and its release picks that slot;
 //   6. a press on an event (the Interview, Thursday 13:00) is the event's, and abandons the
 //      range picked in 5b: the state reads no range;
 //   7. edge auto-scroll: a drag held at the region's bottom edge scrolls the region and the
@@ -289,7 +289,9 @@ async (page) => {
     await expectState("drag Thu 11:00 → Wed 15:00", [14, 15], [15, 11, 30]);
 
     // ── 5b. a new press replaces that range the moment the button goes down ──
-    const other = await cellBox("2026-10-16", 600);
+    // Sunday: the demo's panel opens beside the pick, over Monday and Tuesday's morning,
+    // clear of Thursday's Interview, which step 6 presses.
+    const other = await cellBox("2026-10-11", 600);
     await page.mouse.move(other.x, other.y);
     await page.mouse.down();
     const held = await page.evaluate(
@@ -303,7 +305,7 @@ async (page) => {
       problems.push(`press: with the button down, ${held.old} piece(s) of the old range and ${held.draft} of the new, expected 0 and 1`);
     }
     await page.mouse.up();
-    await expectState("press Fri 10:00", [16, 10], [16, 10, 30]);
+    await expectState("press Sun 10:00", [11, 10], [11, 10, 30]);
     // Left picked: the next step's press on an event must clear it.
 
     // ── 6. a press on an event is the event's ───────────────────────────────

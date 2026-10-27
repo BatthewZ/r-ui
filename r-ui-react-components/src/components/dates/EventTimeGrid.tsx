@@ -611,6 +611,7 @@ export function EventTimeGrid({
               <div
                 aria-hidden
                 data-allday-selection=""
+                data-selection-piece=""
                 data-continues-before={allDaySelection.continuesBefore ? "" : undefined}
                 data-continues-after={allDaySelection.continuesAfter ? "" : undefined}
                 className="r-dates-event-draft r-dates-timegrid-allday-selection"

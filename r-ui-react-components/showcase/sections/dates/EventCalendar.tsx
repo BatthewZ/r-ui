@@ -8,6 +8,8 @@ import {
   type EventCalendarView,
   toISODate,
 } from "../../../src/components/dates";
+import { Field, Input } from "../../../src/components/form";
+import { Popover } from "../../../src/components/overlays";
 import { Button } from "../../../src/components/primitives";
 import { day, Grid, Row, Stack } from "./parts/demo";
 import { NOW, OPS_EVENTS } from "./parts/events";
@@ -60,7 +62,48 @@ const BOOKINGS: CalendarEvent[] = [
   { id: "b-holiday", title: "Public holiday", start: "2026-10-12", editable: false, category: "Company" },
 ];
 
-/** The app's side: it owns the events, moves one when told, and adds one for a picked range from its own button. */
+/** "Thu, Oct 15, 10:00 – 11:30 AM", or "Thu, Oct 15 – Sat, Oct 17" for days: the app's own words for a range. */
+function sayRange(range: CalendarRange): string {
+  const days = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
+  if (range.allDay) return days.formatRange(range.start, range.end);
+  return new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).formatRange(
+    range.start,
+    range.end,
+  );
+}
+
+/**
+ * The app's own surface for a picked range: here a popover at the pick (it could
+ * as well be a drawer or a dialog). The calendar only says where the range is.
+ */
+function NewBooking({ range, onAdd, onCancel }: { range: CalendarRange; onAdd: (title: string) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState("");
+  return (
+    <form
+      className="grid gap-r4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onAdd(title.trim() || "New booking");
+      }}
+    >
+      <p className="text-body-2 text-fg-secondary" data-sc="event-calendar-edit-range">
+        {sayRange(range)}
+      </p>
+      <Field>
+        <Field.Label>Title</Field.Label>
+        <Input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="New booking" />
+      </Field>
+      <div className="flex flex-wrap justify-end gap-r5">
+        <Button type="button" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="submit">Add booking</Button>
+      </div>
+    </form>
+  );
+}
+
+/** The app's side: it owns the events, moves one when told, and adds one for a picked range from its own panel. */
 function EditableDemo() {
   const [events, setEvents] = useState(BOOKINGS);
   const [selection, setSelection] = useState<CalendarRange | null>(null);
@@ -69,10 +112,10 @@ function EditableDemo() {
     setEvents((list) => list.map((e) => (e.id === change.event.id ? { ...e, ...placeOf(change) } : e)));
     setLast(`${change.kind} ${change.event.id}`);
   };
-  const add = () => {
-    if (!selection) return;
-    setEvents((list) => [...list, { id: `new-${list.length}`, title: "New booking", ...placeOf(selection), slot: 5, category: "Bookings" }]);
+  const add = (range: CalendarRange, title: string) => {
+    setEvents((list) => [...list, { id: `new-${list.length}`, title, ...placeOf(range), slot: 5, category: "Bookings" }]);
     setSelection(null);
+    setLast(`add new-${events.length}`);
   };
   return (
     <div className="grid min-w-0 gap-r5" data-sc="event-calendar-edit">
@@ -87,11 +130,16 @@ function EditableDemo() {
         onSelectionChange={setSelection}
         onEventChange={onEventChange}
         onEventClick={() => {}}
+        renderSelection={({ range, anchor, clear }) => (
+          // Closing (Escape, a press outside) drops the pick; a press on another slot starts a new one.
+          <Popover open anchor={anchor} placement="right-start" onOpenChange={(open) => !open && clear()}>
+            <Popover.Content aria-label="New booking" data-sc="event-calendar-edit-panel">
+              <NewBooking key={`${range.start.getTime()}-${range.end.getTime()}`} range={range} onAdd={(title) => add(range, title)} onCancel={clear} />
+            </Popover.Content>
+          </Popover>
+        )}
       />
       <div className="flex flex-wrap items-center gap-r4">
-        <Button variant="secondary" disabled={!selection} onClick={add}>
-          Add booking
-        </Button>
         <output className="text-body-2 text-fg-secondary" data-sc="event-calendar-edit-state">
           selection: {selection ? `${selection.allDay ? "all-day " : ""}${selection.start.toISOString()} → ${selection.end.toISOString()}` : "none"} · last: {last}
         </output>
@@ -108,7 +156,7 @@ export default function EventCalendarSection() {
       </Row>
 
       {/* The time grid scrolls sideways by design when its days do not fit. */}
-      <Row label="Editable · drag or Shift+arrows on the slots to pick a range, drag an event or its end, Space picks one up" data-sc-scrolls="">
+      <Row label="Editable · pick a range (drag, or Shift+arrows then Enter) and the app's own panel opens at it; drag an event or its end; Space picks one up" data-sc-scrolls="">
         <EditableDemo />
       </Row>
 

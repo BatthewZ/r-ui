@@ -347,6 +347,7 @@ export function TimeGridSlots({
               key={`${toISODate(day)}-${k}`}
               aria-hidden
               data-slots-draft={range === draftRange ? "draft" : "selection"}
+              data-selection-piece={range === draftRange ? undefined : ""}
               data-continues-before={range.start < startOfDay(day) ? "" : undefined}
               data-continues-after={range.end > addDays(day, 1) ? "" : undefined}
               className="r-dates-event-draft r-dates-slots-piece"
