@@ -1,8 +1,10 @@
 "use client";
 import {
   type CSSProperties,
+  type FocusEvent,
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent,
   useEffect,
   useId,
   useLayoutEffect,
@@ -12,6 +14,7 @@ import {
 } from "react";
 
 import { FloatingFocusManager, useDismiss, useFloating, useInteractions } from "../../hooks/use-floating";
+import { usePressDrag } from "../../hooks/use-press-drag";
 import { isRtl } from "../../util/direction";
 import { formatNumber } from "../../util/format";
 import { mergeRefs } from "../../util/merge-refs";
@@ -20,7 +23,18 @@ import { MARK_TEXT, ToneGlyph } from "../../util/tone";
 import { onEscape, topLayerExit, useExitPresence } from "../overlays/internal";
 import { Button } from "../primitives";
 import { addDays, addMonths, isSameDay, parseISODate, startOfMonth, toISODate, weekdayNames } from "./date-core";
-import { type LaneSegment, layoutRow, monthWeeks, type PlacedEvent } from "./event-core";
+import { daysBetween, type LaneSegment, layoutRow, monthWeeks, type PlacedEvent } from "./event-core";
+import {
+  type CalendarRange,
+  dayRange,
+  describeRange,
+  isEditableEvent,
+  moveToDay,
+  rangeOf,
+  rangeTouchesDay,
+  resizeToDay,
+  sameRange,
+} from "./event-edit";
 import {
   dayName,
   type EventCalendarLabels,
@@ -39,6 +53,8 @@ export interface EventMonthViewProps extends EventViewProps {
 }
 
 const KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
+/** With Shift, these extend the range being picked; paging (with or without Shift) keeps it as it is. */
+const PICK_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"]);
 
 /** A narrow cell draws this many dots, then "+n". */
 const MAX_DOTS = 3;
@@ -46,6 +62,41 @@ const MAX_DOTS = 3;
 /** A part placed over the row's cells: its first column, its span and its lane. */
 const laneStyle = (column: number, span: number, lane: number) =>
   ({ "--r-dates-col": column, "--r-dates-span": span, "--r-dates-lane": lane }) as CSSProperties;
+
+/** What a pointer press in the month is about: picking days from one, or moving or resizing an event. */
+type MonthPress = { kind: "pick"; day: Date } | { kind: "move" | "resize"; placed: PlacedEvent };
+
+/** A range on screen before it is committed: being picked, or where a moved or resized event would land. */
+type Draft = { kind: "pick"; range: CalendarRange } | { kind: "move" | "resize"; key: string; range: CalendarRange };
+
+/** Where `range` crosses `week`: its first column, its span and whether it goes on past either end; `null` when it misses. */
+function bandIn(range: CalendarRange, week: readonly Date[]) {
+  const cols = week.flatMap((day, col) => (rangeTouchesDay(range, day) ? [col] : []));
+  const first = cols[0];
+  const last = cols.at(-1);
+  if (first === undefined || last === undefined) return null;
+  return {
+    col: first,
+    span: last - first + 1,
+    before: first === 0 && rangeTouchesDay(range, addDays(week[0] as Date, -1)),
+    after: last === week.length - 1 && rangeTouchesDay(range, addDays(week[last] as Date, 1)),
+  };
+}
+
+/** The day whose cell holds the point, else the nearest cell's (past the grid's edges). */
+function dayAtPoint(grid: HTMLElement | null, x: number, y: number): Date | null {
+  let best: { day: Date; distance: number } | null = null;
+  for (const cell of grid?.querySelectorAll<HTMLElement>('[role="gridcell"][data-day]') ?? []) {
+    const day = parseISODate(cell.dataset.day ?? "");
+    if (!day) continue;
+    const r = cell.getBoundingClientRect();
+    const dx = Math.max(r.left - x, 0, x - r.right);
+    const dy = Math.max(r.top - y, 0, y - r.bottom);
+    const distance = dx * dx + dy * dy;
+    if (!best || distance < best.distance) best = { day, distance };
+  }
+  return best?.day ?? null;
+}
 
 /**
  * The month view: the WAI-ARIA date grid, one row per week, a cell per day.
@@ -61,6 +112,21 @@ const laneStyle = (column: number, span: number, lane: number) =>
  * lanes (multi-day ones a bar across their days, a crowded day's last lane
  * "+n more"), pointer and screen-reader browse targets out of the tab order;
  * narrower, a cell shows dots and the whole cell is the target.
+ *
+ * Picking (with `onSelectionChange`): a drag from a day (not from an event;
+ * a touch holds first) picks the days from there to the day under the
+ * pointer, in reading order across weeks; Shift with an arrow, Home or End
+ * extends a range from where it began to the active day (paging the month
+ * keeps it) and Enter picks it once it holds two days or more; the day panel's
+ * "New event" picks its day. Escape drops a range being picked and clears the
+ * picked one (the open panel closes first). The picked range stays drawn, and
+ * its days say so in their names and `aria-selected`, until the app clears it.
+ *
+ * Moving (with `onEventChange`, never an `editable: false` event): a chip or
+ * bar drags to another day, keeping a timed event's time and the day it was
+ * pressed on under the pointer; an all-day bar's inline-end grip drags its last
+ * day. The month has no keyboard move: the week and day views are the
+ * keyboard's way to move and resize, and the narrow look has no chips to drag.
  */
 export function EventMonthView({
   placed,
@@ -75,6 +141,10 @@ export function EventMonthView({
   onOpenDay,
   classNames,
   maxEventsPerDay,
+  selection,
+  onSelectionChange,
+  onEventChange,
+  announce,
 }: EventMonthViewProps) {
   const monthStart = startOfMonth(date).getTime();
   const weeks = useMemo(() => monthWeeks(new Date(monthStart), weekStart), [monthStart, weekStart]);
@@ -159,12 +229,98 @@ export function EventMonthView({
     setPanel({ day, open: true });
   };
 
+  // ── Picking, moving and resizing ──
+  const [draft, setDraft] = useState<Draft | null>(null);
+  // Where the keyboard's range began (Shift with arrows); `null` when the keyboard is not picking.
+  const anchor = useRef<Date | null>(null);
+  const dropPick = () => {
+    anchor.current = null;
+    setDraft((d) => (d?.kind === "pick" ? null : d));
+  };
+  const commitPick = (range: CalendarRange) => {
+    anchor.current = null;
+    setDraft(null);
+    onSelectionChange?.(range);
+    announce(labels.selected(describeRange(range, locale, labels)));
+  };
+
+  // The day a moved event was pressed on, counted from its first day.
+  const moveOffset = useRef(0);
+  const rangeAt = (press: MonthPress, x: number, y: number): CalendarRange | null => {
+    const day = dayAtPoint(rootRef.current, x, y);
+    if (!day) return null;
+    if (press.kind === "pick") return dayRange(press.day, day);
+    if (press.kind === "resize") return resizeToDay(press.placed, day);
+    return moveToDay(press.placed, addDays(day, -moveOffset.current));
+  };
+  const drag = usePressDrag<MonthPress>({
+    onStart: ({ payload, x0, y0 }) => {
+      anchor.current = null;
+      close();
+      if (payload.kind === "pick") {
+        setDraft({ kind: "pick", range: dayRange(payload.day, payload.day) });
+        return;
+      }
+      const pressed = dayAtPoint(rootRef.current, x0, y0);
+      moveOffset.current = pressed ? daysBetween(payload.placed.firstDay, pressed) : 0;
+      setDraft({ kind: payload.kind, key: payload.placed.key, range: rangeOf(payload.placed) });
+    },
+    onMove: ({ payload, x, y }) => {
+      const range = rangeAt(payload, x, y);
+      if (range) setDraft((d) => d && (sameRange(d.range, range) ? d : { ...d, range }));
+    },
+    onEnd: ({ payload, x, y }, how) => {
+      setDraft(null);
+      const range = how === "drop" ? rangeAt(payload, x, y) : null;
+      if (!range) return;
+      if (payload.kind === "pick") return commitPick(range);
+      const p = payload.placed;
+      if (sameRange(range, rangeOf(p))) return;
+      onEventChange?.({ event: p.event, kind: payload.kind, ...range });
+      announce(labels.dropped(p.event.title, describeRange(range, locale, labels)));
+    },
+  });
+  const viewRef = useMemo(() => mergeRefs(rootRef, drag.rootRef), [drag.rootRef]);
+
+  const onCellPointerDown = (day: Date) => (event: PointerEvent<HTMLDivElement>) => {
+    // An interactive event takes its own press (a movable one starts its own drag).
+    if ((event.target as Element).closest("a[data-event], button[data-event]")) return;
+    drag.onPointerDown(event, { kind: "pick", day });
+  };
+  const editable = (p: PlacedEvent) => isEditableEvent(p, onEventChange);
+  const onEventPointerDown = (p: PlacedEvent, kind: "move" | "resize") => (event: PointerEvent<HTMLElement>) =>
+    drag.onPointerDown(event, { kind, placed: p });
+
+  const onGridBlur = (event: FocusEvent<HTMLDivElement>) => {
+    // Leaving the grid drops a range the keyboard was picking.
+    if (anchor.current && !event.currentTarget.contains(event.relatedTarget as Node | null)) dropPick();
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const cell = event.target as HTMLElement;
     const from = cell.getAttribute("role") === "gridcell" ? parseISODate(cell.dataset.day ?? "") : null;
     if (!from || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === "Escape") {
+      if (open) {
+        event.preventDefault();
+        close();
+        return;
+      }
+      const clearing = selection !== null && onSelectionChange !== undefined;
+      if (draft?.kind !== "pick" && !clearing) return;
+      event.preventDefault();
+      dropPick();
+      if (clearing) {
+        onSelectionChange(null);
+        announce(labels.selectionCleared);
+      }
+      return;
+    }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
+      const picked = draft?.kind === "pick" ? draft.range : null;
+      if (event.key === "Enter" && picked && !isSameDay(picked.start, picked.end)) return commitPick(picked);
+      dropPick();
       openDay(from);
       return;
     }
@@ -182,6 +338,15 @@ export function EventMonthView({
           : event.key === "End"
             ? addDays(from, 6 - offset)
             : addMonths(from, (event.key === "PageUp" ? -1 : 1) * (event.shiftKey ? 12 : 1));
+    if (PICK_KEYS.has(event.key)) {
+      if (event.shiftKey && onSelectionChange) {
+        const start = anchor.current ?? from;
+        anchor.current = start;
+        setDraft({ kind: "pick", range: dayRange(start, next) });
+      } else {
+        dropPick();
+      }
+    }
     if (isSameDay(next, date)) {
       cellFor(next)?.focus();
       return;
@@ -196,9 +361,17 @@ export function EventMonthView({
     openDay(day);
   };
 
+  // What the days say they are in: the range being picked, else the picked one.
+  const picked = onSelectionChange ? (draft?.kind === "pick" ? draft.range : selection) : null;
+  // Drawn: the picked range (unless a new one is being picked) and the draft.
+  const bands: { kind: Draft["kind"] | "selection"; range: CalendarRange }[] = [];
+  if (onSelectionChange && selection && draft?.kind !== "pick") bands.push({ kind: "selection", range: selection });
+  if (draft) bands.push(draft);
+  const movingKey = draft && draft.kind !== "pick" ? draft.key : null;
+
   return (
     <div
-      ref={rootRef}
+      ref={viewRef}
       className="r-dates-month-view"
       style={{ "--r-dates-lanes": maxEventsPerDay } as CSSProperties}
     >
@@ -206,8 +379,10 @@ export function EventMonthView({
         ref={floating.refs.setReference}
         role="grid"
         aria-label={title}
+        data-editable={onSelectionChange || onEventChange ? "" : undefined}
         className="r-dates-month-grid text-body-3"
         onKeyDown={onKeyDown}
+        onBlur={onGridBlur}
       >
         <div role="row" className="r-dates-month-head">
           {names.map((name) => (
@@ -228,7 +403,13 @@ export function EventMonthView({
                 const isToday = isSameDay(day, today);
                 const active = isSameDay(day, date);
                 const panelHere = open && panel !== null && isSameDay(panel.day, day);
-                const name = [dayName(day, locale), isToday && labels.currentDay, labels.dayEvents(events.length)]
+                const inPick = picked !== null && rangeTouchesDay(picked, day);
+                const name = [
+                  dayName(day, locale),
+                  isToday && labels.currentDay,
+                  labels.dayEvents(events.length),
+                  inPick && labels.inSelection,
+                ]
                   .filter(Boolean)
                   .join(", ");
                 return (
@@ -241,20 +422,40 @@ export function EventMonthView({
                     aria-haspopup="dialog"
                     aria-expanded={panelHere}
                     aria-controls={panelHere ? panelId : undefined}
+                    aria-selected={onSelectionChange ? inPick : undefined}
                     data-day={toISODate(day)}
                     data-outside={day.getMonth() !== month ? "" : undefined}
                     className="r-dates-month-cell focus-visible:focus-ring-inset @measure:min-h-(--r-dates-month-chips)"
                     onClick={onCellClick(day)}
+                    onPointerDown={onSelectionChange ? onCellPointerDown(day) : undefined}
                   >
+                    {bands.map(({ kind, range }) => {
+                      const band = bandIn(range, week);
+                      return (
+                        band?.col === col && (
+                          <span
+                            key={kind}
+                            aria-hidden
+                            data-draft={kind}
+                            data-continues-before={band.before ? "" : undefined}
+                            data-continues-after={band.after ? "" : undefined}
+                            style={laneStyle(band.col, band.span, 0)}
+                            className="r-dates-month-draft r-dates-event-draft"
+                          />
+                        )
+                      );
+                    })}
                     <span
                       aria-hidden
                       className={cn(
                         "r-dates-month-number",
                         isToday
                           ? "bg-accent font-semibold text-fg-on-accent"
-                          : day.getMonth() !== month
-                            ? "text-fg-muted"
-                            : "text-fg-primary",
+                          : inPick
+                            ? "text-fg-on-selection"
+                            : day.getMonth() !== month
+                              ? "text-fg-muted"
+                              : "text-fg-primary",
                       )}
                     >
                       {/* The locale's own digits (Arabic-Indic in `ar-EG`). */}
@@ -281,6 +482,15 @@ export function EventMonthView({
                           labels={labels}
                           onEventClick={onEventClick}
                           className={classNames?.event}
+                          moving={seg.placed.key === movingKey}
+                          resizing={seg.placed.key === movingKey && draft?.kind === "resize"}
+                          onMovePress={editable(seg.placed) ? onEventPointerDown(seg.placed, "move") : undefined}
+                          onResizePress={
+                            // The grip is on an all-day bar's last day: the segment the bar ends in.
+                            editable(seg.placed) && seg.placed.allDay && !seg.continuesAfter
+                              ? onEventPointerDown(seg.placed, "resize")
+                              : undefined
+                          }
                         />
                       ))}
                     {hidden > 0 && (
@@ -335,10 +545,26 @@ export function EventMonthView({
             ) : (
               <p className="text-fg-secondary">{labels.dayEvents(0)}</p>
             )}
-            {onOpenDay && (
-              <Button variant="secondary" className="justify-self-start" onClick={() => onOpenDay(panel.day)}>
-                {labels.openDay}
-              </Button>
+            {(onOpenDay || onSelectionChange) && (
+              <div className="flex flex-wrap gap-r5">
+                {onOpenDay && (
+                  <Button variant="secondary" onClick={() => onOpenDay(panel.day)}>
+                    {labels.openDay}
+                  </Button>
+                )}
+                {onSelectionChange && (
+                  <Button
+                    variant="secondary"
+                    // Closing hands focus back to the day's cell, as Escape does.
+                    onClick={() => {
+                      close();
+                      commitPick(dayRange(panel.day, panel.day));
+                    }}
+                  >
+                    {labels.newEvent}
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </FloatingFocusManager>
@@ -359,7 +585,28 @@ interface EventPartProps {
  * columns. Multi-day and all-day: a filled bar with the entity's stripe;
  * one timed day: a dot, the start time and the title.
  */
-function MonthChip({ seg, day, locale, labels, onEventClick, className }: EventPartProps & { seg: LaneSegment; day: Date }) {
+function MonthChip({
+  seg,
+  day,
+  locale,
+  labels,
+  onEventClick,
+  className,
+  moving,
+  resizing,
+  onMovePress,
+  onResizePress,
+}: EventPartProps & {
+  seg: LaneSegment;
+  day: Date;
+  /** Being moved or resized: drawn faded where it is until it lands. */
+  moving: boolean;
+  resizing: boolean;
+  /** A press that may become a move; absent when the event cannot move. */
+  onMovePress?: (event: PointerEvent<HTMLElement>) => void;
+  /** A press on the end grip; absent where the segment has no grip. */
+  onResizePress?: (event: PointerEvent<HTMLElement>) => void;
+}) {
   const p = seg.placed;
   const bar = p.allDay || !isSameDay(p.firstDay, p.lastDay);
   const interactive = isInteractiveEvent(p, onEventClick);
@@ -373,6 +620,10 @@ function MonthChip({ seg, day, locale, labels, onEventClick, className }: EventP
       tabIndex={-1}
       data-continues-before={seg.continuesBefore ? "" : undefined}
       data-continues-after={seg.continuesAfter ? "" : undefined}
+      data-moving={moving ? "" : undefined}
+      onPointerDown={onMovePress}
+      // A link's own native drag would take the pointer from the move.
+      onDragStart={onMovePress ? (event) => event.preventDefault() : undefined}
       style={laneStyle(seg.column, seg.span, seg.lane)}
       className={cn("r-dates-month-chip group hidden @measure:block", className)}
     >
@@ -389,6 +640,10 @@ function MonthChip({ seg, day, locale, labels, onEventClick, className }: EventP
         <span dir="auto" className="min-w-0 truncate font-medium text-fg-primary">{p.event.title}</span>
         {p.event.tone && <ToneGlyph tone={p.event.tone} className={cn("size-[1em] shrink-0", MARK_TEXT[p.event.tone])} />}
       </span>
+      {onResizePress && (
+        // Pointer only: the week and day views resize by keyboard.
+        <span aria-hidden data-active={resizing ? "" : undefined} className="r-dates-month-grip" onPointerDown={onResizePress} />
+      )}
     </EventTarget>
   );
 }

@@ -3,6 +3,16 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
+## Unreleased
+
+### Added
+
+- `EventCalendar` takes picking and editing, and still never changes `events` itself:
+  - `onSelectionChange` (with `selection` / `defaultSelection`): a press or drag on the week and day views' slots, a drag across the month's days, the keyboard's slot cursor (a grid of slots: arrows, Shift to extend, Enter), or the day panel's "New event" picks a range; Escape clears it. The picked range stays drawn until the app clears it, so it can sit under the app's own form.
+  - `onEventChange`: an event dragged to another time or day, or its end dragged (a timed event's bottom edge, an all-day event's last day), reports where it would go; in the week and day views the keyboard picks an event up with Space, moves it with the arrows and changes its end with Shift and an arrow. An event with `editable: false` stays put.
+  - `slotMinutes` (15, 30 or 60) sets the time grid's slots and the snap for picking, moving and resizing.
+  - Ranges and changes come as `CalendarRange` / `CalendarEventChange`, in `CalendarEvent`'s own terms (an all-day end is the last day), so they write straight back into `events`.
+
 ## 0.1.3
 
 ### Added

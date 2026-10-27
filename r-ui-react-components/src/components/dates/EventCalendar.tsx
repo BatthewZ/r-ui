@@ -1,6 +1,6 @@
 "use client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { type ComponentPropsWithRef, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { type ComponentPropsWithRef, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
@@ -18,12 +18,13 @@ import {
   placeEvents,
   stepDate,
 } from "./event-core";
+import { type CalendarEventChange, type CalendarRange, sameRange, type SlotMinutes } from "./event-edit";
 import { DEFAULT_EVENT_CALENDAR_LABELS, type EventCalendarLabels, type EventCalendarSlot, type EventViewProps } from "./event-parts";
 import { EventMonthView } from "./EventMonthView";
 import { EventTimeGrid } from "./EventTimeGrid";
 
 export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "children" | "onChange" | "defaultValue"> {
-  /** The events to show. Read-only: the calendar never changes them. */
+  /** The events to show. The calendar never changes them: it reports picks and changes. */
   events: readonly CalendarEvent[];
   /** The view shown (controlled). */
   view?: EventCalendarView;
@@ -59,6 +60,30 @@ export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "
   scrollToHour?: number;
   /** Events are loading: the body is busy and says so. */
   loading?: boolean;
+  /**
+   * The picked range (controlled), drawn until it is cleared: keep a range on
+   * screen while your own form for it is open, then set `null`.
+   */
+  selection?: CalendarRange | null;
+  defaultSelection?: CalendarRange | null;
+  /**
+   * A range was picked, or cleared (`null`, by Escape). With it the calendar
+   * takes picking: a drag or a press on the time grid's slots, a drag across
+   * the month's days, the keyboard's slot cursor (Shift with arrows, then
+   * Enter), and the day panel's "New event". The calendar adds nothing:
+   * open your own form for the range.
+   */
+  onSelectionChange?: (range: CalendarRange | null) => void;
+  /**
+   * An event was moved or resized, with where it would go, in `CalendarEvent`'s
+   * own terms. With it, events can be dragged (and their end resized) and, in
+   * the week and day views, picked up by the keyboard (Space); an event with
+   * `editable: false` stays put. The calendar never changes `events`: update
+   * them, or leave them to refuse the change.
+   */
+  onEventChange?: (change: CalendarEventChange) => void;
+  /** The time grid's slot, and the snap for picking, moving and resizing, in minutes. @default 30 */
+  slotMinutes?: SlotMinutes;
   labels?: LabelsProp<EventCalendarLabels>;
   classNames?: SlotClassNames<EventCalendarSlot>;
 }
@@ -91,8 +116,10 @@ function periodTitle(view: EventCalendarView, date: Date, period: Period, locale
 /**
  * Events on a calendar: a month grid, a week or a day as a time grid, or an
  * agenda list, with a toolbar to page through periods, return to today and
- * switch views. Read-only: an event is a link (`href`), a button
- * (`onEventClick`) or text.
+ * switch views. An event is a link (`href`), a button (`onEventClick`) or
+ * text. With `onSelectionChange` a range can be picked, and with
+ * `onEventChange` events can be moved and resized; the calendar only reports
+ * them, and the app changes `events`.
  *
  * Instants are shown in local time; a `YYYY-MM-DD` event is an all-day calendar
  * date. Each event's name says its title, when, category, status and location,
@@ -119,6 +146,11 @@ export function EventCalendar({
   maxEventsPerDay = 3,
   scrollToHour = 8,
   loading = false,
+  selection: selectionProp,
+  defaultSelection = null,
+  onSelectionChange,
+  onEventChange,
+  slotMinutes = 30,
   labels: labelsProp,
   classNames,
   className,
@@ -143,6 +175,24 @@ export function EventCalendar({
   });
 
   const placed = useMemo(() => placeEvents(events), [events]);
+
+  const [selection, setSelection] = useControllableState<CalendarRange | null>({
+    value: selectionProp,
+    defaultValue: defaultSelection,
+    onChange: onSelectionChange,
+    isEqual: sameRange,
+  });
+
+  // What the views announce, said in the body's status region. The same
+  // message twice in a row is cleared first, so it is read again.
+  const [message, setMessage] = useState("");
+  const announce = useCallback((next: string) => {
+    setMessage((was) => {
+      if (was !== next) return next;
+      queueMicrotask(() => setMessage(next));
+      return "";
+    });
+  }, []);
 
   // "Open day" unmounts the view that held focus, which drops it to <body>: the
   // day view's first tab stop takes it. Focus that landed anywhere else stays.
@@ -177,6 +227,11 @@ export function EventCalendar({
         }
       : undefined,
     classNames,
+    slotMinutes,
+    selection,
+    onSelectionChange: onSelectionChange ? setSelection : undefined,
+    onEventChange,
+    announce,
   };
 
   return (
@@ -234,8 +289,9 @@ export function EventCalendar({
         aria-busy={loading || undefined}
         className={cn("min-w-0", loading && "opacity-disabled", classNames?.body)}
       >
-        <div role="status" className="sr-only">
-          {loading ? labels.loading : ""}
+        {/* The calendar's one status region: loading, else what the views announce. */}
+        <div role="status" data-calendar-announcer="" className="sr-only">
+          {loading ? labels.loading : message}
         </div>
         {view === "month" ? (
           <EventMonthView {...shared} maxEventsPerDay={Math.max(1, Math.floor(maxEventsPerDay))} />

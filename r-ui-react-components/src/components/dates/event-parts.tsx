@@ -8,6 +8,7 @@ import { safeUrl } from "../../util/url";
 import type { SeriesSlot } from "../data";
 import { addDays, dateFormatter, isSameDay, type Weekday } from "./date-core";
 import type { CalendarEvent, EventCalendarView, Period, PlacedEvent } from "./event-core";
+import type { CalendarEventChange, CalendarRange, SlotMinutes } from "./event-edit";
 
 /*
  * What the EventCalendar's views share: the labels, the props every view
@@ -42,6 +43,24 @@ export interface EventCalendarLabels {
   openDay: string;
   /** The agenda when the period has no events. */
   emptyPeriod: string;
+  /** The time grid's grid of slots (where a range is picked), its name. */
+  slots: string;
+  /** The day panel's button that picks that day as a range. */
+  newEvent: string;
+  /** Appended to a slot or day inside the range being picked. */
+  inSelection: string;
+  /** Announced when a range is picked, with the range said in full. */
+  selected: (when: string) => string;
+  /** Announced when the picked range is cleared. */
+  selectionCleared: string;
+  /** Describes an event that can be moved: how the keyboard picks it up. */
+  editHint: string;
+  /** Announced when the keyboard picks an event up, with its title. */
+  grabbed: (title: string) => string;
+  /** Announced when an event is dropped in a new place, with its title and the new place in full. */
+  dropped: (title: string, when: string) => string;
+  /** Announced when a move is abandoned and the event stays where it was. */
+  cancelled: (title: string) => string;
   /** Announced while `loading`. */
   loading: string;
   /** The status word per tone, where an event sets no `statusLabel`. */
@@ -62,6 +81,15 @@ export const DEFAULT_EVENT_CALENDAR_LABELS: EventCalendarLabels = {
   currentDay: "today",
   openDay: "Open day",
   emptyPeriod: "Nothing scheduled",
+  slots: "Time slots",
+  newEvent: "New event",
+  inSelection: "selected",
+  selected: (when) => `Selected ${when}`,
+  selectionCleared: "Selection cleared",
+  editHint: "Space picks it up to move",
+  grabbed: (title) => `Picked up ${title}. Arrow keys move it, Shift with an arrow key changes its end, Enter drops it, Escape puts it back.`,
+  dropped: (title, when) => `${title} moved to ${when}`,
+  cancelled: (title) => `${title} put back`,
   loading: "Loading events",
   tones: TONE_LABELS,
 };
@@ -99,6 +127,19 @@ export interface EventViewProps {
   /** Show the day view on `day`; absent when the calendar offers no day view. */
   onOpenDay?: (day: Date) => void;
   classNames?: SlotClassNames<EventCalendarSlot>;
+  /** The time grid's slot length, and the snap for picking, moving and resizing. */
+  slotMinutes: SlotMinutes;
+  /** The picked range, drawn until it is cleared; `null` when none. */
+  selection: CalendarRange | null;
+  /**
+   * Pick a range (a drag, a press on a slot, the keyboard's Enter) or clear it
+   * (`null`: Escape). Absent: the calendar takes no picking, and draws none.
+   */
+  onSelectionChange?: (range: CalendarRange | null) => void;
+  /** An event was moved or resized (`isEditableEvent`). Absent: nothing moves. */
+  onEventChange?: (change: CalendarEventChange) => void;
+  /** Says `message` in the calendar's one polite live region. */
+  announce: (message: string) => void;
 }
 
 // ── Reading an event ───────────────────────────────────────────────────────
@@ -197,10 +238,12 @@ const eventHref = (p: PlacedEvent) => (p.event.href ? safeUrl(p.event.href) || u
 
 /**
  * Whether `EventTarget` draws `p` as a link or a button, so it can take focus
- * and a press. Text events (no safe `href`, no `onEventClick`) never can.
+ * and a press: it has a safe `href`, the calendar has `onEventClick`, or it can
+ * be moved (`editable`, from `isEditableEvent`: the keyboard picks it up). Any
+ * other event is text and never takes focus.
  */
-export function isInteractiveEvent(p: PlacedEvent, onEventClick: EventViewProps["onEventClick"]): boolean {
-  return Boolean(onEventClick) || eventHref(p) !== undefined;
+export function isInteractiveEvent(p: PlacedEvent, onEventClick: EventViewProps["onEventClick"], editable = false): boolean {
+  return Boolean(onEventClick) || eventHref(p) !== undefined || editable;
 }
 
 export type EventTargetProps = Omit<ComponentPropsWithRef<"div">, "children" | "title" | "onClick"> & {
@@ -208,19 +251,21 @@ export type EventTargetProps = Omit<ComponentPropsWithRef<"div">, "children" | "
   /** The full name (`eventName`). */
   name: string;
   onEventClick?: (event: CalendarEvent) => void;
+  /** It can be moved (`isEditableEvent`): with no link or `onEventClick`, a button that only the keyboard's pick-up uses. */
+  editable?: boolean;
   children: ReactNode;
 };
 
 /**
  * The element an event is drawn as: a link when it has a safe `href` (the
  * `RouterProvider`'s link for an internal path), a button when the calendar
- * has an `onEventClick`, else text. Its accessible name is always the full
+ * has an `onEventClick` or the event can be moved, else text. Its accessible name is always the full
  * `name` (the visible content is a summary): interactive targets carry it as
  * `aria-label`, plain text as a visually hidden copy beside a hidden summary.
  * The pointer's hover title is the name and the description. `tabIndex`
  * applies to links and buttons only: text is never focusable.
  */
-export function EventTarget({ placed, name, onEventClick, className, children, tabIndex, ...props }: EventTargetProps) {
+export function EventTarget({ placed, name, onEventClick, editable = false, className, children, tabIndex, ...props }: EventTargetProps) {
   const href = eventHref(placed);
   const Link = useLinkElement(undefined, href);
   const title = placed.event.description ? `${name}\n${placed.event.description}` : name;
@@ -237,14 +282,14 @@ export function EventTarget({ placed, name, onEventClick, className, children, t
       </Link>
     );
   }
-  if (onEventClick) {
+  if (onEventClick || editable) {
     return (
       <button
         {...(shared as ComponentPropsWithRef<"button">)}
         type="button"
         aria-label={name}
         tabIndex={tabIndex}
-        onClick={() => onEventClick(placed.event)}
+        onClick={onEventClick ? () => onEventClick(placed.event) : undefined}
       >
         {children}
       </button>

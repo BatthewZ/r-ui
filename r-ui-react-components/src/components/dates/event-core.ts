@@ -52,6 +52,11 @@ export interface CalendarEvent {
   description?: string;
   /** The event is a link (through the `RouterProvider` for an internal path). */
   href?: string;
+  /**
+   * `false`: never moved or resized, even when the calendar takes changes
+   * (`onEventChange`): a public holiday, an imported booking.
+   */
+  editable?: boolean;
 }
 
 export type EventCalendarView = "month" | "week" | "day" | "agenda";

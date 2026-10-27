@@ -266,6 +266,29 @@
   block-size: var(--R-SIZE-4);
 }
 
+/* A draft: the range being picked, or where a moved or resized event would
+   land. The selection tint behind a dashed accent edge reads as "not yet"; it
+   takes no press, so the pointer keeps reaching what is under it. Every view
+   draws its drafts with this one look. */
+.r-dates-event-draft {
+  border: calc(var(--BORDER-WIDTH) * 2) dashed var(--C-ACCENT);
+  border-radius: var(--RADIUS-SM);
+  background-color: var(--C-SELECTION);
+  color: var(--C-TEXT-ON-SELECTION);
+  pointer-events: none;
+}
+
+/* The event being moved, where it was until it lands: faded, still in place. */
+.r-dates-event[data-moving] {
+  opacity: var(--OPACITY-DISABLED);
+}
+
+@media (forced-colors: active) {
+  .r-dates-event-draft {
+    border-color: Highlight;
+  }
+}
+
 /* ── EventCalendar: month view (EventMonthView.tsx) ── */
 
 /* The month's measures. A lane holds one body-3 line padded by --R-SIZE-6 and is
@@ -309,9 +332,11 @@
 /* A week is the chips' containing block (its cells are not positioned): a chip
    sits in its first day's cell in the DOM, but is placed and sized by the
    week, so it can span the days after it. The week carries the line above it,
-   so its padding box starts where its cells do. */
+   so its padding box starts where its cells do. It isolates its stacking, so a
+   draft can sit under its cells' content without leaving the week. */
 .r-dates-month-week {
   position: relative;
+  isolation: isolate;
   border-block-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 
@@ -398,6 +423,67 @@
   border-radius: var(--RADIUS-SM);
   overflow: hidden;
   white-space: nowrap;
+}
+
+/* Editing: a drag picks days or moves a chip, so it never selects their text. */
+.r-dates-month-grid[data-editable] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* A range on the days (picked, being picked, or where a moved event lands): one
+   band per week, across its days' cells, the whole row tall, in the shared
+   draft look. One layer under the week's content, so day numbers, chips and a
+   focused cell's ring stay on top. Squared and open where it goes on into the
+   week before or after, so the weeks read as one range. */
+.r-dates-month-draft {
+  position: absolute;
+  z-index: calc(var(--LAYER-RAISED) * -1);
+  inset-block: 0;
+  inset-inline-start: calc(100% / 7 * var(--r-dates-col));
+  inline-size: calc(100% / 7 * var(--r-dates-span));
+}
+.r-dates-month-draft[data-continues-before] {
+  border-inline-start-style: none;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+.r-dates-month-draft[data-continues-after] {
+  border-inline-end-style: none;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
+/* An all-day bar's resize grip, on the inline end of the segment holding its
+   last day: the press area is --HIT-MIN wide and the lane tall, inside the
+   chip; the visible part is two short lines at the face's end, shown on hover,
+   while resizing, and always where nothing can hover. Lines, not a fill, so
+   forced colours keep them. */
+.r-dates-month-grip {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: min(var(--HIT-MIN), 100%);
+  cursor: ew-resize;
+  touch-action: none;
+  opacity: 0;
+}
+.r-dates-month-grip::after {
+  content: "";
+  position: absolute;
+  inset-block: calc(var(--R-SIZE-6) * 2);
+  inset-inline-end: calc(var(--R-SIZE-6) * 2);
+  inline-size: var(--R-SIZE-6);
+  border-inline: var(--BORDER-WIDTH) solid var(--C-TEXT-SECONDARY);
+}
+.r-dates-month-chip:hover .r-dates-month-grip,
+.r-dates-month-grip[data-active] {
+  opacity: 1;
+}
+@media (hover: none) {
+  .r-dates-month-grip {
+    opacity: 1;
+  }
 }
 
 /* The day panel: a column wide, capped by the surface at the viewport. */
@@ -494,17 +580,40 @@
   border-inline-start: var(--BORDER-WIDTH) solid var(--C-BORDER);
 }
 
-.r-dates-timegrid-bar {
+/* A bar (and its draft) is positioned: its end grip's containing block. */
+.r-dates-timegrid-bar,
+.r-dates-timegrid-bar-draft {
+  position: relative;
   margin-inline: var(--R-SIZE-6);
   border-radius: var(--RADIUS-SM);
   white-space: nowrap;
 }
+/* A picked all-day range: a band the row's whole height, under the bars
+   (they come after it), squared where it goes on past the view. */
+.r-dates-timegrid-allday-selection {
+  position: relative;
+  grid-row: 1 / -1;
+  margin-inline: var(--R-SIZE-6);
+}
+.r-dates-timegrid-allday-selection[data-continues-before] {
+  margin-inline-start: 0;
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+}
+.r-dates-timegrid-allday-selection[data-continues-after] {
+  margin-inline-end: 0;
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+}
+
 /* Going on past the view's edge: flush with it, squared there. */
+.r-dates-timegrid-bar-draft[data-continues-before],
 .r-dates-timegrid-bar[data-continues-before] {
   margin-inline-start: 0;
   border-start-start-radius: 0;
   border-end-start-radius: 0;
 }
+.r-dates-timegrid-bar-draft[data-continues-after],
 .r-dates-timegrid-bar[data-continues-after] {
   margin-inline-end: 0;
   border-start-end-radius: 0;
@@ -534,6 +643,18 @@
   inset-block-start: 50%;
   border-block-start: var(--BORDER-WIDTH) dashed var(--C-BORDER);
   opacity: 0.6;
+}
+
+/* A day lets presses through to the slots under it (TimeGridSlots); its
+   events and the now line keep their own. */
+.r-dates-timegrid-day {
+  pointer-events: none;
+}
+.r-dates-timegrid-day > * {
+  pointer-events: auto;
+}
+.r-dates-timegrid-day > .r-dates-timegrid-now {
+  pointer-events: none;
 }
 
 /* A day: the blocks' containing block. Its minimum keeps every block of its
@@ -606,6 +727,85 @@
   }
 }
 
+/* Moving and resizing. Where a block would land: placed from its minutes like
+   a block, across its whole day less the end gap, over every block and under
+   the sticky gutter (which comes after the days). It takes no press (the day's
+   children otherwise do), so the pointer keeps reaching what is under it. */
+.r-dates-timegrid-day > .r-dates-timegrid-draft {
+  position: absolute;
+  z-index: var(--LAYER-RAISED);
+  inset-block-start: calc(var(--r-dates-start) * var(--ROW-H) / 30);
+  block-size: calc((var(--r-dates-end) - var(--r-dates-start)) * var(--ROW-H) / 30);
+  inset-inline-start: 0;
+  inline-size: calc(100% - var(--R-SIZE-5) - var(--R-SIZE-6));
+  pointer-events: none;
+}
+.r-dates-timegrid-draft[data-continues-before] {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.r-dates-timegrid-draft[data-continues-after] {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+.r-dates-timegrid-block[data-moving],
+.r-dates-timegrid-bar[data-moving] {
+  cursor: grabbing;
+}
+
+/* The end grips: a block's bottom edge, an all-day bar's inline end. The press
+   area is --HIT-MIN deep (the fine and the coarse floor) and hangs inside the
+   event, so it never takes a press meant for a neighbour; it is never more
+   than half the event, so a short block's body still takes the press that
+   moves it (at coarse, a block under two --HIT-MIN tall gives the grip its
+   lower half only). The mark is a border, so forced colours keep it, shown
+   on hover, focus and while moving, and always where nothing can hover. */
+.r-dates-timegrid-grip {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  block-size: min(var(--HIT-MIN), 50%);
+  cursor: ns-resize;
+}
+.r-dates-timegrid-bar-grip {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: min(var(--HIT-MIN), 50%);
+  cursor: ew-resize;
+}
+.r-dates-timegrid-grip::after,
+.r-dates-timegrid-bar-grip::after {
+  content: "";
+  position: absolute;
+  margin: auto;
+  border-radius: var(--RADIUS-FULL);
+  opacity: 0;
+  transition: opacity var(--DURATION-FAST) var(--EASE-STANDARD);
+}
+.r-dates-timegrid-grip::after {
+  inset-inline: 0;
+  inset-block-end: var(--R-SIZE-6);
+  inline-size: min(calc(var(--ICON) * 1.5), 50%);
+  border-block-end: calc(var(--BORDER-WIDTH) * 2) solid var(--C-BORDER-STRONG);
+}
+.r-dates-timegrid-bar-grip::after {
+  inset-block: 0;
+  inset-inline-end: var(--R-SIZE-6);
+  block-size: 50%;
+  border-inline-end: calc(var(--BORDER-WIDTH) * 2) solid var(--C-BORDER-STRONG);
+}
+.r-dates-event:is(:hover, :focus-visible, [data-moving]) :is(.r-dates-timegrid-grip, .r-dates-timegrid-bar-grip)::after {
+  opacity: 1;
+}
+@media (hover: none) {
+  .r-dates-timegrid-grip::after,
+  .r-dates-timegrid-bar-grip::after {
+    opacity: 1;
+  }
+}
+
 /* Paper: the whole day in flow, nothing stuck. */
 @media print {
   .r-dates-timegrid {
@@ -616,6 +816,77 @@
   .r-dates-timegrid-corner,
   .r-dates-timegrid-hour {
     position: static;
+  }
+}
+
+/* ── EventCalendar: time grid slots (TimeGridSlots.tsx) ── */
+
+/* The slots under the days' events: the days' columns (a subgrid of the body)
+   by `--r-dates-slots` rows of `--r-dates-slot` minutes, at the blocks' scale
+   (an hour is two --ROW-H). Positioned and before the days in the DOM, so the
+   days and their events paint over it, and the pieces of a draft are placed in
+   it. It has no text to select under a drag. */
+.r-dates-slots {
+  position: relative;
+  grid-column: 2 / -1;
+  grid-row: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: repeat(var(--r-dates-slots, 48), calc(var(--ROW-H) * var(--r-dates-slot, 30) / 30));
+  user-select: none;
+}
+.r-dates-slots-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+}
+.r-dates-slot {
+  min-inline-size: 0;
+}
+
+/* One tab stop, a day tall: its ring would frame the whole grid, so the
+   cursor's cell draws it instead, inside its own edge (a neighbour or the
+   gutter never covers it), only while the keyboard is here. The ring is a
+   raised pseudo-element that takes no press, so it shows over an event
+   without taking that event's presses. */
+.r-dates-slots:focus-visible {
+  outline: 0 none;
+}
+.r-dates-slots:focus-visible .r-dates-slot[data-active] {
+  position: relative;
+}
+.r-dates-slots:focus-visible .r-dates-slot[data-active]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: var(--LAYER-RAISED);
+  outline: var(--FOCUS-WIDTH) solid var(--C-FOCUS);
+  outline-offset: calc(var(--FOCUS-WIDTH) * -1);
+  pointer-events: none;
+}
+
+/* A draft's piece on one day, placed by its minutes like a block, its end
+   gap a single block's; squared where it goes on over midnight. */
+.r-dates-slots-piece {
+  position: absolute;
+  grid-row: 1 / -1;
+  inset-block-start: calc(var(--r-dates-start) * var(--ROW-H) / 30);
+  block-size: calc((var(--r-dates-end) - var(--r-dates-start)) * var(--ROW-H) / 30);
+  inset-inline-start: var(--BORDER-WIDTH);
+  inset-inline-end: calc(var(--R-SIZE-5) + var(--R-SIZE-6));
+}
+.r-dates-slots-piece[data-continues-before] {
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.r-dates-slots-piece[data-continues-after] {
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+
+@media (forced-colors: active) {
+  .r-dates-slots:focus-visible .r-dates-slot[data-active]::after {
+    outline-color: Highlight;
   }
 }
 
