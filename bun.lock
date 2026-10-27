@@ -90,7 +90,7 @@
     },
     "r-ui-renderer": {
       "name": "@batthewz/r-ui-renderer",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "bin": {
         "r-ui-validate": "./dist/cli/r-ui-validate.js",
       },

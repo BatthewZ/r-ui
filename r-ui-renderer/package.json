@@ -1,6 +1,6 @@
 {
   "name": "@batthewz/r-ui-renderer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "Render JSON ViewSpec documents as @batthewz/r-ui-react-components, while they stream, and validate them anywhere without React.",
   "sideEffects": [
