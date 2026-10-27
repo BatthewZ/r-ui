@@ -1,5 +1,5 @@
 "use client";
-import type { ComponentPropsWithRef, MouseEvent, ReactNode } from "react";
+import { type ComponentPropsWithRef, createContext, type MouseEvent, type ReactNode, useContext } from "react";
 
 import { useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
@@ -234,6 +234,16 @@ export function EventMark({ slot, className }: { slot?: SeriesSlot; className?: 
   );
 }
 
+/**
+ * Whether the calendar takes deletes (`onEventDelete`): an event that can be
+ * deleted says its key (`aria-keyshortcuts`). Provided by the calendar, read by
+ * every `EventTarget`, so no view threads it.
+ */
+export const EventDeleteContext = createContext(false);
+
+/** Whether `p` can be deleted, edited, moved: the calendar takes it and the event does not opt out. */
+export const isDeletableEvent = (p: PlacedEvent, deleting: boolean) => deleting && p.event.editable !== false;
+
 /** The event's link, when it has a safe `href`. */
 const eventHref = (p: PlacedEvent) => (p.event.href ? safeUrl(p.event.href) || undefined : undefined);
 
@@ -267,6 +277,7 @@ export type EventTargetProps = Omit<ComponentPropsWithRef<"div">, "children" | "
  * applies to links and buttons only: text is never focusable.
  */
 export function EventTarget({ placed, name, onEventClick, editable = false, className, children, tabIndex, ...props }: EventTargetProps) {
+  const deletable = isDeletableEvent(placed, useContext(EventDeleteContext));
   const href = eventHref(placed);
   const Link = useLinkElement(undefined, href);
   const title = placed.event.description ? `${name}\n${placed.event.description}` : name;
@@ -276,9 +287,11 @@ export function EventTarget({ placed, name, onEventClick, editable = false, clas
     "data-event": placed.key,
     className: cn("r-dates-event", className),
   };
+  // Only a link or a button takes focus, so only those say the key that deletes.
+  const keys = deletable ? "Delete Backspace" : undefined;
   if (href) {
     return (
-      <Link {...shared} href={href} aria-label={name} tabIndex={tabIndex} onClick={onEventClick ? (e: MouseEvent<HTMLElement>) => onEventClick(placed.event, e.currentTarget) : undefined}>
+      <Link {...shared} href={href} aria-label={name} aria-keyshortcuts={keys} tabIndex={tabIndex} onClick={onEventClick ? (e: MouseEvent<HTMLElement>) => onEventClick(placed.event, e.currentTarget) : undefined}>
         {children}
       </Link>
     );
@@ -289,6 +302,7 @@ export function EventTarget({ placed, name, onEventClick, editable = false, clas
         {...(shared as ComponentPropsWithRef<"button">)}
         type="button"
         aria-label={name}
+        aria-keyshortcuts={keys}
         tabIndex={tabIndex}
         onClick={onEventClick ? (e) => onEventClick(placed.event, e.currentTarget) : undefined}
       >

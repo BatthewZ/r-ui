@@ -2,6 +2,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   type ComponentPropsWithRef,
+  type KeyboardEvent,
   type ReactNode,
   useCallback,
   useEffect,
@@ -13,6 +14,7 @@ import {
 
 import { useControllableState } from "../../hooks/use-controllable-state";
 import { type LabelsProp, useLabels, useLocale } from "../../util/locale";
+import { composeEventHandlers } from "../../util/merge-props";
 import { mergeRefs } from "../../util/merge-refs";
 import { cn, type SlotClassNames } from "../../util/style";
 import { SegmentedControl } from "../form";
@@ -30,7 +32,14 @@ import {
   stepDate,
 } from "./event-core";
 import { type CalendarEventChange, type CalendarRange, sameRange, type SlotMinutes } from "./event-edit";
-import { DEFAULT_EVENT_CALENDAR_LABELS, type EventCalendarLabels, type EventCalendarSlot, type EventViewProps } from "./event-parts";
+import {
+  DEFAULT_EVENT_CALENDAR_LABELS,
+  EventDeleteContext,
+  type EventCalendarLabels,
+  type EventCalendarSlot,
+  type EventViewProps,
+  isDeletableEvent,
+} from "./event-parts";
 import { EventMonthView } from "./EventMonthView";
 import { EventTimeGrid } from "./EventTimeGrid";
 
@@ -102,6 +111,16 @@ export interface EventCalendarProps<T extends CalendarEvent = CalendarEvent>
    * event's short form; the full detail belongs here.
    */
   renderEventDetails?: (details: EventCalendarEventDetails<T>) => ReactNode;
+  /**
+   * Delete or Backspace on a focused event (the week and day views, the agenda,
+   * the month's day panel): your own object. The calendar removes nothing and
+   * says nothing: delete it (and say so, offer an undo), confirm first, or
+   * refuse. Not while an event is picked up to move, with a modifier held, or
+   * held down; never for an event with `editable: false`. When the event leaves
+   * `events`, focus moves to the next event. With it, events are buttons on
+   * their own and say the key (`aria-keyshortcuts`).
+   */
+  onEventDelete?: (event: T) => void;
   /** BCP 47 tag for every name, date and time. Omitted: the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
   /** First day of the week, 0 = Sunday. Defaults to the locale's. */
@@ -205,6 +224,7 @@ export function EventCalendar<T extends CalendarEvent = CalendarEvent>({
   onDateChange,
   onEventClick,
   renderEventDetails,
+  onEventDelete,
   locale: localeProp,
   weekStartsOn,
   now: nowProp,
@@ -331,6 +351,38 @@ export function EventCalendar<T extends CalendarEvent = CalendarEvent>({
     };
   }, [opened]);
 
+  // Delete or Backspace on a focused event. Where focus goes when the app takes the event
+  // away: the event now where the deleted one was among those the keys reach, read once
+  // the event has left `events` and only if focus fell to the page with it.
+  const deleted = useRef<{ key: string; index: number } | null>(null);
+  const keyReached = () =>
+    [...(rootRef.current?.querySelectorAll<HTMLElement>("[data-event]") ?? [])].filter(
+      (el) => el.matches("a[href], button") && el.tabIndex >= 0,
+    );
+  const onDeleteKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!onEventDelete || (event.key !== "Delete" && event.key !== "Backspace")) return;
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.repeat || event.defaultPrevented) return;
+    const target = event.target as HTMLElement;
+    // The event itself has focus (not a field in a surface the app rendered), and it is not
+    // picked up to move.
+    if (!target.matches("[data-event]") || target.hasAttribute("data-moving")) return;
+    const p = placed.find((x) => x.key === target.dataset.event);
+    if (!p || !isDeletableEvent(p, true)) return;
+    event.preventDefault();
+    deleted.current = { key: p.key, index: Math.max(0, keyReached().indexOf(target)) };
+    dropPick();
+    onEventDelete(p.event as T);
+  };
+  useLayoutEffect(() => {
+    const was = deleted.current;
+    if (!was || placed.some((p) => p.key === was.key)) return;
+    deleted.current = null;
+    const active = document.activeElement;
+    if (active && active !== document.body) return;
+    const left = keyReached();
+    (left[Math.min(was.index, left.length - 1)] ?? bodyRef.current?.querySelector<HTMLElement>('[tabindex="0"]'))?.focus();
+  });
+
   // A pick is a half-made "add": turning to an event (opening it, moving it) abandons it.
   const dropPick = () => {
     if (onSelectionChange && selection) setSelection(null);
@@ -348,7 +400,7 @@ export function EventCalendar<T extends CalendarEvent = CalendarEvent>({
     labels,
     // The calendar hands back the very objects it was given: `events` are `T`.
     onEventClick:
-      onEventClick || renderEventDetails
+      onEventClick || renderEventDetails || onEventDelete
         ? (event, target) => {
             dropPick();
             if (renderEventDetails) setOpened({ key: target.dataset.event ?? "", target });
@@ -376,78 +428,81 @@ export function EventCalendar<T extends CalendarEvent = CalendarEvent>({
   };
 
   return (
-    <div
-      role="group"
-      aria-label={props["aria-labelledby"] ? undefined : labels.region}
-      {...props}
-      ref={mergeRefs(ref, rootRef)}
-      // `minmax(0, 1fr)`: an `auto` column would grow to the toolbar's min-content
-      // (the view switch) and push every view past a narrow calendar.
-      className={cn("r-dates-event-calendar grid min-w-0 grid-cols-[minmax(0,1fr)] gap-r4", className)}
-    >
-      <div className={cn("r-dates-event-toolbar", classNames?.toolbar)}>
-        <div className="flex items-center gap-r5">
-          <Button variant="secondary" onClick={() => setDate(today)}>
-            {labels.today}
-          </Button>
-          <IconButton
-            label={labels.previous[view]}
-            icon={<ChevronLeft className="rtl:-scale-x-100" />}
-            onClick={() => setDate(stepDate(view, date, -1))}
-            className="size-control"
-          />
-          <IconButton
-            label={labels.next[view]}
-            icon={<ChevronRight className="rtl:-scale-x-100" />}
-            onClick={() => setDate(stepDate(view, date, 1))}
-            className="size-control"
-          />
-        </div>
-        {/* Announced when the period changes; mounted from the start, as a live
-            region created with its first text is not reliably read. */}
-        <div
-          aria-live="polite"
-          className={cn("min-w-0 grow break-words text-h4 font-semibold text-fg-primary", classNames?.title)}
-        >
-          {title}
-        </div>
-        {views.length > 1 && (
-          <SegmentedControl
-            aria-label={labels.viewSwitch}
-            value={view}
-            onValueChange={(next) => setView(next as EventCalendarView)}
-            className={classNames?.views}
-          >
-            {views.map((v) => (
-              <SegmentedControl.Item key={v} value={v}>
-                {labels.views[v]}
-              </SegmentedControl.Item>
-            ))}
-          </SegmentedControl>
-        )}
-      </div>
+    <EventDeleteContext.Provider value={Boolean(onEventDelete)}>
       <div
-        ref={bodyRef}
-        aria-busy={loading || undefined}
-        className={cn("min-w-0", loading && "opacity-disabled", classNames?.body)}
+        role="group"
+        aria-label={props["aria-labelledby"] ? undefined : labels.region}
+        {...props}
+        ref={mergeRefs(ref, rootRef)}
+        onKeyDown={composeEventHandlers(props.onKeyDown, onDeleteKey)}
+        // `minmax(0, 1fr)`: an `auto` column would grow to the toolbar's min-content
+        // (the view switch) and push every view past a narrow calendar.
+        className={cn("r-dates-event-calendar grid min-w-0 grid-cols-[minmax(0,1fr)] gap-r4", className)}
       >
-        {/* The calendar's one status region: loading, else what the views announce. */}
-        <div role="status" data-calendar-announcer="" className="sr-only">
-          {loading ? labels.loading : message}
+        <div className={cn("r-dates-event-toolbar", classNames?.toolbar)}>
+          <div className="flex items-center gap-r5">
+            <Button variant="secondary" onClick={() => setDate(today)}>
+              {labels.today}
+            </Button>
+            <IconButton
+              label={labels.previous[view]}
+              icon={<ChevronLeft className="rtl:-scale-x-100" />}
+              onClick={() => setDate(stepDate(view, date, -1))}
+              className="size-control"
+            />
+            <IconButton
+              label={labels.next[view]}
+              icon={<ChevronRight className="rtl:-scale-x-100" />}
+              onClick={() => setDate(stepDate(view, date, 1))}
+              className="size-control"
+            />
+          </div>
+          {/* Announced when the period changes; mounted from the start, as a live
+              region created with its first text is not reliably read. */}
+          <div
+            aria-live="polite"
+            className={cn("min-w-0 grow break-words text-h4 font-semibold text-fg-primary", classNames?.title)}
+          >
+            {title}
+          </div>
+          {views.length > 1 && (
+            <SegmentedControl
+              aria-label={labels.viewSwitch}
+              value={view}
+              onValueChange={(next) => setView(next as EventCalendarView)}
+              className={classNames?.views}
+            >
+              {views.map((v) => (
+                <SegmentedControl.Item key={v} value={v}>
+                  {labels.views[v]}
+                </SegmentedControl.Item>
+              ))}
+            </SegmentedControl>
+          )}
         </div>
-        {view === "month" ? (
-          <EventMonthView {...shared} maxEventsPerDay={Math.max(1, Math.floor(maxEventsPerDay))} />
-        ) : view === "agenda" ? (
-          <EventAgenda {...shared} loading={loading} />
-        ) : (
-          <EventTimeGrid {...shared} scrollToHour={Math.min(23, Math.max(0, Math.floor(scrollToHour)))} />
-        )}
+        <div
+          ref={bodyRef}
+          aria-busy={loading || undefined}
+          className={cn("min-w-0", loading && "opacity-disabled", classNames?.body)}
+        >
+          {/* The calendar's one status region: loading, else what the views announce. */}
+          <div role="status" data-calendar-announcer="" className="sr-only">
+            {loading ? labels.loading : message}
+          </div>
+          {view === "month" ? (
+            <EventMonthView {...shared} maxEventsPerDay={Math.max(1, Math.floor(maxEventsPerDay))} />
+          ) : view === "agenda" ? (
+            <EventAgenda {...shared} loading={loading} />
+          ) : (
+            <EventTimeGrid {...shared} scrollToHour={Math.min(23, Math.max(0, Math.floor(scrollToHour)))} />
+          )}
+        </div>
+        {renderSelection && selection && anchor && renderSelection({ range: selection, anchor, clear: () => setSelection(null) })}
+        {renderEventDetails &&
+          openEvent &&
+          detailsAnchor &&
+          renderEventDetails({ event: openEvent as T, anchor: detailsAnchor, close: () => setOpened(null) })}
       </div>
-      {renderSelection && selection && anchor && renderSelection({ range: selection, anchor, clear: () => setSelection(null) })}
-      {renderEventDetails &&
-        openEvent &&
-        detailsAnchor &&
-        renderEventDetails({ event: openEvent as T, anchor: detailsAnchor, close: () => setOpened(null) })}
-    </div>
+    </EventDeleteContext.Provider>
   );
 }

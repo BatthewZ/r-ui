@@ -35,3 +35,9 @@
   details" stayed green in the browser with the rule removed: pressing the pager is a press
   outside the popover, which closes it anyway. The unit test, with a plain surface and no
   light dismiss, is where that rule can fail.
+- **Delete is the app's, and so is when focus moves.** The calendar hands over the event and
+  removes nothing; it remembers where the deleted event sat among those the keys reach and
+  moves focus there only once the event has left `events` and focus fell to the page with it.
+  An app that confirms first, or refuses, keeps focus where it was.
+- **user-event never sends a held key's repeats as repeats.** `{Delete>2/}` fires two
+  keydowns with `repeat: false`; a test of "not on a held key" sends `repeat: true` itself.

@@ -9,7 +9,7 @@ import {
   toISODate,
 } from "../../../src/components/dates";
 import { Field, Input } from "../../../src/components/form";
-import { Popover } from "../../../src/components/overlays";
+import { Popover, useToast } from "../../../src/components/overlays";
 import { Button, Link } from "../../../src/components/primitives";
 import { day, Grid, Row, Stack } from "./parts/demo";
 import { NOW, OPS_EVENTS, type OpsEvent } from "./parts/events";
@@ -175,6 +175,24 @@ function EditableDemo() {
   const [events, setEvents] = useState(BOOKINGS);
   const [selection, setSelection] = useState<CalendarRange | null>(null);
   const [last, setLast] = useState("—");
+  const { toast } = useToast();
+  // Delete at once and say so, with an Undo that puts the booking back where it was.
+  const onEventDelete = (event: CalendarEvent) => {
+    const index = events.findIndex((e) => e.id === event.id);
+    if (index < 0) return;
+    setEvents((list) => list.filter((e) => e.id !== event.id));
+    setLast(`delete ${event.id}`);
+    toast({
+      title: `Deleted “${event.title}”`,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          setEvents((list) => (list.some((e) => e.id === event.id) ? list : [...list.slice(0, index), event, ...list.slice(index)]));
+          setLast(`undo ${event.id}`);
+        },
+      },
+    });
+  };
   const onEventChange = (change: CalendarEventChange) => {
     setEvents((list) => list.map((e) => (e.id === change.event.id ? { ...e, ...placeOf(change) } : e)));
     setLast(`${change.kind} ${change.event.id}`);
@@ -196,6 +214,7 @@ function EditableDemo() {
         selection={selection}
         onSelectionChange={setSelection}
         onEventChange={onEventChange}
+        onEventDelete={onEventDelete}
         onEventClick={() => {}}
         renderSelection={({ range, anchor, clear }) => (
           // Closing (Escape, a press outside) drops the pick; a press on another slot starts a new one.
@@ -223,7 +242,7 @@ export default function EventCalendarSection() {
       </Row>
 
       {/* The time grid scrolls sideways by design when its days do not fit. */}
-      <Row label="Editable · pick a range (drag, or Shift+arrows then Enter) and the app's own panel opens at it; drag an event or its end; Space picks one up" data-sc-scrolls="">
+      <Row label="Editable · pick a range (drag, or Shift+arrows then Enter) and the app's own panel opens at it; drag an event or its end; Space picks one up; Delete removes one, with Undo in a toast" data-sc-scrolls="">
         <EditableDemo />
       </Row>
 

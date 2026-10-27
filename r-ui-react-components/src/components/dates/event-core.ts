@@ -53,8 +53,8 @@ export interface CalendarEvent {
   /** The event is a link (through the `RouterProvider` for an internal path). */
   href?: string;
   /**
-   * `false`: never moved or resized, even when the calendar takes changes
-   * (`onEventChange`): a public holiday, an imported booking.
+   * `false`: never moved, resized or deleted, even when the calendar takes
+   * changes (`onEventChange`, `onEventDelete`): a public holiday, an imported booking.
    */
   editable?: boolean;
 }

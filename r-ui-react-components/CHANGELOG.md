@@ -9,6 +9,11 @@ tokens or the public surface are versioned events and are recorded here.
 
 - `EventCalendar<T>`: the calendar takes your own event type (`T extends CalendarEvent`), keeps your objects as they are, and hands them back typed from `onEventClick`, `onEventChange` (`CalendarEventChange<T>`) and `renderEventDetails`, every field of them, with no cast.
 - `EventCalendar`'s `renderEventDetails`: your own surface for an opened event (a description, pictures, attachments, links elsewhere), whatever it is (a `Popover` at the event, a `Drawer`, a `Dialog`). It is given the event as it is now, an `anchor` at the chip, block, bar or row that was pressed (another drawing of the event if that one goes; one actually drawn, never a hidden chip) and `close`. It stays until `close`, another event is opened, the event leaves `events`, or the view or period changes. With it, events are buttons even without `onEventClick`.
+- `EventCalendar`'s `onEventDelete`: Delete or Backspace on a focused event (the week and day views, the agenda, the month's day panel) hands your object over; the calendar removes nothing and says nothing, so the app deletes (and says so, offers an undo), confirms first, or refuses. Not while an event is picked up to move, with a modifier, or on a held key's repeats; never for `editable: false`. When the event leaves `events`, focus moves to the next event the keys reach. With it, events are buttons and say the key (`aria-keyshortcuts`).
+
+### Changed
+
+- `CalendarEvent.editable: false` now also keeps an event from being deleted (`onEventDelete`), as it keeps it from being moved or resized.
 
 ## 0.1.4
 
