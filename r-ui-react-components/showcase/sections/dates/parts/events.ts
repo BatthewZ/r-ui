@@ -6,13 +6,24 @@ import type { CalendarEvent } from "../../../../src/components/dates";
  * In a subfolder, which the section registry does not glob.
  */
 
+/**
+ * The ops team's own event: everything the calendar reads, and what the team
+ * keeps beside it, which the calendar hands back untouched and typed.
+ */
+export interface OpsEvent extends CalendarEvent {
+  owner?: string;
+  /** A runbook elsewhere. */
+  runbook?: string;
+  attachments?: { name: string; href: string }[];
+}
+
 /** The demo's clock: Thursday 15 October 2026, 10:40 local. */
 export const NOW = new Date(2026, 9, 15, 10, 40);
 
 const at = (month: number, date: number, hour: number, minute = 0) => new Date(2026, month - 1, date, hour, minute);
 
 /** The weekdays of October with a 09:30 stand-up. */
-const standups: CalendarEvent[] = Array.from({ length: 31 }, (_, i) => new Date(2026, 9, i + 1))
+const standups: OpsEvent[] = Array.from({ length: 31 }, (_, i) => new Date(2026, 9, i + 1))
   .filter((d) => d.getDay() !== 0 && d.getDay() !== 6)
   .map((d) => ({
     id: `standup-${d.getDate()}`,
@@ -23,7 +34,7 @@ const standups: CalendarEvent[] = Array.from({ length: 31 }, (_, i) => new Date(
     category: "Platform team",
   }));
 
-export const OPS_EVENTS: CalendarEvent[] = [
+export const OPS_EVENTS: OpsEvent[] = [
   {
     id: "maintenance",
     title: "Datacenter maintenance window",
@@ -34,6 +45,12 @@ export const OPS_EVENTS: CalendarEvent[] = [
     tone: "info",
     location: "Frankfurt DC2",
     description: "Rolling hardware replacement; expect brief failovers.",
+    owner: "Ada Lovelace",
+    runbook: "https://example.com/runbooks/dc2-maintenance",
+    attachments: [
+      { name: "Change request CR-2231.pdf", href: "https://example.com/files/cr-2231.pdf" },
+      { name: "Rack plan.png", href: "https://example.com/files/rack-plan.png" },
+    ],
   },
   { id: "oncall-ada", title: "On call: Ada", start: "2026-10-12", end: "2026-10-18", slot: 4, category: "On call" },
   { id: "oncall-grace", title: "On call: Grace", start: "2026-10-19", end: "2026-10-25", slot: 4, category: "On call" },
@@ -71,6 +88,8 @@ export const OPS_EVENTS: CalendarEvent[] = [
     slot: 1,
     category: "Platform team",
     location: "Room 4.12",
+    owner: "Grace Hopper",
+    attachments: [{ name: "Latency graphs.pdf", href: "https://example.com/files/latency.pdf" }],
   },
   { id: "design-sync", title: "Design sync", start: at(10, 15, 10, 30), end: at(10, 15, 11, 30), slot: 6, category: "Product" },
   { id: "one-on-one", title: "1:1 with Lin", start: at(10, 15, 10, 30), end: at(10, 15, 11), category: "Personal" },
@@ -86,6 +105,8 @@ export const OPS_EVENTS: CalendarEvent[] = [
     tone: "warning",
     statusLabel: "Needs sign-off",
     description: "orders-db to the new cluster; read-only during the cut-over.",
+    owner: "Lin Chen",
+    runbook: "https://example.com/runbooks/orders-db-migration",
   },
   // A busy Wednesday: more than a month cell shows.
   { id: "vendor", title: "Vendor call", start: at(10, 21, 11), end: at(10, 21, 11, 30), category: "Company" },

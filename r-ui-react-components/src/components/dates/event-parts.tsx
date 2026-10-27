@@ -1,5 +1,5 @@
 "use client";
-import type { ComponentPropsWithRef, ReactNode } from "react";
+import type { ComponentPropsWithRef, MouseEvent, ReactNode } from "react";
 
 import { useLinkElement } from "../../util/router";
 import { cn, type SlotClassNames } from "../../util/style";
@@ -123,7 +123,8 @@ export interface EventViewProps {
   /** The clock (epoch ms): today, and the time grid's now line. */
   now: number;
   labels: EventCalendarLabels;
-  onEventClick?: (event: CalendarEvent) => void;
+  /** An event was opened (pressed, or Enter), with the element that was: what its details sit beside. */
+  onEventClick?: (event: CalendarEvent, target: HTMLElement) => void;
   /** Show the day view on `day`; absent when the calendar offers no day view. */
   onOpenDay?: (day: Date) => void;
   classNames?: SlotClassNames<EventCalendarSlot>;
@@ -250,7 +251,7 @@ export type EventTargetProps = Omit<ComponentPropsWithRef<"div">, "children" | "
   placed: PlacedEvent;
   /** The full name (`eventName`). */
   name: string;
-  onEventClick?: (event: CalendarEvent) => void;
+  onEventClick?: (event: CalendarEvent, target: HTMLElement) => void;
   /** It can be moved (`isEditableEvent`): with no link or `onEventClick`, a button that only the keyboard's pick-up uses. */
   editable?: boolean;
   children: ReactNode;
@@ -277,7 +278,7 @@ export function EventTarget({ placed, name, onEventClick, editable = false, clas
   };
   if (href) {
     return (
-      <Link {...shared} href={href} aria-label={name} tabIndex={tabIndex} onClick={onEventClick ? () => onEventClick(placed.event) : undefined}>
+      <Link {...shared} href={href} aria-label={name} tabIndex={tabIndex} onClick={onEventClick ? (e: MouseEvent<HTMLElement>) => onEventClick(placed.event, e.currentTarget) : undefined}>
         {children}
       </Link>
     );
@@ -289,7 +290,7 @@ export function EventTarget({ placed, name, onEventClick, editable = false, clas
         type="button"
         aria-label={name}
         tabIndex={tabIndex}
-        onClick={onEventClick ? () => onEventClick(placed.event) : undefined}
+        onClick={onEventClick ? (e) => onEventClick(placed.event, e.currentTarget) : undefined}
       >
         {children}
       </button>

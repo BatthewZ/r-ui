@@ -10,9 +10,9 @@ import {
 } from "../../../src/components/dates";
 import { Field, Input } from "../../../src/components/form";
 import { Popover } from "../../../src/components/overlays";
-import { Button } from "../../../src/components/primitives";
+import { Button, Link } from "../../../src/components/primitives";
 import { day, Grid, Row, Stack } from "./parts/demo";
-import { NOW, OPS_EVENTS } from "./parts/events";
+import { NOW, OPS_EVENTS, type OpsEvent } from "./parts/events";
 
 export const meta = {
   title: "EventCalendar",
@@ -25,13 +25,73 @@ export const meta = {
 /** A link per event, for the agenda demo (the showcase's own hash routes, so following one stays here). */
 const LINKED: CalendarEvent[] = OPS_EVENTS.map((event) => ({ ...event, href: `#/overview/dates-eventcalendar?event=${event.id}` }));
 
+/** The app's own words for when an event is: "Thu, Oct 15, 10:00 – 11:00 AM", or the days of an all-day one. */
+function sayWhen(event: OpsEvent): string {
+  if (typeof event.start === "string") {
+    const days = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
+    const at = (iso: string) => new Date(`${iso}T00:00`);
+    return days.formatRange(at(event.start), at(typeof event.end === "string" ? event.end : event.start));
+  }
+  const when = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const start = new Date(event.start);
+  return event.end === undefined ? when.format(start) : when.formatRange(start, new Date(event.end));
+}
+
+/** The app's own surface for an opened event: everything it keeps, the calendar's short form left behind. */
+function OpsDetails({ event, onClose }: { event: OpsEvent; onClose: () => void }) {
+  return (
+    <div className="grid gap-r4">
+      <div className="grid gap-r6">
+        <p className="text-body-1 font-semibold text-fg-primary">{event.title}</p>
+        <p className="text-body-2 text-fg-secondary">{sayWhen(event)}</p>
+      </div>
+      {event.description && <p className="text-body-2 text-fg-primary">{event.description}</p>}
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-r4 gap-y-r6 text-body-2">
+        {event.category && (
+          <>
+            <dt className="text-fg-secondary">Team</dt>
+            <dd className="min-w-0 break-words">{event.category}</dd>
+          </>
+        )}
+        {event.location && (
+          <>
+            <dt className="text-fg-secondary">Where</dt>
+            <dd className="min-w-0 break-words">{event.location}</dd>
+          </>
+        )}
+        {event.owner && (
+          <>
+            <dt className="text-fg-secondary">Owner</dt>
+            <dd className="min-w-0 break-words">{event.owner}</dd>
+          </>
+        )}
+      </dl>
+      {event.attachments && event.attachments.length > 0 && (
+        <ul className="grid gap-r6 text-body-2" aria-label="Attachments">
+          {event.attachments.map((file) => (
+            <li key={file.href} className="min-w-0 break-words">
+              <Link href={file.href}>{file.name}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex flex-wrap items-center justify-end gap-r5">
+        {event.runbook && <Link href={event.runbook}>Open runbook</Link>}
+        <Button type="button" variant="secondary" onClick={onClose}>
+          Close
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function MainDemo() {
   const [view, setView] = useState<EventCalendarView>("month");
   const [date, setDate] = useState(day(10, 15));
   const [opened, setOpened] = useState<string>("—");
   return (
     <div className="grid min-w-0 gap-r5" data-sc="event-calendar-main">
-      <EventCalendar
+      <EventCalendar<OpsEvent>
         aria-label="Operations calendar"
         events={OPS_EVENTS}
         now={NOW}
@@ -40,6 +100,13 @@ function MainDemo() {
         date={date}
         onDateChange={setDate}
         onEventClick={(event) => setOpened(event.title)}
+        renderEventDetails={({ event, anchor, close }) => (
+          <Popover open anchor={anchor} placement="right-start" onOpenChange={(open) => !open && close()}>
+            <Popover.Content aria-label={event.title} data-sc="event-calendar-details" className="w-(--COLUMN-LG)">
+              <OpsDetails event={event} onClose={close} />
+            </Popover.Content>
+          </Popover>
+        )}
       />
       <output className="text-body-2 text-fg-secondary" data-sc="event-calendar-state">
         {view} · {toISODate(date)} · opened: {opened}
@@ -151,7 +218,7 @@ function EditableDemo() {
 export default function EventCalendarSection() {
   return (
     <Stack>
-      <Row label="An ops month: multi-day lanes, a crowded day's '+n more', the day panel by Enter or a press">
+      <Row label="An ops month: multi-day lanes, a crowded day's '+n more', the day panel by Enter or a press; an event opens the app's own details (its owner, runbook, attachments)">
         <MainDemo />
       </Row>
 

@@ -22,3 +22,16 @@
   pick and takes focus: a check that pressed an event right after a pick hit the panel
   instead, and one that counted "any dialog" counted it as the day panel. Pick where the
   panel cannot cover what comes next, and find each surface by its own class.
+- **The same holds for an opened event, and its anchor is the element pressed.** An event is
+  drawn in several places at once (a chip, a day panel's row, a block on each day it
+  spans), so the anchor is the element that was activated, passed up with the event, and
+  when that goes another drawing of the event that is actually drawn: a narrow month keeps
+  its chips in the DOM undisplayed, and a 0 × 0 box at the page's corner is not a place.
+- **Generic over the app's type, sound at one boundary.** The calendar keeps the app's
+  objects untouched, so handing them back as the app's own type is one cast at the
+  calendar's edge, not a type threaded through every view; a type-level test holds each
+  callback's type.
+- **A guarantee a browser cannot isolate belongs to the unit tests.** "Paging closes the
+  details" stayed green in the browser with the rule removed: pressing the pager is a press
+  outside the popover, which closes it anyway. The unit test, with a plain surface and no
+  light dismiss, is where that rule can fail.

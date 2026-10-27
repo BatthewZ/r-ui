@@ -23,9 +23,12 @@ export interface CalendarRange {
   allDay: boolean;
 }
 
-/** An event moved or resized: where it would go. The calendar never changes `events` itself. */
-export interface CalendarEventChange extends CalendarRange {
-  event: CalendarEvent;
+/**
+ * An event moved or resized: where it would go. The calendar never changes
+ * `events` itself. `event` is the very object the app gave (its own type).
+ */
+export interface CalendarEventChange<T extends CalendarEvent = CalendarEvent> extends CalendarRange {
+  event: T;
   kind: "move" | "resize";
 }
 

@@ -47,9 +47,29 @@ export interface EventCalendarSelection {
   clear: () => void;
 }
 
-export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "children" | "onChange" | "defaultValue"> {
+/** What `renderEventDetails` is given while an event is open. */
+export interface EventCalendarEventDetails<T extends CalendarEvent = CalendarEvent> {
+  /** The open event: the very object in `events` (your own type, every field of it), as it is now. */
+  event: T;
+  /**
+   * Where it was opened: the chip, block, bar or row that was pressed, measured
+   * each time it is read (another drawing of the same event if that one is
+   * gone), so a panel beside it follows scrolling. For a `Popover`'s `anchor`.
+   */
+  anchor: PopoverAnchor;
+  /** Closes the details: for a Close button, or a panel closing. */
+  close: () => void;
+}
+
+/**
+ * `T`: your own event type. Give it every field you keep (attachments, a
+ * booking's id, an owner); the calendar reads only `CalendarEvent`'s, keeps
+ * your objects as they are, and hands them back typed as `T`.
+ */
+export interface EventCalendarProps<T extends CalendarEvent = CalendarEvent>
+  extends Omit<ComponentPropsWithRef<"div">, "children" | "onChange" | "defaultValue"> {
   /** The events to show. The calendar never changes them: it reports picks and changes. */
-  events: readonly CalendarEvent[];
+  events: readonly T[];
   /** The view shown (controlled). */
   view?: EventCalendarView;
   /** @default "month" */
@@ -67,11 +87,21 @@ export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "
   defaultDate?: Date;
   onDateChange?: (date: Date) => void;
   /**
-   * An event was pressed. With it, events without an `href` are buttons;
-   * without it, they are text (a linked event is a link either way, and this
-   * runs before it navigates).
+   * An event was pressed (or Enter on it): your own object. With it (or
+   * `renderEventDetails`), events without an `href` are buttons; without
+   * either, they are text (a linked event is a link either way, and this runs
+   * before it navigates).
    */
-  onEventClick?: (event: CalendarEvent) => void;
+  onEventClick?: (event: T) => void;
+  /**
+   * Your own surface for an opened event, whatever it holds (a description,
+   * pictures, attachments, links elsewhere) and whatever it is (a `Popover` at
+   * `anchor`, a `Drawer`, a `Dialog`). Rendered inside the calendar while the
+   * event is open: until `close`, another event is opened, the event leaves
+   * `events`, or the view or the period changes. A chip or block shows only the
+   * event's short form; the full detail belongs here.
+   */
+  renderEventDetails?: (details: EventCalendarEventDetails<T>) => ReactNode;
   /** BCP 47 tag for every name, date and time. Omitted: the `LocaleProvider`'s, else the runtime's. */
   locale?: string;
   /** First day of the week, 0 = Sunday. Defaults to the locale's. */
@@ -107,7 +137,7 @@ export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "
    * `editable: false` stays put. The calendar never changes `events`: update
    * them, or leave them to refuse the change.
    */
-  onEventChange?: (change: CalendarEventChange) => void;
+  onEventChange?: (change: CalendarEventChange<T>) => void;
   /** The time grid's slot, and the snap for picking, moving and resizing, in minutes. @default 30 */
   slotMinutes?: SlotMinutes;
   /**
@@ -164,7 +194,7 @@ function periodTitle(view: EventCalendarView, date: Date, period: Period, locale
  * announced when it changes. Density, input, direction and the calendar's own
  * width (never the viewport) shape every view.
  */
-export function EventCalendar({
+export function EventCalendar<T extends CalendarEvent = CalendarEvent>({
   events,
   view: viewProp,
   defaultView = "month",
@@ -174,6 +204,7 @@ export function EventCalendar({
   defaultDate,
   onDateChange,
   onEventClick,
+  renderEventDetails,
   locale: localeProp,
   weekStartsOn,
   now: nowProp,
@@ -191,7 +222,7 @@ export function EventCalendar({
   className,
   ref,
   ...props
-}: EventCalendarProps) {
+}: EventCalendarProps<T>) {
   const labels = useLabels("EventCalendar", DEFAULT_EVENT_CALENDAR_LABELS, labelsProp);
   const locale = resolveLocale(useLocale(localeProp));
   const weekStart = weekStartsOn ?? weekStartFor(locale);
@@ -268,6 +299,38 @@ export function EventCalendar({
     [pickedPiece],
   );
 
+  // The event whose details are open (`renderEventDetails`), by its key, and the element it
+  // was opened from. Closed when the view or the period changes: what it sat beside is gone.
+  const [opened, setOpened] = useState<{ key: string; target: HTMLElement } | null>(null);
+  const periodKey = `${view}:${period.start.getTime()}`;
+  const [openedIn, setOpenedIn] = useState(periodKey);
+  if (openedIn !== periodKey) {
+    setOpenedIn(periodKey);
+    if (opened) setOpened(null);
+  }
+  const openEvent = opened ? placed.find((p) => p.key === opened.key)?.event : undefined;
+  const detailsAnchor = useMemo<PopoverAnchor | null>(() => {
+    if (!opened) return null;
+    let last = opened.target.getBoundingClientRect();
+    // Drawn: on screen with a box (a narrow month keeps its chips in the DOM, undisplayed).
+    const drawn = (el: HTMLElement) => {
+      const r = el.isConnected ? el.getBoundingClientRect() : null;
+      return r && (r.width > 0 || r.height > 0) ? r : null;
+    };
+    return {
+      // The opened element while it is drawn, else another drawing of the event, else where it last was.
+      getBoundingClientRect: () => {
+        const others = [...(rootRef.current?.querySelectorAll<HTMLElement>("[data-event]") ?? [])].filter((e) => e.dataset.event === opened.key);
+        for (const el of [opened.target, ...others]) {
+          const r = drawn(el);
+          if (r) return (last = r);
+        }
+        return last;
+      },
+      contextElement: opened.target,
+    };
+  }, [opened]);
+
   // A pick is a half-made "add": turning to an event (opening it, moving it) abandons it.
   const dropPick = () => {
     if (onSelectionChange && selection) setSelection(null);
@@ -283,12 +346,15 @@ export function EventCalendar({
     locale,
     now,
     labels,
-    onEventClick: onEventClick
-      ? (event) => {
-          dropPick();
-          onEventClick(event);
-        }
-      : undefined,
+    // The calendar hands back the very objects it was given: `events` are `T`.
+    onEventClick:
+      onEventClick || renderEventDetails
+        ? (event, target) => {
+            dropPick();
+            if (renderEventDetails) setOpened({ key: target.dataset.event ?? "", target });
+            onEventClick?.(event as T);
+          }
+        : undefined,
     onOpenDay: views.includes("day")
       ? (day) => {
           focusDayView.current = true;
@@ -303,7 +369,7 @@ export function EventCalendar({
     onEventChange: onEventChange
       ? (change) => {
           dropPick();
-          onEventChange(change);
+          onEventChange(change as CalendarEventChange<T>);
         }
       : undefined,
     announce,
@@ -378,6 +444,10 @@ export function EventCalendar({
         )}
       </div>
       {renderSelection && selection && anchor && renderSelection({ range: selection, anchor, clear: () => setSelection(null) })}
+      {renderEventDetails &&
+        openEvent &&
+        detailsAnchor &&
+        renderEventDetails({ event: openEvent as T, anchor: detailsAnchor, close: () => setOpened(null) })}
     </div>
   );
 }

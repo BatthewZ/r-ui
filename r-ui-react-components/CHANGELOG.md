@@ -3,6 +3,13 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
+## Unreleased
+
+### Added
+
+- `EventCalendar<T>`: the calendar takes your own event type (`T extends CalendarEvent`), keeps your objects as they are, and hands them back typed from `onEventClick`, `onEventChange` (`CalendarEventChange<T>`) and `renderEventDetails`, every field of them, with no cast.
+- `EventCalendar`'s `renderEventDetails`: your own surface for an opened event (a description, pictures, attachments, links elsewhere), whatever it is (a `Popover` at the event, a `Drawer`, a `Dialog`). It is given the event as it is now, an `anchor` at the chip, block, bar or row that was pressed (another drawing of the event if that one goes; one actually drawn, never a hidden chip) and `close`. It stays until `close`, another event is opened, the event leaves `events`, or the view or period changes. With it, events are buttons even without `onEventClick`.
+
 ## 0.1.4
 
 ### Added
