@@ -70,6 +70,17 @@ export interface UsePressDragOptions<T> {
   /** Released (`"drop"`) or abandoned (`"cancel"`: Escape, or the browser took the pointer). */
   onEnd: (drag: PressDrag<T>, how: "drop" | "cancel") => void;
   /**
+   * A press began, before anyone knows whether it is a click or a drag: show
+   * at once what the press will act on (a slot about to be picked).
+   */
+  onPress?: (press: PressDrag<T>) => void;
+  /**
+   * A press ended without ever becoming a drag: released (its click follows,
+   * in the same input), cancelled, a touch that turned into a scroll, or one
+   * `onStart` refused. Undo what `onPress` showed, after the click has had its turn.
+   */
+  onRelease?: (press: PressDrag<T>) => void;
+  /**
    * Scrollers that move while the pointer nears their edges during a drag,
    * each on the axes it overflows; the page's scroller (the nearest vertical
    * scroller around the `rootRef` element) is added.
@@ -113,17 +124,27 @@ interface Press<T> extends PressDrag<T> {
  * so a dragged link or button does not also follow or press. The caller only
  * turns pointer positions into targets (`onMove`) and commits (`onEnd`).
  */
-export function usePressDrag<T>({ onStart, onMove, onEnd, scrollers, enabled = true }: UsePressDragOptions<T>): PressDragHandle<T> {
+export function usePressDrag<T>({
+  onStart,
+  onMove,
+  onEnd,
+  onPress,
+  onRelease,
+  scrollers,
+  enabled = true,
+}: UsePressDragOptions<T>): PressDragHandle<T> {
   const press = useRef<Press<T> | null>(null);
   const root = useRef<HTMLElement | null>(null);
   // The latest callbacks, read by window listeners that outlive a render.
-  const latest = useRef({ onStart, onMove, onEnd, scrollers });
-  latest.current = { onStart, onMove, onEnd, scrollers };
+  const latest = useRef({ onStart, onMove, onEnd, onPress, onRelease, scrollers });
+  latest.current = { onStart, onMove, onEnd, onPress, onRelease, scrollers };
 
   const endPress = useCallback((p: Press<T>, how: "drop" | "cancel" | null) => {
     p.cleanup();
     if (press.current === p) press.current = null;
+    // A drag ends with how it ended; a press that never became one, quietly.
     if (how) latest.current.onEnd(p, how);
+    else latest.current.onRelease?.(p);
   }, []);
 
   const autoScroll = (p: Press<T>) => {
@@ -248,6 +269,7 @@ export function usePressDrag<T>({ onStart, onMove, onEnd, scrollers, enabled = t
       window.removeEventListener("selectstart", onTouchDefault, true);
     };
     press.current = p;
+    latest.current.onPress?.(p);
     if (p.touch) p.timer = window.setTimeout(() => activate(p), LONG_PRESS_MS);
   };
 

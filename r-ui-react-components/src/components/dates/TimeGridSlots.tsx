@@ -8,6 +8,7 @@ import {
   type PointerEvent,
   type RefObject,
   useCallback,
+  useEffect,
   useId,
   useMemo,
   useRef,
@@ -47,6 +48,8 @@ export interface TimeGridSlotsProps {
   announce: (message: string) => void;
   /** The time grid's scroll region: kept on the active slot, edge-scrolled while dragging. */
   regionRef: RefObject<HTMLDivElement | null>;
+  /** A pick is under way here, or no longer: what the picked range drawn elsewhere (the all-day row) gives way to. */
+  onDraftChange?: (drafting: boolean) => void;
 }
 
 const DAY_MINUTES = 24 * 60;
@@ -96,6 +99,7 @@ export function TimeGridSlots({
   labels,
   announce,
   regionRef,
+  onDraftChange,
 }: TimeGridSlotsProps) {
   const baseId = useId();
   const cellId = (p: SlotPoint) => `${baseId}-${toISODate(p.day)}-${p.minute}`;
@@ -199,6 +203,21 @@ export function TimeGridSlots({
 
   // ── Pointer ───────────────────────────────────────────────────────────────
   const drag = usePressDrag<SlotPoint>({
+    // The pick starts where the press lands, at once: the old one gives way to it
+    // before the pointer moves, and comes back if the press comes to nothing.
+    onPress: ({ payload }) => {
+      dragDraft.current = { anchor: payload, head: payload };
+      setDraft(dragDraft.current);
+    },
+    // A press that never became a drag: its click (if any) picks the slot first,
+    // then whatever the press showed is dropped.
+    onRelease: () => {
+      window.setTimeout(() => {
+        if (drag.isDragging()) return;
+        dragDraft.current = null;
+        setDraft(null);
+      }, 0);
+    },
     onStart: ({ payload }) => {
       dragDraft.current = { anchor: payload, head: payload };
       setDraft(dragDraft.current);
@@ -240,8 +259,11 @@ export function TimeGridSlots({
   };
   // A press that never became a drag (the engine swallows the click after one).
   const onClick = (event: MouseEvent<HTMLDivElement>) => {
-    const p = slotOf(event.target);
+    // Released over another part of the layer than the slot pressed: the pressed slot.
+    const p = slotOf(event.target) ?? dragDraft.current?.anchor;
     if (!p) return;
+    dragDraft.current = null;
+    setDraft(null);
     setCursor(p);
     commit(slotRange(p, p, slotMinutes));
   };
@@ -263,8 +285,12 @@ export function TimeGridSlots({
       ),
     [days, slotMinutes, locale],
   );
+  const drafting = draft !== null;
+  useEffect(() => onDraftChange?.(drafting), [drafting, onDraftChange]);
   const draftRange = draft ? slotRange(draft.anchor, draft.head, slotMinutes) : null;
-  const ranges = [draftRange, selection].filter((r): r is CalendarRange => r !== null && !r.allDay);
+  // A pick under way replaces the one picked before, on screen and in the cells' names,
+  // until it is picked or dropped.
+  const ranges = (draftRange ? [draftRange] : [selection]).filter((r): r is CalendarRange => r !== null && !r.allDay);
   // Per day, the minutes each drawn range covers there.
   const windows = days.map((day) => ranges.map((r) => minutesOn(r, day)).filter((w): w is [number, number] => w !== null));
   const rows = DAY_MINUTES / slotMinutes;

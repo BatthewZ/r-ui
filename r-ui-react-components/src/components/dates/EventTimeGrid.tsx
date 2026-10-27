@@ -447,15 +447,17 @@ export function EventTimeGrid({
   );
   const canUnfold = folded.hidden.some((n) => n > 0);
 
+  // A pick under way in the slots replaces the picked range, here too.
+  const [slotsDrafting, setSlotsDrafting] = useState(false);
   // The picked range, when it is all-day and touches these days: its first and last column.
   const allDaySelection = useMemo(() => {
-    if (!selection?.allDay) return null;
+    if (!selection?.allDay || slotsDrafting) return null;
     const first = daysBetween(days[0] as Date, selection.start);
     const last = daysBetween(days[0] as Date, selection.end);
     const from = Math.max(0, first);
     const to = Math.min(days.length - 1, last);
     return from > to ? null : { from, to, continuesBefore: first < 0, continuesAfter: last > days.length - 1 };
-  }, [selection, days]);
+  }, [selection, days, slotsDrafting]);
   const row = unfolded ? full : folded;
   const deepest = row.segments.reduce((max, seg) => Math.max(max, seg.lane + 1), 0);
   const lanes = Math.max(1, unfolded ? deepest + 1 : canUnfold ? ALL_DAY_LANES : deepest);
@@ -710,6 +712,7 @@ export function EventTimeGrid({
               labels={labels}
               announce={announce}
               regionRef={regionRef}
+              onDraftChange={setSlotsDrafting}
             />
           )}
           {days.map((day, i) => {

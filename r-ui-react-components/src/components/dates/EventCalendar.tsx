@@ -67,11 +67,13 @@ export interface EventCalendarProps extends Omit<ComponentPropsWithRef<"div">, "
   selection?: CalendarRange | null;
   defaultSelection?: CalendarRange | null;
   /**
-   * A range was picked, or cleared (`null`, by Escape). With it the calendar
-   * takes picking: a drag or a press on the time grid's slots, a drag across
-   * the month's days, the keyboard's slot cursor (Shift with arrows, then
-   * Enter), and the day panel's "New event". The calendar adds nothing:
-   * open your own form for the range.
+   * A range was picked, or cleared (`null`: Escape, or opening or moving an
+   * event, which abandons a pick). With it the calendar takes picking: a drag
+   * or a press on the time grid's slots, a drag across the month's days, the
+   * keyboard's slot cursor (Shift with arrows, then Enter), and the day
+   * panel's "New event". A new press replaces the picked range on screen from
+   * the moment it lands. The calendar adds nothing: open your own form for
+   * the range.
    */
   onSelectionChange?: (range: CalendarRange | null) => void;
   /**
@@ -208,6 +210,11 @@ export function EventCalendar({
   const period = periodOf(view, date, weekStart);
   const title = periodTitle(view, date, period, locale);
 
+  // A pick is a half-made "add": turning to an event (opening it, moving it) abandons it.
+  const dropPick = () => {
+    if (onSelectionChange && selection) setSelection(null);
+  };
+
   const shared: EventViewProps = {
     placed,
     date,
@@ -218,7 +225,12 @@ export function EventCalendar({
     locale,
     now,
     labels,
-    onEventClick,
+    onEventClick: onEventClick
+      ? (event) => {
+          dropPick();
+          onEventClick(event);
+        }
+      : undefined,
     onOpenDay: views.includes("day")
       ? (day) => {
           focusDayView.current = true;
@@ -230,7 +242,12 @@ export function EventCalendar({
     slotMinutes,
     selection,
     onSelectionChange: onSelectionChange ? setSelection : undefined,
-    onEventChange,
+    onEventChange: onEventChange
+      ? (change) => {
+          dropPick();
+          onEventChange(change);
+        }
+      : undefined,
     announce,
   };
 

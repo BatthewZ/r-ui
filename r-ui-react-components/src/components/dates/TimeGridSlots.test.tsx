@@ -321,6 +321,65 @@ describe("EventCalendar time grid slots", () => {
     });
   });
 
+  describe("a new press and the range picked before", () => {
+    const picked: CalendarRange = { start: at(14, 9), end: at(14, 10), allDay: false };
+    const press = (el: Element) =>
+      fireEvent.pointerDown(el, { pointerId: 1, isPrimary: true, button: 0, clientX: 10, clientY: 10, pointerType: "mouse" });
+    /** Lets the press's release settle (what it showed is dropped after its click's turn). */
+    const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+
+    it("gives way the moment the press lands, and comes back when the press comes to nothing", async () => {
+      renderSlots({ selection: picked });
+      expect(pieces("selection")).toHaveLength(1);
+      press(cell(15, 600));
+      // Before the pointer has moved: only the pressed slot is shown, and only it is selected.
+      expect(pieces("selection")).toHaveLength(0);
+      expect(pieces("draft")).toHaveLength(1);
+      expect(selectedCells()).toEqual([cell(15, 600)]);
+      // The browser takes the pointer (a touch turning into a scroll): nothing was picked.
+      fireEvent.pointerCancel(window, { pointerId: 1 });
+      await settle();
+      expect(pieces("draft")).toHaveLength(0);
+      expect(pieces("selection")).toHaveLength(1);
+    });
+
+    it("is replaced by the pressed slot when the press is a click", async () => {
+      const { onSelectionChange } = renderSlots({ defaultSelection: picked });
+      const target = cell(15, 600);
+      press(target);
+      fireEvent.pointerUp(window, { pointerId: 1, clientX: 10, clientY: 10 });
+      fireEvent.click(target);
+      await settle();
+      expect(onSelectionChange.mock.calls).toEqual([[slotRange(slot(15, 600), slot(15, 600), 30)]]);
+      expect(pieces("draft")).toHaveLength(0);
+      expect(pieces("selection")).toHaveLength(1);
+      expect(selectedCells()).toEqual([target]);
+    });
+
+    it("hides an all-day range in the all-day row while a pick is under way", async () => {
+      const { container } = renderSlots({ selection: { start: day(14), end: day(15), allDay: true } });
+      expect(container.querySelector("[data-allday-selection]")).not.toBeNull();
+      press(cell(15, 600));
+      expect(container.querySelector("[data-allday-selection]")).toBeNull();
+      fireEvent.pointerCancel(window, { pointerId: 1 });
+      await settle();
+      expect(container.querySelector("[data-allday-selection]")).not.toBeNull();
+    });
+  });
+
+  it("is cleared by opening or moving an event: turning to an event abandons a pick", async () => {
+    const user = userEvent.setup();
+    const onEventClick = vi.fn();
+    const { onSelectionChange } = renderSlots({ defaultSelection: { start: at(14, 9), end: at(14, 10), allDay: false }, onEventClick });
+    await user.click(screen.getByRole("button", { name: /^Interview,/ }));
+    expect(onEventClick).toHaveBeenCalledTimes(1);
+    expect(onSelectionChange.mock.calls).toEqual([[null]]);
+    expect(pieces("selection")).toHaveLength(0);
+    // With nothing picked, opening an event says nothing about picks.
+    await user.click(screen.getByRole("button", { name: /^Interview,/ }));
+    expect(onSelectionChange).toHaveBeenCalledTimes(1);
+  });
+
   it("follows slotMinutes: 15 and 60 change the rows and the step", async () => {
     const user = userEvent.setup();
     const { unmount } = renderSlots({ slotMinutes: 15 });

@@ -124,6 +124,42 @@ describe("usePressDrag", () => {
   });
 });
 
+describe("usePressDrag's press and release", () => {
+  function Pressable({ log }: { log: string[] }) {
+    const drag = usePressDrag<string>({
+      onPress: (p) => log.push(`press ${p.payload}`),
+      onRelease: (p) => log.push(`release ${p.payload}`),
+      onStart: () => void log.push("start"),
+      onMove: () => {},
+      onEnd: (_d, how) => log.push(how),
+    });
+    return (
+      <button type="button" ref={drag.rootRef} onPointerDown={(e) => drag.onPointerDown(e, "item")}>
+        Item
+      </button>
+    );
+  }
+
+  it("says a press began at once, and that it ended without a drag (a click, a cancel), never after a drag", () => {
+    const log: string[] = [];
+    render(<Pressable log={log} />);
+    const item = screen.getByRole("button", { name: "Item" });
+    down(item);
+    expect(log).toEqual(["press item"]);
+    up(10, 10);
+    expect(log).toEqual(["press item", "release item"]);
+
+    down(item);
+    fireEvent.pointerCancel(window, { pointerId: 1 });
+    expect(log.slice(2)).toEqual(["press item", "release item"]);
+
+    down(item);
+    move(40, 10);
+    up(40, 10);
+    expect(log.slice(4)).toEqual(["press item", "start", "drop"]);
+  });
+});
+
 describe("usePressDrag's page", () => {
   /** A box that scrolls vertically, its geometry given (jsdom lays nothing out). */
   const scroller = (el: HTMLElement, top: number, bottom: number) => {

@@ -24,7 +24,10 @@
 //      picks 10:00–12:00; a drag from Wednesday 14:00 forward to Thursday 10:00 draws two
 //      pieces (over midnight) and picks 14:00 – 10:30, and one from Thursday 11:00 back to
 //      Wednesday 15:00 picks 15:00 – 11:30;
-//   6. a press on an event (the Interview, Thursday 13:00) is the event's: no range picked;
+//   5b. with a range picked, a new press shows only its own slot the moment the button goes
+//      down (the old range gone), and its release picks that slot;
+//   6. a press on an event (the Interview, Thursday 13:00) is the event's, and abandons the
+//      range picked in 5b: the state reads no range;
 //   7. edge auto-scroll: a drag held at the region's bottom edge scrolls the region and the
 //      range it picks ends past the slot that was at the edge before;
 //   8. RTL: with `dir="rtl"` on the demo, ArrowLeft moves the cursor to the next day, drawn
@@ -284,7 +287,24 @@ async (page) => {
     await scrollTo(540);
     await drag(await cellBox("2026-10-15", 660), await cellBox("2026-10-14", 900));
     await expectState("drag Thu 11:00 → Wed 15:00", [14, 15], [15, 11, 30]);
-    await clearByKeys();
+
+    // ── 5b. a new press replaces that range the moment the button goes down ──
+    const other = await cellBox("2026-10-16", 600);
+    await page.mouse.move(other.x, other.y);
+    await page.mouse.down();
+    const held = await page.evaluate(
+      (LAYER) => ({
+        old: document.querySelectorAll(`${LAYER} [data-slots-draft="selection"]`).length,
+        draft: document.querySelectorAll(`${LAYER} [data-slots-draft="draft"]`).length,
+      }),
+      LAYER,
+    );
+    if (held.old !== 0 || held.draft !== 1) {
+      problems.push(`press: with the button down, ${held.old} piece(s) of the old range and ${held.draft} of the new, expected 0 and 1`);
+    }
+    await page.mouse.up();
+    await expectState("press Fri 10:00", [16, 10], [16, 10, 30]);
+    // Left picked: the next step's press on an event must clear it.
 
     // ── 6. a press on an event is the event's ───────────────────────────────
     await scrollTo(720);
@@ -299,6 +319,7 @@ async (page) => {
     if (!ev) problems.push("event press: harness: no Interview block in the demo");
     else {
       if (!ev.hit) problems.push("event press: the Interview block is not what a press at its centre hits");
+      // A range is picked (5b): opening an event abandons it.
       await page.mouse.click(ev.x, ev.y);
       await expectState("event press", null);
     }
