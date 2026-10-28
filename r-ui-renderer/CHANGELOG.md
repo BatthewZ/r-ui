@@ -10,7 +10,8 @@ host or a script is recorded here, and before 1.0 it bumps the minor.
 
 - `EventCalendar` picking: a document may set `selection` (and `defaultSelection`) as a range of ISO dates or date-times with `allDay`, and `onSelectionChange` reports a pick as `{ start, end, allDay }` of ISO date-times (an all-day pick as local midnights, which `selection` reads back as those days), or `null` when it is cleared. `slotMinutes` sets the time grid's slots.
 - `EventCalendar` editing: `onEventChange` reports an event moved or resized as `{ event, kind, start, end, allDay }`, the times as ISO date-times; an event's `editable: false` keeps it put. The calendar never changes `events`: a document updates its own.
-- `renderSelection` and `Popover`'s `anchor` take code or something on screen and are not a document's: a document answers a pick with `onSelectionChange` (an action, a dialog).
+- `EventCalendar`'s `onEventDelete`: Delete or Backspace on a focused event reports it (its times as ISO date-times); the calendar removes nothing, so a document removes the event from its own state, or refuses.
+- `renderSelection`, `renderEventDetails` and `Popover`'s `anchor` take code or something on screen and are not a document's: a document answers a pick with `onSelectionChange` and an opened event with `onEventClick` (an action, a dialog).
 
 ### Changed
 

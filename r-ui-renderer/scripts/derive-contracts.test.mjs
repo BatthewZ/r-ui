@@ -63,6 +63,26 @@ describe("derive-contracts", { timeout: 60_000 }, () => {
     });
   });
 
+  it("instantiates a generic component whose default type is the library's own (`T = Card`)", () => {
+    const out = outDir("generic-default");
+    const written = run("--library", join(FIXTURES, "generic-default"), "--out", out);
+    expect(written.stderr).toBe("");
+    expect(written.status).toBe(0);
+    const { components } = JSON.parse(readFileSync(join(out, "components.json"), "utf8"));
+    // A prop typed by `T` is read at the default (`Card`, named the way the synthetic module
+    // reaches it): its type, its nested paths and its callbacks are the library type's.
+    expect(components.Board).toMatchObject({
+      props: [
+        { name: "cards", type: "readonly Card[]", required: true },
+        { name: "onPick", type: "(card: Card) => void", required: false },
+      ],
+      slots: ["card"],
+      nativeAttributes: true,
+    });
+    const paths = JSON.parse(readFileSync(join(out, "declared-paths.json"), "utf8"));
+    expect(paths.Board.paths).toEqual(["cards", "cards[]", "cards[].id", "cards[].title", "onPick"]);
+  });
+
   it("--check passes a fresh generation and goes red on a stale or missing file, naming it", () => {
     const out = outDir("check");
     expect(run("--library", join(FIXTURES, "good"), "--out", out).status).toBe(0);

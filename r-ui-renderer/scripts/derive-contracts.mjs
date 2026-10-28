@@ -126,7 +126,7 @@ function compile(root, lines, oldProgram) {
   const source = program.getSourceFile(synthetic);
   const errors = ts.getPreEmitDiagnostics(program, source).map((d) => ts.flattenDiagnosticMessageText(d.messageText, " "));
   const exports = new Map(checker.getExportsOfModule(checker.getSymbolAtLocation(source)).map((s) => [s.name, s]));
-  return { program, checker, errors, exports };
+  return { program, checker, errors, exports, source };
 }
 
 /**
@@ -156,7 +156,9 @@ function createDeriver(root, names) {
     if (parameters.length === 0) continue;
     const defaults = parameters.map((p) => first.checker.getDefaultFromTypeParameter(p));
     if (defaults.some((d) => d === undefined)) continue;
-    const args = defaults.map((d) => first.checker.typeToString(d, undefined, ts.TypeFormatFlags.NoTruncation));
+    // Written as the synthetic module reaches them: a library type through `L` (a default of
+    // `CalendarEvent` is `L.CalendarEvent` there), a literal as itself.
+    const args = defaults.map((d) => first.checker.typeToString(d, first.source, ts.TypeFormatFlags.NoTruncation));
     instantiations.push([name, `export declare const ${ids.get(name)}i: typeof L.${name}<${args.join(", ")}>;`]);
   }
   const final = compile(root, [...lines, ...instantiations.map(([, line]) => line)], first.program);
@@ -430,6 +432,14 @@ function describe(ctx, name, classNamesSeen) {
   if (propsType === null) return record;
 
   const properties = collectProperties(ctx, propsType);
+  // A generic component instantiated at its defaults (every parameter has one): a prop whose
+  // declared type mentions a type parameter (`events: readonly T[]`) is read there instead
+  // (`readonly CalendarEvent[]`), or its fields, dates and callbacks would be a bare `T`'s
+  // (none). Props that do not mention one keep their declared type (a polymorphic `as`).
+  const instance = ctx.instanceOf(name);
+  const instanceProperties = instance ? collectProperties(ctx, propsTypeOf(ctx, name, instance)) : null;
+  const parameters = (ctx.typeOf(name).getCallSignatures()[0]?.getTypeParameters() ?? []).map((p) => p.symbol.name);
+  const mentionsParameter = (text) => parameters.some((p) => new RegExp(`\\b${p}\\b`).test(text));
   const enums = {};
   const records = {};
   let native = false;
@@ -440,7 +450,8 @@ function describe(ctx, name, classNamesSeen) {
     domName ||= isNative && prop === "name";
     if (URL_ATTRIBUTES.has(prop.toLowerCase())) sink.paths.add(prop);
   };
-  for (const [prop, entry] of properties) {
+  for (const [prop, declaredEntry] of properties) {
+    let entry = declaredEntry;
     const own = isOwnProp(entry);
     if (!own) {
       readNative(prop, entry);
@@ -459,10 +470,20 @@ function describe(ctx, name, classNamesSeen) {
       continue;
     }
     if (prop === "ref" || prop === "key") continue;
+    const declared = entry.symbols.map((s) => typeText(checker, s, propType(ctx, s)));
+    const atDefaults = instanceProperties?.get(prop);
+    if (atDefaults && declared.some(mentionsParameter)) entry = atDefaults;
     const types = entry.symbols.map((s) => propType(ctx, s));
     sink.paths.add(prop);
     if (UNLISTED.has(prop)) continue;
-    let texts = [...new Set(entry.symbols.map((s, i) => typeText(checker, s, types[i])))].filter((t) => t !== "never");
+    // Read at the defaults, the written text is the declaration's `T`: say the type it is there.
+    const atDefaultsText = (t) =>
+      members(t)
+        .map((part) => oneLine(checker.typeToString(part, undefined, ts.TypeFormatFlags.NoTruncation)))
+        .join(" | ");
+    let texts = [
+      ...new Set(entry.symbols.map((s, i) => (entry === declaredEntry ? typeText(checker, s, types[i]) : atDefaultsText(types[i])))),
+    ].filter((t) => t !== "never");
     if (texts.includes("true") && texts.includes("false")) texts = ["boolean", ...texts.filter((t) => t !== "true" && t !== "false")];
     if (texts.length > 1) texts = texts.map((t) => (t.includes("=>") ? `(${t})` : t));
     const description = entry.symbols.map((s) => firstSentence(s, checker)).find(Boolean);
@@ -480,10 +501,8 @@ function describe(ctx, name, classNamesSeen) {
       walkNested(ctx, sink, prop, t, 0, new Set());
     }
   }
-  const instance = ctx.instanceOf(name);
-  if (instance) {
-    const instanceProps = propsTypeOf(ctx, name, instance);
-    for (const [prop, entry] of collectProperties(ctx, instanceProps)) if (!isOwnProp(entry)) readNative(prop, entry);
+  if (instanceProperties) {
+    for (const [prop, entry] of instanceProperties) if (!isOwnProp(entry)) readNative(prop, entry);
   }
   record.props.sort((a, b) => a.name.localeCompare(b.name));
   if (Object.keys(enums).length > 0) record.propEnums = Object.fromEntries(Object.entries(enums).sort(([a], [b]) => a.localeCompare(b)));

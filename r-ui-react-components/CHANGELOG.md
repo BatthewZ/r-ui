@@ -3,18 +3,6 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
-## Unreleased
-
-### Added
-
-- `EventCalendar<T>`: the calendar takes your own event type (`T extends CalendarEvent`), keeps your objects as they are, and hands them back typed from `onEventClick`, `onEventChange` (`CalendarEventChange<T>`) and `renderEventDetails`, every field of them, with no cast.
-- `EventCalendar`'s `renderEventDetails`: your own surface for an opened event (a description, pictures, attachments, links elsewhere), whatever it is (a `Popover` at the event, a `Drawer`, a `Dialog`). It is given the event as it is now, an `anchor` at the chip, block, bar or row that was pressed (another drawing of the event if that one goes; one actually drawn, never a hidden chip) and `close`. It stays until `close`, another event is opened, the event leaves `events`, or the view or period changes. With it, events are buttons even without `onEventClick`.
-- `EventCalendar`'s `onEventDelete`: Delete or Backspace on a focused event (the week and day views, the agenda, the month's day panel) hands your object over; the calendar removes nothing and says nothing, so the app deletes (and says so, offers an undo), confirms first, or refuses. Not while an event is picked up to move, with a modifier, or on a held key's repeats; never for `editable: false`. When the event leaves `events`, focus moves to the next event the keys reach. With it, events are buttons and say the key (`aria-keyshortcuts`).
-
-### Changed
-
-- `CalendarEvent.editable: false` now also keeps an event from being deleted (`onEventDelete`), as it keeps it from being moved or resized.
-
 ## 0.1.4
 
 ### Added
@@ -27,10 +15,14 @@ tokens or the public surface are versioned events and are recorded here.
   - `renderSelection`: your own surface for the picked range, whatever it is (a popover at the pick, a drawer, a dialog, an inline form). It is given the range, an `anchor` where the range is drawn (its last piece, measured each time it is read, so a panel beside it follows scrolling) and `clear`. It is shown while the range is drawn, and not while a new one is being picked or when the range is off the period shown. The calendar renders nothing of its own there.
   - A new press replaces the picked range on screen the moment it lands (the old range comes back if the press comes to nothing), and opening or moving an event clears it.
 - `Popover` takes `anchor`: an element, or a `PopoverAnchor` (a box measured on demand, with an optional `contextElement` whose scrolling it follows), to sit beside instead of a `Popover.Trigger`. Name the panel with `aria-label`; focus moves in on open and back where it was on close.
+- `EventCalendar<T>`: the calendar takes your own event type (`T extends CalendarEvent`), keeps your objects as they are, and hands them back typed from `onEventClick`, `onEventChange` (`CalendarEventChange<T>`) and `renderEventDetails`, every field of them, with no cast.
+- `EventCalendar`'s `renderEventDetails`: your own surface for an opened event (a description, pictures, attachments, links elsewhere), whatever it is (a `Popover` at the event, a `Drawer`, a `Dialog`). It is given the event as it is now, an `anchor` at the chip, block, bar or row that was pressed (another drawing of the event if that one goes; one actually drawn, never a hidden chip) and `close`. It stays until `close`, another event is opened, the event leaves `events`, or the view or period changes. With it, events are buttons even without `onEventClick`.
+- `EventCalendar`'s `onEventDelete`: Delete or Backspace on a focused event (the week and day views, the agenda, the month's day panel) hands your object over; the calendar removes nothing and says nothing, so the app deletes (and says so, offers an undo), confirms first, or refuses. Not while an event is picked up to move, with a modifier, or on a held key's repeats; never for `editable: false`. When the event leaves `events`, focus moves to the next event the keys reach. With it, events are buttons and say the key (`aria-keyshortcuts`).
 
 ### Changed
 
 - Floating panels (popovers, menus, tooltips, pickers) fall back to below, then above, their anchor when neither side of a side placement has room, so a panel set beside something narrow on a phone stays on screen.
+- `CalendarEvent.editable: false` now also keeps an event from being deleted (`onEventDelete`), as it keeps it from being moved or resized.
 
 ## 0.1.3
 

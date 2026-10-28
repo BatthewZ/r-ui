@@ -136,7 +136,13 @@ export const EVENT_VALUES: CuratedTable<"eventValue"> = {
   // The pressed event as the document wrote it (its times are text); a Date in one would be an
   // instant. A pick or a change says its ends as instants (a timed range keeps its times; an
   // all-day one, with `allDay`, is local midnights, which the calendar reads back as those days).
-  EventCalendar: { onDateChange: "date", onEventClick: "datetime", onSelectionChange: "datetime", onEventChange: "datetime" },
+  EventCalendar: {
+    onDateChange: "date",
+    onEventClick: "datetime",
+    onEventDelete: "datetime",
+    onSelectionChange: "datetime",
+    onEventChange: "datetime",
+  },
   DataTable: { onSelectedKeysChange: "set", onExpandedKeysChange: "set", onVisibleColumnsChange: "set" },
   VirtualizedTable: { onSelectedKeysChange: "set", onVisibleColumnsChange: "set" },
 };
