@@ -1,6 +1,6 @@
 {
   "name": "@batthewz/r-ui-react-components",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "description": "React 19 component library for the r-ui design system. Pairs with @batthewz/r-ui-css.",
   "sideEffects": [
@@ -76,7 +76,7 @@
     "browser:check": "node scripts/browser-check.mjs"
   },
   "peerDependencies": {
-    "@batthewz/r-ui-css": "^0.1.1",
+    "@batthewz/r-ui-css": "^0.1.2",
     "@floating-ui/react": "^0.27.0",
     "lucide-react": ">=0.500.0 <2.0.0",
     "react": "^19.0.0",

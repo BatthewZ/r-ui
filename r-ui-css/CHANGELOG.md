@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+### Fixed
+
+- **Inserting an element no longer restyles its parent's whole subtree.** The prose rule that holds a heading close to what follows it was written `:is(h1, …, h6) + *`. Chromium cannot narrow invalidation for a type selector before `+ *`, so on every page that loaded the package (prose or not), inserting or removing any child of any element restyled that element's whole subtree. A tooltip shown over a large canvas restyled about 4,000 elements each time, up to 50 ms. The rule now names its followers: the flow blocks the rule above it spaces, and headings. A heading followed by any other element (a `<div>`, a `<section>`, a component's root) no longer gives it 0.6 of the prose flow above; like every other `<div>` in prose, it carries its own spacing. The compile check refuses the pattern from now on.
+
 ## 0.1.1
 
 ### Fixed

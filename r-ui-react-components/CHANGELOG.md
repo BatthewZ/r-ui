@@ -3,6 +3,12 @@
 All notable changes to `@batthewz/r-ui-react-components`. Breaking changes to the domain
 tokens or the public surface are versioned events and are recorded here.
 
+## 0.1.5
+
+### Changed
+
+- Peer dependency `@batthewz/r-ui-css` is `^0.1.2`, whose prose rules no longer restyle a parent's whole subtree whenever a child is inserted or removed (a tooltip or popover shown over a large surface restyled thousands of elements each time).
+
 ## 0.1.4
 
 ### Added

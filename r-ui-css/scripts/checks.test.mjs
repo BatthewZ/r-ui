@@ -11,6 +11,7 @@ import { contrast } from "./lib/color.mjs";
 import { resolveVars } from "./lib/css.mjs";
 import { measureTheme } from "./check-contrast.mjs";
 import { forbiddenNames } from "./check-theme-rules.mjs";
+import { costlySiblingSelectors } from "./check-compile.mjs";
 import { loadDefaults, readTheme, themeFiles } from "./lib/tokens.mjs";
 
 const PKG = fileURLToPath(new URL("..", import.meta.url));
@@ -418,6 +419,49 @@ describe("compile check", () => {
     assert.equal(r.code, 1, r.out);
     assert.match(r.out, /prose: no `a:not\(\[class\]\)` rule matching .*LINK-UNDERLINE-OFFSET/);
     assert.doesNotMatch(r.out, /LINK-DECORATION/);
+  });
+
+  test("fails when a heading rule spaces whatever follows it (`+ *`)", () => {
+    const dir = tamperedCopy((d) => replaceIn(join(d, "src/prose.css"), /(:is\(h1, h2, h3, h4, h5, h6\) \+ ):is\([^)]*\)/, "$1*"));
+    const r = run("check-compile.mjs", ["--pkg", dir]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /src\/prose\.css: `:is\(h1, h2, h3, h4, h5, h6\) \+ \*` puts a type selector before a sibling combinator/);
+  });
+
+  test("flags a type selector before a sibling that matches any element, and nothing narrower", () => {
+    const dir = tamperedCopy((d) =>
+      writeFileSync(
+        join(d, "src/siblings.css"),
+        [
+          "h2 + * {}",
+          ".a, :is(h1, h2) ~ :not(h3) {}",
+          "main > p ~ * {}",
+          "h2 + *:not(:is(h3, h4)) {}",
+          "h2:not([hidden]) + * {}",
+          ".a\nh2 ~ * {}",
+          '[title=")"] h2 + * {}',
+          "h2 + p:not(.x) {}",
+          ".bar + * {}",
+          "[data-x] + * {}",
+          "* + p {}",
+          "li + li {}",
+          ":is(ul, ol) > li + li {}",
+          '[data-print~="hide"] * {}',
+          "li:nth-child(2n+1) {}",
+          "& + * {}",
+        ].join("\n"),
+      ),
+    );
+    const flagged = costlySiblingSelectors(join(dir, "src")).filter((f) => f.file.endsWith("siblings.css"));
+    assert.deepEqual(flagged.map((f) => f.selector), [
+      "h2 + *",
+      ":is(h1, h2) ~ :not(h3)",
+      "main > p ~ *",
+      "h2 + *:not(:is(h3, h4))",
+      "h2:not([hidden]) + *",
+      ".a h2 ~ *",
+      '[title=")"] h2 + *',
+    ]);
   });
 
   test("fails when the CSS does not compile", () => {

@@ -5,12 +5,13 @@
 // token (a heading size its face, a bare border the line weight), and the Tailwind
 // defaults this contract replaces generate nothing, and the print rules (the
 // `data-print` conventions, repeated table heads, prose link URLs) and the prose
-// link levers reach the output.
+// link levers reach the output. It also refuses sibling selectors that make every
+// DOM insertion restyle a whole subtree (costlySiblingSelectors).
 // Usage: node scripts/check-compile.mjs [--pkg <dir>]
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { isMain, parseArgs } from "./lib/cli.mjs";
 import { allNodes, listFiles, parse } from "./lib/css.mjs";
 import { pkgPaths, themeFiles } from "./lib/tokens.mjs";
@@ -140,6 +141,79 @@ function* sourceNodes(srcDir) {
   }
 }
 
+/** `text` split at every `sep` character outside parentheses, brackets, strings and escapes. */
+function splitTop(text, sep) {
+  const parts = [];
+  let depth = 0;
+  let quote = null;
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === "\\") i++;
+    else if (quote) {
+      if (c === quote) quote = null;
+    } else if (c === '"' || c === "'") quote = c;
+    else if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth--;
+    else if (depth === 0 && sep.includes(c)) {
+      parts.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+  parts.push(text.slice(start));
+  return parts;
+}
+
+/** `compound` with every `:not(…)` removed: a negation never narrows what it matches. */
+function withoutNots(compound) {
+  let out = compound;
+  for (let at = out.indexOf(":not("); at !== -1; at = out.indexOf(":not(")) {
+    let depth = 0;
+    let end = at + 4;
+    for (; end < out.length; end++) {
+      if (out[end] === "(") depth++;
+      else if (out[end] === ")" && --depth === 0) break;
+    }
+    out = out.slice(0, at) + out.slice(end + 1);
+  }
+  return out;
+}
+
+/** A compound that matches any element: `*`, `:not(…)`, or both. */
+const matchesAny = (compound) => compound.trim() !== "" && ["", "*"].includes(withoutNots(compound.trim()));
+
+/** A compound with no class, id, attribute or nesting `&` (outside `:not(…)`) to narrow it. */
+const unnarrowed = (compound) => !/[.#[&]/.test(withoutNots(compound));
+
+/**
+ * A selector whose subject matches any element and follows a sibling combinator
+ * after an unnarrowed compound (`h2 + *`, `:is(h1, h2) ~ :not(h3)`). Chromium
+ * cannot narrow that invalidation: inserting or removing any child of any parent
+ * restyles the parent's whole subtree, on every page that loads the stylesheet.
+ * A class, id or attribute on the left (`.bar + *`) narrows it.
+ */
+function isCostlySibling(selector) {
+  const steps = splitTop(selector, "+~");
+  if (steps.length < 2) return false;
+  const left = splitTop(steps.at(-2).trim(), " \t\n\r\f>").at(-1);
+  return Boolean(left) && unnarrowed(left) && matchesAny(steps.at(-1));
+}
+
+/** Every selector under `srcDir` that `isCostlySibling` refuses, with its file. */
+export function costlySiblingSelectors(srcDir) {
+  const found = [];
+  for (const file of listFiles(srcDir)) {
+    if (!file.endsWith(".css")) continue;
+    for (const n of allNodes(parse(readFileSync(file, "utf8")))) {
+      if (n.type !== "rule") continue;
+      for (const selector of splitTop(n.selector, ",")) {
+        if (isCostlySibling(selector)) found.push({ file, selector: selector.trim().replace(/\s+/g, " ") });
+      }
+    }
+  }
+  return found;
+}
+
 /**
  * `@theme` names (wildcard resets and `--default-*` excluded) and `@utility`
  * class names declared anywhere under src/.
@@ -211,9 +285,10 @@ export function checkCompile(pkgDir) {
   const { root, entry } = pkgPaths(pkgDir);
   const cli = findTailwind(root);
   const errors = [];
-  const declared = sourceNames(join(root, "src"));
+  const srcDir = join(root, "src");
+  const declared = sourceNames(srcDir);
   const expected = [...new Set([...declared.theme.map(utilityFor).filter(Boolean), ...EXTRA_UTILITIES, ...declared.utilities])];
-  const containers = containerSizes(join(root, "src"));
+  const containers = containerSizes(srcDir);
   for (const c of containers) {
     if (!c.lever) errors.push(`${c.name}: no :root alias back to its lever (\`${c.name}: var(--LEVER)\`), so a theme cannot move its boxes`);
     else if (c.leverDefault !== c.value) errors.push(`${c.name}: the container variant compiles to ${c.value}, but ${c.lever} defaults to ${c.leverDefault}`);
@@ -223,6 +298,9 @@ export function checkCompile(pkgDir) {
     return [`@${n}:flex`, `@max-${n}:flex`];
   });
   const roleClasses = [...ROLE_READS.map(([cls]) => cls), ...FORCED_FILLS, "aria-selected:bg-selection", ...variantClasses];
+  for (const { file, selector } of costlySiblingSelectors(srcDir)) {
+    errors.push(`${relative(root, file)}: \`${selector}\` puts a type selector before a sibling combinator that matches any element: every child inserted or removed anywhere restyles its parent's whole subtree; name the elements it spaces`);
+  }
   // A name in no namespace generates nothing, whatever it is called.
   for (const name of declared.theme) {
     if (!name.includes("--", 2) && !utilityFor(name)) errors.push(`@theme name ${name} is in no namespace this check knows: it generates nothing`);
